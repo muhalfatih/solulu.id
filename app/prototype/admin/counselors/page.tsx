@@ -7,18 +7,19 @@ import {
   CounselorApplicant,
 } from "../mock-data"
 import {
-  Users,
   CheckCircle2,
   XCircle,
   FileText,
   Search,
   Eye,
-  Shield,
-  Clock,
+  ShieldCheck,
   Mail,
   Phone,
   UserCheck,
+  GraduationCap,
   Award,
+  Clock,
+  Download,
 } from "lucide-react"
 import {
   Tabs,
@@ -26,14 +27,6 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/ui/tabs"
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -46,279 +39,316 @@ import {
   TableCell,
 } from "@/components/ui/table"
 
-export default function FreshCounselorsAdminPage() {
+export default function DistilledCounselorsPage() {
   const [applicants, setApplicants] = React.useState<CounselorApplicant[]>(MOCK_APPLICANTS)
   const [activeCounselors, setActiveCounselors] = React.useState(MOCK_ACTIVE_COUNSELORS)
-  const [previewDoc, setPreviewDoc] = React.useState<{ name: string; type: string } | null>(null)
+  const [previewDoc, setPreviewDoc] = React.useState<{ name: string; type: string; applicantName: string } | null>(null)
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
-  const [searchActive, setSearchActive] = React.useState("")
+  const [searchQuery, setSearchQuery] = React.useState("")
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 3500)
+    setTimeout(() => setToastMessage(null), 4000)
   }
 
   const handleApprove = (id: string, name: string, email: string) => {
     setApplicants((prev) =>
       prev.map((app) => (app.id === id ? { ...app, status: "approved" as const } : app))
     )
-    showToast(`✅ Undangan Supabase Auth dikirim ke ${email}. Akun mitra terverifikasi!`)
+    showToast(`Undangan aktivasi akun berhasil dikirimkan ke ${email}.`)
   }
 
   const handleReject = (id: string, name: string) => {
     setApplicants((prev) =>
       prev.map((app) => (app.id === id ? { ...app, status: "rejected" as const } : app))
     )
-    showToast(`❌ Pelamar ${name} ditolak.`)
+    showToast(`Lamaran atas nama ${name} ditolak.`)
   }
 
   const toggleCounselorStatus = (id: string) => {
     setActiveCounselors((prev) =>
       prev.map((c) => (c.id === id ? { ...c, isActive: !c.isActive } : c))
     )
-    showToast("Status keaktifan mitra diperbarui.")
+    showToast("Status praktik konselor berhasil diperbarui.")
   }
 
-  const pendingCount = applicants.filter((a) => a.status === "pending").length
+  const pendingApplicants = applicants.filter((a) => a.status === "pending")
+  const filteredCounselors = activeCounselors.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.specializations.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase()))
+  )
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-7">
-      {/* Toast */}
+    <div className="max-w-6xl mx-auto flex flex-col gap-6 pb-10">
+      {/* Toast Notification */}
       {toastMessage && (
-        <div className="p-4 rounded-2xl bg-card border border-primary/40 text-foreground text-xs shadow-md animate-in fade-in flex items-center justify-between">
-          <span>{toastMessage}</span>
-          <Button variant="ghost" size="xs" onClick={() => setToastMessage(null)}>
+        <div className="p-3.5 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-md animate-in fade-in flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="size-4 text-primary shrink-0" />
+            <span>{toastMessage}</span>
+          </span>
+          <Button variant="ghost" size="xs" onClick={() => setToastMessage(null)} className="size-6 p-0">
             ✕
           </Button>
         </div>
       )}
 
-      {/* Page Title & Tab Switcher */}
+      {/* Page Header & Navigation Tabs */}
       <Tabs defaultValue="applicants" className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 border-b border-border pb-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Verifikasi Pelamar & Direktori Mitra Konselor
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              Mitra Konselor
             </h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              Review dokumen kredensial WNI & kelola lisensi praktik mitra konselor aktif.
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Audit kualifikasi berkas legalitas dan kelola status praktik konselor terdaftar
             </p>
           </div>
 
-          <TabsList className="bg-muted p-1 rounded-xl">
+          <TabsList className="bg-muted p-1 rounded-xl shrink-0">
             <TabsTrigger value="applicants" className="flex items-center gap-2 text-xs">
-              <span>Pelamar Menunggu Review</span>
-              {pendingCount > 0 && (
-                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 font-bold">
-                  {pendingCount}
-                </Badge>
+              <span>Antrean Berkas</span>
+              {pendingApplicants.length > 0 && (
+                <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.2 rounded-full bg-primary text-primary-foreground">
+                  {pendingApplicants.length}
+                </span>
               )}
             </TabsTrigger>
             <TabsTrigger value="active" className="flex items-center gap-2 text-xs">
-              <span>Mitra Terverifikasi ({activeCounselors.length})</span>
+              <span>Konselor Terdaftar</span>
+              <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.2 rounded-full bg-muted-foreground/20 text-muted-foreground">
+                {activeCounselors.length}
+              </span>
             </TabsTrigger>
           </TabsList>
         </div>
 
-        {/* TAB 1: APPLICANTS */}
+        {/* TAB 1: APPLICANTS QUEUE */}
         <TabsContent value="applicants" className="flex flex-col gap-5 mt-0">
-          <div className="p-4 rounded-2xl bg-muted/40 border border-border text-xs text-muted-foreground flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <Shield className="size-4 text-primary shrink-0" />
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="size-4 text-primary shrink-0" />
               <span>
-                Seluruh berkas pelamar (KTP, Ijazah, CV, STR) tersimpan di <strong>Cloudflare R2 Private Bucket</strong>.
-                Akses dokumen diverifikasi menggunakan tautan presigned URL bertenggat 15 menit.
+                Berkas disimpan terenkripsi di Private Bucket Cloudflare R2 (akses presigned 15 menit).
               </span>
             </div>
-            <Badge variant="outline" className="text-[10px] font-mono hidden sm:inline-flex">
-              ADR-0002
-            </Badge>
+            <span className="tabular-nums font-medium text-foreground">
+              {pendingApplicants.length} pelamar butuh verifikasi
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {applicants.map((app) => (
-              <Card
+              <div
                 key={app.id}
-                className={`p-6 flex flex-col justify-between gap-4 transition-all ${
+                className={`rounded-2xl border bg-card p-5 flex flex-col justify-between gap-5 transition-colors ${
                   app.status === "approved"
-                    ? "bg-primary/5 border-primary/40"
+                    ? "border-primary/40 bg-primary/5"
                     : app.status === "rejected"
-                    ? "bg-destructive/5 border-destructive/30 opacity-70"
-                    : "hover:border-border/80"
+                    ? "border-destructive/30 bg-destructive/5 opacity-70"
+                    : "border-border"
                 }`}
               >
                 <div className="flex flex-col gap-4">
-                  <div className="flex items-start justify-between">
+                  {/* Card Header */}
+                  <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h2 className="font-bold text-foreground text-base">{app.name}</h2>
-                      <Badge variant="outline" className="mt-1 text-[11px]">
-                        {app.type}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <h2 className="font-semibold text-foreground text-base">{app.name}</h2>
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-medium">
+                          {app.type}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                        <span className="flex items-center gap-1">
+                          <Mail className="size-3" />
+                          <span>{app.email}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Phone className="size-3" />
+                          <span>{app.phone}</span>
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                      <Clock className="size-3.5" />
-                      <span>{app.appliedAt}</span>
+
+                    <span className="text-[11px] text-muted-foreground tabular-nums whitespace-nowrap">
+                      {app.appliedAt}
                     </span>
                   </div>
 
-                  <div className="text-xs text-foreground bg-muted/30 p-3.5 rounded-xl border border-border flex flex-col gap-1.5">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="size-3.5" />
-                      <span>{app.email}</span>
+                  {/* Clinical Background Data: Flat, clean rhythm without nested borders */}
+                  <div className="flex flex-col gap-2 text-xs pt-1 border-t border-border/60">
+                    <div className="flex items-start gap-2 text-muted-foreground">
+                      <GraduationCap className="size-3.5 text-foreground shrink-0 mt-0.5" />
+                      <span className="text-foreground">{app.education}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="size-3.5" />
-                      <span>{app.phone}</span>
-                    </div>
-                    <div className="text-muted-foreground pt-1">
-                      <span className="text-foreground font-semibold">Pendidikan:</span>{" "}
-                      {app.education}
-                    </div>
+
                     {app.strNumber && (
-                      <div className="text-primary font-mono text-[11px] font-bold">
-                        STR: {app.strNumber} (Aktif)
+                      <div className="flex items-center gap-2 font-mono text-xs">
+                        <Award className="size-3.5 text-primary shrink-0" />
+                        <span className="text-muted-foreground">STR:</span>
+                        <span className="font-semibold text-foreground">{app.strNumber}</span>
+                        <Badge variant="secondary" className="text-[9px] py-0 px-1 text-emerald-600 dark:text-emerald-400">
+                          Aktif
+                        </Badge>
                       </div>
                     )}
-                    <p className="text-[11px] text-muted-foreground pt-1 italic line-clamp-2">
+
+                    <p className="text-[11px] text-muted-foreground italic leading-relaxed pt-1">
                       &ldquo;{app.bio}&rdquo;
                     </p>
                   </div>
 
-                  {/* Document Inspection Buttons */}
-                  <div className="flex flex-col gap-2">
-                    <div className="text-[11px] font-semibold text-foreground">
-                      Inspeksi Berkas Unggahan:
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
+                  {/* Document Audit Actions */}
+                  <div className="flex flex-col gap-2 pt-2 border-t border-border/60">
+                    <span className="text-[11px] font-medium text-foreground">
+                      Audit Berkas Unggahan:
+                    </span>
+
+                    <div className="grid grid-cols-2 gap-2">
                       <Button
                         variant="outline"
-                        size="sm"
-                        onClick={() => setPreviewDoc({ name: "KTP WNI", type: "ktp" })}
-                        className="justify-between h-9 text-xs"
+                        size="xs"
+                        onClick={() => setPreviewDoc({ name: "KTP Elektronik (WNI)", type: "ktp", applicantName: app.name })}
+                        className="h-8 justify-between text-xs font-normal"
                       >
-                        <span className="flex items-center gap-1.5 font-medium">
-                          <FileText className="size-3.5 text-primary" /> KTP.pdf
+                        <span className="flex items-center gap-1.5 truncate">
+                          <FileText className="size-3 text-primary shrink-0" />
+                          <span className="truncate">KTP.pdf</span>
                         </span>
-                        <Eye className="size-3.5 text-muted-foreground" />
+                        <Eye className="size-3 text-muted-foreground shrink-0 ml-1" />
                       </Button>
+
                       <Button
                         variant="outline"
-                        size="sm"
-                        onClick={() => setPreviewDoc({ name: "Ijazah Terakhir", type: "diploma" })}
-                        className="justify-between h-9 text-xs"
+                        size="xs"
+                        onClick={() => setPreviewDoc({ name: "Ijazah Profesi / Akademik", type: "diploma", applicantName: app.name })}
+                        className="h-8 justify-between text-xs font-normal"
                       >
-                        <span className="flex items-center gap-1.5 font-medium">
-                          <FileText className="size-3.5 text-primary" /> Ijazah.pdf
+                        <span className="flex items-center gap-1.5 truncate">
+                          <FileText className="size-3 text-primary shrink-0" />
+                          <span className="truncate">Ijazah.pdf</span>
                         </span>
-                        <Eye className="size-3.5 text-muted-foreground" />
+                        <Eye className="size-3 text-muted-foreground shrink-0 ml-1" />
                       </Button>
+
                       <Button
                         variant="outline"
-                        size="sm"
-                        onClick={() => setPreviewDoc({ name: "Curriculum Vitae", type: "cv" })}
-                        className="justify-between h-9 text-xs"
+                        size="xs"
+                        onClick={() => setPreviewDoc({ name: "Curriculum Vitae", type: "cv", applicantName: app.name })}
+                        className="h-8 justify-between text-xs font-normal"
                       >
-                        <span className="flex items-center gap-1.5 font-medium">
-                          <FileText className="size-3.5 text-primary" /> CV.pdf
+                        <span className="flex items-center gap-1.5 truncate">
+                          <FileText className="size-3 text-primary shrink-0" />
+                          <span className="truncate">CV.pdf</span>
                         </span>
-                        <Eye className="size-3.5 text-muted-foreground" />
+                        <Eye className="size-3 text-muted-foreground shrink-0 ml-1" />
                       </Button>
+
                       <Button
                         variant="outline"
-                        size="sm"
+                        size="xs"
                         disabled={!app.documents.str}
                         onClick={() =>
-                          app.documents.str && setPreviewDoc({ name: "Surat Tanda Registrasi", type: "str" })
+                          app.documents.str &&
+                          setPreviewDoc({ name: "Surat Tanda Registrasi (STR/SIP)", type: "str", applicantName: app.name })
                         }
-                        className="justify-between h-9 text-xs"
+                        className="h-8 justify-between text-xs font-normal"
                       >
-                        <span className="flex items-center gap-1.5 font-medium">
-                          <Award className="size-3.5 text-primary" /> STR.pdf
+                        <span className="flex items-center gap-1.5 truncate">
+                          <Award className="size-3 text-primary shrink-0" />
+                          <span className="truncate">STR.pdf</span>
                         </span>
-                        {app.documents.str && <Eye className="size-3.5 text-muted-foreground" />}
+                        {app.documents.str ? (
+                          <Eye className="size-3 text-muted-foreground shrink-0 ml-1" />
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/60">-</span>
+                        )}
                       </Button>
                     </div>
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="pt-2 border-t border-border flex items-center gap-2.5">
+                {/* Audit Decision Controls */}
+                <div className="pt-3 border-t border-border flex items-center gap-2">
                   {app.status === "pending" ? (
                     <>
                       <Button
                         size="sm"
                         onClick={() => handleApprove(app.id, app.name, app.email)}
-                        className="flex-1 text-xs font-semibold gap-1.5"
+                        className="flex-1 text-xs font-medium h-8"
                       >
-                        <UserCheck className="size-4" />
-                        <span>Setujui & Undang</span>
+                        <UserCheck className="size-3.5 mr-1.5" />
+                        <span>Setujui & Kirim Undangan</span>
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleReject(app.id, app.name)}
-                        className="text-xs text-destructive hover:bg-destructive/10"
+                        className="text-xs text-destructive hover:bg-destructive/10 h-8"
                       >
-                        Tolak
+                        Tolak Berkas
                       </Button>
                     </>
                   ) : app.status === "approved" ? (
-                    <div className="w-full py-2 rounded-xl bg-primary/10 border border-primary/30 text-primary text-xs text-center font-bold flex items-center justify-center gap-1.5">
-                      <CheckCircle2 className="size-4" />
-                      <span>Akun Mitra Terverifikasi</span>
+                    <div className="w-full py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium flex items-center justify-center gap-1.5">
+                      <CheckCircle2 className="size-3.5" />
+                      <span>Akun Terverifikasi</span>
                     </div>
                   ) : (
-                    <div className="w-full py-2 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs text-center font-bold flex items-center justify-center gap-1.5">
-                      <XCircle className="size-4" />
+                    <div className="w-full py-1.5 rounded-lg bg-destructive/10 text-destructive text-xs font-medium flex items-center justify-center gap-1.5">
+                      <XCircle className="size-3.5" />
                       <span>Lamaran Ditolak</span>
                     </div>
                   )}
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         </TabsContent>
 
-        {/* TAB 2: ACTIVE DIRECTORY */}
+        {/* TAB 2: REGISTERED COUNSELORS DIRECTORY */}
         <TabsContent value="active" className="flex flex-col gap-4 mt-0">
-          <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-card rounded-2xl border border-border shadow-xs">
-            <div className="flex items-center gap-2 flex-1 max-w-sm">
-              <Search className="size-4 text-muted-foreground" />
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-card">
+            <div className="flex items-center gap-2 flex-1 w-full sm:max-w-sm">
+              <Search className="size-3.5 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Cari nama konselor, spesialisasi..."
-                value={searchActive}
-                onChange={(e) => setSearchActive(e.target.value)}
-                className="h-8 text-xs bg-transparent"
+                placeholder="Cari nama konselor atau bidang spesialisasi..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 text-xs bg-transparent border-0 shadow-none focus-visible:ring-0 p-0 placeholder:text-muted-foreground"
               />
             </div>
-            <span className="text-xs text-muted-foreground font-medium">
-              Menampilkan {activeCounselors.length} Mitra Konselor
+            <span className="text-xs text-muted-foreground tabular-nums">
+              Menampilkan {filteredCounselors.length} dari {activeCounselors.length} mitra
             </span>
           </div>
 
-          <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs">
+          <div className="border border-border rounded-xl bg-card overflow-hidden">
             <Table className="text-xs">
-              <TableHeader className="bg-muted/50">
+              <TableHeader className="bg-muted/40">
                 <TableRow>
-                  <TableHead className="py-3.5 px-4">Nama & Gelar</TableHead>
-                  <TableHead className="py-3.5 px-3">Tipe & STR</TableHead>
-                  <TableHead className="py-3.5 px-3">Kontak</TableHead>
-                  <TableHead className="py-3.5 px-3">Total Sesi</TableHead>
-                  <TableHead className="py-3.5 px-3">Spesialisasi</TableHead>
-                  <TableHead className="py-3.5 px-3">Status</TableHead>
-                  <TableHead className="py-3.5 px-4 text-right">Aksi</TableHead>
+                  <TableHead className="py-2.5 px-4 font-medium">Konselor</TableHead>
+                  <TableHead className="py-2.5 px-3 font-medium">Kualifikasi</TableHead>
+                  <TableHead className="py-2.5 px-3 font-medium">Kontak</TableHead>
+                  <TableHead className="py-2.5 px-3 font-medium">Total Sesi</TableHead>
+                  <TableHead className="py-2.5 px-3 font-medium">Fokus Layanan</TableHead>
+                  <TableHead className="py-2.5 px-3 font-medium">Status</TableHead>
+                  <TableHead className="py-2.5 px-4 font-medium text-right">Tindakan</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {activeCounselors.map((c) => (
-                  <TableRow key={c.id} className="hover:bg-muted/40 transition-colors">
-                    <TableCell className="py-4 px-4">
-                      <div className="font-bold text-foreground text-sm">{c.name}</div>
+                {filteredCounselors.map((c) => (
+                  <TableRow key={c.id} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="py-3 px-4">
+                      <div className="font-semibold text-foreground">{c.name}</div>
                       <div className="text-[11px] text-muted-foreground">{c.title}</div>
                     </TableCell>
-                    <TableCell className="py-4 px-3">
-                      <Badge variant="outline" className="text-[10px] font-bold">
+
+                    <TableCell className="py-3 px-3">
+                      <Badge variant="outline" className="text-[10px] font-normal">
                         {c.type}
                       </Badge>
                       {c.strNumber && (
@@ -327,35 +357,54 @@ export default function FreshCounselorsAdminPage() {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="py-4 px-3 text-[11px]">
-                      <div className="text-foreground font-medium">{c.email}</div>
+
+                    <TableCell className="py-3 px-3 text-[11px]">
+                      <div className="text-foreground">{c.email}</div>
                       <div className="text-muted-foreground">{c.phone}</div>
                     </TableCell>
-                    <TableCell className="py-4 px-3 font-bold text-foreground">
+
+                    <TableCell className="py-3 px-3 tabular-nums font-medium text-foreground">
                       {c.totalSessions} sesi
                     </TableCell>
-                    <TableCell className="py-4 px-3">
+
+                    <TableCell className="py-3 px-3">
                       <div className="flex flex-wrap gap-1 max-w-xs">
-                        {c.specializations.map((s) => (
-                          <Badge key={s} variant="secondary" className="text-[10px] py-0 px-1.5 font-normal">
-                            {s}
-                          </Badge>
+                        {c.specializations.map((spec) => (
+                          <span
+                            key={spec}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                          >
+                            {spec}
+                          </span>
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell className="py-4 px-3">
-                      <Badge variant={c.isActive ? "default" : "outline"} className="text-[10px]">
-                        {c.isActive ? "Aktif" : "Nonaktif"}
-                      </Badge>
+
+                    <TableCell className="py-3 px-3">
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${
+                          c.isActive
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        <span
+                          className={`size-1.5 rounded-full ${
+                            c.isActive ? "bg-emerald-500" : "bg-muted-foreground/40"
+                          }`}
+                        />
+                        <span>{c.isActive ? "Praktik Aktif" : "Ditangguhkan"}</span>
+                      </span>
                     </TableCell>
-                    <TableCell className="py-4 px-4 text-right">
+
+                    <TableCell className="py-3 px-4 text-right">
                       <Button
-                        variant={c.isActive ? "outline" : "default"}
+                        variant="outline"
                         size="xs"
                         onClick={() => toggleCounselorStatus(c.id)}
-                        className="text-[11px]"
+                        className="h-7 text-xs"
                       >
-                        {c.isActive ? "Nonaktifkan" : "Aktifkan"}
+                        {c.isActive ? "Tangguhkan" : "Aktifkan"}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -366,39 +415,54 @@ export default function FreshCounselorsAdminPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Document Preview Modal */}
+      {/* Document Preview Modal: Realistic, crisp, no tech jargon */}
       {previewDoc && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <Card className="max-w-lg w-full p-6 flex flex-col gap-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h2 className="font-bold text-foreground text-sm flex items-center gap-2">
-                <FileText className="size-4 text-primary" />
-                <span>Simulasi Preview Berkas: {previewDoc.name}</span>
-              </h2>
-              <Button variant="ghost" size="xs" onClick={() => setPreviewDoc(null)}>
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-card border border-border rounded-2xl max-w-md w-full p-5 flex flex-col gap-4 shadow-xl">
+            <div className="flex items-start justify-between border-b border-border pb-3">
+              <div>
+                <h2 className="font-semibold text-foreground text-sm flex items-center gap-2">
+                  <FileText className="size-4 text-primary" />
+                  <span>{previewDoc.name}</span>
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Pemilik berkas: {previewDoc.applicantName}
+                </p>
+              </div>
+              <Button variant="ghost" size="xs" onClick={() => setPreviewDoc(null)} className="size-6 p-0">
                 ✕
               </Button>
             </div>
 
-            <div className="p-8 bg-muted/30 rounded-2xl border border-border flex flex-col items-center justify-center text-center gap-3">
-              <FileText className="size-12 text-muted-foreground animate-pulse" />
-              <div className="font-bold text-foreground text-sm">
-                [Dokumen Terenkripsi Presigned Cloudflare R2]
+            <div className="p-6 bg-muted/30 rounded-xl border border-border flex flex-col items-center justify-center text-center gap-3">
+              <FileText className="size-10 text-primary/70" />
+              <div>
+                <div className="text-xs font-semibold text-foreground">
+                  Pratinjau Dokumen PDF Aman
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  Tervalidasi via tautan sementara Cloudflare R2
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
-                Tautan presigned URL aman digenerate dengan masa berlaku 15 menit. Admin dapat
-                memverifikasi keaslian dokumen tanpa perlu mendownload permanen di server Vercel.
-              </p>
+
+              <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-background px-2.5 py-1 rounded-full border border-border">
+                <Clock className="size-3 text-amber-500" />
+                <span>Tautan kedaluwarsa dalam 14:52 menit</span>
+              </div>
             </div>
 
-            <div className="flex justify-end pt-2">
-              <Button size="sm" onClick={() => setPreviewDoc(null)}>
-                Tutup Preview
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] text-muted-foreground">
+                Integritas berkas SHA-256: Terverifikasi
+              </span>
+              <Button size="sm" onClick={() => setPreviewDoc(null)} className="h-8 text-xs">
+                Tutup Pratinjau
               </Button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
     </div>
   )
 }
+
