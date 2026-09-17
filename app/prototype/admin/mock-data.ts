@@ -53,6 +53,7 @@ export interface BookingSession {
   counselorType: "Psikolog Klinis" | "Konselor Sebaya"
   date: string
   timeRange: string
+  hoursUntilSession: number // For H-12 rule test
   status: "in_session" | "confirmed" | "completed" | "cancelled"
   zoomRoom: string
   zoomJoinUrl: string
@@ -64,6 +65,20 @@ export interface BookingSession {
   voucherCode?: string
 }
 
+export interface ActiveCounselor {
+  id: string
+  name: string
+  title: string
+  type: "Psikolog Klinis" | "Konselor Sebaya"
+  email: string
+  phone: string
+  strNumber?: string
+  totalSessions: number
+  isActive: boolean
+  joinedDate: string
+  specializations: string[]
+}
+
 export interface VoucherItem {
   code: string
   discount: string
@@ -73,31 +88,42 @@ export interface VoucherItem {
   expiryDate: string
 }
 
+export interface GalleryItem {
+  id: string
+  title: string
+  caption: string
+  date: string
+  category: "Webinar" | "Workshop" | "Sharing Session" | "Community"
+  imageUrl: string
+  isCensoredAndConsented: boolean
+  uploadedBy: string
+}
+
 export const MOCK_METRICS: StatMetric[] = [
   {
     label: "Sesi Hari Ini",
     value: "8 Sesi",
-    subtext: "2 berlangsung • 4 selesai • 2 mendatang",
+    subtext: "2 live • 4 selesai • 2 mendatang",
     trend: "+25% vs kemarin",
     trendUp: true,
   },
   {
     label: "Omzet Bulan Ini",
     value: "Rp 4.850.000",
-    subtext: "Dari 46 total sesi tervalidasi",
-    trend: "82% dari target",
+    subtext: "Dari 46 sesi terselesaikan",
+    trend: "82% target",
     trendUp: true,
   },
   {
     label: "Slot Hold (Pending)",
     value: "2 Transaksi",
-    subtext: "Menunggu webhook Xendit (15m lock)",
+    subtext: "Batas 15 menit Xendit invoice",
   },
   {
     label: "Pelamar Mitra Baru",
     value: "3 Kandidat",
-    subtext: "2 menunggu review dokumen",
-    trend: "Butuh tindakan",
+    subtext: "2 butuh review dokumen KTP/STR",
+    trend: "Tindakan diperlukan",
     trendUp: false,
   },
 ]
@@ -105,25 +131,25 @@ export const MOCK_METRICS: StatMetric[] = [
 export const MOCK_ZOOM_ACCOUNTS: ZoomAccount[] = [
   {
     id: "zoom-1",
-    name: "Akun Zoom Pro 1 (Primary)",
+    name: "Akun Zoom Pro 1 (Primary Host)",
     email: "solulu.room1@gmail.com",
     status: "in_session",
     currentMeeting: {
       code: "SL-9281",
-      counselor: "Sarah Annisa, M.Psi",
+      counselor: "Sarah Annisa, M.Psi., Psikolog",
       patient: "Anindya Putri",
       timeRange: "19:00 – 20:30 WIB",
     },
     safetyLock: {
       isLocked: true,
-      reason: "Terkunci: Memiliki 1 sesi berlangsung dan 2 sesi mendatang terkonfirmasi.",
+      reason: "Terkunci: Memiliki 1 sesi berlangsung & 2 sesi mendatang. Kredensial tidak dapat diubah demi menjaga kelancaran ruang konsultasi pasien.",
       upcomingCount: 3,
     },
     tokenExpiresIn: "48 menit (OAuth Cached)",
   },
   {
     id: "zoom-2",
-    name: "Akun Zoom Pro 2 (Backup & Overflow)",
+    name: "Akun Zoom Pro 2 (Backup & Overlap)",
     email: "solulu.room2@gmail.com",
     status: "in_session",
     currentMeeting: {
@@ -152,7 +178,7 @@ export const MOCK_APPLICANTS: CounselorApplicant[] = [
     status: "pending",
     strNumber: "1902837482910",
     education: "Magister Psikologi Profesi Klinis - Universitas Indonesia",
-    bio: "Berpengalaman menangani kecemasan, depresi, trauma, dan burnout pada dewasa muda selama 5 tahun.",
+    bio: "Berpengalaman 5 tahun dalam intervensi klinis dewasa muda, penanganan gangguan kecemasan umum, depresi, dan trauma.",
     documents: {
       ktp: true,
       cv: true,
@@ -185,10 +211,11 @@ export const MOCK_SESSIONS: BookingSession[] = [
     code: "SL-9281",
     patientName: "Anindya Putri",
     patientContact: "anindya.p@gmail.com • 0811-2233-4455",
-    counselorName: "Sarah Annisa, M.Psi",
+    counselorName: "Sarah Annisa, M.Psi., Psikolog",
     counselorType: "Psikolog Klinis",
-    date: "17 Sep 2026",
+    date: "17 Sep 2026 (Hari Ini)",
     timeRange: "19:00 – 20:30 WIB",
+    hoursUntilSession: 2, // < 12 hours -> BLOCKED RESCHEDULE SCENARIO
     status: "in_session",
     zoomRoom: "Zoom Pro 1",
     zoomJoinUrl: "https://zoom.us/j/8821938192",
@@ -199,33 +226,53 @@ export const MOCK_SESSIONS: BookingSession[] = [
   },
   {
     id: "b-2",
+    code: "SL-9285",
+    patientName: "Gita Rahmawati",
+    patientContact: "gita.r@gmail.com • 0812-4455-6677",
+    counselorName: "Sarah Annisa, M.Psi., Psikolog",
+    counselorType: "Psikolog Klinis",
+    date: "22 Sep 2026 (Selasa)",
+    timeRange: "19:00 – 20:30 WIB",
+    hoursUntilSession: 116, // > 12 hours -> ALLOWED RESCHEDULE SCENARIO
+    status: "confirmed",
+    zoomRoom: "Zoom Pro 1",
+    zoomJoinUrl: "https://zoom.us/j/9928172615",
+    srqScore: 4,
+    hasSuicidalThoughts: false,
+    paymentMethod: "BCA Virtual Account",
+    amount: 150000,
+  },
+  {
+    id: "b-3",
     code: "SL-9282",
     patientName: "Dimas Arya",
     patientContact: "dimas.a@gmail.com • 0813-9988-7766",
     counselorName: "Rian Hidayat, S.Psi",
     counselorType: "Konselor Sebaya",
-    date: "17 Sep 2026",
+    date: "17 Sep 2026 (Hari Ini)",
     timeRange: "19:30 – 21:00 WIB",
+    hoursUntilSession: 3,
     status: "in_session",
     zoomRoom: "Zoom Pro 2",
     zoomJoinUrl: "https://zoom.us/j/7712391029",
-    srqScore: 10,
+    srqScore: 12,
     hasSuicidalThoughts: true,
     waiverSigned: true,
     paymentMethod: "GoPay Xendit",
     amount: 75000,
   },
   {
-    id: "b-3",
+    id: "b-4",
     code: "SL-9283",
     patientName: "Clara Susanti",
     patientContact: "clara.s@outlook.com • 0852-1144-8833",
-    counselorName: "Sarah Annisa, M.Psi",
+    counselorName: "Sarah Annisa, M.Psi., Psikolog",
     counselorType: "Psikolog Klinis",
     date: "17 Sep 2026",
     timeRange: "21:00 – 22:30 WIB",
+    hoursUntilSession: 4,
     status: "confirmed",
-    zoomRoom: "Zoom Pro 1 (Dispatched)",
+    zoomRoom: "Zoom Pro 1",
     zoomJoinUrl: "https://zoom.us/j/9910238122",
     srqScore: 3,
     hasSuicidalThoughts: false,
@@ -234,7 +281,7 @@ export const MOCK_SESSIONS: BookingSession[] = [
     voucherCode: "SOLULUBARU",
   },
   {
-    id: "b-4",
+    id: "b-5",
     code: "SL-9279",
     patientName: "Faisal Rahman",
     patientContact: "faisal.r@gmail.com • 0821-7733-1100",
@@ -242,6 +289,7 @@ export const MOCK_SESSIONS: BookingSession[] = [
     counselorType: "Konselor Sebaya",
     date: "17 Sep 2026",
     timeRange: "16:00 – 17:30 WIB",
+    hoursUntilSession: -2,
     status: "completed",
     zoomRoom: "Zoom Pro 1",
     zoomJoinUrl: "https://zoom.us/j/6619283019",
@@ -255,7 +303,6 @@ export const MOCK_SESSIONS: BookingSession[] = [
 export const MOCK_PRICING = {
   peerRate: 75000,
   psychologistRate: 150000,
-  peerPromoRate: 60000,
 }
 
 export const MOCK_VOUCHERS: VoucherItem[] = [
@@ -284,31 +331,6 @@ export const MOCK_VOUCHERS: VoucherItem[] = [
     expiryDate: "10 Sep 2026",
   },
 ]
-
-export interface ActiveCounselor {
-  id: string
-  name: string
-  title: string
-  type: "Psikolog Klinis" | "Konselor Sebaya"
-  email: string
-  phone: string
-  strNumber?: string
-  totalSessions: number
-  isActive: boolean
-  joinedDate: string
-  specializations: string[]
-}
-
-export interface GalleryItem {
-  id: string
-  title: string
-  caption: string
-  date: string
-  category: "Webinar" | "Workshop" | "Sharing Session" | "Community"
-  imageUrl: string
-  isCensoredAndConsented: boolean
-  uploadedBy: string
-}
 
 export const MOCK_ACTIVE_COUNSELORS: ActiveCounselor[] = [
   {
@@ -339,7 +361,7 @@ export const MOCK_ACTIVE_COUNSELORS: ActiveCounselor[] = [
   {
     id: "c-3",
     name: "Nabila Safitri, S.Psi",
-    title: "Konselor Sebaya Remaja & Dewasa",
+    title: "Konselor Sebaya Remaja",
     type: "Konselor Sebaya",
     email: "nabila.safitri@solulu.id",
     phone: "0877-4455-6677",
@@ -348,26 +370,13 @@ export const MOCK_ACTIVE_COUNSELORS: ActiveCounselor[] = [
     joinedDate: "20 Juli 2026",
     specializations: ["Self-Harm Urges", "Manajemen Emosi", "Keluarga"],
   },
-  {
-    id: "c-4",
-    name: "Dimas Wicaksono, M.Psi., Psikolog",
-    title: "Psikolog Klinis Klinikal",
-    type: "Psikolog Klinis",
-    email: "dimas.w@solulu.id",
-    phone: "0813-8899-0011",
-    strNumber: "2001928374112",
-    totalSessions: 42,
-    isActive: false,
-    joinedDate: "15 Apr 2026",
-    specializations: ["Bipolar", "Kecemasan Akut", "PTSD"],
-  },
 ]
 
 export const MOCK_GALLERY_ITEMS: GalleryItem[] = [
   {
     id: "g-1",
-    title: "Webinar Kesehatan Mental Gen-Z: Mengelola Quarter-Life Crisis",
-    caption: "Sesi edukasi publik dihadiri 120+ peserta via Zoom. Seluruh tampilan wajah peserta telah disensor blur sesuai protokol privasi.",
+    title: "Webinar Kesehatan Mental Gen-Z: Mengatasi Quarter-Life Crisis",
+    caption: "Sesi edukasi publik dihadiri 120+ peserta via Zoom. Seluruh tampilan wajah peserta telah disensor blur sesuai protokol privasi ADR-0002.",
     date: "10 Sep 2026",
     category: "Webinar",
     imageUrl: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=600&auto=format&fit=crop&q=80",
@@ -376,23 +385,12 @@ export const MOCK_GALLERY_ITEMS: GalleryItem[] = [
   },
   {
     id: "g-2",
-    title: "Sharing Circle Mitra Konselor: Supervisi Kasus Klinis",
-    caption: "Pertemuan rutin supervisi klinis bulanan bersama psikolog profesional untuk menjaga kualitas pendampingan.",
+    title: "Supervisi Kasus Klinis Mitra Konselor Bulanan",
+    caption: "Pertemuan berkala pembinaan klinis bersama psikolog penanggung jawab guna menjaga etika pendampingan.",
     date: "28 Agu 2026",
     category: "Sharing Session",
     imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80",
     isCensoredAndConsented: true,
     uploadedBy: "Admin Operasional",
   },
-  {
-    id: "g-3",
-    title: "Workshop Peer Listening: Keterampilan Mendengar Empatis",
-    caption: "Pelatihan pendamping sebaya angkatan ke-2, fokus pada de-eskalasi emosi dan rujukan darurat klinis.",
-    date: "14 Agu 2026",
-    category: "Workshop",
-    imageUrl: "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=600&auto=format&fit=crop&q=80",
-    isCensoredAndConsented: true,
-    uploadedBy: "Admin Operasional",
-  },
 ]
-

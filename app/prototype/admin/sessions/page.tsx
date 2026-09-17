@@ -6,21 +6,38 @@ import {
   Calendar,
   Clock,
   Copy,
-  ExternalLink,
   Search,
   Filter,
-  CheckCircle2,
   AlertTriangle,
   Send,
   Video,
+  CheckCircle2,
+  ShieldAlert,
 } from "lucide-react"
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table"
 
-export default function SessionsAdminPage() {
+export default function FreshSessionsAdminPage() {
   const [sessions, setSessions] = React.useState<BookingSession[]>(MOCK_SESSIONS)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
-  const [selectedSessionForReschedule, setSelectedSessionForReschedule] =
-    React.useState<BookingSession | null>(null)
+  const [selectedSession, setSelectedSession] = React.useState<BookingSession | null>(null)
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
 
   const showToast = (msg: string) => {
@@ -47,275 +64,295 @@ export default function SessionsAdminPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-7">
+    <div className="max-w-6xl mx-auto flex flex-col gap-7">
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-500/70 text-emerald-900 dark:text-emerald-200 text-xs shadow-md animate-in fade-in">
-          {toastMessage}
+        <div className="p-4 rounded-2xl bg-card border border-primary/40 text-foreground text-xs shadow-md animate-in fade-in flex items-center justify-between">
+          <span>{toastMessage}</span>
+          <Button variant="ghost" size="xs" onClick={() => setToastMessage(null)}>
+            ✕
+          </Button>
         </div>
       )}
 
       {/* Page Title */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 dark:border-neutral-800 pb-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Manajemen Sesi, Overlap & Reschedule
           </h1>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-            Pantau status alokasi sesi 90 menit, mitigasi klinis SRQ-20, dan eksekusi reschedule semi-otomatis.
+          <p className="text-xs text-muted-foreground mt-1">
+            Pantau status alokasi sesi 90 menit, mitigasi klinis SRQ-20, dan simulasi dua skenario aturan H-12 jam.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-xs text-neutral-700 dark:text-neutral-300 font-mono shadow-xs">
+        <Badge variant="outline" className="px-3.5 py-1.5 text-xs font-mono">
           <span>Durasi Sesi:</span>
-          <span className="text-emerald-700 dark:text-emerald-400 font-bold">Fixed 90 Menit</span>
-        </div>
+          <span className="text-primary font-bold ml-1">Fixed 90 Menit</span>
+        </Badge>
       </div>
 
+      {/* Interactive Scenario Guide Banner */}
+      <Card className="p-4 bg-muted/30 border-border flex flex-col gap-2 shadow-xs">
+        <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+          <ShieldAlert className="size-4 text-primary shrink-0" />
+          <span>Simulasi 2 Kasus Reschedule (Aturan H-12 Jam):</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-muted-foreground">
+          <div className="p-2.5 rounded-xl bg-card border border-border flex flex-col gap-0.5">
+            <span className="font-semibold text-foreground">Skenario 1: Sesi Terjadwal Hari Ini (&lt; 12 Jam)</span>
+            <p className="text-[11px]">
+              Klik tombol &ldquo;Reschedule&rdquo; pada sesi <strong className="text-primary">SL-9281</strong> untuk melihat dialog penolakan otomatis demi melindungi alokasi Zoom.
+            </p>
+          </div>
+          <div className="p-2.5 rounded-xl bg-card border border-border flex flex-col gap-0.5">
+            <span className="font-semibold text-foreground">Skenario 2: Sesi Terjadwal Pekan Depan (&gt; 12 Jam)</span>
+            <p className="text-[11px]">
+              Klik tombol &ldquo;Reschedule&rdquo; pada sesi <strong className="text-primary">SL-9285</strong> untuk memindahkan slot dan memicu email link baru ke pasien.
+            </p>
+          </div>
+        </div>
+      </Card>
+
       {/* Filter and Search Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-white dark:bg-neutral-900/60 rounded-2xl border border-neutral-200/90 dark:border-neutral-800 shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-card rounded-2xl border border-border shadow-xs">
         <div className="flex items-center gap-2.5 flex-1 min-w-[260px] max-w-md">
-          <Search className="w-4 h-4 text-neutral-400" />
-          <input
+          <Search className="size-4 text-muted-foreground" />
+          <Input
             type="text"
-            placeholder="Cari kode booking, nama pasien, atau nama mitra konselor..."
+            placeholder="Cari kode booking, nama pasien, atau konselor..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-transparent text-xs text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 focus:outline-none"
+            className="h-8 text-xs bg-transparent"
           />
         </div>
 
         <div className="flex items-center gap-2 text-xs">
-          <Filter className="w-3.5 h-3.5 text-neutral-400" />
+          <Filter className="size-3.5 text-muted-foreground" />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl px-3 py-2 text-xs text-neutral-800 dark:text-neutral-200 focus:outline-none font-medium"
+            className="bg-muted border border-border rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none font-medium"
           >
             <option value="all">Semua Status Sesi</option>
-            <option value="in_session">Sedang Berlangsung (In Session)</option>
-            <option value="confirmed">Terkonfirmasi (Mendatang)</option>
-            <option value="completed">Selesai (Riwayat)</option>
+            <option value="in_session">Sedang Berlangsung</option>
+            <option value="confirmed">Terkonfirmasi</option>
+            <option value="completed">Selesai</option>
           </select>
         </div>
       </div>
 
       {/* Sessions Table */}
-      <div className="border border-neutral-200/90 dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900/40 overflow-hidden shadow-xs">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-neutral-50 dark:bg-neutral-900/80 border-b border-neutral-200/90 dark:border-neutral-800 text-neutral-500 dark:text-neutral-400 font-semibold">
-            <tr>
-              <th className="py-3.5 px-4">Kode & Jadwal (WIB)</th>
-              <th className="py-3.5 px-3">Pasien & Triage SRQ-20</th>
-              <th className="py-3.5 px-3">Mitra Konselor</th>
-              <th className="py-3.5 px-3">Alokasi Zoom</th>
-              <th className="py-3.5 px-3">Status</th>
-              <th className="py-3.5 px-3">Pembayaran</th>
-              <th className="py-3.5 px-4 text-right">Tindakan Admin</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-200/60 dark:divide-neutral-800/60">
+      <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs">
+        <Table className="text-xs">
+          <TableHeader className="bg-muted/50">
+            <TableRow>
+              <TableHead className="py-3.5 px-4">Kode & Jadwal (WIB)</TableHead>
+              <TableHead className="py-3.5 px-3">Pasien & Triage SRQ-20</TableHead>
+              <TableHead className="py-3.5 px-3">Mitra Konselor</TableHead>
+              <TableHead className="py-3.5 px-3">Alokasi Zoom</TableHead>
+              <TableHead className="py-3.5 px-3">Status</TableHead>
+              <TableHead className="py-3.5 px-3">Waktu Menuju Sesi</TableHead>
+              <TableHead className="py-3.5 px-4 text-right">Aksi Admin</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filteredSessions.map((ses) => (
-              <tr
-                key={ses.id}
-                className="hover:bg-neutral-50/80 dark:hover:bg-neutral-800/30 transition-colors"
-              >
-                <td className="py-4 px-4">
-                  <div className="font-mono font-bold text-emerald-700 dark:text-emerald-400 text-sm">
-                    {ses.code}
-                  </div>
-                  <div className="text-[11px] text-neutral-700 dark:text-neutral-300 flex items-center gap-1 mt-0.5 font-medium">
-                    <Clock className="w-3 h-3 text-neutral-400" />
+              <TableRow key={ses.id} className="hover:bg-muted/40 transition-colors">
+                <TableCell className="py-4 px-4">
+                  <div className="font-mono font-bold text-primary text-sm">{ses.code}</div>
+                  <div className="text-[11px] text-foreground flex items-center gap-1 mt-0.5 font-medium">
+                    <Clock className="size-3 text-muted-foreground" />
                     <span>{ses.timeRange}</span>
                   </div>
-                  <div className="text-[10px] text-neutral-400">{ses.date}</div>
-                </td>
+                  <div className="text-[10px] text-muted-foreground">{ses.date}</div>
+                </TableCell>
 
-                <td className="py-4 px-3">
-                  <div className="font-bold text-neutral-900 dark:text-white text-sm">
-                    {ses.patientName}
-                  </div>
-                  <div className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                    {ses.patientContact}
-                  </div>
+                <TableCell className="py-4 px-3">
+                  <div className="font-bold text-foreground text-sm">{ses.patientName}</div>
+                  <div className="text-[11px] text-muted-foreground">{ses.patientContact}</div>
                   <div className="mt-1 flex items-center gap-1.5">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        ses.srqScore >= 8
-                          ? "bg-rose-100 text-rose-900 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/60"
-                          : "bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300"
-                      }`}
-                    >
+                    <Badge variant={ses.srqScore >= 8 ? "destructive" : "secondary"} className="text-[10px]">
                       Skor SRQ: {ses.srqScore}/20
-                    </span>
+                    </Badge>
                     {ses.hasSuicidalThoughts && (
-                      <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold">
+                      <span className="text-[10px] text-destructive font-bold">
                         [Suicidal Waiver ✓]
                       </span>
                     )}
                   </div>
-                </td>
+                </TableCell>
 
-                <td className="py-4 px-3">
-                  <div className="text-neutral-900 dark:text-neutral-200 font-semibold">
-                    {ses.counselorName}
-                  </div>
-                  <div className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                    {ses.counselorType}
-                  </div>
-                </td>
+                <TableCell className="py-4 px-3">
+                  <div className="text-foreground font-semibold">{ses.counselorName}</div>
+                  <div className="text-[11px] text-muted-foreground">{ses.counselorType}</div>
+                </TableCell>
 
-                <td className="py-4 px-3">
-                  <div className="flex items-center gap-1.5">
-                    <Video className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
-                    <span className="font-mono text-neutral-700 dark:text-neutral-300 font-semibold text-[11px]">
-                      {ses.zoomRoom}
-                    </span>
-                  </div>
-                </td>
+                <TableCell className="py-4 px-3">
+                  <Badge variant="outline" className="font-mono text-[11px] gap-1">
+                    <Video className="size-3 text-primary" />
+                    <span>{ses.zoomRoom}</span>
+                  </Badge>
+                </TableCell>
 
-                <td className="py-4 px-3">
-                  <span
-                    className={`inline-block text-[10px] px-2.5 py-0.5 rounded-full font-bold ${
-                      ses.status === "in_session"
-                        ? "bg-emerald-100 text-emerald-900 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40"
-                        : ses.status === "confirmed"
-                        ? "bg-sky-100 text-sky-900 border border-sky-200 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/40"
-                        : "bg-neutral-100 text-neutral-600 border border-neutral-300 dark:bg-neutral-800 dark:text-neutral-400"
-                    }`}
+                <TableCell className="py-4 px-3">
+                  <Badge
+                    variant={ses.status === "in_session" ? "default" : "outline"}
+                    className="text-[10px] py-0.5 px-2 font-bold"
                   >
                     {ses.status === "in_session"
                       ? "Sedang Berlangsung"
                       : ses.status === "confirmed"
                       ? "Terkonfirmasi"
                       : "Selesai"}
-                  </span>
-                </td>
+                  </Badge>
+                </TableCell>
 
-                <td className="py-4 px-3">
-                  <div className="text-neutral-900 dark:text-white font-bold">
-                    Rp {ses.amount.toLocaleString("id-ID")}
-                  </div>
-                  <div className="text-[10px] text-neutral-500 dark:text-neutral-400">
-                    {ses.paymentMethod}
-                  </div>
-                  {ses.voucherCode && (
-                    <span className="inline-block mt-0.5 text-[9px] px-1.5 py-0.2 rounded bg-teal-50 text-teal-800 border border-teal-200 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800 font-mono font-bold">
-                      Voucher: {ses.voucherCode}
-                    </span>
+                <TableCell className="py-4 px-3">
+                  {ses.hoursUntilSession > 0 ? (
+                    <Badge
+                      variant={ses.hoursUntilSession < 12 ? "destructive" : "secondary"}
+                      className="text-[10px]"
+                    >
+                      {ses.hoursUntilSession < 12
+                        ? `${ses.hoursUntilSession} jam lagi (Terkunci)`
+                        : `${ses.hoursUntilSession} jam lagi (Bisa Reschedule)`}
+                    </Badge>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">Sudah berlalu</span>
                   )}
-                </td>
+                </TableCell>
 
-                <td className="py-4 px-4 text-right space-x-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSessionForReschedule(ses)}
-                    className="px-3 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-300 dark:hover:text-white text-[11px] font-semibold transition-colors cursor-pointer border border-neutral-200 dark:border-neutral-700"
-                    title="Jadwalkan ulang sesi"
+                <TableCell className="py-4 px-4 text-right space-x-1">
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => setSelectedSession(ses)}
+                    className="text-[11px]"
                   >
                     Reschedule
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="xs"
                     onClick={() => handleCopyLink(ses.code)}
-                    className="px-2.5 py-1.5 rounded-xl bg-neutral-100 hover:bg-emerald-600 hover:text-white text-neutral-700 dark:bg-neutral-800 dark:hover:bg-emerald-600 dark:text-neutral-300 dark:hover:text-white text-[11px] font-semibold transition-colors cursor-pointer border border-neutral-200 dark:border-neutral-700 inline-flex items-center gap-1"
                     title="Salin Tautan Sesi Pasien"
                   >
-                    <Copy className="w-3 h-3" />
-                  </button>
-                  <button
-                    type="button"
+                    <Copy className="size-3" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="xs"
                     onClick={() => handleResendEmail(ses.patientName)}
-                    className="px-2.5 py-1.5 rounded-xl bg-neutral-100 hover:bg-sky-600 hover:text-white text-neutral-700 dark:bg-neutral-800 dark:hover:bg-sky-600 dark:text-neutral-300 dark:hover:text-white text-[11px] font-semibold transition-colors cursor-pointer border border-neutral-200 dark:border-neutral-700 inline-flex items-center gap-1"
-                    title="Kirim Ulang Email Tautan"
+                    title="Kirim Ulang Email"
                   >
-                    <Send className="w-3 h-3" />
-                  </button>
-                </td>
-              </tr>
+                    <Send className="size-3" />
+                  </Button>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Reschedule Modal with H-12 Hour Check */}
-      {selectedSessionForReschedule && (
-        <div className="fixed inset-0 bg-neutral-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 pb-3">
+      {/* Reschedule Dialog Modal */}
+      {selectedSession && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <Card className="max-w-lg w-full p-6 flex flex-col gap-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border pb-3">
               <div>
-                <h2 className="font-bold text-neutral-900 dark:text-white text-sm">
-                  Reschedule Sesi: {selectedSessionForReschedule.code}
-                </h2>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  Pasien: {selectedSessionForReschedule.patientName} • Konselor:{" "}
-                  {selectedSessionForReschedule.counselorName}
-                </p>
+                <CardTitle className="text-sm">
+                  Reschedule Sesi: {selectedSession.code}
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Pasien: {selectedSession.patientName} • Konselor: {selectedSession.counselorName}
+                </CardDescription>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedSessionForReschedule(null)}
-                className="text-neutral-400 hover:text-neutral-600 dark:hover:text-white cursor-pointer"
-              >
+              <Button variant="ghost" size="xs" onClick={() => setSelectedSession(null)}>
                 ✕
-              </button>
+              </Button>
             </div>
 
-            {/* Validation Guard: H-12 Rule */}
-            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-xs text-amber-900 dark:text-amber-200 space-y-1">
-              <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
-                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span>Aturan Reschedule Platform (H-12 Jam)</span>
-              </div>
-              <p className="text-[11px] text-neutral-600 dark:text-neutral-300 leading-relaxed">
-                Permintaan reschedule hanya dapat disetujui jika jadwal sesi berjarak lebih dari 12 jam.
-                Ketika dipindahkan, sistem secara otomatis mengirimkan email konfirmasi ke pasien dengan tautan sesi yang baru.
-              </p>
-            </div>
+            {/* CASE 1: BLOCKED (Less than 12 hours away) */}
+            {selectedSession.hoursUntilSession > 0 && selectedSession.hoursUntilSession < 12 && (
+              <div className="flex flex-col gap-4">
+                <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/30 text-xs text-destructive flex flex-col gap-2">
+                  <div className="flex items-center gap-2 font-bold text-sm">
+                    <AlertTriangle className="size-4" />
+                    <span>Reschedule Ditolak: Batas Waktu H-12 Jam Telah Lewat</span>
+                  </div>
+                  <p className="text-[11px] text-foreground leading-relaxed">
+                    Sesi ini dijadwalkan berlangsung dalam waktu <strong>{selectedSession.hoursUntilSession} jam</strong>.
+                    Sesuai dokumen arsitektur kepatuhan (ADR-0002), reschedule mandiri maupun oleh admin diblokir jika sesi berjarak kurang dari 12 jam, demi mencegah akun Zoom menjadi tidak terpakai tanpa pemberitahuan kepada mitra konselor.
+                  </p>
+                </div>
 
-            <div className="space-y-3 text-xs">
-              <div className="p-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 space-y-1">
-                <span className="text-neutral-500 dark:text-neutral-400 font-medium">Jadwal Sesi Asli:</span>
-                <div className="font-bold text-neutral-900 dark:text-white">
-                  {selectedSessionForReschedule.date} ({selectedSessionForReschedule.timeRange})
+                <div className="p-3 rounded-xl bg-muted/40 border border-border text-xs flex justify-between items-center">
+                  <span className="text-muted-foreground">Jadwal yang terikat:</span>
+                  <span className="font-bold text-foreground">{selectedSession.timeRange}</span>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button size="sm" onClick={() => setSelectedSession(null)}>
+                    Tutup Peringatan
+                  </Button>
                 </div>
               </div>
+            )}
 
-              <div className="space-y-1">
-                <label className="text-neutral-700 dark:text-neutral-300 font-semibold">
-                  Pilih Slot Jadwal Baru Konselor yang Tersedia:
-                </label>
-                <select className="w-full bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-700 rounded-xl px-3.5 py-2.5 text-xs text-neutral-900 dark:text-neutral-200 focus:outline-none font-medium">
-                  <option>Jumat, 18 Sep 2026 — 19:00 - 20:30 WIB (Tersedia • Zoom OK)</option>
-                  <option>Jumat, 18 Sep 2026 — 21:00 - 22:30 WIB (Tersedia • Zoom OK)</option>
-                  <option>Sabtu, 19 Sep 2026 — 10:00 - 11:30 WIB (Tersedia • Zoom OK)</option>
-                  <option>Sabtu, 19 Sep 2026 — 14:00 - 15:30 WIB (Tersedia • Zoom OK)</option>
-                </select>
+            {/* CASE 2: ALLOWED (More than 12 hours away) */}
+            {(selectedSession.hoursUntilSession >= 12 || selectedSession.hoursUntilSession <= 0) && (
+              <div className="flex flex-col gap-4">
+                <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/30 text-xs flex flex-col gap-1">
+                  <div className="flex items-center gap-2 font-bold text-foreground">
+                    <CheckCircle2 className="size-4 text-primary" />
+                    <span>Jadwal Memenuhi Syarat Reschedule (&gt; 12 Jam)</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Sesi ini berjarak lebih dari 12 jam. Memindahkan jadwal akan secara otomatis memperbarui alokasi Zoom dan mengirimkan email konfirmasi baru ke pasien.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-muted/40 border border-border flex flex-col gap-1">
+                    <span className="text-muted-foreground font-medium">Jadwal Sesi Asli:</span>
+                    <div className="font-bold text-foreground">
+                      {selectedSession.date} ({selectedSession.timeRange})
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-foreground font-semibold">
+                      Pilih Slot Baru yang Tersedia:
+                    </label>
+                    <select className="w-full bg-muted border border-border rounded-xl px-3.5 py-2.5 text-xs text-foreground focus:outline-none font-medium">
+                      <option>Rabu, 23 Sep 2026 — 19:00 - 20:30 WIB (Tersedia • Zoom OK)</option>
+                      <option>Kamis, 24 Sep 2026 — 19:00 - 20:30 WIB (Tersedia • Zoom OK)</option>
+                      <option>Jumat, 25 Sep 2026 — 14:00 - 15:30 WIB (Tersedia • Zoom OK)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-border flex justify-end gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setSelectedSession(null)}>
+                    Batal
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      showToast(
+                        `✅ Sesi ${selectedSession.code} berhasil dipindahkan. Email konfirmasi jadwal baru terkirim ke pasien!`
+                      )
+                      setSelectedSession(null)
+                    }}
+                    className="font-semibold"
+                  >
+                    Konfirmasi & Kirim Notifikasi
+                  </Button>
+                </div>
               </div>
-            </div>
-
-            <div className="pt-3 border-t border-neutral-200 dark:border-neutral-800 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setSelectedSessionForReschedule(null)}
-                className="px-4 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-300 text-xs font-semibold cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  showToast(
-                    `✅ Sesi ${selectedSessionForReschedule.code} berhasil dipindahkan. Email konfirmasi jadwal baru terkirim ke pasien!`
-                  )
-                  setSelectedSessionForReschedule(null)
-                }}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold cursor-pointer shadow-xs"
-              >
-                Konfirmasi & Kirim Notifikasi
-              </button>
-            </div>
-          </div>
+            )}
+          </Card>
         </div>
       )}
     </div>

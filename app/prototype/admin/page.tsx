@@ -20,10 +20,26 @@ import {
   XCircle,
   Clock,
   ArrowRight,
-  TrendingUp,
 } from "lucide-react"
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table"
 
-export default function AdminDashboardPage() {
+export default function FreshAdminDashboard() {
   const [applicants, setApplicants] = React.useState(MOCK_APPLICANTS)
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
 
@@ -47,27 +63,30 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-7">
+    <div className="max-w-6xl mx-auto flex flex-col gap-7">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-500/70 text-emerald-900 dark:text-emerald-200 text-xs shadow-md animate-in fade-in">
-          {toastMessage}
+        <div className="p-4 rounded-2xl bg-card border border-primary/40 text-foreground text-xs shadow-md animate-in fade-in flex items-center justify-between">
+          <span>{toastMessage}</span>
+          <Button variant="ghost" size="xs" onClick={() => setToastMessage(null)}>
+            ✕
+          </Button>
         </div>
       )}
 
       {/* Top Welcome Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 dark:border-neutral-800 pb-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Ringkasan Operasional & Monitoring Realtime
           </h1>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Status kapasitas 2 akun Zoom Pro, pemantauan transaksi hold 15m, dan alur sesi pasien hari ini.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-medium text-neutral-600 dark:text-neutral-400 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 px-3 py-1.5 rounded-xl shadow-xs">
-          <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted/40 border border-border px-3 py-1.5 rounded-xl">
+          <Clock className="size-3.5 text-primary" />
           <span>Kamis, 17 September 2026 (WIB)</span>
         </div>
       </div>
@@ -75,268 +94,232 @@ export default function AdminDashboardPage() {
       {/* Top 4 KPI Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" aria-label="Metrik utama operasional">
         {MOCK_METRICS.map((stat, i) => (
-          <div
-            key={i}
-            className="p-5 rounded-2xl bg-white dark:bg-neutral-900/70 border border-neutral-200/90 dark:border-neutral-800/90 shadow-xs hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center justify-between text-neutral-500 dark:text-neutral-400 text-xs">
-              <span className="font-medium">{stat.label}</span>
-              <div className="p-2 rounded-xl bg-neutral-100 dark:bg-neutral-800/80">
-                {i === 0 && <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
-                {i === 1 && <DollarSign className="w-4 h-4 text-teal-600 dark:text-teal-400" />}
-                {i === 2 && <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
-                {i === 3 && <Users className="w-4 h-4 text-sky-600 dark:text-sky-400" />}
+          <Card key={i} className="hover:shadow-md transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
+              <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
+              <div className="p-2 rounded-xl bg-muted text-foreground">
+                {i === 0 && <Calendar className="size-4 text-primary" />}
+                {i === 1 && <DollarSign className="size-4 text-primary" />}
+                {i === 2 && <Lock className="size-4 text-amber-500" />}
+                {i === 3 && <Users className="size-4 text-sky-500" />}
               </div>
-            </div>
-            <div className="mt-3 text-2xl font-extrabold text-neutral-900 dark:text-white tracking-tight">
-              {stat.value}
-            </div>
-            <div className="mt-1.5 flex items-center justify-between text-[11px] text-neutral-500 dark:text-neutral-400">
-              <span>{stat.subtext}</span>
-              {stat.trend && (
-                <span
-                  className={`font-semibold ${
-                    stat.trendUp
-                      ? "text-emerald-700 dark:text-emerald-400"
-                      : "text-amber-700 dark:text-amber-400"
-                  }`}
-                >
-                  {stat.trend}
-                </span>
-              )}
-            </div>
-          </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-1 flex flex-col gap-1">
+              <div className="text-2xl font-extrabold text-foreground tracking-tight">
+                {stat.value}
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>{stat.subtext}</span>
+                {stat.trend && (
+                  <Badge variant={stat.trendUp ? "default" : "secondary"} className="text-[10px] py-0 px-1.5">
+                    {stat.trend}
+                  </Badge>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </section>
 
       {/* 2-Column Split: Left = Live Sessions & Schedule | Right = Zoom Safety Lock & Applicants */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Live Sesi Monitoring */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="p-6 rounded-2xl bg-white dark:bg-neutral-900/70 border border-neutral-200/90 dark:border-neutral-800 space-y-4 shadow-xs">
-            <div className="flex items-center justify-between">
+        <div className="lg:col-span-2">
+          <Card className="flex flex-col gap-4 p-6 shadow-xs">
+            <CardHeader className="p-0 flex flex-row items-center justify-between">
               <div>
-                <h2 className="font-bold text-base text-neutral-900 dark:text-white flex items-center gap-2">
-                  <Video className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Video className="size-4 text-primary" />
                   <span>Sesi Hari Ini & Triage Klinis</span>
-                </h2>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">
                   Durasi fixed 90 menit • Terhubung otomatis ke Zoom Host & Link Pasien
-                </p>
+                </CardDescription>
               </div>
-              <Link
-                href="/prototype/admin/sessions"
-                className="text-xs text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 font-semibold flex items-center gap-1 transition-colors"
-              >
-                <span>Kelola Semua</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+              <Button variant="ghost" size="sm" asChild className="text-xs font-semibold">
+                <Link href="/prototype/admin/sessions">
+                  <span>Kelola Semua</span>
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              </Button>
+            </CardHeader>
 
             {/* Table of Sessions */}
-            <div className="overflow-x-auto rounded-xl border border-neutral-200/80 dark:border-neutral-800/80">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-neutral-50 dark:bg-neutral-950/60 border-b border-neutral-200/80 dark:border-neutral-800 text-neutral-500 dark:text-neutral-400 font-semibold">
-                  <tr>
-                    <th className="py-3 px-3">Kode</th>
-                    <th className="py-3 px-3">Pasien & Kontak</th>
-                    <th className="py-3 px-3">Mitra Konselor</th>
-                    <th className="py-3 px-3">Jadwal (90m)</th>
-                    <th className="py-3 px-3">Ruang Zoom</th>
-                    <th className="py-3 px-3 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200/60 dark:divide-neutral-800/60">
+            <div className="rounded-xl border border-border overflow-hidden">
+              <Table className="text-xs">
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="py-3 px-3">Kode</TableHead>
+                    <TableHead className="py-3 px-3">Pasien & Kontak</TableHead>
+                    <TableHead className="py-3 px-3">Mitra Konselor</TableHead>
+                    <TableHead className="py-3 px-3">Jadwal (90m)</TableHead>
+                    <TableHead className="py-3 px-3">Ruang Zoom</TableHead>
+                    <TableHead className="py-3 px-3 text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {MOCK_SESSIONS.map((ses) => (
-                    <tr
-                      key={ses.id}
-                      className="hover:bg-neutral-50/80 dark:hover:bg-neutral-800/30 transition-colors"
-                    >
-                      <td className="py-3.5 px-3 font-mono font-bold text-emerald-700 dark:text-emerald-400">
+                    <TableRow key={ses.id} className="hover:bg-muted/40 transition-colors">
+                      <TableCell className="py-3.5 px-3 font-mono font-bold text-primary">
                         {ses.code}
-                      </td>
-                      <td className="py-3.5 px-3">
-                        <div className="font-semibold text-neutral-900 dark:text-white">
-                          {ses.patientName}
-                        </div>
-                        <div className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                      </TableCell>
+                      <TableCell className="py-3.5 px-3">
+                        <div className="font-semibold text-foreground">{ses.patientName}</div>
+                        <div className="text-[11px] text-muted-foreground">
                           SRQ: {ses.srqScore}/20
                           {ses.hasSuicidalThoughts && (
-                            <span className="ml-1 text-rose-600 dark:text-rose-400 font-bold">
+                            <span className="ml-1 text-destructive font-bold">
                               [Waiver ✓]
                             </span>
                           )}
                         </div>
-                      </td>
-                      <td className="py-3.5 px-3">
-                        <div className="text-neutral-800 dark:text-neutral-200 font-medium">
-                          {ses.counselorName}
-                        </div>
-                        <div className="text-[10px] text-neutral-500 dark:text-neutral-400">
-                          {ses.counselorType}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-3 text-neutral-700 dark:text-neutral-300 font-medium">
+                      </TableCell>
+                      <TableCell className="py-3.5 px-3">
+                        <div className="text-foreground font-medium">{ses.counselorName}</div>
+                        <div className="text-[10px] text-muted-foreground">{ses.counselorType}</div>
+                      </TableCell>
+                      <TableCell className="py-3.5 px-3 font-medium text-foreground">
                         {ses.timeRange}
-                      </td>
-                      <td className="py-3.5 px-3">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                            ses.status === "in_session"
-                              ? "bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30"
-                              : ses.status === "confirmed"
-                              ? "bg-sky-100 text-sky-800 border border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30"
-                              : "bg-neutral-100 text-neutral-600 border border-neutral-300 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700"
-                          }`}
+                      </TableCell>
+                      <TableCell className="py-3.5 px-3">
+                        <Badge
+                          variant={ses.status === "in_session" ? "default" : "outline"}
+                          className="flex items-center gap-1.5 py-0.5 px-2 text-[10px]"
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              ses.status === "in_session"
-                                ? "bg-emerald-500 animate-ping"
-                                : "bg-neutral-400"
+                            className={`size-1.5 rounded-full ${
+                              ses.status === "in_session" ? "bg-emerald-400 animate-ping" : "bg-muted-foreground"
                             }`}
                           />
                           <span>{ses.zoomRoom}</span>
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-3 text-right">
-                        <a
-                          href={ses.zoomJoinUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-neutral-100 hover:bg-emerald-600 hover:text-white dark:bg-neutral-800 dark:hover:bg-emerald-600 text-[11px] font-semibold transition-colors text-neutral-700 dark:text-neutral-200 border border-neutral-200 dark:border-neutral-700"
-                        >
-                          <span>Buka Zoom</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </td>
-                    </tr>
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-3.5 px-3 text-right">
+                        <Button variant="outline" size="xs" asChild>
+                          <a href={ses.zoomJoinUrl} target="_blank" rel="noreferrer">
+                            <span>Buka Zoom</span>
+                            <ExternalLink className="size-3" />
+                          </a>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* Right 1 Col: Zoom Safety Lock & Verification Widget */}
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
           {/* Widget: Zoom Safety Lock */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-neutral-900/70 border border-neutral-200/90 dark:border-neutral-800 space-y-3.5 shadow-xs">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-sm text-neutral-900 dark:text-white flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          <Card className="p-5 flex flex-col gap-3.5 shadow-xs">
+            <CardHeader className="p-0 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <ShieldAlert className="size-4 text-amber-500" />
                 <span>Zoom Safety Lock</span>
-              </h2>
-              <Link
-                href="/prototype/admin/zoom"
-                className="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-500/15 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 font-semibold hover:bg-amber-200 transition-colors"
-              >
-                Detail →
-              </Link>
-            </div>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+              </CardTitle>
+              <Button variant="ghost" size="xs" asChild>
+                <Link href="/prototype/admin/zoom">Detail →</Link>
+              </Button>
+            </CardHeader>
+            <CardDescription className="text-xs leading-relaxed">
               Kredensial akun Zoom dikunci otomatis agar tidak dapat diedit atau dihapus jika
               ada sesi aktif/mendatang yang terikat.
-            </p>
+            </CardDescription>
 
-            <div className="space-y-2.5 pt-1">
+            <div className="flex flex-col gap-2.5 pt-1">
               {MOCK_ZOOM_ACCOUNTS.map((acc) => (
                 <div
                   key={acc.id}
-                  className="p-3.5 rounded-xl bg-neutral-50 dark:bg-neutral-950/80 border border-neutral-200/80 dark:border-neutral-800 text-xs space-y-1.5"
+                  className="p-3 rounded-xl bg-muted/30 border border-border text-xs flex flex-col gap-1.5"
                 >
-                  <div className="flex items-center justify-between font-semibold text-neutral-900 dark:text-white">
+                  <div className="flex items-center justify-between font-semibold text-foreground">
                     <span>{acc.name}</span>
-                    <span className="flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-400 font-bold">
-                      <Lock className="w-3 h-3" />
+                    <Badge variant="destructive" className="text-[10px] py-0 px-1.5 flex items-center gap-1">
+                      <Lock className="size-3" />
                       <span>LOCKED</span>
-                    </span>
+                    </Badge>
                   </div>
-                  <div className="text-[11px] text-neutral-500 dark:text-neutral-400 font-mono">
-                    {acc.email}
-                  </div>
-                  <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-[11px] text-amber-800 dark:text-amber-300 leading-tight">
+                  <div className="text-[11px] text-muted-foreground font-mono">{acc.email}</div>
+                  <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-600 dark:text-amber-300 leading-tight">
                     {acc.safetyLock.reason}
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
 
           {/* Widget: Pending Counselor Verification */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-neutral-900/70 border border-neutral-200/90 dark:border-neutral-800 space-y-3.5 shadow-xs">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-sm text-neutral-900 dark:text-white flex items-center gap-2">
-                <Users className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-                <span>Verifikasi Pelamar Mitra</span>
-              </h2>
-              <Link
-                href="/prototype/admin/counselors"
-                className="text-[10px] px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-900 dark:bg-sky-500/15 dark:text-sky-300 border border-sky-300 dark:border-sky-500/30 font-semibold hover:bg-sky-200 transition-colors"
-              >
-                Buka Pipeline →
-              </Link>
-            </div>
+          <Card className="p-5 flex flex-col gap-3.5 shadow-xs">
+            <CardHeader className="p-0 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Users className="size-4 text-sky-500" />
+                <span>Verifikasi Pelamar</span>
+              </CardTitle>
+              <Button variant="ghost" size="xs" asChild>
+                <Link href="/prototype/admin/counselors">Buka Pipeline →</Link>
+              </Button>
+            </CardHeader>
 
-            <div className="space-y-3 pt-1">
+            <div className="flex flex-col gap-3 pt-1">
               {applicants.map((app) => (
                 <div
                   key={app.id}
-                  className={`p-3.5 rounded-xl border text-xs space-y-2 transition-all ${
+                  className={`p-3 rounded-xl border text-xs flex flex-col gap-2 transition-all ${
                     app.status === "approved"
-                      ? "bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800/40"
+                      ? "bg-primary/10 border-primary/30"
                       : app.status === "rejected"
-                      ? "bg-rose-50/70 border-rose-200 dark:bg-rose-950/20 dark:border-rose-800/40 opacity-60"
-                      : "bg-neutral-50 dark:bg-neutral-950/80 border-neutral-200/80 dark:border-neutral-800"
+                      ? "bg-destructive/10 border-destructive/30 opacity-60"
+                      : "bg-muted/30 border-border"
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="font-bold text-neutral-900 dark:text-white">
-                        {app.name}
-                      </div>
-                      <div className="text-[11px] text-sky-700 dark:text-sky-400 font-semibold">
+                      <div className="font-bold text-foreground">{app.name}</div>
+                      <Badge variant="outline" className="text-[10px] py-0 px-1 mt-0.5">
                         {app.type}
-                      </div>
+                      </Badge>
                     </div>
                     {app.status === "approved" && (
-                      <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Disetujui
-                      </span>
+                      <Badge variant="default" className="text-[10px] flex items-center gap-1">
+                        <CheckCircle2 className="size-3" /> Disetujui
+                      </Badge>
                     )}
                     {app.status === "rejected" && (
-                      <span className="text-[10px] text-rose-700 dark:text-rose-400 font-bold flex items-center gap-1">
-                        <XCircle className="w-3 h-3" /> Ditolak
-                      </span>
+                      <Badge variant="destructive" className="text-[10px] flex items-center gap-1">
+                        <XCircle className="size-3" /> Ditolak
+                      </Badge>
                     )}
                   </div>
 
-                  <div className="text-[11px] text-neutral-600 dark:text-neutral-400 line-clamp-2">
+                  <div className="text-[11px] text-muted-foreground line-clamp-2">
                     {app.bio}
                   </div>
 
                   {app.status === "pending" && (
-                    <div className="flex items-center gap-2 pt-1 border-t border-neutral-200/80 dark:border-neutral-800/80">
-                      <button
-                        type="button"
+                    <div className="flex items-center gap-2 pt-1 border-t border-border">
+                      <Button
+                        size="xs"
                         onClick={() => handleApprove(app.id, app.name)}
-                        className="flex-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[11px] transition-colors cursor-pointer shadow-xs"
+                        className="flex-1 text-[11px]"
                       >
                         Setujui & Undang
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="xs"
                         onClick={() => handleReject(app.id, app.name)}
-                        className="px-3 py-1.5 rounded-lg bg-neutral-200 hover:bg-rose-100 text-neutral-700 hover:text-rose-700 dark:bg-neutral-800 dark:hover:bg-rose-900/60 dark:text-neutral-400 dark:hover:text-rose-300 text-[11px] font-semibold transition-colors cursor-pointer border border-neutral-300 dark:border-neutral-700"
+                        className="text-[11px] text-destructive hover:bg-destructive/10"
                       >
                         Tolak
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     </div>
