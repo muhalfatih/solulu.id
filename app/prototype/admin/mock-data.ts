@@ -284,3 +284,115 @@ export const MOCK_VOUCHERS: VoucherItem[] = [
     expiryDate: "10 Sep 2026",
   },
 ]
+
+export interface ActiveCounselor {
+  id: string
+  name: string
+  title: string
+  type: "Psikolog Klinis" | "Konselor Sebaya"
+  email: string
+  phone: string
+  strNumber?: string
+  totalSessions: number
+  isActive: boolean
+  joinedDate: string
+  specializations: string[]
+}
+
+export interface GalleryItem {
+  id: string
+  title: string
+  caption: string
+  date: string
+  category: "Webinar" | "Workshop" | "Sharing Session" | "Community"
+  imageUrl: string
+  isCensoredAndConsented: boolean
+  uploadedBy: string
+}
+
+export const MOCK_ACTIVE_COUNSELORS: ActiveCounselor[] = [
+  {
+    id: "c-1",
+    name: "Sarah Annisa, M.Psi., Psikolog",
+    title: "Psikolog Klinis Dewasa",
+    type: "Psikolog Klinis",
+    email: "sarah.annisa@solulu.id",
+    phone: "0812-3456-7890",
+    strNumber: "1902837482910",
+    totalSessions: 38,
+    isActive: true,
+    joinedDate: "12 Mei 2026",
+    specializations: ["Kecemasan", "Depresi", "Trauma", "Burnout"],
+  },
+  {
+    id: "c-2",
+    name: "Rian Hidayat, S.Psi",
+    title: "Konselor Sebaya Senior",
+    type: "Konselor Sebaya",
+    email: "rian.hidayat@solulu.id",
+    phone: "0856-1122-3344",
+    totalSessions: 24,
+    isActive: true,
+    joinedDate: "01 Juni 2026",
+    specializations: ["Stres Kuliah", "Quarter-Life Crisis", "Relasi Asmara"],
+  },
+  {
+    id: "c-3",
+    name: "Nabila Safitri, S.Psi",
+    title: "Konselor Sebaya Remaja & Dewasa",
+    type: "Konselor Sebaya",
+    email: "nabila.safitri@solulu.id",
+    phone: "0877-4455-6677",
+    totalSessions: 16,
+    isActive: true,
+    joinedDate: "20 Juli 2026",
+    specializations: ["Self-Harm Urges", "Manajemen Emosi", "Keluarga"],
+  },
+  {
+    id: "c-4",
+    name: "Dimas Wicaksono, M.Psi., Psikolog",
+    title: "Psikolog Klinis Klinikal",
+    type: "Psikolog Klinis",
+    email: "dimas.w@solulu.id",
+    phone: "0813-8899-0011",
+    strNumber: "2001928374112",
+    totalSessions: 42,
+    isActive: false,
+    joinedDate: "15 Apr 2026",
+    specializations: ["Bipolar", "Kecemasan Akut", "PTSD"],
+  },
+]
+
+export const MOCK_GALLERY_ITEMS: GalleryItem[] = [
+  {
+    id: "g-1",
+    title: "Webinar Kesehatan Mental Gen-Z: Mengelola Quarter-Life Crisis",
+    caption: "Sesi edukasi publik dihadiri 120+ peserta via Zoom. Seluruh tampilan wajah peserta telah disensor blur sesuai protokol privasi.",
+    date: "10 Sep 2026",
+    category: "Webinar",
+    imageUrl: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=600&auto=format&fit=crop&q=80",
+    isCensoredAndConsented: true,
+    uploadedBy: "Admin Operasional",
+  },
+  {
+    id: "g-2",
+    title: "Sharing Circle Mitra Konselor: Supervisi Kasus Klinis",
+    caption: "Pertemuan rutin supervisi klinis bulanan bersama psikolog profesional untuk menjaga kualitas pendampingan.",
+    date: "28 Agu 2026",
+    category: "Sharing Session",
+    imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&auto=format&fit=crop&q=80",
+    isCensoredAndConsented: true,
+    uploadedBy: "Admin Operasional",
+  },
+  {
+    id: "g-3",
+    title: "Workshop Peer Listening: Keterampilan Mendengar Empatis",
+    caption: "Pelatihan pendamping sebaya angkatan ke-2, fokus pada de-eskalasi emosi dan rujukan darurat klinis.",
+    date: "14 Agu 2026",
+    category: "Workshop",
+    imageUrl: "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=600&auto=format&fit=crop&q=80",
+    isCensoredAndConsented: true,
+    uploadedBy: "Admin Operasional",
+  },
+]
+
