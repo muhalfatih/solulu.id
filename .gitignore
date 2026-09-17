@@ -35,8 +35,14 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local tool & agent configs
-.impeccable/config.local.json
-.impeccable/live/
-.claude/*.local.json
+# AI & agent files
+.agents/
+.claude/
+.impeccable/
+.cursor/
+.codex/
+.gemini/
+AGENTS.md
+CLAUDE.md
+skills-lock.json
 
