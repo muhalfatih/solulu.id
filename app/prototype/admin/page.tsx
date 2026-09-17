@@ -37,19 +37,24 @@ export default function LayoutRefinedAdminDashboard() {
   const highRiskSessions = MOCK_SESSIONS.filter((s) => s.hasSuicidalThoughts || s.srqScore >= 6)
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-7 pb-12">
-      {/* Header: Confident, balanced baseline alignment */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border pb-5">
+    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-16">
+      {/* Header: Standardized with unified font size, ADR badge, and subtitle */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Operasional Hari Ini
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Kamis, 17 September 2026 • 2 sesi aktif pada ruang telekonseling terenkripsi
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Operasional Hari Ini
+            </h1>
+            <Badge variant="outline" className="text-xs font-mono py-0.5 px-2">
+              ADR-0001 & ADR-0002
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Kamis, 17 September 2026 • 2 sesi aktif pada ruang telekonseling terenkripsi AES-256
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild className="h-8 text-xs font-medium">
             <Link href="/prototype/admin/sessions">
               <span>Semua Jadwal</span>
@@ -151,11 +156,11 @@ export default function LayoutRefinedAdminDashboard() {
         {/* Left 2 Cols: Realtime Session Triage Surface */}
         <div className="lg:col-span-2">
           <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs">
-            {/* Integrated Header Toolbar (aligned with right sidebar card header) */}
+            {/* Integrated Header Toolbar */}
             <div className="flex items-center justify-between p-4 border-b border-border bg-muted/20">
               <div className="flex items-center gap-2">
                 <Video className="size-4 text-primary shrink-0" />
-                <h2 className="text-sm font-semibold text-foreground">
+                <h2 className="text-base font-bold tracking-tight text-foreground">
                   Jadwal Sesi Mendekati Waktu
                 </h2>
               </div>
@@ -174,19 +179,19 @@ export default function LayoutRefinedAdminDashboard() {
 
             {/* Session Table */}
             <Table className="text-xs">
-              <TableHeader className="bg-muted/30">
-                <TableRow>
-                  <TableHead className="py-2.5 px-4 font-medium">Sesi & Pasien</TableHead>
-                  <TableHead className="py-2.5 px-3 font-medium">Mitra Konselor</TableHead>
-                  <TableHead className="py-2.5 px-3 font-medium">Waktu (WIB)</TableHead>
-                  <TableHead className="py-2.5 px-3 font-medium">Ruang Zoom</TableHead>
-                  <TableHead className="py-2.5 px-4 font-medium text-right">Akses</TableHead>
+              <TableHeader className="bg-muted/40">
+                <TableRow className="border-border/60">
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Sesi & Pasien</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Mitra Konselor</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Waktu (WIB)</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Ruang Zoom</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground text-right">Akses</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {liveSessions.map((ses) => (
-                  <TableRow key={ses.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="py-3.5 px-4">
+                  <TableRow key={ses.id} className="hover:bg-muted/30 transition-colors border-border/60">
+                    <TableCell className="py-3.5 px-3.5">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-semibold text-primary">{ses.code}</span>
                         {ses.hasSuicidalThoughts && (
@@ -199,16 +204,16 @@ export default function LayoutRefinedAdminDashboard() {
                       <div className="text-[11px] text-muted-foreground">SRQ: {ses.srqScore}/20</div>
                     </TableCell>
 
-                    <TableCell className="py-3.5 px-3">
+                    <TableCell className="py-3.5 px-3.5">
                       <div className="text-foreground font-medium">{ses.counselorName}</div>
                       <div className="text-[10px] text-muted-foreground">{ses.counselorType}</div>
                     </TableCell>
 
-                    <TableCell className="py-3.5 px-3 font-medium tabular-nums text-foreground">
+                    <TableCell className="py-3.5 px-3.5 font-medium tabular-nums text-foreground">
                       {ses.timeRange}
                     </TableCell>
 
-                    <TableCell className="py-3.5 px-3">
+                    <TableCell className="py-3.5 px-3.5">
                       <Badge
                         variant={ses.status === "in_session" ? "default" : "outline"}
                         className="text-[10px] py-0.5 px-1.5 inline-flex items-center gap-1.5"
@@ -224,8 +229,8 @@ export default function LayoutRefinedAdminDashboard() {
                       </Badge>
                     </TableCell>
 
-                    <TableCell className="py-3.5 px-4 text-right">
-                      <Button variant="outline" size="xs" asChild className="h-7 text-xs">
+                    <TableCell className="py-3.5 px-3.5 text-right">
+                      <Button variant="outline" size="xs" asChild className="h-7 text-xs font-normal">
                         <a href={ses.zoomJoinUrl} target="_blank" rel="noreferrer">
                           <span>Zoom</span>
                           <ExternalLink className="size-3 ml-1" />
@@ -243,10 +248,10 @@ export default function LayoutRefinedAdminDashboard() {
         <div className="flex flex-col gap-6">
           {/* Card 1: Zoom Infrastructure Status */}
           <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4 shadow-xs">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="size-4 text-primary shrink-0" />
-                <h3 className="text-sm font-semibold text-foreground">Status Ruang Zoom (2/2)</h3>
+                <h3 className="text-base font-bold tracking-tight text-foreground">Status Ruang Zoom (2/2)</h3>
               </div>
               <Button variant="ghost" size="xs" asChild className="h-6 text-xs text-muted-foreground hover:text-foreground">
                 <Link href="/prototype/admin/zoom">Detail</Link>
@@ -275,12 +280,12 @@ export default function LayoutRefinedAdminDashboard() {
 
           {/* Card 2: Pending Counselor Audits */}
           <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4 shadow-xs">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between border-b border-border/60 pb-3">
               <div className="flex items-center gap-2">
                 <FileCheck className="size-4 text-primary shrink-0" />
-                <h3 className="text-sm font-semibold text-foreground">Menunggu Verifikasi</h3>
+                <h3 className="text-base font-bold tracking-tight text-foreground">Menunggu Verifikasi</h3>
               </div>
-              <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.2 rounded-full bg-primary text-primary-foreground">
+              <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">
                 {pendingApplicants.length} berkas
               </span>
             </div>

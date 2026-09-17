@@ -85,15 +85,21 @@ export default function DistilledCounselorsPage() {
   })
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-8 pb-12">
+    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-16">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="p-3.5 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-md animate-in fade-in flex items-center justify-between">
-          <span className="flex items-center gap-2">
+        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md">
+          <div className="flex items-center gap-2">
             <CheckCircle2 className="size-4 text-primary shrink-0" />
             <span>{toastMessage}</span>
-          </span>
-          <Button variant="ghost" size="xs" onClick={() => setToastMessage(null)} className="size-6 p-0">
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setToastMessage(null)}
+            className="size-6 text-muted-foreground hover:text-foreground"
+            aria-label="Tutup notifikasi"
+          >
             ✕
           </Button>
         </div>
@@ -101,13 +107,18 @@ export default function DistilledCounselorsPage() {
 
       {/* Page Header & Tab Controls */}
       <Tabs defaultValue="applicants" className="flex flex-col gap-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border pb-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              Mitra Konselor
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Audit kualifikasi berkas legalitas WNI dan kelola izin operasional konselor aktif
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Direktori & Antrean Mitra Konselor
+              </h1>
+              <Badge variant="outline" className="text-xs font-mono py-0.5 px-2">
+                ADR-0001
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Audit kualifikasi berkas legalitas WNI dan kelola izin operasional konselor aktif.
             </p>
           </div>
 
@@ -115,14 +126,14 @@ export default function DistilledCounselorsPage() {
             <TabsTrigger value="applicants" className="flex items-center gap-2 text-xs px-3">
               <span>Antrean Berkas</span>
               {pendingApplicants.length > 0 && (
-                <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.2 rounded-full bg-primary text-primary-foreground">
+                <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">
                   {pendingApplicants.length}
                 </span>
               )}
             </TabsTrigger>
             <TabsTrigger value="active" className="flex items-center gap-2 text-xs px-3">
               <span>Konselor Terdaftar</span>
-              <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.2 rounded-full bg-muted-foreground/20 text-muted-foreground">
+              <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-muted-foreground/20 text-muted-foreground">
                 {activeCounselors.length}
               </span>
             </TabsTrigger>
@@ -348,14 +359,15 @@ export default function DistilledCounselorsPage() {
           <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs">
             {/* Integrated Toolbar Header: Filter + Search + Stats in one surface */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-border bg-muted/20">
-              <div className="flex items-center gap-2.5 flex-1 max-w-md">
-                <Search className="size-3.5 text-muted-foreground shrink-0" />
+              <div className="relative flex-1 min-w-[220px] max-w-xs">
+                <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Cari nama konselor atau fokus spesialisasi..."
+                  placeholder="Cari nama konselor atau spesialisasi..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-8 text-xs bg-background border border-border shadow-none focus-visible:ring-1"
+                  className="pl-8 h-8 text-xs bg-card"
+                  aria-label="Cari nama konselor"
                 />
               </div>
 
@@ -405,20 +417,20 @@ export default function DistilledCounselorsPage() {
             {/* Table Body */}
             <Table className="text-xs">
               <TableHeader className="bg-muted/40">
-                <TableRow>
-                  <TableHead className="py-3 px-4 font-medium">Konselor</TableHead>
-                  <TableHead className="py-3 px-3 font-medium">Kualifikasi</TableHead>
-                  <TableHead className="py-3 px-3 font-medium">Kontak</TableHead>
-                  <TableHead className="py-3 px-3 font-medium">Total Sesi</TableHead>
-                  <TableHead className="py-3 px-3 font-medium">Fokus Layanan</TableHead>
-                  <TableHead className="py-3 px-3 font-medium">Status</TableHead>
-                  <TableHead className="py-3 px-4 font-medium text-right">Tindakan</TableHead>
+                <TableRow className="border-border/60">
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Konselor</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Kualifikasi</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Kontak</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Total Sesi</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Fokus Layanan</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Status</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground text-right">Tindakan</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCounselors.map((c) => (
-                  <TableRow key={c.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="py-3.5 px-4">
+                  <TableRow key={c.id} className="hover:bg-muted/30 transition-colors border-border/60">
+                    <TableCell className="py-3.5 px-3.5">
                       <div className="font-semibold text-foreground">{c.name}</div>
                       <div className="text-[11px] text-muted-foreground">{c.title}</div>
                     </TableCell>

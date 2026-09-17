@@ -56,39 +56,50 @@ export default function DistilledSessionsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-6 pb-12">
+    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-16">
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="p-3.5 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-md animate-in fade-in flex items-center justify-between">
-          <span className="flex items-center gap-2">
+        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md">
+          <div className="flex items-center gap-2">
             <CheckCircle2 className="size-4 text-primary shrink-0" />
             <span>{toastMessage}</span>
-          </span>
-          <Button variant="ghost" size="xs" onClick={() => setToastMessage(null)} className="size-6 p-0">
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setToastMessage(null)}
+            className="size-6 text-muted-foreground hover:text-foreground"
+            aria-label="Tutup notifikasi"
+          >
             ✕
           </Button>
         </div>
       )}
 
-      {/* Page Header: Clean & Confident */}
-      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Jadwal & Sesi Konseling
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Manajemen sesi telekonseling 90 menit dan penegakan batas waktu reschedule H-12 jam
+      {/* Page Header: Standardized with unified font size, ADR badge, and subtitle */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Jadwal & Sesi Konseling
+            </h1>
+            <Badge variant="outline" className="text-xs font-mono py-0.5 px-2">
+              ADR-0002
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Manajemen sesi telekonseling 90 menit dan penegakan batas waktu reschedule H-12 jam.
           </p>
         </div>
 
-        <Badge variant="outline" className="px-3 py-1 text-xs font-mono text-muted-foreground self-start sm:self-auto">
+        <Badge variant="outline" className="text-xs font-mono py-0.5 px-2">
           <span>Durasi Tetap:</span>
           <span className="text-foreground font-semibold ml-1.5">90 Menit</span>
         </Badge>
       </div>
 
       {/* Distilled Policy Notice: Sleek 1-row strip with direct scenario triggers */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-muted/30 text-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-muted/40 text-xs">
         <div className="flex items-center gap-2 text-muted-foreground">
           <ShieldAlert className="size-4 text-primary shrink-0" />
           <span>
@@ -126,14 +137,15 @@ export default function DistilledSessionsPage() {
       <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs">
         {/* Integrated Toolbar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-border bg-muted/20">
-          <div className="flex items-center gap-2.5 flex-1 max-w-md">
-            <Search className="size-3.5 text-muted-foreground shrink-0" />
+          <div className="relative flex-1 min-w-[220px] max-w-xs">
+            <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Cari kode sesi, nama pasien, atau konselor..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-8 text-xs bg-background border border-border shadow-none focus-visible:ring-1"
+              className="pl-8 h-8 text-xs bg-card"
+              aria-label="Cari jadwal sesi"
             />
           </div>
 
@@ -193,15 +205,15 @@ export default function DistilledSessionsPage() {
 
         {/* Table Body */}
         <Table className="text-xs">
-          <TableHeader className="bg-muted/30">
-            <TableRow>
-              <TableHead className="py-2.5 px-4 font-medium">Sesi & Jadwal</TableHead>
-              <TableHead className="py-2.5 px-3 font-medium">Pasien & Triage</TableHead>
-              <TableHead className="py-2.5 px-3 font-medium">Mitra Konselor</TableHead>
-              <TableHead className="py-2.5 px-3 font-medium">Ruang Zoom</TableHead>
-              <TableHead className="py-2.5 px-3 font-medium">Status Sesi</TableHead>
-              <TableHead className="py-2.5 px-3 font-medium">Kelayakan Reschedule</TableHead>
-              <TableHead className="py-2.5 px-4 font-medium text-right">Tindakan</TableHead>
+          <TableHeader className="bg-muted/40">
+            <TableRow className="border-border/60">
+              <TableHead className="py-3 px-3.5 font-semibold text-foreground">Sesi & Jadwal</TableHead>
+              <TableHead className="py-3 px-3.5 font-semibold text-foreground">Pasien & Triage</TableHead>
+              <TableHead className="py-3 px-3.5 font-semibold text-foreground">Mitra Konselor</TableHead>
+              <TableHead className="py-3 px-3.5 font-semibold text-foreground">Ruang Zoom</TableHead>
+              <TableHead className="py-3 px-3.5 font-semibold text-foreground">Status Sesi</TableHead>
+              <TableHead className="py-3 px-3.5 font-semibold text-foreground">Kelayakan Reschedule</TableHead>
+              <TableHead className="py-3 px-3.5 font-semibold text-foreground text-right">Tindakan</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -210,9 +222,9 @@ export default function DistilledSessionsPage() {
               const isLocked = ses.hoursUntilSession > 0 && ses.hoursUntilSession < 12
 
               return (
-                <TableRow key={ses.id} className="hover:bg-muted/30 transition-colors">
+                <TableRow key={ses.id} className="hover:bg-muted/30 transition-colors border-border/60">
                   {/* Col 1: Sesi & Jadwal */}
-                  <TableCell className="py-3.5 px-4">
+                  <TableCell className="py-3.5 px-3.5">
                     <div className="font-mono font-semibold text-primary text-sm">{ses.code}</div>
                     <div className="text-foreground flex items-center gap-1.5 mt-0.5 font-medium tabular-nums text-xs">
                       <Clock className="size-3 text-muted-foreground shrink-0" />

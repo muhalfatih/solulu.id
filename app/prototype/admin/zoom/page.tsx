@@ -142,7 +142,7 @@ export default function DistilledZoomAdminPage() {
   const inspectingSessions = inspectingAccountId ? BOUND_SESSIONS[inspectingAccountId] || [] : []
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-6">
+    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-16">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md">
@@ -169,11 +169,11 @@ export default function DistilledZoomAdminPage() {
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Kredensial 2 Ruang Zoom & Safety Lock
             </h1>
-            <Badge variant="outline" className="text-xs font-mono py-0.5">
+            <Badge variant="outline" className="text-xs font-mono py-0.5 px-2">
               ADR-0001 & ADR-0002
             </Badge>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             Manajemen alokasi pool 2 akun Zoom Pro independen untuk menangani sesi 90 menit dan jadwal tumpang tindih (*overlap*).
           </p>
         </div>

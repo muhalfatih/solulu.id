@@ -119,7 +119,7 @@ export default function DistilledPricingAdminPage() {
   })
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-6">
+    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-16">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md">
@@ -146,11 +146,11 @@ export default function DistilledPricingAdminPage() {
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Tarif Layanan & Manajemen Voucher
             </h1>
-            <Badge variant="outline" className="text-xs font-mono py-0.5">
+            <Badge variant="outline" className="text-xs font-mono py-0.5 px-2">
               ADR-0001 & ADR-0002
             </Badge>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             Konfigurasi tarif flat sesi 90 menit tanpa biaya tersembunyi dan kelola kuota voucher promosi.
           </p>
         </div>
@@ -341,12 +341,12 @@ export default function DistilledPricingAdminPage() {
             <Table className="text-xs">
               <TableHeader className="bg-muted/40">
                 <TableRow className="border-border/60">
-                  <TableHead className="py-3 px-4 text-foreground font-semibold">Kode Voucher</TableHead>
-                  <TableHead className="py-3 px-3 text-foreground font-semibold">Potongan Diskon</TableHead>
-                  <TableHead className="py-3 px-3 text-foreground font-semibold">Penggunaan Kuota</TableHead>
-                  <TableHead className="py-3 px-3 text-foreground font-semibold">Masa Berlaku</TableHead>
-                  <TableHead className="py-3 px-3 text-foreground font-semibold">Status</TableHead>
-                  <TableHead className="py-3 px-4 text-right text-foreground font-semibold">Tindakan</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Kode Voucher</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Potongan Diskon</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Penggunaan Kuota</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Masa Berlaku</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Status</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground text-right">Tindakan</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -358,12 +358,12 @@ export default function DistilledPricingAdminPage() {
                     return (
                       <TableRow key={v.code} className="hover:bg-muted/30 transition-colors border-border/60">
                         {/* Kode */}
-                        <TableCell className="py-3.5 px-4 font-mono font-bold text-primary text-xs">
+                        <TableCell className="py-3.5 px-3.5 font-mono font-bold text-primary text-xs">
                           {v.code}
                         </TableCell>
 
                         {/* Diskon */}
-                        <TableCell className="py-3.5 px-3 font-semibold text-foreground">
+                        <TableCell className="py-3.5 px-3.5 font-semibold text-foreground">
                           {v.discount}
                         </TableCell>
 
