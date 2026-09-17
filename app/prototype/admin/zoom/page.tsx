@@ -238,8 +238,110 @@ export default function DistilledZoomAdminPage() {
         </div>
       </div>
 
+      {/* Visual Concurrency & 90-Minute Overlap Timeline (ADR-0002 Visual Proof) */}
+      <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Clock className="size-4 text-primary" />
+            <h2 className="text-xs font-bold text-foreground tracking-tight">
+              Peta Alokasi Konkurensi Sesi 90-Menit (ADR-0002) — Hari Ini
+            </h2>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-primary" />
+              <span>Ruang #1 (Primary)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-chart-2" />
+              <span>Ruang #2 (Overlap)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-amber-500" />
+              <span>Overlap Window (2/2 Terisi)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Timeline Visualization Grid */}
+        <div className="flex flex-col gap-2 pt-1">
+          {/* Time axis scale */}
+          <div className="grid grid-cols-6 text-[10px] font-mono text-muted-foreground border-b border-border/60 pb-1 text-center">
+            <div>18:00</div>
+            <div>19:00</div>
+            <div>20:00</div>
+            <div>21:00</div>
+            <div>22:00</div>
+            <div>23:00</div>
+          </div>
+
+          {/* Track 1: Ruang #1 */}
+          <div className="flex items-center gap-2 text-xs">
+            <span className="w-20 shrink-0 font-medium text-foreground text-[11px] truncate">
+              Ruang #1:
+            </span>
+            <div className="relative flex-1 h-8 bg-muted/30 rounded-lg border border-border/60 overflow-hidden">
+              {/* SL-9281: 19:00 - 20:30 (approx 18.2% to 45.5%) */}
+              <div
+                className="absolute top-1 bottom-1 left-[18.2%] w-[27.3%] bg-primary/20 border border-primary/40 rounded-md px-2 flex items-center justify-between text-[10px] text-foreground font-semibold"
+                title="SL-9281: 19:00 – 20:30 WIB (Live)"
+              >
+                <span className="truncate">SL-9281 (19:00 - 20:30)</span>
+                <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              </div>
+
+              {/* SL-9283: 21:00 - 22:30 (approx 54.5% to 81.8%) */}
+              <div
+                className="absolute top-1 bottom-1 left-[54.5%] w-[27.3%] bg-primary/10 border border-primary/30 rounded-md px-2 flex items-center text-[10px] text-muted-foreground"
+                title="SL-9283: 21:00 – 22:30 WIB (Confirmed)"
+              >
+                <span className="truncate">SL-9283 (21:00 - 22:30)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Track 2: Ruang #2 */}
+          <div className="flex items-center gap-2 text-xs">
+            <span className="w-20 shrink-0 font-medium text-foreground text-[11px] truncate">
+              Ruang #2:
+            </span>
+            <div className="relative flex-1 h-8 bg-muted/30 rounded-lg border border-border/60 overflow-hidden">
+              {/* SL-9282: 19:30 - 21:00 (approx 27.3% to 54.5%) */}
+              <div
+                className="absolute top-1 bottom-1 left-[27.3%] w-[27.3%] bg-chart-2/20 border border-chart-2/50 rounded-md px-2 flex items-center justify-between text-[10px] text-foreground font-semibold"
+                title="SL-9282: 19:30 – 21:00 WIB (Live Overlap)"
+              >
+                <span className="truncate">SL-9282 (19:30 - 21:00)</span>
+                <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              </div>
+
+              {/* SL-9284: 21:30 - 23:00 (approx 63.6% to 90.9%) */}
+              <div
+                className="absolute top-1 bottom-1 left-[63.6%] w-[27.3%] bg-chart-2/10 border border-chart-2/30 rounded-md px-2 flex items-center text-[10px] text-muted-foreground"
+                title="SL-9284: 21:30 – 23:00 WIB (Hold Pembayaran)"
+              >
+                <span className="truncate">SL-9284 (21:30 - 23:00)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Concurrency Overlap Highlight Banner */}
+          <div className="mt-1 flex items-center justify-between px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-foreground">
+            <div className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-amber-500" />
+              <span>
+                <strong>Jendela Overlap 19:30 – 20:30 WIB:</strong> Kedua Ruang Zoom Pro aktif simultan melayani 2 sesi konseling.
+              </span>
+            </div>
+            <span className="font-mono text-[10px] text-amber-500 font-semibold shrink-0">
+              KAPASITAS POOL 100%
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* 2 Zoom Accounts Grid: Distilled, No Nested Card Fatigue */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {accounts.map((acc, index) => {
           const isSimulatedUnlocked = simulatedUnlockedId === acc.id
           const boundCount = isSimulatedUnlocked ? 0 : acc.safetyLock.upcomingCount
@@ -247,7 +349,7 @@ export default function DistilledZoomAdminPage() {
           return (
             <div
               key={acc.id}
-              className="bg-card border border-border rounded-2xl p-6 flex flex-col gap-5 shadow-xs transition-colors"
+              className="bg-card border border-border rounded-2xl p-6 flex flex-col gap-5 shadow-xs transition-colors h-full"
             >
               {/* Card Header: Slot & Identity */}
               <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-4">
@@ -266,7 +368,7 @@ export default function DistilledZoomAdminPage() {
                 {/* Live Status Indicator */}
                 <Badge
                   variant={isSimulatedUnlocked ? "secondary" : "default"}
-                  className="flex items-center gap-1.5 py-1 px-2.5 text-xs font-medium"
+                  className="flex items-center gap-1.5 py-1 px-2.5 text-xs font-medium shrink-0"
                 >
                   <span
                     className={`size-2 rounded-full ${
@@ -277,8 +379,8 @@ export default function DistilledZoomAdminPage() {
                 </Badge>
               </div>
 
-              {/* Sesi Aktif Saat Ini: Clean Integrated Block */}
-              <div className="rounded-xl bg-muted/30 p-3.5 flex flex-col gap-2">
+              {/* Sesi Aktif Saat Ini: Clean Integrated Block with calibrated min-height */}
+              <div className="rounded-xl bg-muted/30 p-3.5 flex flex-col gap-2 min-h-[82px] justify-center">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-foreground flex items-center gap-1.5">
                     <Video className="size-3.5 text-primary" />
@@ -319,9 +421,9 @@ export default function DistilledZoomAdminPage() {
                 )}
               </div>
 
-              {/* Status Safety Lock: Clean Integrated Alert */}
+              {/* Status Safety Lock: Clean Integrated Alert with calibrated min-height */}
               <div
-                className={`rounded-xl p-3.5 flex flex-col gap-2 text-xs border ${
+                className={`rounded-xl p-3.5 flex flex-col gap-2 text-xs border min-h-[88px] justify-between ${
                   isSimulatedUnlocked
                     ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-500"
                     : "bg-destructive/10 border-destructive/20 text-destructive"
@@ -361,7 +463,7 @@ export default function DistilledZoomAdminPage() {
                 </p>
               </div>
 
-              {/* Kredensial S2S OAuth: Sleek Unified Grid (No Individual Box Nesting) */}
+              {/* Kredensial S2S OAuth: Sleek Unified Grid with calibrated label widths */}
               <div className="flex flex-col gap-2 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-foreground">
@@ -374,8 +476,8 @@ export default function DistilledZoomAdminPage() {
 
                 <div className="rounded-xl border border-border divide-y divide-border/60 font-mono text-[11px] bg-background/50">
                   {/* Account ID */}
-                  <div className="px-3 py-2.5 flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground font-sans text-xs">Account ID</span>
+                  <div className="px-3.5 py-2.5 flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground font-sans text-xs min-w-[90px]">Account ID</span>
                     <div className="flex items-center gap-1.5">
                       <span className="text-foreground font-semibold">zm_acc_8928192839182</span>
                       <Button
@@ -392,8 +494,8 @@ export default function DistilledZoomAdminPage() {
                   </div>
 
                   {/* Client ID */}
-                  <div className="px-3 py-2.5 flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground font-sans text-xs">Client ID</span>
+                  <div className="px-3.5 py-2.5 flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground font-sans text-xs min-w-[90px]">Client ID</span>
                     <div className="flex items-center gap-1.5">
                       <span className="text-foreground font-semibold">zm_cli_990182847192</span>
                       <Button
@@ -410,8 +512,8 @@ export default function DistilledZoomAdminPage() {
                   </div>
 
                   {/* Client Secret */}
-                  <div className="px-3 py-2.5 flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground font-sans text-xs">Client Secret</span>
+                  <div className="px-3.5 py-2.5 flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground font-sans text-xs min-w-[90px]">Client Secret</span>
                     <div className="flex items-center gap-1.5">
                       <span className="text-foreground font-semibold">
                         {showSecret[acc.id] ? "sec_7x9128mKlpQ8192kLx" : "••••••••••••••••••••"}
