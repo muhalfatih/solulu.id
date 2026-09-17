@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Mail,
   AlertTriangle,
+  ArrowRight,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -24,7 +25,7 @@ import {
   TableCell,
 } from "@/components/ui/table"
 
-export default function LayoutRefinedSessionsPage() {
+export default function DistilledSessionsPage() {
   const [sessions, setSessions] = React.useState<BookingSession[]>(MOCK_SESSIONS)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
@@ -47,15 +48,15 @@ export default function LayoutRefinedSessionsPage() {
 
   const handleCopyLink = (code: string) => {
     navigator.clipboard.writeText(`https://solulu.id/session/tok_${code.toLowerCase()}_sample`)
-    showToast(`Tautan sesi pasien untuk ${code} berhasil disalin!`)
+    showToast(`Tautan sesi pasien untuk ${code} berhasil disalin ke papan klip.`)
   }
 
   const handleResendEmail = (patientName: string) => {
-    showToast(`Email konfirmasi dan tautan ruang konsultasi berhasil dikirim ulang ke ${patientName}.`)
+    showToast(`Email konfirmasi jadwal dan tautan sesi berhasil dikirim ulang ke ${patientName}.`)
   }
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-8 pb-12">
+    <div className="max-w-6xl mx-auto flex flex-col gap-6 pb-12">
       {/* Toast Alert */}
       {toastMessage && (
         <div className="p-3.5 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-md animate-in fade-in flex items-center justify-between">
@@ -69,60 +70,55 @@ export default function LayoutRefinedSessionsPage() {
         </div>
       )}
 
-      {/* Page Header: Clear hierarchy & aligned baseline */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border pb-5">
-        <div className="flex flex-col gap-1">
+      {/* Page Header: Clean & Confident */}
+      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 border-b border-border pb-4">
+        <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
             Jadwal & Sesi Konseling
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Monitoring sesi aktif 90 menit, mitigasi klinis SRQ-20, dan penegakan aturan reschedule H-12 jam (ADR-0002)
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manajemen sesi telekonseling 90 menit dan penegakan batas waktu reschedule H-12 jam
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <Badge variant="outline" className="px-3 py-1 text-xs font-mono text-muted-foreground">
-            <span>Durasi:</span>
-            <span className="text-foreground font-semibold ml-1.5">90 Menit Fixed</span>
-          </Badge>
-        </div>
+        <Badge variant="outline" className="px-3 py-1 text-xs font-mono text-muted-foreground self-start sm:self-auto">
+          <span>Durasi Tetap:</span>
+          <span className="text-foreground font-semibold ml-1.5">90 Menit</span>
+        </Badge>
       </div>
 
-      {/* Interactive Scenario Guide: Flat, balanced 2-column strip without nested card borders */}
-      <div className="rounded-2xl border border-border bg-muted/20 p-5 flex flex-col gap-3.5 shadow-2xs">
-        <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+      {/* Distilled Policy Notice: Sleek 1-row strip with direct scenario triggers */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-muted/30 text-xs">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <ShieldAlert className="size-4 text-primary shrink-0" />
-          <span>Panduan Pengujian Aturan H-12 Jam (ADR-0002):</span>
+          <span>
+            <strong className="text-foreground font-medium">Kebijakan Reschedule (ADR-0002):</strong> Perubahan jadwal dibatasi minimal 12 jam sebelum sesi untuk melindungi alokasi 2 akun Zoom Pro.
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          {/* Scenario 1 */}
-          <div className="flex flex-col gap-1 p-3 rounded-xl bg-background border border-border/80">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-foreground">Skenario 1: Sesi &lt; 12 Jam</span>
-              <Badge variant="destructive" className="text-[9px] py-0 px-1 font-medium">
-                Terkunci
-              </Badge>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Klik <strong className="text-foreground font-medium">Reschedule</strong> pada sesi{" "}
-              <span className="font-mono font-semibold text-primary">SL-9281</span> (~2 jam lagi) untuk melihat dialog penolakan otomatis demi melindungi ketersediaan Zoom.
-            </p>
-          </div>
-
-          {/* Scenario 2 */}
-          <div className="flex flex-col gap-1 p-3 rounded-xl bg-background border border-border/80">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-foreground">Skenario 2: Sesi &gt; 12 Jam</span>
-              <Badge variant="secondary" className="text-[9px] py-0 px-1 font-medium text-emerald-600 dark:text-emerald-400">
-                Diizinkan
-              </Badge>
-            </div>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Klik <strong className="text-foreground font-medium">Reschedule</strong> pada sesi{" "}
-              <span className="font-mono font-semibold text-primary">SL-9285</span> (pekan depan) untuk memilih slot konselor baru dan menyimulasikan kirim notifikasi.
-            </p>
-          </div>
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => {
+              const target = sessions.find((s) => s.code === "SL-9281")
+              if (target) setSelectedSession(target)
+            }}
+            className="h-7 text-xs font-normal"
+          >
+            <span>Uji Kasus &lt;12j (SL-9281)</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => {
+              const target = sessions.find((s) => s.code === "SL-9285")
+              if (target) setSelectedSession(target)
+            }}
+            className="h-7 text-xs font-normal"
+          >
+            <span>Uji Kasus &gt;12j (SL-9285)</span>
+          </Button>
         </div>
       </div>
 
@@ -199,143 +195,151 @@ export default function LayoutRefinedSessionsPage() {
         <Table className="text-xs">
           <TableHeader className="bg-muted/30">
             <TableRow>
-              <TableHead className="py-3 px-4 font-medium">Kode & Jadwal (WIB)</TableHead>
-              <TableHead className="py-3 px-3 font-medium">Pasien & Triage Klinis</TableHead>
-              <TableHead className="py-3 px-3 font-medium">Mitra Konselor</TableHead>
-              <TableHead className="py-3 px-3 font-medium">Alokasi Zoom</TableHead>
-              <TableHead className="py-3 px-3 font-medium">Status Sesi</TableHead>
-              <TableHead className="py-3 px-3 font-medium">Aturan Reschedule</TableHead>
-              <TableHead className="py-3 px-4 font-medium text-right">Tindakan</TableHead>
+              <TableHead className="py-2.5 px-4 font-medium">Sesi & Jadwal</TableHead>
+              <TableHead className="py-2.5 px-3 font-medium">Pasien & Triage</TableHead>
+              <TableHead className="py-2.5 px-3 font-medium">Mitra Konselor</TableHead>
+              <TableHead className="py-2.5 px-3 font-medium">Ruang Zoom</TableHead>
+              <TableHead className="py-2.5 px-3 font-medium">Status Sesi</TableHead>
+              <TableHead className="py-2.5 px-3 font-medium">Kelayakan Reschedule</TableHead>
+              <TableHead className="py-2.5 px-4 font-medium text-right">Tindakan</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredSessions.map((ses) => (
-              <TableRow key={ses.id} className="hover:bg-muted/30 transition-colors">
-                {/* Col 1: Code & Schedule */}
-                <TableCell className="py-3.5 px-4">
-                  <div className="font-mono font-semibold text-primary text-sm">{ses.code}</div>
-                  <div className="text-foreground flex items-center gap-1.5 mt-0.5 font-medium tabular-nums text-xs">
-                    <Clock className="size-3 text-muted-foreground" />
-                    <span>{ses.timeRange}</span>
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">{ses.date}</div>
-                </TableCell>
+            {filteredSessions.map((ses) => {
+              const isCompleted = ses.status === "completed" || ses.hoursUntilSession < 0
+              const isLocked = ses.hoursUntilSession > 0 && ses.hoursUntilSession < 12
 
-                {/* Col 2: Patient & Clinical Triage */}
-                <TableCell className="py-3.5 px-3">
-                  <div className="font-semibold text-foreground">{ses.patientName}</div>
-                  <div className="text-[11px] text-muted-foreground font-mono">{ses.patientContact}</div>
-                  <div className="mt-1 flex items-center gap-1.5">
-                    <Badge
-                      variant={ses.srqScore >= 8 ? "destructive" : "secondary"}
-                      className="text-[10px] py-0 px-1.5 font-normal"
-                    >
-                      SRQ: {ses.srqScore}/20
+              return (
+                <TableRow key={ses.id} className="hover:bg-muted/30 transition-colors">
+                  {/* Col 1: Sesi & Jadwal */}
+                  <TableCell className="py-3.5 px-4">
+                    <div className="font-mono font-semibold text-primary text-sm">{ses.code}</div>
+                    <div className="text-foreground flex items-center gap-1.5 mt-0.5 font-medium tabular-nums text-xs">
+                      <Clock className="size-3 text-muted-foreground shrink-0" />
+                      <span>{ses.timeRange}</span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">{ses.date}</div>
+                  </TableCell>
+
+                  {/* Col 2: Pasien & Triage */}
+                  <TableCell className="py-3.5 px-3">
+                    <div className="font-semibold text-foreground">{ses.patientName}</div>
+                    <div className="text-[11px] text-muted-foreground font-mono">{ses.patientContact}</div>
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <Badge
+                        variant={ses.srqScore >= 8 ? "destructive" : "secondary"}
+                        className="text-[10px] py-0 px-1.5 font-normal"
+                      >
+                        SRQ: {ses.srqScore}/20
+                      </Badge>
+                      {ses.hasSuicidalThoughts && (
+                        <Badge variant="destructive" className="text-[10px] py-0 px-1.5 font-medium">
+                          Waiver Darurat
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
+
+                  {/* Col 3: Konselor */}
+                  <TableCell className="py-3.5 px-3">
+                    <div className="text-foreground font-medium">{ses.counselorName}</div>
+                    <div className="text-[11px] text-muted-foreground">{ses.counselorType}</div>
+                  </TableCell>
+
+                  {/* Col 4: Ruang Zoom */}
+                  <TableCell className="py-3.5 px-3">
+                    <Badge variant="outline" className="font-mono text-[10px] gap-1 px-2 py-0.5">
+                      <Video className="size-3 text-primary" />
+                      <span>{ses.zoomRoom}</span>
                     </Badge>
-                    {ses.hasSuicidalThoughts && (
-                      <Badge variant="destructive" className="text-[10px] py-0 px-1.5 font-medium">
-                        Waiver Darurat
+                  </TableCell>
+
+                  {/* Col 5: Status Sesi */}
+                  <TableCell className="py-3.5 px-3">
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${
+                        ses.status === "in_session"
+                          ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+                          : "text-foreground"
+                      }`}
+                    >
+                      <span
+                        className={`size-1.5 rounded-full ${
+                          ses.status === "in_session"
+                            ? "bg-emerald-500 animate-pulse"
+                            : ses.status === "confirmed"
+                            ? "bg-primary"
+                            : "bg-muted-foreground/40"
+                        }`}
+                      />
+                      <span>
+                        {ses.status === "in_session"
+                          ? "Sedang Berlangsung"
+                          : ses.status === "confirmed"
+                          ? "Terkonfirmasi"
+                          : "Selesai"}
+                      </span>
+                    </span>
+                  </TableCell>
+
+                  {/* Col 6: Kelayakan Reschedule */}
+                  <TableCell className="py-3.5 px-3">
+                    {isCompleted ? (
+                      <span className="text-[11px] text-muted-foreground">Telah selesai</span>
+                    ) : isLocked ? (
+                      <Badge variant="destructive" className="text-[10px] py-0.5 px-2 font-normal">
+                        Terkunci ({ses.hoursUntilSession}j lagi)
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px] py-0.5 px-2 font-normal text-emerald-600 dark:text-emerald-400">
+                        Diizinkan ({ses.hoursUntilSession}j lagi)
                       </Badge>
                     )}
-                  </div>
-                </TableCell>
+                  </TableCell>
 
-                {/* Col 3: Counselor */}
-                <TableCell className="py-3.5 px-3">
-                  <div className="text-foreground font-medium">{ses.counselorName}</div>
-                  <div className="text-[11px] text-muted-foreground">{ses.counselorType}</div>
-                </TableCell>
-
-                {/* Col 4: Zoom Room */}
-                <TableCell className="py-3.5 px-3">
-                  <Badge variant="outline" className="font-mono text-[10px] gap-1 px-2 py-0.5">
-                    <Video className="size-3 text-primary" />
-                    <span>{ses.zoomRoom}</span>
-                  </Badge>
-                </TableCell>
-
-                {/* Col 5: Session Status */}
-                <TableCell className="py-3.5 px-3">
-                  <span
-                    className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${
-                      ses.status === "in_session"
-                        ? "text-emerald-600 dark:text-emerald-400 font-semibold"
-                        : "text-foreground"
-                    }`}
-                  >
-                    <span
-                      className={`size-1.5 rounded-full ${
-                        ses.status === "in_session"
-                          ? "bg-emerald-500 animate-pulse"
-                          : ses.status === "confirmed"
-                          ? "bg-primary"
-                          : "bg-muted-foreground/40"
-                      }`}
-                    />
-                    <span>
-                      {ses.status === "in_session"
-                        ? "Sedang Berlangsung"
-                        : ses.status === "confirmed"
-                        ? "Terkonfirmasi"
-                        : "Selesai"}
-                    </span>
-                  </span>
-                </TableCell>
-
-                {/* Col 6: Reschedule Eligibility */}
-                <TableCell className="py-3.5 px-3">
-                  {ses.hoursUntilSession > 0 ? (
-                    <Badge
-                      variant={ses.hoursUntilSession < 12 ? "destructive" : "secondary"}
-                      className="text-[10px] py-0.5 px-2 font-normal"
-                    >
-                      {ses.hoursUntilSession < 12
-                        ? `${ses.hoursUntilSession}j lagi (Terkunci)`
-                        : `${ses.hoursUntilSession}j lagi (Bisa Pindah)`}
-                    </Badge>
-                  ) : (
-                    <span className="text-[11px] text-muted-foreground">Sesi berlalu</span>
-                  )}
-                </TableCell>
-
-                {/* Col 7: Actions */}
-                <TableCell className="py-3.5 px-4 text-right">
-                  <div className="flex items-center justify-end gap-1.5">
-                    <Button
-                      variant="outline"
-                      size="xs"
-                      onClick={() => setSelectedSession(ses)}
-                      className="h-7 text-xs font-normal"
-                    >
-                      Reschedule
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      onClick={() => handleCopyLink(ses.code)}
-                      title="Salin Tautan Sesi Pasien"
-                      className="size-7 text-muted-foreground hover:text-foreground"
-                    >
-                      <Copy className="size-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      onClick={() => handleResendEmail(ses.patientName)}
-                      title="Kirim Ulang Email"
-                      className="size-7 text-muted-foreground hover:text-foreground"
-                    >
-                      <Mail className="size-3.5" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                  {/* Col 7: Tindakan */}
+                  <TableCell className="py-3.5 px-4 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="xs"
+                        disabled={isCompleted}
+                        onClick={() => setSelectedSession(ses)}
+                        className="h-7 text-xs font-normal"
+                        title={isCompleted ? "Sesi telah selesai, tidak dapat dijadwalkan ulang" : "Jadwalkan ulang sesi"}
+                      >
+                        Reschedule
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => handleCopyLink(ses.code)}
+                        title="Salin Tautan Sesi Pasien"
+                        aria-label="Salin tautan sesi pasien"
+                        className="size-7 text-muted-foreground hover:text-foreground"
+                      >
+                        <Copy className="size-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => handleResendEmail(ses.patientName)}
+                        title="Kirim Ulang Email Konfirmasi"
+                        aria-label="Kirim ulang email konfirmasi"
+                        className="size-7 text-muted-foreground hover:text-foreground"
+                      >
+                        <Mail className="size-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
           </TableBody>
         </Table>
       </div>
 
-      {/* Reschedule Dialog Modal: Balanced, crisp layout */}
+      {/* Reschedule Dialog Modal: Distilled & Clarified */}
       {selectedSession && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 flex flex-col gap-5 shadow-2xl">
@@ -359,21 +363,24 @@ export default function LayoutRefinedSessionsPage() {
                 <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-xs text-destructive flex flex-col gap-2">
                   <div className="flex items-center gap-2 font-semibold text-sm">
                     <AlertTriangle className="size-4" />
-                    <span>Kebijakan Terkunci: Batas Waktu H-12 Jam Telah Lewat</span>
+                    <span>Reschedule Ditolak: Batas Waktu H-12 Jam Telah Lewat</span>
                   </div>
                   <p className="text-xs text-foreground/90 leading-relaxed">
-                    Sesi ini dijadwalkan berlangsung dalam waktu <strong className="text-destructive">{selectedSession.hoursUntilSession} jam</strong>. Sesuai dokumen kepatuhan (ADR-0002), reschedule mandiri maupun oleh admin diblokir jika sesi berjarak kurang dari 12 jam demi menjaga integritas alokasi akun Zoom Pro dan waktu mitra konselor.
+                    Sesi dijadwalkan mulai dalam <strong className="text-destructive font-semibold">{selectedSession.hoursUntilSession} jam</strong>. Sistem mengunci penjadwalan ulang di bawah 12 jam (ADR-0002) guna mencegah slot Zoom Pro hangus tanpa kehadiran mitra konselor.
+                  </p>
+                  <p className="text-[11px] text-muted-foreground pt-1 border-t border-destructive/20">
+                    Untuk kendala darurat, lakukan koordinasi langsung dengan konselor yang bertugas.
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-muted/30 border border-border text-xs flex justify-between items-center">
-                  <span className="text-muted-foreground">Jadwal Sesi Terikat:</span>
+                  <span className="text-muted-foreground">Jadwal Sesi Terkunci:</span>
                   <span className="font-semibold text-foreground tabular-nums">{selectedSession.timeRange}</span>
                 </div>
 
                 <div className="flex justify-end pt-2">
                   <Button size="sm" onClick={() => setSelectedSession(null)} className="h-8 text-xs">
-                    Tutup Peringatan
+                    Tutup
                   </Button>
                 </div>
               </div>
@@ -385,16 +392,16 @@ export default function LayoutRefinedSessionsPage() {
                 <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/30 text-xs flex flex-col gap-1">
                   <div className="flex items-center gap-2 font-semibold text-foreground">
                     <CheckCircle2 className="size-4 text-primary" />
-                    <span>Jadwal Memenuhi Syarat Reschedule (&gt; 12 Jam)</span>
+                    <span>Jadwal Memenuhi Syarat Reschedule</span>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Sesi berjarak lebih dari 12 jam. Memindahkan jadwal akan secara otomatis memperbarui reservasi Zoom dan mengirimkan email jadwal baru ke pasien.
+                    Sesi berjarak lebih dari 12 jam. Pemindahan slot akan otomatis memperbarui reservasi Zoom dan mengirimkan email konfirmasi ke pasien.
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-3 text-xs">
                   <div className="p-3 rounded-xl bg-muted/30 border border-border flex flex-col gap-0.5">
-                    <span className="text-muted-foreground">Jadwal Sesi Asli:</span>
+                    <span className="text-muted-foreground">Jadwal Sesi Saat Ini:</span>
                     <div className="font-semibold text-foreground tabular-nums">
                       {selectedSession.date} ({selectedSession.timeRange})
                     </div>
@@ -402,7 +409,7 @@ export default function LayoutRefinedSessionsPage() {
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-foreground font-medium text-xs">
-                      Pilih Slot Baru yang Tersedia:
+                      Pilih Slot Pengganti yang Tersedia:
                     </label>
                     <select className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none font-medium">
                       <option>Rabu, 23 Sep 2026 — 19:00 - 20:30 WIB (Tersedia • Zoom OK)</option>
@@ -420,13 +427,13 @@ export default function LayoutRefinedSessionsPage() {
                     size="sm"
                     onClick={() => {
                       showToast(
-                        `Sesi ${selectedSession.code} berhasil dipindahkan. Email konfirmasi jadwal baru terkirim ke pasien!`
+                        `Jadwal baru sesi ${selectedSession.code} berhasil dikonfirmasi. Tautan baru telah dikirimkan ke pasien.`
                       )
                       setSelectedSession(null)
                     }}
                     className="h-8 text-xs font-medium"
                   >
-                    Konfirmasi & Kirim Notifikasi
+                    Konfirmasi Jadwal Baru
                   </Button>
                 </div>
               </div>
