@@ -15,11 +15,13 @@ import {
   Search,
   PanelLeftClose,
   PanelLeft,
+  ArrowUpRight,
+  ChevronRight,
   ExternalLink,
   LogOut,
   User,
   MessageSquareQuote,
-  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
@@ -40,6 +42,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>
   badge?: string | null
   badgeVariant?: "default" | "destructive" | "secondary" | "outline"
+  description?: string
 }
 
 interface NavSection {
@@ -52,39 +55,53 @@ const NAV_SECTIONS: NavSection[] = [
     title: "Operasional Klinis",
     items: [
       {
-        href: "/admin/dashboard",
+        href: "/admin",
         label: "Ringkasan",
         icon: LayoutDashboard,
+        badge: "2 Berjalan",
+        badgeVariant: "secondary",
+        description: "Ikhtisar jadwal dan tugas penting hari ini",
       },
       {
         href: "/admin/sessions",
-        label: "Jadwal Sesi",
+        label: "Jadwal",
         icon: Calendar,
+        badge: "8 Sesi",
+        badgeVariant: "outline",
+        description: "Daftar janji temu dan kalender konsultasi",
       },
     ],
   },
   {
-    title: "Kemitraan & Konten",
+    title: "Kemitraan & Tata Kelola",
     items: [
       {
         href: "/admin/counselors",
         label: "Konselor",
         icon: Users,
+        badge: "2 Baru",
+        badgeVariant: "destructive",
+        description: "Verifikasi berkas dan daftar konselor aktif",
       },
       {
         href: "/admin/pricing",
-        label: "Tarif & Voucher",
+        label: "Tarif",
         icon: Tag,
+        description: "Biaya konsultasi dan kupon diskon promo",
       },
       {
         href: "/admin/gallery",
-        label: "Galeri Publik",
+        label: "Galeri",
         icon: ImageIcon,
+        description: "Foto kegiatan untuk tampilan website",
       },
       {
         href: "/admin/testimonials",
         label: "Testimoni",
         icon: MessageSquareQuote,
+        badge: "3 Baru",
+        badgeVariant: "secondary",
+        description: "Kurasi ulasan klien dan testimoni website",
       },
     ],
   },
@@ -93,16 +110,59 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       {
         href: "/admin/zoom-settings",
-        label: "Pengaturan Zoom",
+        label: "Akun Zoom",
         icon: Video,
-        badge: "Safety Lock",
-        badgeVariant: "secondary",
+        badge: "2/2 Siap",
+        badgeVariant: "outline",
+        description: "Integrasi akun Zoom dan kunci konkurensi",
       },
     ],
   },
 ]
 
-export default function AdminLayout({
+const EXTRA_SEARCH_ITEMS: NavItem[] = [
+  {
+    href: "/admin/profile",
+    label: "Profil Saya",
+    icon: User,
+    description: "Pengaturan akun operator dan kata sandi",
+  },
+]
+
+const QUICK_ACTIONS = [
+  {
+    title: "Sesi SL-9281 (Anindya Putri, Psikolog Klinis)",
+    category: "Sesi Aktif",
+    href: "/admin/sessions",
+    hint: "19:00 WIB",
+  },
+  {
+    title: "Sesi SL-9282 (Dimas Arya, Konselor Sebaya)",
+    category: "Jadwal Konseling",
+    href: "/admin/sessions",
+    hint: "19:30 WIB",
+  },
+  {
+    title: "Profil Saya (Pengaturan Akun)",
+    category: "Akun Operator",
+    href: "/admin/profile",
+    hint: "Akun",
+  },
+  {
+    title: "Verifikasi Berkas Sarah Annisa & Budi Prasetyo",
+    category: "Pendaftar Konselor",
+    href: "/admin/counselors",
+    hint: "2 Berkas",
+  },
+  {
+    title: "Status Ruang Telekonseling 1 & 2",
+    category: "Infrastruktur Zoom",
+    href: "/admin/zoom-settings",
+    hint: "2/2 Siap",
+  },
+]
+
+export default function DistilledAdminLayout({
   children,
 }: {
   children: React.ReactNode
@@ -110,146 +170,352 @@ export default function AdminLayout({
   const pathname = usePathname()
   const [collapsed, setCollapsed] = React.useState(false)
   const [mobileOpen, setMobileOpen] = React.useState(false)
+  const [commandOpen, setCommandOpen] = React.useState(false)
+  const [searchQuery, setSearchQuery] = React.useState("")
+
+  // Global Ctrl+K / Cmd+K listener
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        setCommandOpen((prev) => !prev)
+      } else if (e.key === "Escape") {
+        setCommandOpen(false)
+        setMobileOpen(false)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [])
+
+  // Find current active item across sections or dedicated account route
+  let currentNav: NavItem | undefined
+  let currentSectionTitle = "Sistem & Integrasi"
+
+  if (pathname === "/admin/profile") {
+    currentNav = {
+      href: "/admin/profile",
+      label: "Profil Saya",
+      icon: User,
+      description: "Pengaturan akun operator, kontak darurat, dan kata sandi",
+    }
+    currentSectionTitle = "Akun Operator"
+  } else {
+    for (const section of NAV_SECTIONS) {
+      const found = section.items.find(
+        (item) =>
+          pathname === item.href ||
+          (item.href === "/admin/zoom-settings" && pathname?.startsWith("/admin/zoom"))
+      )
+      if (found) {
+        currentNav = found
+        currentSectionTitle = section.title
+        break
+      }
+    }
+  }
+
+  // Filtered lists for the Command Palette
+  const allNavItems = [...NAV_SECTIONS.flatMap((s) => s.items), ...EXTRA_SEARCH_ITEMS]
+  const filteredNav = allNavItems.filter((i) =>
+    `${i.label} ${i.description || ""}`.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+  const filteredQuickActions = QUICK_ACTIONS.filter((q) =>
+    `${q.title} ${q.category}`.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
-      {/* Mobile Backdrop */}
+    <div className="min-h-screen bg-background text-foreground flex font-sans selection:bg-primary/20 selection:text-primary">
+      {/* ========================================================================= */}
+      {/* MOBILE DRAWER BACKDROP & PANEL */}
+      {/* ========================================================================= */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs md:hidden"
+          className="fixed inset-0 bg-background/80 backdrop-blur-xs z-40 md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Mobile Drawer Aside */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card transition-all duration-300 md:static ${
-          collapsed ? "w-16" : "w-64"
-        } ${mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
+        className={`fixed inset-y-0 left-0 w-72 bg-card border-r border-border p-5 flex flex-col justify-between z-50 transition-transform duration-200 ease-in-out md:hidden ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
-        {/* Brand Header */}
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
-          {!collapsed ? (
-            <Link href="/admin/dashboard" className="flex items-center gap-2">
-              <div className="flex size-7 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-sm font-bold text-primary">
+        <div className="flex flex-col gap-6">
+          {/* Mobile Header: Brand & Close */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-lg bg-primary flex items-center justify-center font-bold text-primary-foreground text-xs shadow-xs">
                 S
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold tracking-tight text-foreground">
+                <span className="font-bold text-sm tracking-tight text-foreground">
                   Solulu Admin
                 </span>
-                <span className="font-mono text-[10px] text-muted-foreground">
+                <span className="text-xs text-muted-foreground font-mono">
                   Grounding Sanctuary
                 </span>
               </div>
-            </Link>
-          ) : (
-            <div className="mx-auto flex size-7 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-sm font-bold text-primary">
-              S
             </div>
-          )}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileOpen(false)}
+              className="size-7"
+              aria-label="Tutup navigasi"
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden size-7 text-muted-foreground hover:text-foreground md:flex"
-            aria-label={collapsed ? "Perluas menu" : "Perkecil menu"}
+          {/* Quick Search Button in Drawer */}
+          <button
+            type="button"
+            onClick={() => {
+              setMobileOpen(false)
+              setCommandOpen(true)
+            }}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/40 hover:bg-muted/70 text-muted-foreground hover:text-foreground text-xs transition-colors cursor-pointer"
           >
-            {collapsed ? (
-              <PanelLeft className="size-4" />
-            ) : (
-              <PanelLeftClose className="size-4" />
-            )}
-          </Button>
+            <div className="flex items-center gap-2">
+              <Search className="size-3.5" />
+              <span>Cari sesi atau konselor…</span>
+            </div>
+            <kbd className="text-xs font-mono bg-background border border-border px-1.5 py-0.5 rounded text-muted-foreground">
+              ⌘K
+            </kbd>
+          </button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileOpen(false)}
-            className="size-7 text-muted-foreground md:hidden"
-            aria-label="Tutup menu samping"
-          >
-            <X className="size-4" />
-          </Button>
-        </div>
-
-        {/* Navigation Sections */}
-        <div className="flex-1 space-y-6 overflow-y-auto px-2 py-4">
-          {NAV_SECTIONS.map((section) => (
-            <div key={section.title} className="space-y-1">
-              {!collapsed && (
-                <p className="px-3 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-                  {section.title}
-                </p>
-              )}
-              {section.items.map((item) => {
-                const isActive =
-                  pathname === item.href ||
-                  (item.href === "/admin/zoom-settings" &&
-                    pathname?.startsWith("/admin/zoom"))
-                const Icon = item.icon
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
-                      isActive
-                        ? "bg-primary font-semibold text-primary-foreground shadow-xs"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    } ${collapsed ? "justify-center px-0" : ""}`}
-                    title={collapsed ? item.label : undefined}
-                  >
-                    <Icon className="size-4 shrink-0" />
-                    {!collapsed && (
-                      <div className="flex flex-1 items-center justify-between">
-                        <span>{item.label}</span>
+          {/* Navigation Sections in Drawer */}
+          <div className="flex flex-col gap-5">
+            {NAV_SECTIONS.map((sec) => (
+              <div key={sec.title} className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 px-2.5">
+                  {sec.title}
+                </span>
+                <nav className="flex flex-col gap-0.5">
+                  {sec.items.map((item) => {
+                    const Icon = item.icon
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href === "/admin/zoom-settings" && pathname?.startsWith("/admin/zoom"))
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${
+                          isActive
+                            ? "bg-primary/10 text-primary font-semibold border-l-2 border-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Icon className="size-4 shrink-0" />
+                          <span>{item.label}</span>
+                        </div>
                         {item.badge && (
                           <Badge
-                            variant={item.badgeVariant ?? "secondary"}
-                            className="px-1.5 py-0 text-[10px] font-normal"
+                            variant={item.badgeVariant || "outline"}
+                            className="text-xs px-1.5 py-0 h-4 font-normal"
                           >
                             {item.badge}
                           </Badge>
                         )}
-                      </div>
-                    )}
-                  </Link>
-                )
-              })}
-            </div>
-          ))}
+                      </Link>
+                    )
+                  })}
+                </nav>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* User Footer */}
-        <div className="shrink-0 border-t border-border p-3">
+        {/* Mobile Drawer Footer: Operator Profile Link */}
+        <div className="pt-3 border-t border-border flex items-center justify-between">
+          <Link
+            href="/admin/profile"
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center gap-2.5 p-1.5 -ml-1.5 rounded-lg hover:bg-muted/60 transition-colors group flex-1 min-w-0"
+          >
+            <div className="size-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center border border-primary/20 shrink-0">
+              AP
+            </div>
+            <div className="flex flex-col truncate">
+              <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+                Admin Pelayanan
+              </span>
+              <span className="text-xs text-muted-foreground font-mono truncate">
+                admin@solulu.id
+              </span>
+            </div>
+          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="size-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" title="Terhubung" />
+          </div>
+        </div>
+      </aside>
+
+      {/* ========================================================================= */}
+      {/* DESKTOP SIDEBAR NAVIGATION */}
+      {/* ========================================================================= */}
+      <aside
+        className={`h-screen border-r border-border bg-card flex flex-col justify-between shrink-0 transition-all duration-200 z-30 ${
+          collapsed ? "w-18" : "w-64"
+        } hidden md:flex`}
+      >
+        {/* Top: Brand & Nav Sections */}
+        <div className="flex flex-col gap-6 p-4 overflow-y-auto">
+          {/* Brand Row */}
+          {collapsed ? (
+            <div className="flex justify-center h-8">
+              <button
+                type="button"
+                onClick={() => setCollapsed(false)}
+                className="size-8 rounded-lg bg-primary flex items-center justify-center font-bold text-primary-foreground text-xs shadow-xs hover:ring-2 hover:ring-primary/40 transition-all cursor-pointer group"
+                title="Klik untuk perluas bilah navigasi"
+                aria-label="Perluas bilah navigasi"
+              >
+                <span className="group-hover:hidden">S</span>
+                <PanelLeft className="size-4 hidden group-hover:block" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between h-8 px-1">
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <div className="size-7 rounded-lg bg-primary flex items-center justify-center font-bold text-primary-foreground text-xs shrink-0 shadow-xs">
+                  S
+                </div>
+                <div className="flex items-center gap-1.5 truncate">
+                  <span className="font-bold text-sm tracking-tight text-foreground">
+                    Solulu
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                    Admin
+                  </span>
+                </div>
+              </div>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setCollapsed(true)}
+                className="text-muted-foreground hover:text-foreground size-7 shrink-0"
+                title="Perkecil bilah navigasi"
+                aria-label="Perkecil bilah navigasi"
+              >
+                <PanelLeftClose className="size-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Nav Categories */}
+          <div className="flex flex-col gap-5">
+            {NAV_SECTIONS.map((sec) => (
+              <div key={sec.title} className="flex flex-col gap-1.5">
+                {!collapsed && (
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 px-2.5">
+                    {sec.title}
+                  </span>
+                )}
+                <nav className="flex flex-col gap-0.5">
+                  {sec.items.map((item) => {
+                    const Icon = item.icon
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href === "/admin/zoom-settings" && pathname?.startsWith("/admin/zoom"))
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        title={collapsed ? `${item.label} (${sec.title})` : undefined}
+                        className={`flex items-center rounded-lg transition-colors group relative ${
+                          collapsed
+                            ? "justify-center size-9 p-0 mx-auto"
+                            : "justify-between px-2.5 py-1.5 text-xs font-medium"
+                        } ${
+                          isActive
+                            ? "bg-primary/10 text-primary font-semibold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        }`}
+                      >
+                        <div
+                          className={`flex items-center gap-2.5 truncate ${
+                            collapsed ? "justify-center" : ""
+                          }`}
+                        >
+                          <Icon
+                            className={`size-4 shrink-0 transition-colors ${
+                              isActive
+                                ? "text-primary"
+                                : "text-muted-foreground group-hover:text-foreground"
+                            }`}
+                          />
+                          {!collapsed && <span className="truncate">{item.label}</span>}
+                        </div>
+
+                        {/* Expanded Badge */}
+                        {!collapsed && item.badge && (
+                          <Badge
+                            variant={item.badgeVariant || "outline"}
+                            className="text-xs px-1.5 py-0 h-4 font-normal shrink-0"
+                          >
+                            {item.badge}
+                          </Badge>
+                        )}
+
+                        {/* Collapsed Active Dot */}
+                        {collapsed && isActive && (
+                          <span className="absolute right-1 top-1 size-1.5 rounded-full bg-primary" />
+                        )}
+                      </Link>
+                    )
+                  })}
+                </nav>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Sidebar Footer: Anchored at Bottom with Operator Dropdown */}
+        <div className="p-3 border-t border-border bg-card/60 shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className={`flex w-full cursor-pointer items-center rounded-lg p-2 text-left transition-colors outline-none hover:bg-muted ${
+                className={`w-full flex items-center rounded-lg p-1.5 hover:bg-muted/60 transition-colors cursor-pointer text-left outline-none ${
                   collapsed ? "justify-center" : "justify-between"
                 }`}
+                aria-label="Menu akun operator"
               >
                 {!collapsed ? (
-                  <div className="flex items-center gap-2.5 overflow-hidden">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-xs font-bold text-primary">
-                      AD
+                  <>
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      <div className="size-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center border border-primary/20 shrink-0">
+                        AP
+                      </div>
+                      <div className="flex flex-col truncate">
+                        <span className="text-xs font-semibold text-foreground truncate">
+                          Admin Pelayanan
+                        </span>
+                        <span className="text-xs text-muted-foreground font-mono truncate">
+                          admin@solulu.id
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col truncate">
-                      <span className="truncate text-xs font-semibold text-foreground">
-                        Admin Solulu
-                      </span>
-                      <span className="truncate font-mono text-[10px] text-muted-foreground">
-                        admin@solulu.id
-                      </span>
-                    </div>
-                  </div>
+                    <div
+                      className="size-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 shrink-0"
+                      title="Sistem Terhubung (Aktif)"
+                    />
+                  </>
                 ) : (
-                  <div className="flex size-8 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-xs font-bold text-primary">
-                    AD
+                  <div className="relative" title="Admin Pelayanan (Aktif)">
+                    <div className="size-7 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center border border-primary/20">
+                      AP
+                    </div>
+                    <span className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-card" />
                   </div>
                 )}
               </button>
@@ -257,34 +523,38 @@ export default function AdminLayout({
             <DropdownMenuContent
               side={collapsed ? "right" : "top"}
               align={collapsed ? "end" : "start"}
-              className="w-56 text-xs"
+              className="w-56 text-xs p-1"
             >
-              <DropdownMenuLabel>
-                <p className="font-semibold">Admin Solulu</p>
-                <p className="font-mono text-[10px] text-muted-foreground">
-                  admin@solulu.id
-                </p>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs font-semibold text-foreground leading-none">
+                    Admin Pelayanan
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono leading-none">
+                    admin@solulu.id
+                  </p>
+                </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link
-                  href="/prototype/admin/zoom"
-                  className="flex items-center gap-2"
-                >
-                  <ExternalLink className="size-3.5" />
-                  <span>Lihat Prototipe UI</span>
-                </Link>
-              </DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/profile" className="flex items-center gap-2 cursor-pointer">
+                    <User className="size-3.5 text-muted-foreground" />
+                    <span>Profil Saya</span>
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 variant="destructive"
                 onClick={async () => {
-                  const { logoutAction } = await import("@/app/(auth)/login/actions");
-                  await logoutAction();
-                  window.location.href = "/login";
+                  const { logoutAction } = await import("@/app/(auth)/login/actions")
+                  await logoutAction()
+                  window.location.href = "/login"
                 }}
+                className="cursor-pointer"
               >
-                <LogOut className="mr-2 size-3.5" />
+                <LogOut className="size-3.5 mr-2" />
                 <span>Keluar Sesi</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -292,47 +562,203 @@ export default function AdminLayout({
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Top Header */}
-        <header className="z-20 flex h-14 shrink-0 items-center justify-between border-b border-border bg-card/75 px-6 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setMobileOpen(true)}
-              className="size-8 text-muted-foreground md:hidden"
-              aria-label="Buka menu"
+      {/* ========================================================================= */}
+      {/* MAIN CONTENT COLUMN */}
+      {/* ========================================================================= */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        {/* Top Header Bar: Clean breadcrumb + search + quiet status + public web preview */}
+        <header className="h-14 shrink-0 border-b border-border px-6 hidden md:flex items-center justify-between bg-card/75 backdrop-blur-md z-20">
+          {/* Left: Breadcrumbs */}
+          <div className="flex items-center gap-2 text-xs">
+            {collapsed && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setCollapsed(false)}
+                className="size-7 mr-1 text-muted-foreground hover:text-foreground"
+                title="Buka bilah navigasi"
+              >
+                <PanelLeft className="size-3.5" />
+              </Button>
+            )}
+            <Link
+              href="/admin"
+              className="text-muted-foreground hover:text-foreground transition-colors font-medium"
             >
-              <Menu className="size-4" />
-            </Button>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Portal Admin</span>
-              <span>/</span>
-              <span className="text-foreground capitalize">
-                {pathname
-                  ?.split("/")
-                  .filter(Boolean)
-                  .pop()
-                  ?.replace("-", " ") || "Dashboard"}
-              </span>
-            </div>
+              Solulu Admin
+            </Link>
+            <ChevronRight className="size-3 text-muted-foreground/40" />
+            <span className="text-muted-foreground">{currentSectionTitle}</span>
+            <ChevronRight className="size-3 text-muted-foreground/40" />
+            <span className="font-semibold text-foreground">
+              {currentNav?.label || "Akun Zoom"}
+            </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-600 sm:flex dark:text-emerald-400">
-              <ShieldCheck className="size-3.5" />
-              <span>RBAC Admin Terverifikasi</span>
+          {/* Center: Universal Command Search Trigger */}
+          <button
+            type="button"
+            onClick={() => setCommandOpen(true)}
+            className="flex items-center justify-between gap-3 px-3 py-1.5 rounded-lg border border-border/80 bg-muted/30 hover:bg-muted/60 text-muted-foreground hover:text-foreground text-xs w-72 lg:w-80 transition-all cursor-pointer shadow-2xs group"
+          >
+            <div className="flex items-center gap-2 truncate">
+              <Search className="size-3.5 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
+              <span className="truncate">Cari sesi, konselor, atau menu…</span>
             </div>
+            <kbd className="text-xs font-mono bg-background border border-border/80 px-1.5 py-0.5 rounded text-muted-foreground shrink-0">
+              ⌘K
+            </kbd>
+          </button>
+
+          {/* Right: Operational Status & Portal Utilities */}
+          <div className="flex items-center gap-2.5">
+            {/* Zoom 2 Host Concurrency Guard Telemetry (Stable Horizon Rule) */}
+            <Link
+              href="/admin/zoom-settings"
+              className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/30 border border-border/70 text-xs font-medium text-foreground hover:bg-muted/60 transition-colors"
+              title="Ketersediaan Ruang Zoom (2 Host Concurrency Guard): 2/2 Ruang Siap"
+            >
+              <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+              <span className="tabular-nums">Zoom: 2/2 Siap</span>
+            </Link>
+
+            {/* National Crisis Hotline (Hotline 119 ext. 8 / Layanan Sejiwa) */}
+            <a
+              href="tel:119,8"
+              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border/70 bg-muted/30 text-muted-foreground hover:text-foreground text-xs font-medium hover:bg-muted/60 transition-colors"
+              title="Protokol Krisis Pasien: Kontak Darurat Nasional Hotline 119 ext. 8 (Layanan Sejiwa)"
+            >
+              <ShieldAlert className="size-3 text-rose-600/80 dark:text-rose-400/80" aria-hidden="true" />
+              <span>Hotline 119 ext. 8</span>
+            </a>
+
+            {/* Public Guest View Link */}
+            <Link
+              href="/"
+              target="_blank"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              title="Pratinjau antarmuka pasien tamu"
+            >
+              <span>Web Pasien</span>
+              <ExternalLink className="size-3" />
+            </Link>
+
+            <div className="h-4 w-px bg-border" />
+
+            {/* Theme Toggle */}
             <ThemeToggle />
           </div>
         </header>
 
-        {/* Page Body */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+        {/* Subpage Scrollable Content */}
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
           {children}
         </main>
       </div>
+
+      {/* ========================================================================= */}
+      {/* COMMAND PALETTE MODAL (Ctrl+K / Cmd+K) WITH REAL-TIME FILTERING */}
+      {/* ========================================================================= */}
+      {commandOpen && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-xs z-50 flex items-start justify-center pt-20 p-4 animate-in fade-in duration-150">
+          <div
+            className="bg-card border border-border rounded-xl max-w-lg w-full p-3 flex flex-col gap-3 shadow-2xl animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Search Input Bar */}
+            <div className="flex items-center gap-2.5 px-2 py-1.5 border-b border-border">
+              <Search className="size-4 text-muted-foreground shrink-0" />
+              <input
+                type="text"
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Ketik untuk mencari sesi, konselor, atau menu navigasi…"
+                className="w-full bg-transparent text-xs text-foreground placeholder-muted-foreground focus:outline-none py-1"
+              />
+              <kbd
+                onClick={() => setCommandOpen(false)}
+                className="text-xs font-mono bg-muted border border-border px-1.5 py-0.5 rounded cursor-pointer text-muted-foreground hover:text-foreground"
+              >
+                ESC
+              </kbd>
+            </div>
+
+            {/* Search Results */}
+            <div className="flex flex-col gap-3 max-h-80 overflow-y-auto pr-1">
+              {/* Navigation Items */}
+              {filteredNav.length > 0 && (
+                <div className="flex flex-col gap-0.5 text-xs">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-2 py-1">
+                    Menu & Navigasi
+                  </span>
+                  {filteredNav.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setCommandOpen(false)}
+                        className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:bg-muted/60 transition-colors group cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Icon className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                          <div className="flex flex-col">
+                            <span className="font-medium text-foreground">{item.label}</span>
+                            {item.description && (
+                              <span className="text-[10px] text-muted-foreground">
+                                {item.description}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <ArrowUpRight className="size-3.5 text-muted-foreground/40 group-hover:text-foreground" />
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Quick Actions */}
+              {filteredQuickActions.length > 0 && (
+                <div className="flex flex-col gap-0.5 text-xs border-t border-border/50 pt-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-2 py-1">
+                    Aksi Cepat & Pintasan Sesi
+                  </span>
+                  {filteredQuickActions.map((act) => (
+                    <Link
+                      key={act.title}
+                      href={act.href}
+                      onClick={() => setCommandOpen(false)}
+                      className="flex items-center justify-between px-2.5 py-2 rounded-lg hover:bg-muted/60 transition-colors group cursor-pointer"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium text-foreground">{act.title}</span>
+                        <span className="text-[10px] text-muted-foreground">{act.category}</span>
+                      </div>
+                      <span className="text-[11px] font-mono bg-muted/60 border border-border/60 px-1.5 py-0.5 rounded text-muted-foreground">
+                        {act.hint}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {filteredNav.length === 0 && filteredQuickActions.length === 0 && (
+                <div className="p-6 text-center text-xs text-muted-foreground">
+                  Tidak ditemukan hasil untuk &ldquo;{searchQuery}&rdquo;
+                </div>
+              )}
+            </div>
+
+            {/* Modal Bottom Hints */}
+            <div className="flex items-center justify-between px-2 pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
+              <span>Gunakan tombol panah atau klik untuk berpindah</span>
+              <span className="font-mono">ESC untuk menutup</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

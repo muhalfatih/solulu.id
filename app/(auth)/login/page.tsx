@@ -75,7 +75,7 @@ function LoginForm() {
     if (email === "admin@solulu.id") {
       await loginAsDemoAction("admin")
       setLoading(false)
-      const target = redirectParam || "/admin/zoom-settings"
+      const target = redirectParam || "/admin"
       router.push(target)
       router.refresh()
       return
@@ -103,7 +103,7 @@ function LoginForm() {
           await loginAsDemoAction(role)
           const destination =
             email.includes("admin")
-              ? redirectParam || "/admin/zoom-settings"
+              ? redirectParam || "/admin"
               : redirectParam || "/counselor/dashboard"
           router.push(destination)
           router.refresh()
@@ -126,7 +126,7 @@ function LoginForm() {
         if (redirectParam && redirectParam.startsWith("/")) {
           router.push(redirectParam)
         } else if (role === "admin") {
-          router.push("/prototype/admin")
+          router.push("/admin")
         } else if (role === "counselor") {
           router.push("/prototype/admin/sessions")
         } else {
@@ -136,7 +136,7 @@ function LoginForm() {
       }
     } catch {
       if (email.includes("admin") || email.includes("solulu")) {
-        router.push(redirectParam || "/prototype/admin")
+        router.push(redirectParam || "/admin")
       } else {
         setError("Gagal terhubung ke sistem. Periksa koneksi internet Anda dan coba lagi.")
         setLoading(false)

@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         destination: "/admin/zoom-settings",
         permanent: true,
       },
+      {
+        source: "/prototype/admin/zoom",
+        destination: "/admin/zoom-settings",
+        permanent: false,
+      },
     ]
   },
 }
