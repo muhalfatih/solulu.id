@@ -47,20 +47,26 @@ _Avoid_: OTP, Password sesi, Kode verifikasi
 ### Klinis & Skrining
 
 **Skrining SRQ-20**:
-Kuesioner mandiri 20 butir standar WHO yang diisi calon pasien sebelum memilih jadwal untuk mengukur tingkat distres emosional.
+Kuesioner mandiri 20 butir standar WHO yang diisi calon pasien sebelum memilih jadwal untuk memberikan konteks distres emosional secara informatif kepada konselor pendamping tanpa memblokir proses booking.
 _Avoid_: Diagnosa medis, Tes kepribadian, Kuis umum
 
-**Deteksi Risiko Bunuh Diri (Suicidal Ideation)**:
-Indikasi risiko tinggi klinis yang dipicu oleh jawaban 'Ya' pada pertanyaan 17 SRQ-20 atau skor $\ge 8$.
-_Avoid_: Gejala stres biasa, Kelelahan biasa
-
-**Emergency Clinical Waiver**:
-Klausul pelepasan tanggung jawab dan nomor kontak darurat nasional (Hotline Kemenkes 119 Ext 8) yang wajib disetujui pasien berisiko tinggi jika tetap memilih Konselor Sebaya.
-_Avoid_: Syarat ketentuan umum, Formulir biasa
+**Deteksi Risiko & Informasi Hotline Krisis**:
+Tampilan informasi kontak darurat nasional (Hotline Kemenkes 119 Ext 8 / Layanan SEJIWA) yang disematkan secara empatik dan menenangkan tanpa alarmisme.
+_Avoid_: Gejala stres biasa, Kelelahan biasa, Alarm intimidatif
 
 **Rekam Medis Sesi**:
 Laporan pasca-sesi berisi ringkasan evaluasi, rencana aksi (*action plan*), dan lampiran privat yang disusun oleh konselor penanggung jawab.
 _Avoid_: Notulensi rapat, Diary pasien, Log sesi
+
+### Pembayaran & Transaksi
+
+**Pembayaran Otomatis Xendit**:
+Alur pembayaran instan via payment link Xendit (QRIS, e-Wallet, Virtual Account) dengan webhook callback otomatis.
+_Avoid_: Pembayaran kartu manual, gateway tak dikenal
+
+**Transfer Bank Manual**:
+Alur pembayaran alternatif di mana pasien mentransfer langsung ke rekening platform, dan Admin memverifikasi bukti transaksi/mutasi bank secara manual melalui `ManualPaymentModal` untuk menerbitkan ruang Zoom.
+_Avoid_: Transaksi gelap, Pembayaran tanpa nomor referensi
 
 ### Operasional & Infrastruktur
 
@@ -76,9 +82,13 @@ _Avoid_: Per-counselor limit, simple startTime equality check
 Aturan validasi yang melarang penyuntingan atau penghapusan kredensial Zoom jika akun masih terikat dengan sesi mendatang berstatus aktif.
 _Avoid_: Readonly flag, DB lock
 
-**Dokumentasi Publik**:
+**Dokumentasi Publik & Galeri**:
 Dokumentasi visual kegiatan yang telah lolos sensor identitas wajah dan persetujuan tertulis (*consented*) untuk ditampilkan di galeri publik.
-_Avoid_: Bukti sesi mentah, Foto bebas, Testimoni klien
+_Avoid_: Bukti sesi mentah, Foto bebas tanpa sensor
+
+**Testimoni Klien**:
+Kurasi ulasan tertulis dari pasien pasca-konseling dengan inisial/anonim, rating bintang, kutipan highlight, dan topik untuk ditampilkan secara terkurasi di website publik.
+_Avoid_: Komentar liar tanpa kurasi, Ulasan tanpa izin anonimitas
 
 ### Siklus Hidup Voucher
 

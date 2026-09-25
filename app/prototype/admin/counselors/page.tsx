@@ -21,6 +21,7 @@ import {
   Clock,
   ExternalLink,
   Filter,
+  X,
 } from "lucide-react"
 import {
   Tabs,
@@ -64,7 +65,7 @@ export default function DistilledCounselorsPage() {
     setApplicants((prev) =>
       prev.map((app) => (app.id === id ? { ...app, status: "rejected" as const } : app))
     )
-    showToast(`Lamaran atas nama ${name} ditolak.`)
+    showToast(`Berkas atas nama ${name} ditolak.`)
   }
 
   const toggleCounselorStatus = (id: string) => {
@@ -100,7 +101,7 @@ export default function DistilledCounselorsPage() {
             className="size-6 text-muted-foreground hover:text-foreground"
             aria-label="Tutup notifikasi"
           >
-            ✕
+            <X className="size-3.5" />
           </Button>
         </div>
       )}
@@ -109,22 +110,17 @@ export default function DistilledCounselorsPage() {
       <Tabs defaultValue="applicants" className="flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Direktori & Antrean Mitra Konselor
-              </h1>
-              <Badge variant="outline" className="text-xs font-mono py-0.5 px-2">
-                ADR-0001
-              </Badge>
-            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Data Konselor
+            </h1>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Audit kualifikasi berkas legalitas WNI dan kelola izin operasional konselor aktif.
+              Kelola daftar konselor aktif dan periksa kelengkapan berkas pendaftar baru.
             </p>
           </div>
 
           <TabsList className="bg-muted p-1 rounded-xl shrink-0 h-9">
             <TabsTrigger value="applicants" className="flex items-center gap-2 text-xs px-3">
-              <span>Antrean Berkas</span>
+              <span>Pendaftar Baru</span>
               {pendingApplicants.length > 0 && (
                 <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">
                   {pendingApplicants.length}
@@ -132,7 +128,7 @@ export default function DistilledCounselorsPage() {
               )}
             </TabsTrigger>
             <TabsTrigger value="active" className="flex items-center gap-2 text-xs px-3">
-              <span>Konselor Terdaftar</span>
+              <span>Konselor Aktif</span>
               <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-muted-foreground/20 text-muted-foreground">
                 {activeCounselors.length}
               </span>
@@ -147,7 +143,7 @@ export default function DistilledCounselorsPage() {
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4 text-primary shrink-0" />
               <span>
-                Dokumen tersimpan aman di Cloudflare R2 Private Bucket (akses bertenggat 15 menit).
+                Dokumen tersimpan privat di Cloudflare R2 dengan tautan akses sementara 15 menit.
               </span>
             </div>
             <span className="tabular-nums font-medium text-foreground">
@@ -200,7 +196,7 @@ export default function DistilledCounselorsPage() {
                   </div>
 
                   {/* Academic & STR Profile Block */}
-                  <div className="flex flex-col gap-2 text-xs bg-muted/30 p-3.5 rounded-xl border border-border/70">
+                  <div className="flex flex-col justify-center gap-2 text-xs bg-muted/30 p-3.5 rounded-xl border border-border/70 min-h-[68px]">
                     <div className="flex items-start gap-2 text-foreground">
                       <GraduationCap className="size-4 text-muted-foreground shrink-0 mt-0.5" />
                       <span className="leading-snug">{app.education}</span>
@@ -219,15 +215,15 @@ export default function DistilledCounselorsPage() {
                   </div>
 
                   {/* Clinical Bio Quote */}
-                  <div className="text-xs text-muted-foreground italic leading-relaxed pl-3 border-l-2 border-primary/30">
+                  <div className="text-xs text-muted-foreground italic leading-relaxed pl-3 border-l-2 border-primary/30 min-h-[38px] flex items-center">
                     &ldquo;{app.bio}&rdquo;
                   </div>
 
                   {/* Document Audit Deck */}
                   <div className="flex flex-col gap-2.5 pt-1">
                     <div className="flex items-center justify-between text-xs font-medium text-foreground">
-                      <span>Dokumen Kualifikasi Unggahan</span>
-                      <span className="text-[11px] text-muted-foreground">Klik untuk audit</span>
+                      <span>Dokumen Kualifikasi</span>
+                      <span className="text-[11px] text-muted-foreground">Klik untuk melihat</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
@@ -323,7 +319,7 @@ export default function DistilledCounselorsPage() {
                       <Button
                         size="sm"
                         onClick={() => handleApprove(app.id, app.name, app.email)}
-                        className="flex-1 text-xs font-medium h-9"
+                        className="flex-1 text-xs font-medium h-8"
                       >
                         <UserCheck className="size-3.5 mr-1.5" />
                         <span>Setujui & Kirim Undangan</span>
@@ -332,7 +328,7 @@ export default function DistilledCounselorsPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleReject(app.id, app.name)}
-                        className="text-xs text-destructive hover:bg-destructive/10 h-9 px-3"
+                        className="text-xs text-destructive hover:bg-destructive/10 h-8 px-3"
                       >
                         Tolak Berkas
                       </Button>
@@ -340,12 +336,12 @@ export default function DistilledCounselorsPage() {
                   ) : app.status === "approved" ? (
                     <div className="w-full py-2 rounded-xl bg-primary/10 text-primary text-xs font-medium flex items-center justify-center gap-2">
                       <CheckCircle2 className="size-4" />
-                      <span>Akun Mitra Terverifikasi</span>
+                      <span>Mitra Disetujui & Diundang</span>
                     </div>
                   ) : (
                     <div className="w-full py-2 rounded-xl bg-destructive/10 text-destructive text-xs font-medium flex items-center justify-center gap-2">
                       <XCircle className="size-4" />
-                      <span>Lamaran Ditolak</span>
+                      <span>Berkas Ditolak</span>
                     </div>
                   )}
                 </div>
@@ -372,11 +368,11 @@ export default function DistilledCounselorsPage() {
               </div>
 
               <div className="flex items-center gap-2 self-end sm:self-auto">
-                <div className="flex items-center rounded-lg border border-border p-0.5 bg-background text-xs">
+                <div className="flex items-center h-8 rounded-lg border border-border p-0.5 bg-background text-xs">
                   <button
                     type="button"
                     onClick={() => setStatusFilter("all")}
-                    className={`px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
+                    className={`h-7 px-2.5 flex items-center rounded-md text-xs font-medium transition-colors cursor-pointer ${
                       statusFilter === "all"
                         ? "bg-primary text-primary-foreground font-medium"
                         : "text-muted-foreground hover:text-foreground"
@@ -387,7 +383,7 @@ export default function DistilledCounselorsPage() {
                   <button
                     type="button"
                     onClick={() => setStatusFilter("active")}
-                    className={`px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
+                    className={`h-7 px-2.5 flex items-center rounded-md text-xs font-medium transition-colors cursor-pointer ${
                       statusFilter === "active"
                         ? "bg-primary text-primary-foreground font-medium"
                         : "text-muted-foreground hover:text-foreground"
@@ -398,7 +394,7 @@ export default function DistilledCounselorsPage() {
                   <button
                     type="button"
                     onClick={() => setStatusFilter("suspended")}
-                    className={`px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
+                    className={`h-7 px-2.5 flex items-center rounded-md text-xs font-medium transition-colors cursor-pointer ${
                       statusFilter === "suspended"
                         ? "bg-primary text-primary-foreground font-medium"
                         : "text-muted-foreground hover:text-foreground"
@@ -435,7 +431,7 @@ export default function DistilledCounselorsPage() {
                       <div className="text-[11px] text-muted-foreground">{c.title}</div>
                     </TableCell>
 
-                    <TableCell className="py-3.5 px-3">
+                    <TableCell className="py-3.5 px-3.5">
                       <Badge variant="outline" className="text-[10px] font-normal">
                         {c.type}
                       </Badge>
@@ -446,16 +442,16 @@ export default function DistilledCounselorsPage() {
                       )}
                     </TableCell>
 
-                    <TableCell className="py-3.5 px-3 text-[11px]">
+                    <TableCell className="py-3.5 px-3.5 text-[11px]">
                       <div className="text-foreground font-mono">{c.email}</div>
                       <div className="text-muted-foreground font-mono">{c.phone}</div>
                     </TableCell>
 
-                    <TableCell className="py-3.5 px-3 tabular-nums font-semibold text-foreground">
+                    <TableCell className="py-3.5 px-3.5 tabular-nums font-semibold text-foreground">
                       {c.totalSessions} sesi
                     </TableCell>
 
-                    <TableCell className="py-3.5 px-3">
+                    <TableCell className="py-3.5 px-3.5">
                       <div className="flex flex-wrap gap-1 max-w-xs">
                         {c.specializations.map((spec) => (
                           <span
@@ -468,7 +464,7 @@ export default function DistilledCounselorsPage() {
                       </div>
                     </TableCell>
 
-                    <TableCell className="py-3.5 px-3">
+                    <TableCell className="py-3.5 px-3.5">
                       <span
                         className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${
                           c.isActive
@@ -485,12 +481,12 @@ export default function DistilledCounselorsPage() {
                       </span>
                     </TableCell>
 
-                    <TableCell className="py-3.5 px-4 text-right">
+                    <TableCell className="py-3.5 px-3.5 text-right">
                       <Button
                         variant="outline"
-                        size="xs"
+                        size="sm"
                         onClick={() => toggleCounselorStatus(c.id)}
-                        className="h-7 text-xs"
+                        className="h-8 px-2.5 text-xs font-normal"
                       >
                         {c.isActive ? "Tangguhkan" : "Aktifkan"}
                       </Button>
@@ -517,8 +513,14 @@ export default function DistilledCounselorsPage() {
                   Pemilik berkas: <span className="text-foreground font-medium">{previewDoc.applicantName}</span>
                 </p>
               </div>
-              <Button variant="ghost" size="xs" onClick={() => setPreviewDoc(null)} className="size-6 p-0">
-                ✕
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => setPreviewDoc(null)}
+                aria-label="Tutup pratinjau dokumen"
+                className="size-6 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-3.5" />
               </Button>
             </div>
 
@@ -547,7 +549,7 @@ export default function DistilledCounselorsPage() {
                 SHA-256: Verified
               </span>
               <Button size="sm" onClick={() => setPreviewDoc(null)} className="h-8 text-xs">
-                Tutup Pratinjau
+                Tutup
               </Button>
             </div>
           </div>

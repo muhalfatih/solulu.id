@@ -24,13 +24,6 @@ import {
   X,
   AlertTriangle,
 } from "lucide-react"
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
@@ -51,21 +44,21 @@ const BOUND_SESSIONS: Record<
       code: "SL-9281",
       patient: "Anindya Putri",
       counselor: "Sarah Annisa, M.Psi., Psikolog",
-      timeRange: "Hari Ini, 19:00 – 20:30 WIB",
+      timeRange: "Hari Ini, 19:00 - 20:30 WIB",
       status: "live",
     },
     {
       code: "SL-9283",
       patient: "Budi Santoso",
       counselor: "Sarah Annisa, M.Psi., Psikolog",
-      timeRange: "Hari Ini, 21:00 – 22:30 WIB",
+      timeRange: "Hari Ini, 21:00 - 22:30 WIB",
       status: "confirmed",
     },
     {
       code: "SL-9285",
       patient: "Eka Pratiwi",
       counselor: "Sarah Annisa, M.Psi., Psikolog",
-      timeRange: "Besok, 10:00 – 11:30 WIB",
+      timeRange: "Besok, 10:00 - 11:30 WIB",
       status: "confirmed",
     },
   ],
@@ -74,7 +67,7 @@ const BOUND_SESSIONS: Record<
       code: "SL-9282",
       patient: "Dimas Arya",
       counselor: "Rian Hidayat, S.Psi",
-      timeRange: "Hari Ini, 19:30 – 21:00 WIB",
+      timeRange: "Hari Ini, 19:30 - 21:00 WIB",
       status: "live",
       isOverlap: true,
     },
@@ -82,7 +75,7 @@ const BOUND_SESSIONS: Record<
       code: "SL-9284",
       patient: "Citra Lestari",
       counselor: "Rian Hidayat, S.Psi",
-      timeRange: "Hari Ini, 21:30 – 23:00 WIB",
+      timeRange: "Hari Ini, 21:30 - 23:00 WIB",
       status: "reserved",
     },
   ],
@@ -127,14 +120,14 @@ export default function DistilledZoomAdminPage() {
     } else {
       setSimulatedUnlockedId(id)
       showToast(
-        `Simulasi: Safety Lock untuk ${id === "zoom-1" ? "Ruang #1" : "Ruang #2"} dilepas (Semua sesi dianggap selesai). Kredensial kini dapat diubah!`
+        `Simulasi: Safety Lock untuk ${id === "zoom-1" ? "Ruang #1" : "Ruang #2"} dibuka. Kredensial kini dapat diperbarui secara aman.`
       )
     }
   }
 
   const handleSaveCredentials = (e: React.FormEvent) => {
     e.preventDefault()
-    showToast(`Kredensial S2S OAuth untuk ${editingAccountId === "zoom-1" ? "Ruang #1" : "Ruang #2"} berhasil diperbarui & disimpan terenkripsi AES-256-GCM.`)
+    showToast(`Kredensial S2S OAuth untuk ${editingAccountId === "zoom-1" ? "Ruang #1" : "Ruang #2"} berhasil diperbarui dan tersimpan dengan enkripsi AES-256-GCM.`)
     setEditingAccountId(null)
   }
 
@@ -167,27 +160,24 @@ export default function DistilledZoomAdminPage() {
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Kredensial 2 Ruang Zoom & Safety Lock
+              Pengaturan Akun Zoom
             </h1>
-            <Badge variant="outline" className="text-xs font-mono py-0.5 px-2">
-              ADR-0001 & ADR-0002
-            </Badge>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Manajemen alokasi pool 2 akun Zoom Pro independen untuk menangani sesi 90 menit dan jadwal tumpang tindih (*overlap*).
+            Status kesiapan 2 akun video untuk sesi konsultasi tatap muka dan pencegah bentrok jadwal otomatis.
           </p>
         </div>
 
         {/* Executive Pool Metrics */}
         <div className="flex items-center gap-2 text-xs">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card border border-border">
+          <div className="flex items-center h-8 gap-2 px-3 rounded-xl bg-card border border-border">
             <Server className="size-3.5 text-primary shrink-0" />
-            <span className="text-muted-foreground">Kapasitas Pool:</span>
-            <span className="font-semibold text-foreground">2 / 2 Ruang Aktif</span>
+            <span className="text-muted-foreground">Kapasitas Ruang:</span>
+            <span className="font-semibold text-foreground">2 / 2 Ruang Siap</span>
           </div>
           <Badge
             variant={simulatedUnlockedId ? "secondary" : "destructive"}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold"
+            className="flex items-center h-8 gap-1.5 px-3 text-xs font-semibold"
           >
             <Lock className="size-3" />
             <span>
@@ -203,10 +193,10 @@ export default function DistilledZoomAdminPage() {
           <ShieldAlert className="size-4 text-amber-500 shrink-0" />
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
             <span className="font-semibold text-foreground whitespace-nowrap">
-              Proteksi Integritas Ruang Pasien (Safety Lock):
+              Proteksi Ruang Konseling (Safety Lock):
             </span>
             <span className="text-muted-foreground line-clamp-1 sm:line-clamp-none">
-              Sistem memblokir edit/hapus kredensial selama terdapat sesi <em>confirmed</em> atau <em>reserved</em>.
+              Kredensial tidak dapat diubah atau dihapus selama masih ada sesi aktif maupun reservasi mendatang.
             </span>
           </div>
         </div>
@@ -215,18 +205,18 @@ export default function DistilledZoomAdminPage() {
         <div className="flex items-center gap-2 shrink-0">
           <Button
             variant="outline"
-            size="xs"
+            size="sm"
             onClick={() => setInspectingAccountId("zoom-1")}
-            className="h-7 text-xs font-normal"
+            className="h-8 text-xs font-normal"
             title="Periksa sesi pasien yang mengunci Ruang #1"
           >
             Inspeksi Sesi Ruang #1
           </Button>
           <Button
             variant="outline"
-            size="xs"
+            size="sm"
             onClick={() => toggleSafetyLockSimulation("zoom-2")}
-            className={`h-7 text-xs font-normal ${
+            className={`h-8 text-xs font-normal ${
               simulatedUnlockedId === "zoom-2"
                 ? "border-primary text-primary bg-primary/10"
                 : ""
@@ -243,22 +233,22 @@ export default function DistilledZoomAdminPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Clock className="size-4 text-primary" />
-            <h2 className="text-xs font-bold text-foreground tracking-tight">
-              Peta Alokasi Konkurensi Sesi 90-Menit (ADR-0002) — Hari Ini
+            <h2 className="text-base font-bold tracking-tight text-foreground">
+              Peta Alokasi Konkurensi Sesi 90-Menit (ADR-0002): Hari Ini
             </h2>
           </div>
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-primary" />
-              <span>Ruang #1 (Primary)</span>
+              <span>Ruang #1 (Host Utama)</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-chart-2" />
-              <span>Ruang #2 (Overlap)</span>
+              <span>Ruang #2 (Penanganan Overlap)</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-amber-500" />
-              <span>Overlap Window (2/2 Terisi)</span>
+              <span>Jendela Overlap (2/2 Terisi)</span>
             </div>
           </div>
         </div>
@@ -284,7 +274,7 @@ export default function DistilledZoomAdminPage() {
               {/* SL-9281: 19:00 - 20:30 (approx 18.2% to 45.5%) */}
               <div
                 className="absolute top-1 bottom-1 left-[18.2%] w-[27.3%] bg-primary/20 border border-primary/40 rounded-md px-2 flex items-center justify-between text-[10px] text-foreground font-semibold"
-                title="SL-9281: 19:00 – 20:30 WIB (Live)"
+                title="SL-9281: 19:00 - 20:30 WIB (Live)"
               >
                 <span className="truncate">SL-9281 (19:00 - 20:30)</span>
                 <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
@@ -293,7 +283,7 @@ export default function DistilledZoomAdminPage() {
               {/* SL-9283: 21:00 - 22:30 (approx 54.5% to 81.8%) */}
               <div
                 className="absolute top-1 bottom-1 left-[54.5%] w-[27.3%] bg-primary/10 border border-primary/30 rounded-md px-2 flex items-center text-[10px] text-muted-foreground"
-                title="SL-9283: 21:00 – 22:30 WIB (Confirmed)"
+                title="SL-9283: 21:00 - 22:30 WIB (Terkonfirmasi)"
               >
                 <span className="truncate">SL-9283 (21:00 - 22:30)</span>
               </div>
@@ -309,7 +299,7 @@ export default function DistilledZoomAdminPage() {
               {/* SL-9282: 19:30 - 21:00 (approx 27.3% to 54.5%) */}
               <div
                 className="absolute top-1 bottom-1 left-[27.3%] w-[27.3%] bg-chart-2/20 border border-chart-2/50 rounded-md px-2 flex items-center justify-between text-[10px] text-foreground font-semibold"
-                title="SL-9282: 19:30 – 21:00 WIB (Live Overlap)"
+                title="SL-9282: 19:30 - 21:00 WIB (Live Overlap)"
               >
                 <span className="truncate">SL-9282 (19:30 - 21:00)</span>
                 <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
@@ -318,7 +308,7 @@ export default function DistilledZoomAdminPage() {
               {/* SL-9284: 21:30 - 23:00 (approx 63.6% to 90.9%) */}
               <div
                 className="absolute top-1 bottom-1 left-[63.6%] w-[27.3%] bg-chart-2/10 border border-chart-2/30 rounded-md px-2 flex items-center text-[10px] text-muted-foreground"
-                title="SL-9284: 21:30 – 23:00 WIB (Hold Pembayaran)"
+                title="SL-9284: 21:30 - 23:00 WIB (Menunggu Pembayaran)"
               >
                 <span className="truncate">SL-9284 (21:30 - 23:00)</span>
               </div>
@@ -330,7 +320,7 @@ export default function DistilledZoomAdminPage() {
             <div className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-amber-500" />
               <span>
-                <strong>Jendela Overlap 19:30 – 20:30 WIB:</strong> Kedua Ruang Zoom Pro aktif simultan melayani 2 sesi konseling.
+                <strong>Jendela Overlap 19:30 - 20:30 WIB:</strong> Kedua Ruang Zoom Pro aktif simultan melayani 2 sesi konseling.
               </span>
             </div>
             <span className="font-mono text-[10px] text-amber-500 font-semibold shrink-0">
@@ -556,7 +546,7 @@ export default function DistilledZoomAdminPage() {
                     size="sm"
                     onClick={() =>
                       showToast(
-                        `Token OAuth untuk ${acc.name} berhasil diperbarui di cache memory (Masa berlaku direset ke 60 menit)!`
+                        `Token OAuth untuk ${acc.name} berhasil diperbarui (masa berlaku direset ke 60 menit).`
                       )
                     }
                     className="h-8 text-xs font-normal"
@@ -584,7 +574,7 @@ export default function DistilledZoomAdminPage() {
                       size="sm"
                       onClick={() => setInspectingAccountId(acc.id)}
                       className="h-8 text-xs text-muted-foreground font-normal hover:text-destructive hover:border-destructive/40"
-                      title="Klik untuk melihat mengapa akun ini terkunci oleh Safety Lock (ADR-0002)"
+                      title="Kredensial terkunci demi menjaga kelancaran sesi konsultasi pasien (ADR-0002)"
                     >
                       <Lock className="size-3 mr-1.5 text-destructive" />
                       <span>Kredensial Terkunci</span>
@@ -602,7 +592,7 @@ export default function DistilledZoomAdminPage() {
         <div className="flex items-center gap-2.5 min-w-0">
           <Server className="size-4 text-primary shrink-0" />
           <span>
-            Arsitektur Zero-Cost: Kuota akun ditetapkan tepat <strong>2 Akun Zoom Pro</strong> untuk melayani konkurensi maksimal 2 sesi bersamaan secara aman.
+            Efisiensi Operasional (ADR-0001): Alokasi dibatasi tepat <strong>2 akun Zoom Pro</strong> untuk melayani maksimal 2 sesi konseling bersamaan tanpa biaya lisensi berlebih.
           </span>
         </div>
         <Badge variant="outline" className="font-mono text-[10px] shrink-0">
@@ -642,10 +632,10 @@ export default function DistilledZoomAdminPage() {
             <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/25 text-xs text-destructive flex flex-col gap-1.5">
               <div className="flex items-center gap-2 font-semibold">
                 <Lock className="size-4 shrink-0" />
-                <span>Kredensial Diblokir Demi Integritas Ruang Rapat Pasien</span>
+                <span>Kredensial Terkunci Demi Kelancaran Sesi Pasien</span>
               </div>
               <p className="text-foreground/90 leading-relaxed text-xs">
-                Mengubah Client ID atau Secret saat ada sesi yang sudah dijadwalkan akan menyebabkan token rapat Zoom pasien tidak valid saat dimulai. Kredensial baru hanya dapat dimasukkan setelah seluruh sesi di bawah selesai atau dialihkan.
+                Perubahan Client ID atau Client Secret saat sesi telah terjadwal akan membatalkan tautan rapat Zoom pasien. Kredensial hanya dapat diperbarui setelah seluruh sesi di bawah ini selesai atau dipindahkan.
               </p>
             </div>
 
@@ -666,7 +656,7 @@ export default function DistilledZoomAdminPage() {
                           </Badge>
                         ) : ses.status === "reserved" ? (
                           <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
-                            Hold Pembayaran (15m)
+                            Menunggu Pembayaran (15 mnt)
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-[10px] py-0 px-1.5">
@@ -680,7 +670,7 @@ export default function DistilledZoomAdminPage() {
                         )}
                       </div>
                       <span className="text-muted-foreground">
-                        {ses.patient} ↔ {ses.counselor}
+                        {ses.patient} → {ses.counselor}
                       </span>
                     </div>
 
@@ -697,14 +687,14 @@ export default function DistilledZoomAdminPage() {
             {/* Modal Footer */}
             <div className="flex items-center justify-between pt-2 border-t border-border text-xs">
               <span className="text-muted-foreground text-[11px]">
-                Aturan Kepatuhan: ADR-0001 (Zero-Cost Teleconsultation)
+                Kepatuhan Kebijakan: ADR-0001 (Telekonseling Bebas Biaya Tambahan)
               </span>
               <Button
                 size="sm"
                 onClick={() => setInspectingAccountId(null)}
                 className="h-8 text-xs font-medium"
               >
-                Mengerti & Tutup
+                Tutup
               </Button>
             </div>
           </div>
@@ -743,7 +733,7 @@ export default function DistilledZoomAdminPage() {
             <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-500 flex items-center gap-2">
               <ShieldCheck className="size-4 shrink-0" />
               <span className="text-foreground text-xs leading-relaxed">
-                Safety lock terverifikasi nonaktif. Akun ini tidak memiliki sesi aktif sehingga kredensial aman diubah.
+                Safety Lock nonaktif. Tidak ada sesi aktif atau reservasi mendatang pada akun ini, sehingga kredensial aman diperbarui.
               </span>
             </div>
 
@@ -787,7 +777,7 @@ export default function DistilledZoomAdminPage() {
                   className="bg-background border border-border rounded-xl px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-primary"
                 />
                 <span className="text-[10px] text-muted-foreground mt-0.5">
-                  Kredensial disimpan terenkripsi menggunakan AES-256-GCM pada Supabase Vault.
+                  Kredensial disimpan dengan enkripsi AES-256-GCM di Supabase Vault.
                 </span>
               </div>
 
@@ -803,7 +793,7 @@ export default function DistilledZoomAdminPage() {
                   Batal
                 </Button>
                 <Button type="submit" size="sm" className="h-8 text-xs font-medium">
-                  Simpan Kredensial Baru
+                  Simpan Kredensial
                 </Button>
               </div>
             </form>

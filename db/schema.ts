@@ -68,6 +68,8 @@ export const platformPricing = pgTable("platform_pricing", {
   counselorType: counselorTypeEnum("counselor_type").notNull().unique(),
   basePrice: numeric("base_price", { precision: 12, scale: 2 }).notNull(),
   promoPrice: numeric("promo_price", { precision: 12, scale: 2 }),
+  isSaleActive: boolean("is_sale_active").default(false).notNull(),
+  allowVoucher: boolean("allow_voucher").default(true).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -172,12 +174,10 @@ export const bookings = pgTable("bookings", {
   counselorId: uuid("counselor_id")
     .references(() => counselors.id)
     .notNull(),
-  screeningId: uuid("screening_id")
-    .references(() => screenings.id)
-    .notNull(),
+  screeningId: uuid("screening_id").references(() => screenings.id), // Informative clinical screening
 
-  // Triage Bypass Audit
-  bypassedRecommendation: boolean("bypassed_recommendation").default(false).notNull(),
+  // Triage / Screening Audit (Informative)
+  bypassedRecommendation: boolean("bypassed_recommendation").default(false),
   waiverAcceptedAt: timestamp("waiver_accepted_at", { withTimezone: true }),
 
   // Zoom Meeting Info
@@ -199,9 +199,12 @@ export const transactions = pgTable("transactions", {
     .references(() => bookings.id)
     .notNull(),
   voucherId: uuid("voucher_id").references(() => vouchers.id), // Nullable FK for voucher tracking and rollback
-  xenditInvoiceId: text("xendit_invoice_id").notNull().unique(),
-  xenditPaymentUrl: text("xendit_payment_url").notNull(),
-  paymentMethod: text("payment_method"),
+  xenditInvoiceId: text("xendit_invoice_id").unique(), // Nullable for Manual Bank Transfer
+  xenditPaymentUrl: text("xendit_payment_url"), // Nullable for Manual Bank Transfer
+  paymentProvider: text("payment_provider").default("xendit").notNull(), // 'xendit' | 'manual'
+  paymentMethod: text("payment_method"), // e.g. 'BCA Manual', 'Mandiri Manual', 'QRIS Statis'
+  referenceNumber: text("reference_number"), // Manual transfer ref or Xendit external ID
+  adminNotes: text("admin_notes"),
   grossAmount: numeric("gross_amount", { precision: 12, scale: 2 }).notNull(),
   discountAmount: numeric("discount_amount", { precision: 12, scale: 2 }).default("0").notNull(),
   netAmount: numeric("net_amount", { precision: 12, scale: 2 }).notNull(),
@@ -240,6 +243,27 @@ export const publicDocumentations = pgTable("public_documentations", {
   isPublished: boolean("is_published").default(true).notNull(),
   uploadedBy: uuid("uploaded_by").notNull(), // Admin User ID
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// =============================================================================
+// 10. TESTIMONIALS (CLIENT REVIEWS)
+// =============================================================================
+export const testimonials = pgTable("testimonials", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clientName: text("client_name").notNull(),
+  isAnonymous: boolean("is_anonymous").default(true).notNull(),
+  anonymousDisplay: text("anonymous_display").notNull(), // e.g. "R.A."
+  sessionCode: text("session_code"),
+  counselorName: text("counselor_name").notNull(),
+  counselorType: text("counselor_type"), // 'Psikolog Klinis' | 'Konselor Sebaya'
+  rating: integer("rating").default(5).notNull(),
+  quoteHighlight: text("quote_highlight").notNull(),
+  comment: text("comment").notNull(),
+  topic: text("topic").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  isFeatured: boolean("is_featured").default(false).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // =============================================================================

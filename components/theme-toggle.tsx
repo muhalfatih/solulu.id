@@ -34,8 +34,8 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
             ? "bg-white text-emerald-600 dark:bg-neutral-700 dark:text-emerald-400 shadow-xs font-semibold"
             : "hover:text-neutral-900 dark:hover:text-white"
         }`}
-        title="Mode Terang (Light Mode)"
-        aria-label="Light mode"
+        title="Mode Terang"
+        aria-label="Mode Terang"
       >
         <Sun className="w-3.5 h-3.5" />
       </button>
@@ -48,8 +48,8 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
             ? "bg-neutral-900 text-emerald-400 dark:bg-neutral-700 shadow-xs font-semibold"
             : "hover:text-neutral-900 dark:hover:text-white"
         }`}
-        title="Mode Gelap (Dark Mode)"
-        aria-label="Dark mode"
+        title="Mode Gelap"
+        aria-label="Mode Gelap"
       >
         <Moon className="w-3.5 h-3.5" />
       </button>
