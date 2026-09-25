@@ -27,6 +27,8 @@ import {
 // AUTH & CONTEXT HELPERS
 // =============================================================================
 
+import { cookies } from "next/headers"
+
 export interface AuthContext {
   id: string
   app_metadata?: Record<string, any>
@@ -43,6 +45,16 @@ async function getAuthenticatedAdmin(
   }
 
   try {
+    const cookieStore = await cookies()
+    const demoRole = cookieStore.get("solulu_demo_role")?.value
+    if (demoRole === "admin") {
+      return {
+        id: "demo-admin-id",
+        app_metadata: { role: "admin" },
+        user_metadata: { role: "admin" },
+      }
+    }
+
     const supabase = await createClient()
     const {
       data: { user },

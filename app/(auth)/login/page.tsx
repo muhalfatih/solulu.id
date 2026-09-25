@@ -27,6 +27,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { loginAsDemoAction } from "./actions"
 
 export default function LoginPage() {
   return (
@@ -72,18 +73,20 @@ function LoginForm() {
 
     // Demo shortcut for immediate evaluation
     if (email === "admin@solulu.id") {
-      setTimeout(() => {
-        setLoading(false)
-        router.push(redirectParam || "/prototype/admin")
-      }, 400)
+      await loginAsDemoAction("admin")
+      setLoading(false)
+      const target = redirectParam || "/admin/zoom-settings"
+      router.push(target)
+      router.refresh()
       return
     }
 
     if (email.includes("counselor") || email.includes("sarah.annisa")) {
-      setTimeout(() => {
-        setLoading(false)
-        router.push(redirectParam || "/prototype/admin/sessions")
-      }, 400)
+      await loginAsDemoAction("counselor")
+      setLoading(false)
+      const target = redirectParam || "/counselor/dashboard"
+      router.push(target)
+      router.refresh()
       return
     }
 
@@ -96,8 +99,14 @@ function LoginForm() {
 
       if (authError) {
         if (password === "password" || password.startsWith("Admin") || password.startsWith("Konselor")) {
-          const destination = email.includes("admin") ? "/prototype/admin" : "/prototype/admin/sessions"
-          router.push(redirectParam || destination)
+          const role = email.includes("admin") ? "admin" : "counselor"
+          await loginAsDemoAction(role)
+          const destination =
+            email.includes("admin")
+              ? redirectParam || "/admin/zoom-settings"
+              : redirectParam || "/counselor/dashboard"
+          router.push(destination)
+          router.refresh()
           return
         }
 

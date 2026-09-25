@@ -278,8 +278,10 @@ export default function AdminLayout({
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 variant="destructive"
-                onClick={() => {
-                  window.location.href = "/unauthorized"
+                onClick={async () => {
+                  const { logoutAction } = await import("@/app/(auth)/login/actions");
+                  await logoutAction();
+                  window.location.href = "/login";
                 }}
               >
                 <LogOut className="mr-2 size-3.5" />
