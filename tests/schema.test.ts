@@ -57,6 +57,7 @@ describe("Drizzle ORM Schema & Migrations", () => {
     // counselorApplications mandatory overrides
     expect(schema.counselorApplications.ktpR2Key).toBeDefined();
     expect(schema.counselorApplications.diplomaR2Key).toBeDefined();
+    expect(schema.counselorApplications.rejectionReason).toBeDefined();
 
     // transactions voucherId override
     expect(schema.transactions.voucherId).toBeDefined();

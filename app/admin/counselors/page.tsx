@@ -118,22 +118,30 @@ export default function DistilledCounselorsPage() {
             </p>
           </div>
 
-          <TabsList className="bg-muted p-1 rounded-xl shrink-0 h-9">
-            <TabsTrigger value="applicants" className="flex items-center gap-2 text-xs px-3">
-              <span>Pendaftar Baru</span>
-              {pendingApplicants.length > 0 && (
-                <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">
-                  {pendingApplicants.length}
+          <div className="flex items-center gap-3">
+            <Button asChild size="sm" variant="outline" className="text-xs h-9">
+              <a href="/admin/counselors/applications">
+                <FileText className="size-3.5 mr-1.5 text-primary" />
+                Portal Verifikasi R2
+              </a>
+            </Button>
+            <TabsList className="bg-muted p-1 rounded-xl shrink-0 h-9">
+              <TabsTrigger value="applicants" className="flex items-center gap-2 text-xs px-3">
+                <span>Pendaftar Baru</span>
+                {pendingApplicants.length > 0 && (
+                  <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">
+                    {pendingApplicants.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="active" className="flex items-center gap-2 text-xs px-3">
+                <span>Konselor Aktif</span>
+                <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-muted-foreground/20 text-muted-foreground">
+                  {activeCounselors.length}
                 </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="active" className="flex items-center gap-2 text-xs px-3">
-              <span>Konselor Aktif</span>
-              <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-muted-foreground/20 text-muted-foreground">
-                {activeCounselors.length}
-              </span>
-            </TabsTrigger>
-          </TabsList>
+              </TabsTrigger>
+            </TabsList>
+          </div>
         </div>
 
         {/* TAB 1: APPLICANTS AUDIT DECK */}

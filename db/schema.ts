@@ -115,6 +115,7 @@ export const counselorApplications = pgTable("counselor_applications", {
   strR2Key: text("str_r2_key"), // Mandatory if psychologist
 
   status: applicationStatusEnum("status").default("pending").notNull(),
+  rejectionReason: text("rejection_reason"),
   agreedToTermsAt: timestamp("agreed_to_terms_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
