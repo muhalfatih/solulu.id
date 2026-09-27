@@ -2,9 +2,9 @@
 
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
-import { eq } from "drizzle-orm"
+import { eq, and, inArray } from "drizzle-orm"
 import { db } from "@/db"
-import { zoomAccounts } from "@/db/schema"
+import { zoomAccounts, bookings, schedules, counselors } from "@/db/schema"
 import { encrypt, decrypt } from "@/lib/encryption"
 import {
   checkZoomSafetyLock,
@@ -12,6 +12,11 @@ import {
   type SafetyLockResult,
   type CanAddAccountResult,
 } from "@/lib/zoom/safety-lock"
+import {
+  verifyZoomCredentials,
+  getZoomAccessToken,
+  type ZoomAccountRecord,
+} from "@/lib/zoom/client"
 import { createClient } from "@/lib/supabase/server"
 
 import {
@@ -250,6 +255,81 @@ export async function handleDeleteZoomAccount(
   return { success: true }
 }
 
+export interface TestConnectionOptions {
+  currentUser?: AuthContext | null
+  getAccount?: (id: string) => Promise<any>
+  verifyFn?: typeof verifyZoomCredentials
+  getTokenFn?: typeof getZoomAccessToken
+}
+
+export async function handleTestZoomConnection(
+  id: string,
+  options: TestConnectionOptions = {}
+): Promise<ActionResult> {
+  const admin = await getAuthenticatedAdmin(options.currentUser)
+  if (!admin) {
+    return {
+      success: false,
+      error: "Akses ditolak: Diperlukan role Admin untuk menguji koneksi Zoom.",
+    }
+  }
+
+  let account: any
+  if (options.getAccount) {
+    account = await options.getAccount(id)
+  } else {
+    const [row] = await db
+      .select()
+      .from(zoomAccounts)
+      .where(eq(zoomAccounts.id, id))
+    account = row
+  }
+
+  if (!account) {
+    return {
+      success: false,
+      error: "Akun Zoom tidak ditemukan.",
+    }
+  }
+
+  let decryptedSecret = ""
+  try {
+    decryptedSecret = decrypt(account.clientSecretEncrypted)
+  } catch {
+    return {
+      success: false,
+      error: "Gagal mendekripsi clientSecret akun Zoom.",
+    }
+  }
+
+  const verifyFn = options.verifyFn ?? verifyZoomCredentials
+  const verifyResult = await verifyFn({
+    accountId: account.accountId,
+    clientId: account.clientId,
+    clientSecret: decryptedSecret,
+  })
+
+  if (!verifyResult.valid) {
+    return {
+      success: false,
+      error: verifyResult.error || "Koneksi ke Zoom gagal.",
+    }
+  }
+
+  // Pre-fetch & cache token to DB
+  try {
+    const getTokenFn = options.getTokenFn ?? getZoomAccessToken
+    await getTokenFn(account)
+  } catch (err: any) {
+    return {
+      success: false,
+      error: `Kredensial valid, namun gagal menyimpan token: ${err.message}`,
+    }
+  }
+
+  return { success: true }
+}
+
 // =============================================================================
 // NEXT.JS SERVER ACTIONS (CALLED BY UI)
 // =============================================================================
@@ -279,6 +359,16 @@ export async function deleteZoomAccountAction(
   id: string
 ): Promise<ActionResult> {
   const result = await handleDeleteZoomAccount(id)
+  if (result.success) {
+    revalidatePath("/admin/zoom-settings")
+  }
+  return result
+}
+
+export async function testZoomConnectionAction(
+  id: string
+): Promise<ActionResult> {
+  const result = await handleTestZoomConnection(id)
   if (result.success) {
     revalidatePath("/admin/zoom-settings")
   }
@@ -334,3 +424,86 @@ export async function getZoomAccountsAction(): Promise<{
 
   return { success: true, accounts }
 }
+
+export interface TimelineSessionView {
+  bookingId: string
+  patientName: string
+  counselorName: string
+  date: string
+  startTime: string
+  endTime: string
+  status: string
+  zoomAccountId: string | null
+}
+
+export interface GetTimelineSessionsOptions {
+  currentUser?: AuthContext | null
+  querySessions?: (dateStr: string) => Promise<TimelineSessionView[]>
+}
+
+export async function handleGetTimelineSessions(
+  dateStr: string,
+  options: GetTimelineSessionsOptions = {}
+): Promise<{
+  success: boolean
+  sessions?: TimelineSessionView[]
+  error?: string
+}> {
+  const admin = await getAuthenticatedAdmin(options.currentUser)
+  if (!admin) {
+    return {
+      success: false,
+      error: "Akses ditolak: Diperlukan role Admin untuk melihat jadwal timeline.",
+    }
+  }
+
+  if (options.querySessions) {
+    const sessions = await options.querySessions(dateStr)
+    return { success: true, sessions }
+  }
+
+  const rows = await db
+    .select({
+      bookingId: bookings.id,
+      patientName: bookings.patientName,
+      counselorName: counselors.fullName,
+      date: schedules.date,
+      startTime: schedules.startTime,
+      endTime: schedules.endTime,
+      status: bookings.status,
+      zoomAccountId: bookings.zoomAccountId,
+    })
+    .from(bookings)
+    .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
+    .leftJoin(counselors, eq(bookings.counselorId, counselors.id))
+    .where(
+      and(
+        eq(schedules.date, dateStr),
+        inArray(bookings.status, ["confirmed", "pending_payment"])
+      )
+    )
+
+  const sessions: TimelineSessionView[] = rows.map((r) => ({
+    bookingId: r.bookingId,
+    patientName: r.patientName,
+    counselorName: r.counselorName ?? "Konselor Solulu",
+    date: r.date,
+    startTime: r.startTime,
+    endTime: r.endTime,
+    status: r.status,
+    zoomAccountId: r.zoomAccountId,
+  }))
+
+  return { success: true, sessions }
+}
+
+export async function getTimelineSessionsAction(
+  dateStr: string
+): Promise<{
+  success: boolean
+  sessions?: TimelineSessionView[]
+  error?: string
+}> {
+  return handleGetTimelineSessions(dateStr)
+}
+

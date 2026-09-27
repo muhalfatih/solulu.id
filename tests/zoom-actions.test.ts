@@ -3,6 +3,8 @@ import {
   handleSaveZoomAccount,
   handleUpdateZoomAccount,
   handleDeleteZoomAccount,
+  handleTestZoomConnection,
+  handleGetTimelineSessions,
 } from "../app/admin/zoom-settings/actions"
 import { zoomAccountInputSchema } from "../app/admin/zoom-settings/schema"
 import { encrypt, decrypt } from "../lib/encryption"
@@ -217,4 +219,110 @@ describe("Seam 3: Zoom Server Actions & RBAC (app/admin/zoom-settings/actions.ts
       expect(mockDelete).toHaveBeenCalledWith("zoom-acc-1")
     })
   })
+
+  describe("handleTestZoomConnection", () => {
+    it("blocks non-admin users from testing Zoom connection", async () => {
+      const result = await handleTestZoomConnection("zoom-acc-1", {
+        currentUser: counselorUser,
+      })
+      expect(result.success).toBe(false)
+      expect(result.error).toContain("Akses ditolak")
+    })
+
+    it("returns error if account is not found", async () => {
+      const result = await handleTestZoomConnection("zoom-acc-missing", {
+        currentUser: adminUser,
+        getAccount: async () => null,
+      })
+      expect(result.success).toBe(false)
+      expect(result.error).toContain("tidak ditemukan")
+    })
+
+    it("verifies and caches token when connection test succeeds", async () => {
+      const mockAccount = {
+        id: "zoom-acc-1",
+        name: "Akun 1",
+        email: "acc1@solulu.id",
+        accountId: "zm_acc_123",
+        clientId: "zm_cli_456",
+        clientSecretEncrypted: encrypt("valid_secret"),
+        isActive: true,
+      }
+
+      const mockVerify = vi.fn().mockResolvedValue({ valid: true })
+      const mockGetToken = vi.fn().mockResolvedValue("cached_new_token")
+
+      const result = await handleTestZoomConnection("zoom-acc-1", {
+        currentUser: adminUser,
+        getAccount: async () => mockAccount,
+        verifyFn: mockVerify,
+        getTokenFn: mockGetToken,
+      })
+
+      expect(result.success).toBe(true)
+      expect(mockVerify).toHaveBeenCalled()
+      expect(mockGetToken).toHaveBeenCalled()
+    })
+
+    it("returns error message when credentials verification fails", async () => {
+      const mockAccount = {
+        id: "zoom-acc-1",
+        name: "Akun 1",
+        email: "acc1@solulu.id",
+        accountId: "zm_acc_123",
+        clientId: "zm_cli_456",
+        clientSecretEncrypted: encrypt("bad_secret"),
+        isActive: true,
+      }
+
+      const mockVerify = vi.fn().mockResolvedValue({
+        valid: false,
+        error: "Invalid client_id or client_secret",
+      })
+
+      const result = await handleTestZoomConnection("zoom-acc-1", {
+        currentUser: adminUser,
+        getAccount: async () => mockAccount,
+        verifyFn: mockVerify,
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.error).toContain("Invalid client_id or client_secret")
+    })
+  })
+
+  describe("handleGetTimelineSessions", () => {
+    it("blocks non-admin users from accessing timeline sessions", async () => {
+      const result = await handleGetTimelineSessions("2026-09-28", {
+        currentUser: counselorUser,
+      })
+      expect(result.success).toBe(false)
+      expect(result.error).toContain("Akses ditolak")
+    })
+
+    it("returns sessions for specified date", async () => {
+      const mockSessions = [
+        {
+          bookingId: "b-1",
+          patientName: "Anindya Putri",
+          counselorName: "Sarah Annisa",
+          date: "2026-09-28",
+          startTime: "19:00:00",
+          endTime: "20:30:00",
+          status: "confirmed",
+          zoomAccountId: "zoom-acc-1",
+        },
+      ]
+
+      const result = await handleGetTimelineSessions("2026-09-28", {
+        currentUser: adminUser,
+        querySessions: async () => mockSessions,
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.sessions).toEqual(mockSessions)
+    })
+  })
 })
+
+
