@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ManualPaymentModal, ManualPaymentDetails } from "./components/manual-payment-modal"
+import { confirmManualPaymentAction } from "./actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -111,10 +112,24 @@ export default function DistilledSessionsPage() {
     }
   }, [selectedSession, manualPaymentSession, handleCloseDrawer])
 
-  const handleConfirmManualPayment = (
+  const handleConfirmManualPayment = async (
     session: BookingSession,
     details: ManualPaymentDetails
   ) => {
+    // If real booking ID from database
+    if (session.id && !session.id.startsWith("ses-")) {
+      try {
+        await confirmManualPaymentAction({
+          bookingId: session.id,
+          paymentMethod: details.paymentMethod,
+          referenceNumber: details.referenceNumber,
+          adminNotes: details.adminNotes,
+        })
+      } catch (err) {
+        console.error("Failed to execute confirmManualPaymentAction:", err)
+      }
+    }
+
     setSessions((prev) =>
       prev.map((s) => {
         if (s.id !== session.id) return s
