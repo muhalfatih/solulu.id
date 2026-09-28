@@ -128,7 +128,7 @@ function LoginForm() {
         } else if (role === "admin") {
           router.push("/admin")
         } else if (role === "counselor") {
-          router.push("/prototype/admin/sessions")
+          router.push("/counselor/dashboard")
         } else {
           router.push("/")
         }

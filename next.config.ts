@@ -13,6 +13,16 @@ const nextConfig: NextConfig = {
         destination: "/admin/zoom-settings",
         permanent: false,
       },
+      {
+        source: "/prototype/admin",
+        destination: "/admin",
+        permanent: false,
+      },
+      {
+        source: "/prototype/admin/:path*",
+        destination: "/admin/:path*",
+        permanent: false,
+      },
     ]
   },
 }
