@@ -8,8 +8,21 @@ export const metadata = {
     "Katalog psikolog klinis dan konselor sebaya terverifikasi untuk sesi konsultasi 90 menit via Zoom tanpa perlu membuat akun.",
 }
 
-export default async function CounselorsCatalogPage() {
-  const result = await getCounselorsCatalogAction()
+export default async function CounselorsCatalogPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const params = searchParams ? await searchParams : {}
+  const screeningId =
+    typeof params.screeningId === "string" ? params.screeningId : undefined
+  const rawType = typeof params.type === "string" ? params.type : undefined
+  const recommendedType =
+    rawType === "clinical" ? "psychologist" : rawType === "peer" ? "peer" : undefined
+
+  const result = await getCounselorsCatalogAction({
+    type: recommendedType,
+  })
 
   let initialCounselors: CatalogCounselorView[] = []
 
@@ -149,5 +162,11 @@ export default async function CounselorsCatalogPage() {
     ]
   }
 
-  return <CounselorsCatalogClient initialCounselors={initialCounselors} />
+  return (
+    <CounselorsCatalogClient
+      initialCounselors={initialCounselors}
+      initialScreeningId={screeningId}
+      initialRecommendedType={recommendedType}
+    />
+  )
 }

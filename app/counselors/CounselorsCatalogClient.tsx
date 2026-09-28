@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Heart,
   Video,
+  ClipboardList,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -33,6 +34,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { EmergencyHotlineBanner } from "@/components/screening/EmergencyHotlineBanner"
 import {
   getCounselorsCatalogAction,
   type CatalogCounselorView,
@@ -41,13 +43,19 @@ import {
 
 interface CounselorsCatalogClientProps {
   initialCounselors: CatalogCounselorView[]
+  initialScreeningId?: string
+  initialRecommendedType?: "all" | "peer" | "psychologist"
 }
 
 export default function CounselorsCatalogClient({
   initialCounselors,
+  initialScreeningId,
+  initialRecommendedType,
 }: CounselorsCatalogClientProps) {
   const [counselors, setCounselors] = React.useState<CatalogCounselorView[]>(initialCounselors)
-  const [typeFilter, setTypeFilter] = React.useState<"all" | "peer" | "psychologist">("all")
+  const [typeFilter, setTypeFilter] = React.useState<"all" | "peer" | "psychologist">(
+    initialRecommendedType || "all"
+  )
   const [dateFilter, setDateFilter] = React.useState<string>("")
   const [searchQuery, setSearchQuery] = React.useState<string>("")
   const [loading, setLoading] = React.useState(false)
@@ -138,7 +146,24 @@ export default function CounselorsCatalogClient({
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="text-xs h-8 gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
+            >
+              <Link
+                href={
+                  initialScreeningId
+                    ? `/screening?screeningId=${initialScreeningId}`
+                    : "/screening"
+                }
+              >
+                <ClipboardList className="size-3.5" data-icon="inline-start" />
+                <span>Skrining SRQ-20</span>
+              </Link>
+            </Button>
             <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex text-xs h-8">
               <Link href="/cek-sesi">Cek Status Sesi</Link>
             </Button>
@@ -167,25 +192,42 @@ export default function CounselorsCatalogClient({
           </p>
 
           {/* Emergency Crisis Hotline Banner */}
-          <div className="w-full max-w-2xl mt-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-amber-900 dark:text-amber-200">
-            <div className="flex items-center gap-2.5">
-              <Info className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-              <span>
-                Sedang dalam kondisi krisis emosional darurat? Hubungi Layanan Kesehatan Jiwa Sejiwa.
-              </span>
-            </div>
-            <a
-              href="tel:119"
-              className="font-bold underline underline-offset-2 shrink-0 text-amber-950 dark:text-amber-100 hover:opacity-80"
-            >
-              Telepon 119 Ext. 8
-            </a>
-          </div>
+          <EmergencyHotlineBanner
+            variant="supportive"
+            compact={true}
+            className="max-w-2xl mt-3"
+          />
         </div>
       </section>
 
       {/* Main Catalog Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-6">
+        {/* Connected Screening Banner if Patient took screening */}
+        {initialScreeningId && (
+          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-foreground">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>
+                Hasil skrining SRQ-20 Anda tersimpan{" "}
+                {initialRecommendedType && (
+                  <strong>
+                    (Rekomendasi:{" "}
+                    {initialRecommendedType === "psychologist"
+                      ? "Psikolog Klinis"
+                      : "Konselor Sebaya"}
+                    )
+                  </strong>
+                )}
+                . Rekomendasi ini otomatis terlampir saat Anda memilih jadwal sesi.
+              </span>
+            </div>
+            <Button asChild variant="outline" size="sm" className="h-7 text-xs shrink-0">
+              <Link href={`/screening?screeningId=${initialScreeningId}`}>
+                Lihat Evaluasi
+              </Link>
+            </Button>
+          </div>
+        )}
         {/* Filter Controls Bar */}
         <div className="p-4 sm:p-5 rounded-2xl border border-border/80 bg-card shadow-xs flex flex-col gap-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -542,6 +584,27 @@ export default function CounselorsCatalogClient({
                   Ruang Zoom Pro otomatis dialokasikan setelah konfirmasi pembayaran tanpa perlu pendaftaran akun.
                 </span>
               </div>
+
+              {!initialScreeningId && (
+                <div className="p-3 rounded-xl bg-muted/40 border border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="size-3.5 text-primary shrink-0" />
+                    <span>Ingin memberikan konteks emosional sebelum konseling?</span>
+                  </div>
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-[11px] text-primary hover:text-primary underline px-1"
+                  >
+                    <Link
+                      href={`/screening?counselorId=${selectedSlotModal?.counselor.id}&scheduleId=${selectedSlotModal?.slot.id}`}
+                    >
+                      Isi Skrining SRQ-20 Dulu
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -561,10 +624,12 @@ export default function CounselorsCatalogClient({
               className="text-xs h-9 gap-1.5 font-semibold cursor-pointer"
             >
               <Link
-                href={`/booking?counselorId=${selectedSlotModal?.counselor.id}&scheduleId=${selectedSlotModal?.slot.id}`}
+                href={`/booking?counselorId=${selectedSlotModal?.counselor.id}&scheduleId=${selectedSlotModal?.slot.id}${
+                  initialScreeningId ? `&screeningId=${initialScreeningId}` : ""
+                }`}
               >
                 <span>Lanjut ke Formulir Pasien</span>
-                <ArrowRight className="size-3.5" />
+                <ArrowRight className="size-3.5" data-icon="inline-end" />
               </Link>
             </Button>
           </DialogFooter>
