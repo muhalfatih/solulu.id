@@ -59,12 +59,13 @@ export function GalleryUploadDialog({
   const [imageUrl, setImageUrl] = React.useState(PRESET_SAMPLE_IMAGES[0].url)
   const [aspectRatio, setAspectRatio] = React.useState<"16:9" | "4:3" | "1:1">("16:9")
   const [dimensions, setDimensions] = React.useState("1920 × 1080")
+  const [isCensoredAndConsented, setIsCensoredAndConsented] = React.useState(false)
 
   if (!isOpen) return null
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!imageUrl.trim()) return
+    if (!imageUrl.trim() || !isCensoredAndConsented) return
 
     const newItem: GalleryItem = {
       id: `g-${Date.now()}`,
@@ -77,7 +78,7 @@ export function GalleryUploadDialog({
         month: "short",
         year: "numeric",
       }),
-      isCensoredAndConsented: true,
+      isCensoredAndConsented,
       uploadedBy: "Admin",
     }
 
@@ -169,6 +170,24 @@ export function GalleryUploadDialog({
             />
           </div>
 
+          {/* Mandatory Privacy & Legal Consent Checkbox */}
+          <div className="flex items-start gap-2.5 p-3 rounded-xl border border-border/80 bg-muted/30">
+            <input
+              type="checkbox"
+              id="consent-checkbox"
+              checked={isCensoredAndConsented}
+              onChange={(e) => setIsCensoredAndConsented(e.target.checked)}
+              className="mt-0.5 size-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+              required
+            />
+            <Label
+              htmlFor="consent-checkbox"
+              className="text-xs text-muted-foreground leading-relaxed cursor-pointer font-normal"
+            >
+              Saya menyatakan bahwa <strong className="text-foreground">wajah pasien/klien telah disensor</strong> dan persetujuan dokumentasi publik telah diperoleh demi perlindungan etis &amp; kepatuhan hukum privasi.
+            </Label>
+          </div>
+
           {/* Actions */}
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
             <Button
@@ -183,8 +202,9 @@ export function GalleryUploadDialog({
             <Button
               type="submit"
               size="sm"
-              disabled={!imageUrl.trim()}
+              disabled={!imageUrl.trim() || !isCensoredAndConsented}
               className="h-8 text-xs font-medium gap-1.5 cursor-pointer"
+              id="btn-confirm-upload-gallery"
             >
               <UploadCloud className="size-3.5" />
               <span>Tambahkan ke Galeri</span>
