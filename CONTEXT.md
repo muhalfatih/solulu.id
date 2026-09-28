@@ -47,12 +47,12 @@ _Avoid_: OTP, Password sesi, Kode verifikasi
 ### Klinis & Skrining
 
 **Skrining SRQ-20**:
-Kuesioner mandiri 20 butir standar WHO yang diisi calon pasien sebelum memilih jadwal untuk memberikan konteks distres emosional secara informatif kepada konselor pendamping tanpa memblokir proses booking.
-_Avoid_: Diagnosa medis, Tes kepribadian, Kuis umum
+Kuesioner mandiri 20 butir standar WHO yang disajikan secara terintegrasi saat calon pasien memulai proses reservasi (dapat dikonfigurasi oleh Admin: wajib atau opsional) untuk memberikan konteks distres emosional kepada konselor pendamping, tanpa dimunculkan di landing page publik.
+_Avoid_: Diagnosa medis, Tes kepribadian, Kuis umum, Skrining di landing page
 
-**Deteksi Risiko & Informasi Hotline Krisis**:
-Tampilan informasi kontak darurat nasional (Hotline Kemenkes 119 Ext 8 / Layanan SEJIWA) yang disematkan secara empatik dan menenangkan tanpa alarmisme.
-_Avoid_: Gejala stres biasa, Kelelahan biasa, Alarm intimidatif
+**Protokol Darurat & Hotline Krisis**:
+Kebijakan penanganan situasi krisis. Nomor kontak darurat dan banner hotline tidak ditampilkan di landing page maupun panel admin untuk menjaga suasana ruang yang tenang dan tidak alarmis, dengan klausul batasan tanggung jawab hukum tetap dicantumkan dalam Syarat & Ketentuan.
+_Avoid_: Gejala stres biasa, Alarm intimidatif, Banner darurat di landing page, Tombol hotline di admin
 
 **Rekam Medis Sesi**:
 Laporan pasca-sesi berisi ringkasan evaluasi, rencana aksi (*action plan*), dan lampiran privat yang disusun oleh konselor penanggung jawab.

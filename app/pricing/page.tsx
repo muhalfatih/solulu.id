@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { PublicShell } from "@/components/public/public-shell"
 
 export const metadata = {
   title: "Biaya & Paket Layanan Telekonseling",
@@ -22,39 +23,8 @@ export const metadata = {
 
 export default function PublicPricingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/20 selection:text-primary">
-      {/* Header */}
-      <header className="border-b border-border/80 bg-background/95 backdrop-blur-md sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="size-8 rounded-xl bg-primary flex items-center justify-center font-bold text-primary-foreground text-sm shadow-xs">
-              S
-            </div>
-            <span className="font-bold text-base tracking-tight">Solulu</span>
-          </Link>
-
-          <nav className="flex items-center gap-4">
-            <Link
-              href="/counselors"
-              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Katalog Konselor
-            </Link>
-            <Link
-              href="/screening"
-              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Skrining SRQ-20
-            </Link>
-            <Button asChild size="sm" className="h-8 text-xs font-medium">
-              <Link href="/counselors">Mulai Konseling</Link>
-            </Button>
-          </nav>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-14 flex flex-col gap-14">
+    <PublicShell>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 flex flex-col gap-14">
         {/* Title Section */}
         <div className="flex flex-col items-center text-center gap-3 max-w-2xl mx-auto">
           <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
@@ -234,12 +204,7 @@ export default function PublicPricingPage() {
             </div>
           </div>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border/80 py-8 mt-auto text-xs text-muted-foreground text-center">
-        <p>© 2026 Solulu Indonesia. Semua harga dalam Rupiah (IDR) dan sudah termasuk pajak.</p>
-      </footer>
-    </div>
+      </div>
+    </PublicShell>
   )
 }

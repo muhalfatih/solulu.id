@@ -1,5 +1,6 @@
 import * as React from "react"
 import { getCounselorsCatalogAction, type CatalogCounselorView } from "./actions"
+import { getPlatformSettings } from "@/lib/settings/platform"
 import CounselorsCatalogClient from "./CounselorsCatalogClient"
 
 export const metadata = {
@@ -162,11 +163,14 @@ export default async function CounselorsCatalogPage({
     ]
   }
 
+  const settings = await getPlatformSettings()
+
   return (
     <CounselorsCatalogClient
       initialCounselors={initialCounselors}
       initialScreeningId={screeningId}
       initialRecommendedType={recommendedType}
+      isScreeningRequired={settings.isScreeningRequired}
     />
   )
 }

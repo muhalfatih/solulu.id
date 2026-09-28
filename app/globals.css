@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--font-sans);
+    --font-heading: var(--font-heading, var(--font-sans));
     --font-sans: var(--font-sans);
     --font-mono: var(--font-sans);
     --color-sidebar-ring: var(--sidebar-ring);
@@ -115,6 +115,57 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.552 0.016 285.938);
+}
+
+/* ========================================================================= */
+/* SCOPED THEMES: Dual-Surface Architecture                                  */
+/* ========================================================================= */
+
+.theme-admin {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+    --primary: oklch(0.21 0.006 285.885);
+    --primary-foreground: oklch(0.985 0 0);
+    --radius: 0.45rem;
+}
+
+.dark .theme-admin,
+.theme-admin.dark {
+    --primary: oklch(0.92 0.004 286.32);
+    --primary-foreground: oklch(0.21 0.006 285.885);
+}
+
+.theme-public {
+    --font-heading: var(--font-poppins), sans-serif;
+    --font-sans: var(--font-inter), sans-serif;
+    --primary: #7c3aed;
+    --primary-foreground: #ffffff;
+    --radius: 1rem;
+    --background: #fcfbfe;
+    --card: #ffffff;
+    --card-foreground: #1f2937;
+    --border: #f1edfa;
+    --accent: #f5f3ff;
+    --accent-foreground: #6d28d9;
+    --muted: #f8f7fc;
+    --muted-foreground: #6b7280;
+    --ring: #8b5cf6;
+}
+
+.dark .theme-public,
+.theme-public.dark {
+    --primary: #a78bfa;
+    --primary-foreground: #1e113a;
+    --background: #0f0c1b;
+    --foreground: #f3f4f6;
+    --card: #18142a;
+    --card-foreground: #f9fafb;
+    --border: #2e264f;
+    --accent: #261f43;
+    --accent-foreground: #ddd6fe;
+    --muted: #1e1935;
+    --muted-foreground: #9ca3af;
+    --ring: #a78bfa;
 }
 
 @layer base {

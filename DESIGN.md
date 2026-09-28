@@ -1,9 +1,11 @@
 ---
 name: Solulu
-description: Ekosistem telekonseling kesehatan mental yang mudah diakses, ramah di kantong, dan bebas hambatan birokrasi
+description: Ekosistem telekonseling kesehatan mental terpercaya dengan Dual-Surface Architecture (Admin/Operasional & Landing Solulu.id)
 colors:
   primary: "oklch(0.21 0.006 285.885)"
   primary-foreground: "oklch(0.985 0 0)"
+  public-primary: "#7c3aed"
+  public-primary-foreground: "#ffffff"
   secondary: "oklch(0.967 0.001 286.375)"
   secondary-foreground: "oklch(0.21 0.006 285.885)"
   background: "oklch(1 0 0)"
@@ -19,33 +21,34 @@ colors:
   ring: "oklch(0.705 0.015 286.067)"
   healing-emerald: "#10b981"
   clinical-alert: "oklch(0.577 0.245 27.325)"
+  whatsapp-green: "#25d366"
 typography:
   display:
-    fontFamily: "Geist, system-ui, sans-serif"
+    fontFamily: "var(--font-heading), Geist, system-ui, sans-serif"
     fontSize: "2rem"
     fontWeight: 700
     lineHeight: 1.2
     letterSpacing: "-0.025em"
   headline:
-    fontFamily: "Geist, system-ui, sans-serif"
+    fontFamily: "var(--font-heading), Geist, system-ui, sans-serif"
     fontSize: "1.5rem"
     fontWeight: 600
     lineHeight: 1.3
     letterSpacing: "-0.02em"
   title:
-    fontFamily: "Geist, system-ui, sans-serif"
+    fontFamily: "var(--font-sans), Geist, system-ui, sans-serif"
     fontSize: "1rem"
     fontWeight: 600
     lineHeight: 1.4
     letterSpacing: "-0.01em"
   body:
-    fontFamily: "Geist, system-ui, sans-serif"
+    fontFamily: "var(--font-sans), Geist, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.5
     letterSpacing: "normal"
   label:
-    fontFamily: "Geist, system-ui, sans-serif"
+    fontFamily: "var(--font-sans), Geist, system-ui, sans-serif"
     fontSize: "0.75rem"
     fontWeight: 500
     lineHeight: 1.4
@@ -55,6 +58,7 @@ rounded:
   md: "0.36rem"
   lg: "0.45rem"
   xl: "0.75rem"
+  2xl: "1rem"
   full: "9999px"
 spacing:
   xs: "0.25rem"
@@ -62,6 +66,7 @@ spacing:
   md: "1rem"
   lg: "1.5rem"
   xl: "2rem"
+  2xl: "3rem"
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
@@ -69,6 +74,12 @@ components:
     rounded: "{rounded.md}"
     padding: "0.5rem 0.75rem"
     height: "2.25rem"
+  button-public-primary:
+    backgroundColor: "{colors.public-primary}"
+    textColor: "{colors.public-primary-foreground}"
+    rounded: "{rounded.full}"
+    padding: "0.75rem 1.75rem"
+    height: "2.75rem"
   button-outline:
     backgroundColor: "{colors.background}"
     textColor: "{colors.foreground}"
@@ -88,143 +99,155 @@ components:
     height: "1.25rem"
 ---
 
-# Design System: Solulu
+# Design System: Solulu (Dual-Surface Architecture)
 
 ## Overview
 
-**Creative North Star: "The Grounding Sanctuary"**
+Solulu menerapkan **Dual-Surface Architecture** yang secara sadar membedakan bahasa visual antara area kerja operasional klinis dengan antarmuka publik/klien:
 
-Solulu dirancang sebagai ruang digital yang menenangkan, empatik, hangat, dan stabil bagi masyarakat Indonesia yang sedang mengalami tekanan psikologis maupun membutuhkan pertolongan klinis. Setiap permukaan visual memancarkan ketenangan (*grounding*), menepis rasa intimidasi birokrasi medis, dan memprioritaskan privasi serta rasa aman pengguna sejak detik pertama interaksi.
+1. **Admin & Auth Surface (`app/admin`, `app/(auth)/login`) — Mode *Operate***
+   - **Creative North Star: "Clinical Precision & Operational Sanctuary"**
+   - Menghadirkan antarmuka kerja berdensitas tinggi (*information density*), kaku, presisi, minim distraksi, dan berbasis data tabular.
+   - Menggunakan palet **Obsidian Ink** (`oklch(0.21 0.006 285.885)`), border 1px halus, sudut ringkas (`0.375rem` - `0.45rem`), tata letak layar penuh yang terkunci (`h-screen overflow-hidden`), serta tipografi teknis **Geist Sans** dengan `tabular-nums` untuk jadwal dan kode sesi.
+   - Halaman Login mengusung struktur *split-screen*: kolom kiri memuat proposisi keamanan klinis & privasi (komitmen HIMPSI, enkripsi sesi), sedangkan kolom kanan memuat kartu formulir login yang terfokus dengan dukungan kredensial demo cepat.
 
-Sebagai sistem telekonseling dengan batas konkurensi 2 ruang Zoom pribadi dan skrining klinis mandiri SRQ-20, antarmuka dirancang dalam mode **Operate** untuk konselor dan admin, serta **Persuade** yang empatik untuk pasien tamu. Desain menghindari estetika rumah sakit yang steril dan dingin tanpa tergelincir ke dalam ornamen dekoratif kartun yang meremehkan masalah kesehatan mental nyata.
+2. **Public & Landing Surface (`app/page.tsx`, `app/booking`) — Mode *Persuade & Comfort***
+   - **Creative North Star: "The Empathetic Sanctuary (#CeritaDiSolulu)"**
+   - Mengacu pada identitas resmi **solulu.id**: ruang bercerita yang hangat, terbuka, bersahabat (*friendly*), dan menurunkan kecemasan (*anxiety-reducing*).
+   - Menggunakan aksen **Brand Violet/Purple** (`#7C3AED` / `#8B5CF6`), latar kanvas hangat bertint lavender lembut (`#fcfbfe`), kurva ramah (`rounded-2xl` untuk kartu dan `rounded-full` untuk badge pill & tombol CTA), serta tipografi perpaduan **Poppins** (judul/display) dan **Inter** (teks isi).
+   - Menampilkan 4 pilar kepercayaan utama (*Appointment < 24 jam*, *100% Rahasia*, *Konselor & Psikolog*, *Solutif*), paket harga transparan (Single Rp 85k, Psikolog Rp 130k, Paket 3 Sesi Rp 225k), ulasan testimoni anonim, dan widget bantuan WhatsApp. Skrining mandiri SRQ-20 ditempatkan secara terarah pada alur booking (bukan di landing page), dan tidak menampilkan tautan panggilan darurat 119.
 
 **Key Characteristics:**
-- **Calming & Grounding Tone**: Nuansa visual yang menurunkan tingkat kecemasan dengan kontras warna lembut berstandar WCAG AA.
-- **Refined & Restrained Layering**: Arsitektur permukaan datar berbasis border halus 1px dan tonal contrast tanpa bayangan berat.
-- **Cognitive Clarity**: Tipografi sans-serif modern yang terstruktur, bebas jargon berbelit, dan mudah dipindai dalam kondisi mental lelah.
-- **Safety-First Clinical Triage**: Penandaan visual status risiko tinggi (SRQ-20 ide bunuh diri) yang tegas namun tidak menghakimi atau memicu kepanikan.
+- **Zero Cross-Contamination**: Gaya publik solulu.id (warna ungu, sudut bulat besar, font Poppins) tidak boleh merembes ke panel admin; demikian pula kekakuan tabular admin tidak boleh membuat landing page terasa dingin atau steril.
+- **Scoped CSS Theming**: Pengendalian token menggunakan wrapper `.theme-admin` dan `.theme-public` pada level layout masing-masing surface.
+- **Cognitive Safety**: Pesan ramah dan bebas stigma, kontras WCAG AA (≥4.5:1), tanpa ilustrasi doodle kartun murahan yang mendegradasi isu kesehatan mental.
 
 ## Colors
 
-Palet warna Solulu mengusung harmoni **Obsidian Ink & Healing Emerald**, memadukan dasar monokromatik lembut dengan aksen hijau teduh untuk memberikan sinyal stabilitas, kesembuhan, dan keandalan sistem telekonseling.
+Palet warna Solulu dibagi menjadi dua spektrum fungsional:
 
-### Primary
-- **Obsidian Ink** (`oklch(0.21 0.006 285.885)` / Mode Terang; `oklch(0.92 0.004 286.32)` / Mode Gelap): Warna primer yang berbobot dan tenang, digunakan untuk tombol aksi utama, navigasi kunci, dan teks penting dengan tingkat ketegasan tinggi.
+### Admin & Auth Surface (Mode Operate)
+- **Obsidian Ink (Primary):** `oklch(0.21 0.006 285.885)` (Light) / `oklch(0.92 0.004 286.32)` (Dark). Digunakan untuk aksi utama, tombol simpan, header tabel, dan status kunci.
+- **Calming Slate Surface (Secondary):** `oklch(0.967 0.001 286.375)` (Light) / `oklch(0.274 0.006 286.033)` (Dark). Latar sel tabel, kartu metrik sekunder, dan pill filter.
+- **Healing Emerald (Tertiary Status):** `#10b981`. Aksen hijau penanda kesiapan 2 akun Zoom Pro, status pembayaran lunas, dan verifikasi konselor aktif.
+- **Clinical Alert Rose (Destructive):** `oklch(0.577 0.245 27.325)`. Khusus indikasi risiko tinggi skrining SRQ-20 pada rekam medis dan pembatalan janji temu.
+- **Clinical Warning Amber:** `#f59e0b`. Penanda batas waktu invoice pembayaran 15 menit dan verifikasi berkas tertunda.
 
-### Secondary
-- **Calming Surface / Neutral Soft** (`oklch(0.967 0.001 286.375)` / Mode Terang; `oklch(0.274 0.006 286.033)` / Mode Gelap): Warna permukaan sekunder untuk latar kartu pelengkap, pill indikator, dan hover interaktif.
-
-### Tertiary
-- **Healing Emerald** (`#10b981` / `rgb(16 185 129)`): Aksen hijau vitalitas penanda status koneksi aman, ruang telekonseling Zoom yang siap/aktif, dan verifikasi berkas tervalidasi.
-- **Clinical Alert Rose** (`oklch(0.577 0.245 27.325)`): Aksen klinis khusus untuk indikasi risiko tinggi skrining SRQ-20, status darurat pasien, dan pembatalan sesi.
-- **Clinical Warning Amber** (`#f59e0b`): Penanda peringatan prosedur darurat, batas waktu invoice Xendit 15 menit, dan audit berkas tertunda.
-
-### Neutral
-- **Pure Canvas** (`oklch(1 0 0)` / Mode Terang; `oklch(0.141 0.005 285.823)` / Mode Gelap): Latar dasar viewport yang bersih dan lapang.
-- **Grounding Foreground** (`oklch(0.141 0.005 285.823)` / Mode Terang; `oklch(0.985 0 0)` / Mode Gelap): Teks utama berbobot tajam dengan kontras tinggi yang nyaman dibaca.
-- **Muted Mist** (`oklch(0.552 0.016 285.938)` / Mode Terang; `oklch(0.705 0.015 286.067)` / Mode Gelap): Teks pendukung, label metadata, dan petunjuk formulir.
-- **Subtle Outline Border** (`oklch(0.92 0.004 286.32)` / Mode Terang; `oklch(1 0 0 / 10%)` / Mode Gelap): Garis pemisah struktural 1px yang lembut tanpa kesan kotak kaku.
+### Public & Landing Surface (Mode Persuade — Solulu.id Reference)
+- **Solulu Violet (Primary Brand):** `#7c3aed` (Violet 600) / `#6d28d9` (Hover). Warna identitas utama brand, tombol "Mulai Cerita", dan highlight tagar `#CeritaDiSolulu`.
+- **Soft Lavender Glow (Brand Accent):** `#8b5cf6` (Violet 500) dan `#f5f3ff` (Violet 50). Latar badge kapsul, highlight kartu aktif, dan gradien lembut.
+- **Warm Canvas Neutral:** `#fcfbfe` (Light) / `#0f0c1b` (Dark). Latar belakang viewport publik yang hangat dan tidak menyilaukan mata.
+- **WhatsApp Emerald:** `#25d366`. Widget chat mengambang dan tombol kontak konsultasi langsung.
+- **Text Primary & Muted:** `#1f2937` (Gray 800) untuk keterbacaan judul utama dan `#4b5563` (Gray 600) untuk penjelasan paragraf.
 
 ### Named Rules
-**The Non-Intimidating Palette Rule.** Warna peringatan klinis (*Clinical Alert Rose* dan *Warning Amber*) dicadangkan secara eksklusif untuk data medis kritis (SRQ-20 > 6, suicidal ideation waiver) dan batas waktu pembayaran transaksi. Dilarang menggunakan warna merah alarm untuk pesan sistem rutin atau elemen dekoratif.
+**The Surface Isolation Rule.** Dilarang mencampur token warna ungu `#7c3aed` ke dalam tabel atau form dashboard admin, dan dilarang menggunakan warna hitam kaku `oklch(0.21 0.006 285.885)` sebagai warna tombol utama landing page.
 
-**The Calming Contrast Rule.** Seluruh pasangan warna teks dan latar wajib melampaui rasio kontras WCAG AA (≥4.5:1 untuk body text, ≥3:1 untuk display text), tanpa menggunakan kontras hitam-putih murni yang menyilaukan atau warna neon agresif yang memicu kelelahan kognitif.
+**The Strict Contrast Rule.** Seluruh pasangan teks dan latar belakang wajib memenuhi rasio kontras WCAG AA (≥4.5:1 untuk body text, ≥3:1 untuk headline).
 
 ## Typography
 
-**Display, Body, & Label Font:** Geist Sans (`--font-sans`), dengan fallback `system-ui, -apple-system, sans-serif` sesuai standar preset shadcn/ui. Seluruh elemen tipografi antarmuka, heading, isi teks, hingga label dan kode sesi menggunakan Geist Sans secara seragam (dengan fitur OpenType `tabular-nums` untuk angka dan kode).
+### Admin & Auth Surface
+- **Font Stack:** Geist Sans (`--font-sans`), dengan fallback `system-ui, -apple-system, sans-serif`.
+- **Fitur Kritis:** Seluruh tabel data, jam operasional WIB, dan kode sesi wajib menyertakan kelas OpenType `tabular-nums`.
+- **Skala:**
+  - Display: `2rem` (32px), Bold 700, line-height 1.2
+  - Headline: `1.5rem` (24px), SemiBold 600, line-height 1.3
+  - Title: `1rem` (16px), SemiBold 600, line-height 1.4
+  - Body: `0.875rem` (14px), Regular 400, line-height 1.5
+  - Label: `0.75rem` (12px), Medium 500, line-height 1.4
 
-**Character:** Tipografi rasional, modern, dan sangat bersih. Memiliki proporsi geometris yang seimbang dan mudah dipindai, mendukung ketenangan pasien serta akurasi konselor dalam membaca data klinis.
-
-### Hierarchy
-- **Display** (Bold 700, `2rem` / 32px, line-height 1.2, tracking `-0.025em`): Judul utama permukaan operasional dan hero judul layanan.
-- **Headline** (SemiBold 600, `1.5rem` / 24px, line-height 1.3, tracking `-0.02em`): Judul modul besar, bagian ringkasan metrik, dan heading modal krisis.
-- **Title** (Medium 500 / SemiBold 600, `1rem` / 16px, line-height 1.4, tracking `-0.01em`): Judul kartu, sub-bagian formulir, dan header tabel data.
-- **Body** (Regular 400, `0.875rem` / 14px, line-height 1.5, normal tracking): Paragraf deskripsi klinis, instruksi pasien, catatan konselor. Dibatasi pada panjang ideal 65–75 karakter per baris.
-- **Label / Caption** (Medium 500, `0.75rem` / 12px, line-height 1.4, tracking `0.02em`): Badge status, waktu sesi WIB, kueri keyboard (`⌘K`), dan header kolom tabel.
+### Public & Landing Surface (Solulu.id Reference)
+- **Display & Headline Font:** Poppins (`--font-heading`, `--font-poppins`), dengan fallback sans-serif.
+- **Body & Label Font:** Inter (`--font-sans`, `--font-inter`), dengan fallback sans-serif.
+- **Karakter:** Hangat, bersahabat, terbuka, dan memiliki kepribadian empatik tinggi.
+- **Skala:**
+  - Hero Headline: `clamp(2rem, 5vw, 3.5rem)`, Bold 700, line-height 1.15
+  - Section Title: `clamp(1.5rem, 3.5vw, 2.25rem)`, SemiBold 600, line-height 1.25
+  - Card Title: `1.125rem` (18px), SemiBold 600
+  - Body Text: `1rem` (16px) / `0.9375rem` (15px), Regular 400, line-height 1.6
+  - Badge / Tag: `0.8125rem` (13px), Medium 500
 
 ### Named Rules
-**The Cognitive Comfort Rule.** Teks isi (*body*) tidak boleh menggunakan line-height lebih rapat dari 1.4. Ruang antar baris yang lega menjaga ketenangan membaca bagi pengguna yang sedang cemas atau kelelahan mental.
+**The Dual Typography Rule.** Font Poppins hanya aktif pada heading permukaan publik `.theme-public`. Permukaan kerja operasional `.theme-admin` wajib mempertahankan font Geist Sans demi ketajaman pemindaian data.
 
-**The Unadorned Heading Rule.** Dilarang menggunakan teks bergradien (*gradient text*) atau label *kicker/eyebrow* di atas judul utama. Kekuatan hirarki ditegaskan semata-mata oleh perbedaan bobot font dan skala ukuran yang terukur.
+**The Cognitive Comfort Rule.** Paragraf pada landing page maupun catatan admin tidak boleh menggunakan line-height lebih rapat dari 1.5, dengan panjang baris optimal 55–75 karakter per baris.
 
 ## Layout
 
-Sistem tata letak Solulu berakar pada modularitas berbasis skala 4-unit (`0.25rem` [4px], `0.5rem` [8px], `0.75rem` [12px], `1rem` [16px], `1.5rem` [24px], `2rem` [32px]).
+### Admin Viewport Shell (`app/admin`)
+- **Struktur Shell:** Layar penuh terkunci (`h-screen overflow-hidden`) yang terbagi menjadi bilah sisi (*dock sidebar*) dan kanvas kerja dengan area gulir mandiri (`overflow-y-auto`).
+- **Sidebar Dock:** Lebar dinamis `w-64` (256px) saat terbuka dan `w-18` (72px) saat diciutkan (*collapsed*).
+- **Kontainer Data:** Lebar maksimum `max-w-6xl` dengan padding responsif `p-4 sm:p-6 md:p-8`.
 
-- **Admin Viewport Shell:** Mengunci tinggi layar penuh (`h-screen overflow-hidden`) dengan pembagian bilah samping navigasi (*dock sidebar*) dan area kerja utama yang memiliki scrollbar independen.
-- **Sidebar Dock:** Lebar standar `w-64` (256px) saat diperluas dan `w-18` (72px) saat diperkecil (*collapsed*), memberikan efisiensi ruang horizontal bagi layar kerja 13-16 inci.
-- **Kontainer Data Operasional:** Batas maksimum konten `max-w-6xl` dengan padding responsif `p-6 md:p-8`, memastikan scannability data jadwal dan metrik tidak melebar tak berujung pada monitor ultra-wide.
-- **Mobile Adaptation:** Pada viewport `< 768px`, bilah navigasi bertransformasi menjadi *sticky header* `h-14` dengan drawer samping penuh berlatar peredup (*backdrop blur*).
+### Auth Split Shell (`app/(auth)/login`)
+- **Struktur Layar:** Pembagian 50/50 pada layar desktop (`lg:flex-row`).
+- **Kolom Kiri (Branding & Trust):** Berisi identitas Solulu, pernyataan etika HIMPSI, kartu komitmen privasi (ADR-0001), dan proteksi Zoom 2-host (ADR-0002).
+- **Kolom Kanan (Formulir Masuk):** Header dengan navigasi kembali ke beranda, kartu formulir ringkas, tombol cepat akun demo (*quick fill*), dan toggle mode gelap.
+
+### Public Landing Layout (`app/page.tsx`)
+- **Struktur Vertikal:** Multi-seksi berirama lega dengan padding vertikal besar (`py-16` hingga `py-24`).
+- **Kontainer Publik:** `max-w-6xl` terpusat (`mx-auto px-4 sm:px-6 lg:px-8`).
+- **Seksi Standar Solulu.id:**
+  1. Sticky Navbar dengan link seksi dan CTA "Mulai Cerita".
+  2. Hero Section dengan badge "Ruang Aman untuk Cerita", headline #CeritaDiSolulu, dan 4 Trust Pills.
+  3. Alasan Solulu (Kenapa Kami): Empati, Terjangkau, Fleksibel, Privasi.
+  4. Paket & Biaya Konseling: Single (Rp 85k), Psikolog (Rp 130k), Paket 3 Sesi (Rp 225k).
+  5. Showcase Konselor & Partner Cerita.
+  6. Ulasan & Testimoni Klien.
+  7. Komitmen Privasi & FAQ.
+  8. Footer & Floating WhatsApp Widget.
 
 ### Named Rules
-**The Stable Horizon Rule.** Elemen navigasi operasional dan status telemetri kritis (ketersediaan 2 ruang Zoom, akses hotline krisis) wajib berada dalam jangkauan pandang tetap (*viewport-pinned*) dan dilarang terdorong keluar layar saat pengguna membaca tabel panjang.
+**The Persistent Dock Rule.** Navigasi sidebar admin wajib mempertahankan posisinya tanpa terdorong keluar layar saat tabel data yang panjang digulir.
 
 ## Elevation & Depth
 
-Solulu menganut filosofi kedalaman **Refined & Restrained (Subtle Layering)**. Permukaan antarmuka bersifat datar secara default (*flat at rest*), dengan kedalaman yang dihadirkan melalui kontras tonal latar belakang dan garis batas (*subtle border* 1px).
-
-### Shadow Vocabulary
-- **Surface Rest** (`box-shadow: none`, `border: 1px solid var(--border)`): Kedalaman standar kartu, tabel, dan form input.
-- **Ambient Micro** (`box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05)`): Diterapkan pada kartu ringkasan metrik dan tombol outline untuk memisahkannya secara halus dari kanvas dasar.
-- **Floating Overlay** (`box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)`): Digunakan secara eksklusif untuk modal Command Palette (`⌘K`) dan Modal Protokol Darurat Klinis yang membutuhkan fokus isolasi penuh.
+- **Admin Surface:** Menganut prinsip **Flat-By-Default**. Kedalaman diciptakan melalui kontras warna bidang (`bg-background` ke `bg-card` ke `bg-muted`) dan border presisi 1px (`border-border`). Bayangan hanya digunakan pada modal Command Palette (`⌘K`) dan dropdown menu.
+- **Public Surface:** Menganut prinsip **Soft Layered Ambient**. Kartu layanan dan kartu konselor menggunakan bayangan sangat lembut (`shadow-sm` hingga `shadow-md` dengan rona transparan `rgba(124, 58, 237, 0.04)`), memberikan kesan mengapung yang ramah saat disentuh atau di-hover.
 
 ### Named Rules
-**The Ghost Elevation Rule.** Hindari penggunaan drop shadow tebal (seperti `box-shadow: 4px 4px 0` neobrutalisme atau bayangan kabur lebar berwarna). Pemisahan bidang antarmuka dicapai melalui kontras latar bertingkat (`bg-background` ke `bg-card` ke `bg-muted`) serta garis tepi 1px presisi.
+**The Anti-Neobrutalism Rule.** Dilarang menggunakan bayangan kaku dengan offset tebal (misal `box-shadow: 4px 4px 0`) di seluruh permukaan aplikasi.
 
 ## Shapes
 
-Bahasa bentuk Solulu mengedepankan kurva sudut yang lembut dan bersahabat, mengurangi ketegangan visual tanpa terkesan main-main.
-
-- **Base Radius:** `0.45rem` (~7.2px).
-- **Cards & Modal Containers:** `rounded-xl` (12px) dengan ring pelindung `ring-1 ring-foreground/10`.
-- **Buttons & Form Controls:** `rounded-md` (6px) hingga `rounded-lg` (8px).
-- **Badges & Status Telemetry:** `rounded-full` (9999px / bentuk pill).
-- **Avatar & Icon Badges:** `rounded-lg` (8px) untuk logo identitas, `rounded-full` untuk avatar profil klinis.
+- **Admin Controls & Cards:** Sudut fungsional dan tegas (`rounded-md` / 6px untuk tombol dan input; `rounded-xl` / 12px untuk kartu modul).
+- **Public Controls & Cards:** Sudut organik dan membulat lembut (`rounded-2xl` / 16px untuk kartu paket & testimoni; `rounded-full` / 9999px untuk tombol CTA dan trust pills).
 
 ### Named Rules
-**The Functional Pill Rule.** Bentuk pill (*fully rounded*) dicadangkan semata-mata untuk status telemetri kecil, badge peringatan, dan tag kategori. Kontainer konten, kartu modul, dan dialog formulir wajib mempertahankan struktur persegi panjang melengkung (12px) demi efisiensi visual ruang tabular.
+**The Full-Radius Pill Rule.** Tombol berbentuk kapsul penuh (`rounded-full`) adalah ciri khas landing page solulu.id dan tidak boleh digunakan untuk tombol aksi operasional di tabel admin.
 
 ## Components
 
-### Buttons
-- **Shape:** Sudut membulat proporsional (`rounded-md` / 6px), tinggi standar `h-9` (36px) dan varian ringkas `h-8` (32px).
-- **Primary:** Latar `bg-primary` dengan teks kontras tinggi `text-primary-foreground`. Efek hover menurunkan opasitas halus (`hover:bg-primary/80`) dengan feedback aktif `active:translate-y-px`.
-- **Outline:** Latar transparan atau putih dengan batas `border-border`, elevasi halus `shadow-xs`, dan hover `hover:bg-muted`.
-- **Destructive:** Latar lembut `bg-destructive/10` dengan teks tajam `text-destructive`, menjaga agar aksi kritis tidak tampak seperti kesalahan grafis.
+### 1. Primary Buttons
+- **Admin:** `h-9 px-4 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90`.
+- **Public Solulu:** `h-11 px-6 text-sm font-semibold rounded-full bg-[#7c3aed] text-white hover:bg-[#6d28d9] shadow-sm hover:shadow transition-all`.
 
-### Cards / Containers
-- **Corner Style:** Sudut `rounded-xl` (12px), ring tipis `ring-1 ring-foreground/10`, dan padding internal modular `p-6` (atau `p-4` untuk varian ringkas).
-- **Background:** `bg-card` dengan isolasi teks `text-card-foreground`.
-- **Header & Action:** Mendukung layout grid otomatis yang menyelaraskan judul modul dengan tombol aksi di sudut kanan atas.
+### 2. Trust Pills & Telemetry Badges
+- **Admin Telemetry:** `rounded-full px-2.5 py-1 text-xs border border-border bg-muted/50` dengan indikator lampu berkedip hijau untuk status Zoom 2-host.
+- **Public Trust Pill:** `rounded-full px-3.5 py-1.5 text-xs font-medium bg-violet-50 text-violet-700 border border-violet-100 flex items-center gap-1.5`.
 
-### Badges / Status Chips
-- **Style:** Bentuk kapsul ramping `rounded-full` dengan padding `px-2 py-0.5` dan teks `text-xs font-medium`.
-- **Status Telemetry:** Didampingi lampu indikator berkedip (*pulsing dot*) seperti `bg-emerald-500` untuk koneksi Zoom aktif.
-- **Clinical Waiver Alert:** Border khusus `border-rose-500/40` dengan teks `text-rose-600 dark:text-rose-400` untuk penandaan kasus risiko tinggi SRQ-20.
+### 3. Cards & Modules
+- **Admin Metric Card:** Latar `bg-card`, border `border-border`, padding `p-5`, sudut `rounded-xl`, tipografi angka berukuran `text-2xl font-bold tabular-nums`.
+- **Public Pricing Card:** Latar putih bersih dengan border halus `border-violet-100`, sudut `rounded-2xl`, aksen badge "Populer", rincian manfaat dengan checkmark ungu, dan tombol reservasi.
 
-### Inputs & Command Palette
-- **Style:** Latar semi-transparan `bg-muted/30` dengan border 1px `border-border/80` dan radius `rounded-lg`.
-- **Focus:** Cincin fokus lembut `focus-visible:ring-3 focus-visible:ring-ring/50` tanpa pergeseran layout.
-- **Pintasan Keyboard:** Tag penanda tombol `⌘K` dan `ESC` dengan tipografi monospace berbingkai border.
+### 4. Search & Command Trigger
+- **Admin Header Search:** Trigger `⌘K` dengan input semi-transparan, border tipis, dan kueri keyboard monospace.
 
-### Navigation (Sidebar)
-- **Grouping:** Dikelompokkan secara semantik: *Operasional Klinis* dan *Kemitraan & Tata Kelola*.
-- **Active State:** Menggunakan aksen garis kiri vertikal tebal 3px dengan latar belakang lembut `bg-primary/10` dan warna teks primer.
-- **Footer Operator:** Tersemat permanen di bagian bawah menampilkan inisial operator, email resmi, dan indikator online hijau.
+### 5. Floating Action Widget
+- **Public WhatsApp Button:** Lingkaran hijau `#25d366` di sudut kanan bawah dengan ikon pesan dan tooltip ramah "Chat Sekarang".
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** gunakan bahasa Indonesia yang hangat, profesional, dan empatik di seluruh antarmuka ("Mitra Konselor", "Ruang Telekonseling", "Protokol Krisis").
-- **Do** pastikan seluruh penanda risiko krisis SRQ-20 selalu disertai akses nomor kontak darurat nasional (**Hotline 119 ext. 8 / Layanan Sejiwa**).
-- **Do** jaga rasio kontras warna teks terhadap latar belakang selalu memenuhi kriteria WCAG AA (≥4.5:1).
-- **Do** sematkan indikator status Zoom 2 Host Concurrency Guard pada header agar operator selalu mengetahui ketersediaan slot sesi.
-- **Do** gunakan satuan waktu WIB (Waktu Indonesia Barat / UTC+7) dan format mata uang Rupiah (IDR) secara konsisten pada seluruh jadwal dan tarif.
+- **Do** gunakan bahasa Indonesia yang hangat, profesional, dan empatik di seluruh antarmuka ("Mitra Konselor", "Ruang Cerita", "Konseling Online").
+- **Do** terapkan scoped theme `.theme-admin` pada rute admin/auth dan `.theme-public` pada landing page.
+- **Do** pastikan skrining SRQ-20 hanya tampil saat klien masuk ke alur booking spesifik, bukan di landing page utama.
+- **Do** gunakan format mata uang Rupiah (IDR) dan satuan waktu WIB secara konsisten.
+- **Do** sediakan akun demo cepat (*quick-fill*) pada halaman login untuk mempermudah evaluasi operasional.
 
 ### Don'ts:
-- **Don't** menggunakan warna merah menyala atau ikon seram untuk menandai skrining kesehatan mental yang dapat memicu kecemasan berlebih pada pasien.
-- **Don't** menggunakan efek bayangan tebal neobrutalisme (`box-shadow: 4px 4px 0`) atau gradien teks warna-warni yang mengaburkan pesan klinis.
-- **Don't** membiarkan navigasi samping atau header terdorong keluar layar saat pengguna menelusuri data sesi yang panjang.
-- **Don't** menggunakan ilustrasi kartun generik (*doodle* / sketsa acak) sebagai pengganti visual; gunakan ikon stroke Lucide yang presisi dan konsisten.
-- **Don't** memasukkan data dummy fiktif yang menyesatkan pada status medis atau profil mitra konselor.
+- **Don't** menampilkan link, tombol, atau nomor kontak panggilan darurat 119 di landing page maupun admin (sesuai instruksi kebijakan revisi).
+- **Don't** membocorkan warna Violet `#7c3aed` atau font Poppins ke dalam dashboard admin.
+- **Don't** menggunakan form skrining mandiri yang panjang secara mendadak di halaman beranda.
+- **Don't** menggunakan efek bayangan tebal neobrutalisme atau gradien warna neon yang mengaburkan fokus pengguna.

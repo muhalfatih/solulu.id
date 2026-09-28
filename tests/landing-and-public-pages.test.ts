@@ -18,7 +18,7 @@ describe("Issue #13: Public Surfaces, SEO, Legal Pages & Branded Errors", () => 
       expect(urls.some((u) => u.endsWith("/screening"))).toBe(true)
       expect(urls.some((u) => u.endsWith("/pricing"))).toBe(true)
       expect(urls.some((u) => u.endsWith("/cek-sesi"))).toBe(true)
-      expect(urls.some((u) => u.endsWith("/apply"))).toBe(true)
+      expect(urls.some((u) => u.endsWith("/apply"))).toBe(false)
       expect(urls.some((u) => u.endsWith("/privacy"))).toBe(true)
       expect(urls.some((u) => u.endsWith("/terms"))).toBe(true)
 
@@ -46,6 +46,7 @@ describe("Issue #13: Public Surfaces, SEO, Legal Pages & Branded Errors", () => 
       expect(rules.disallow).toContain("/counselor/")
       expect(rules.disallow).toContain("/session/")
       expect(rules.disallow).toContain("/api/")
+      expect(rules.disallow).toContain("/apply")
     })
   })
 
@@ -67,7 +68,7 @@ describe("Issue #13: Public Surfaces, SEO, Legal Pages & Branded Errors", () => 
 
     it("has compelling sanctuary landing metadata", () => {
       expect(homeMetadata.title).toContain("Solulu")
-      expect(homeMetadata.description).toContain("SRQ-20")
+      expect(homeMetadata.description.toLowerCase()).toContain("konseling")
     })
   })
 })

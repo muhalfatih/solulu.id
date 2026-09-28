@@ -73,6 +73,12 @@ export const platformPricing = pgTable("platform_pricing", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const platformSettings = pgTable("platform_settings", {
+  id: text("id").primaryKey().default("default"),
+  isScreeningRequired: boolean("is_screening_required").default(false).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const vouchers = pgTable("vouchers", {
   id: uuid("id").defaultRandom().primaryKey(),
   code: text("code").notNull().unique(),

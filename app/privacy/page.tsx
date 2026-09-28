@@ -1,7 +1,7 @@
-import Link from "next/link"
-import { ShieldCheck, ArrowLeft, Lock, FileText, HeartHandshake, EyeOff } from "lucide-react"
+import { ShieldCheck, Lock, FileText, HeartHandshake, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { PublicShell } from "@/components/public/public-shell"
 
 export const metadata = {
   title: "Kebijakan Privasi & Perlindungan Data",
@@ -11,28 +11,8 @@ export const metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
-      {/* Header */}
-      <header className="border-b border-border/80 bg-background/95 backdrop-blur-md sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Button asChild variant="ghost" size="sm" className="gap-2 text-xs -ml-2">
-            <Link href="/">
-              <ArrowLeft className="size-3.5" />
-              <span>Kembali ke Beranda</span>
-            </Link>
-          </Button>
-
-          <div className="flex items-center gap-2">
-            <div className="size-7 rounded-lg bg-primary flex items-center justify-center font-bold text-primary-foreground text-xs">
-              S
-            </div>
-            <span className="font-bold text-sm tracking-tight">Solulu</span>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-12 flex flex-col gap-8">
+    <PublicShell>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 flex flex-col gap-8">
         <div className="flex flex-col gap-3 pb-6 border-b border-border/60">
           <Badge variant="outline" className="w-fit text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 gap-1.5 py-1">
             <ShieldCheck className="size-3.5" />
@@ -116,12 +96,7 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border/80 py-8 mt-auto text-xs text-muted-foreground text-center">
-        <p>© 2026 Solulu Indonesia. Hak cipta dilindungi undang-undang.</p>
-      </footer>
-    </div>
+      </div>
+    </PublicShell>
   )
 }

@@ -11,10 +11,9 @@ import {
   AlertCircle,
   Loader2,
   ArrowLeft,
-  HeartPulse,
   MessageCircle,
 } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { PublicShell } from "@/components/public/public-shell"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
@@ -113,38 +112,8 @@ export default function CekSesiClient() {
   )}`
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20">
-      {/* Header Navigation */}
-      <header className="border-b border-border/80 bg-background/95 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="font-semibold text-sm tracking-tight text-foreground flex items-center gap-2 hover:opacity-90 transition-opacity"
-            >
-              <span className="size-2 rounded-full bg-emerald-500" />
-              Solulu
-            </Link>
-            <span className="hidden sm:inline-block text-xs text-muted-foreground border-l border-border/80 pl-3">
-              Pusat Pemulihan Sesi
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href="/"
-              className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors"
-            >
-              <ArrowLeft className="size-3.5" />
-              <span>Kembali ke Beranda</span>
-            </Link>
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
-
-      {/* Main Form Content */}
-      <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-12 flex flex-col justify-center">
+    <PublicShell>
+      <div className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-12 sm:py-16 flex flex-col justify-center">
         <Card className="border-border/80 shadow-sm relative overflow-hidden bg-card">
           <div className="h-1.5 w-full bg-primary/20" />
 
@@ -340,23 +309,7 @@ export default function CekSesiClient() {
             </Link>
           </CardFooter>
         </Card>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border/60 py-6 mt-auto bg-muted/10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} Solulu. Layanan Telekonseling Privat Berbasis Web.</p>
-          <div className="flex items-center gap-4">
-            <a
-              href="tel:119"
-              className="inline-flex items-center gap-1 hover:text-foreground"
-            >
-              <HeartPulse className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-              Hotline 119 Ext 8 (SEJIWA)
-            </a>
-          </div>
-        </div>
-      </footer>
-    </div>
+      </div>
+    </PublicShell>
   )
 }

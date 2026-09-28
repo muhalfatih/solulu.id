@@ -2,15 +2,21 @@ import type { Metadata } from "next"
 import { ApplyFormClient } from "./ApplyFormClient"
 
 export const metadata: Metadata = {
-  title: "Pendaftaran Mitra Konselor & Psikolog | Solulu",
+  title: "Pendaftaran Mitra Konselor & Psikolog (Khusus Undangan) | Solulu",
   description:
-    "Bergabunglah sebagai mitra konselor sebaya atau psikolog klinis berlisensi di platform kesehatan mental Solulu. Unggah kredensial Anda dengan aman secara langsung.",
+    "Portal pengisian data dan verifikasi kredensial mitra konselor & psikolog undangan Solulu.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 }
 
 export default function ApplyPage() {
   return (
-    <main className="min-h-screen bg-background py-8">
-      <ApplyFormClient />
-    </main>
+    <div className="theme-public min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-purple-500/20 selection:text-purple-600">
+      <main className="flex-1 py-10 sm:py-14">
+        <ApplyFormClient />
+      </main>
+    </div>
   )
 }

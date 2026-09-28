@@ -48,6 +48,7 @@ interface BookingClientProps {
   initialData: BookingContextData
   screeningId?: string
   initialError?: string
+  isScreeningRequired?: boolean
 }
 
 function formatRupiah(amount: number): string {
@@ -62,6 +63,7 @@ export default function BookingClient({
   initialData,
   screeningId,
   initialError,
+  isScreeningRequired = false,
 }: BookingClientProps) {
   const router = useRouter()
   const { counselor, schedule, pricing, screening } = initialData
@@ -224,7 +226,7 @@ export default function BookingClient({
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="theme-public min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-purple-500/20 selection:text-purple-600">
       {/* Top Navigation */}
       <header className="sticky top-0 z-30 border-b border-border/80 bg-background/95 backdrop-blur-md">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -562,12 +564,39 @@ export default function BookingClient({
                       </div>
                     </div>
 
-                    {screening && (
+                    {screening ? (
                       <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/20 text-[11px] text-muted-foreground flex items-start gap-2">
                         <Sparkles className="size-3.5 text-primary shrink-0 mt-0.5" />
                         <div>
                           <span className="font-medium text-foreground">Skrining SRQ-20 Terlampir:</span> Skor {screening.totalScore}/20 telah disimpan untuk referensi klinis konselor.
                         </div>
+                      </div>
+                    ) : isScreeningRequired ? (
+                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs flex flex-col gap-2">
+                        <div className="flex items-start gap-2 text-amber-800 dark:text-amber-300">
+                          <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold">Skrining SRQ-20 Diwajibkan</span>
+                            <span className="text-[11px] leading-relaxed text-muted-foreground">
+                              Sebelum melanjutkan pembayaran, silakan lengkapi kuesioner skrining mandiri 20 butir agar konselor memahami kebutuhan sesi Anda.
+                            </span>
+                          </div>
+                        </div>
+                        <Button asChild size="sm" className="w-full text-xs font-semibold h-8 bg-amber-600 hover:bg-amber-700 text-white">
+                          <Link href={`/screening?counselorId=${counselor.id}&scheduleId=${schedule.id}`}>
+                            <span>Isi Skrining SRQ-20 Sekarang</span>
+                            <ArrowRight className="size-3.5" />
+                          </Link>
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="p-2.5 rounded-lg bg-muted/40 border border-border/60 text-[11px] text-muted-foreground flex items-center justify-between gap-2">
+                        <span>Ingin memberi konteks emosional ke konselor?</span>
+                        <Button asChild variant="link" size="sm" className="h-auto p-0 text-[11px] text-primary">
+                          <Link href={`/screening?counselorId=${counselor.id}&scheduleId=${schedule.id}`}>
+                            Isi Skrining (Opsional)
+                          </Link>
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -675,7 +704,7 @@ export default function BookingClient({
                   <Button
                     type="submit"
                     size="lg"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || (isScreeningRequired && !screening)}
                     className="w-full text-xs font-semibold gap-2 h-10 cursor-pointer"
                   >
                     {isSubmitting ? (
@@ -683,6 +712,8 @@ export default function BookingClient({
                         <Loader2 className="size-4 animate-spin" data-icon="inline-start" />
                         <span>Mengunci Slot & Menyiapkan Pembayaran...</span>
                       </>
+                    ) : isScreeningRequired && !screening ? (
+                      <span>Lengkapi Skrining Terlebih Dahulu</span>
                     ) : paymentProvider === "xendit" ? (
                       <>
                         <span>Lanjut ke Pembayaran Otomatis</span>
@@ -695,6 +726,12 @@ export default function BookingClient({
                       </>
                     )}
                   </Button>
+
+                  {isScreeningRequired && !screening && (
+                    <span className="text-[11px] text-amber-600 dark:text-amber-400 text-center font-medium">
+                      Mohon selesaikan pengisian skrining SRQ-20 di atas untuk membuka tombol pembayaran.
+                    </span>
+                  )}
 
                   <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground text-center">
                     <Lock className="size-3 text-emerald-600 dark:text-emerald-400" />

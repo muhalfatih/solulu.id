@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { getBookingContextAction } from "./actions"
+import { getPlatformSettings } from "@/lib/settings/platform"
 import BookingClient from "./BookingClient"
 
 interface BookingPageProps {
@@ -86,11 +87,14 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
     )
   }
 
+  const settings = await getPlatformSettings()
+
   return (
     <BookingClient
       initialData={contextRes.data}
       screeningId={screeningId}
       initialError={error}
+      isScreeningRequired={settings.isScreeningRequired}
     />
   )
 }

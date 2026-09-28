@@ -37,7 +37,7 @@ export default function SessionClient({ initialData }: SessionClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/20">
+    <div className="theme-public min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-purple-500/20 selection:text-purple-600">
       {/* Top Navigation Header */}
       <header className="border-b border-border/80 bg-background/95 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">

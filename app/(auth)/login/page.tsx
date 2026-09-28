@@ -145,7 +145,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary">
+    <div className="theme-admin min-h-screen w-full flex flex-col lg:flex-row bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary">
       {/* Kolom kiri: Nilai layanan dan komitmen privasi klinis */}
       <div className="hidden lg:flex lg:w-1/2 bg-radial from-card via-card to-muted/40 p-8 lg:p-12 xl:p-16 flex-col justify-between border-r border-border relative overflow-hidden">
         <div
@@ -216,10 +216,10 @@ function LoginForm() {
               </div>
               <div className="flex flex-col gap-1">
                 <span className="font-semibold text-sm tracking-tight text-foreground">
-                  Alur Rujukan Krisis Sejiwa 119
+                  Standar Etika Layanan
                 </span>
                 <span className="text-xs text-muted-foreground leading-relaxed">
-                  Pedoman rujukan darurat bagi pasien dalam kondisi krisis ke hotline Sejiwa 119 Kementerian Kesehatan RI.
+                  Seluruh konselor dan psikolog berpraktik sesuai kode etik profesi psikologi HIMPSI yang terpercaya.
                 </span>
               </div>
             </div>

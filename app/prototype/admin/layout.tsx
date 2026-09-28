@@ -651,15 +651,6 @@ export default function DistilledAdminLayout({
               <span className="tabular-nums">Zoom: 2/2 Siap</span>
             </Link>
 
-            {/* National Crisis Hotline (Hotline 119 ext. 8 / Layanan Sejiwa) */}
-            <a
-              href="tel:119,8"
-              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border/70 bg-muted/30 text-muted-foreground hover:text-foreground text-xs font-medium hover:bg-muted/60 transition-colors"
-              title="Protokol Krisis Pasien: Kontak Darurat Nasional Hotline 119 ext. 8 (Layanan Sejiwa)"
-            >
-              <ShieldAlert className="size-3 text-rose-600/80 dark:text-rose-400/80" aria-hidden="true" />
-              <span>Hotline 119 ext. 8</span>
-            </a>
 
             {/* Public Guest View Link */}
             <Link
