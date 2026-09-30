@@ -203,7 +203,7 @@ export default function DistilledCounselorsPage() {
                     </span>
                   </div>
 
-                  {/* Academic & STR Profile Block */}
+                  {/* Academic & Izin Praktik Profile Block */}
                   <div className="flex flex-col justify-center gap-2 text-xs bg-muted/30 p-3.5 rounded-xl border border-border/70 min-h-[68px]">
                     <div className="flex items-start gap-2 text-foreground">
                       <GraduationCap className="size-4 text-muted-foreground shrink-0 mt-0.5" />
@@ -213,7 +213,7 @@ export default function DistilledCounselorsPage() {
                     {app.strNumber && (
                       <div className="flex items-center gap-2 font-mono text-xs pt-1 border-t border-border/50">
                         <Award className="size-3.5 text-primary shrink-0" />
-                        <span className="text-muted-foreground">No. STR:</span>
+                        <span className="text-muted-foreground">Izin Praktik:</span>
                         <span className="font-semibold text-foreground">{app.strNumber}</span>
                         <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-sans font-medium">
                           Terdaftar
@@ -299,7 +299,7 @@ export default function DistilledCounselorsPage() {
                         onClick={() =>
                           app.documents.str &&
                           setPreviewDoc({
-                            name: "Surat Tanda Registrasi (STR/SIP)",
+                            name: "Surat Izin Praktik Konselor (STR/SIP)",
                             type: "str",
                             applicantName: app.name,
                           })
@@ -308,7 +308,7 @@ export default function DistilledCounselorsPage() {
                       >
                         <span className="flex items-center gap-2 truncate">
                           <Award className="size-3.5 text-primary shrink-0" />
-                          <span className="truncate">STR.pdf</span>
+                          <span className="truncate">Izin-Praktik.pdf</span>
                         </span>
                         {app.documents.str ? (
                           <Eye className="size-3 text-muted-foreground shrink-0" />
@@ -445,7 +445,7 @@ export default function DistilledCounselorsPage() {
                       </Badge>
                       {c.strNumber && (
                         <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                          STR: {c.strNumber}
+                          Izin Praktik: {c.strNumber}
                         </div>
                       )}
                     </TableCell>

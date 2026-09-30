@@ -252,7 +252,7 @@ export function ApplicationsClient({
             Verifikasi Berkas Kemitraan Konselor
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Tinjau kredensial Ijazah, KTP, dan STR sebelum mengaktifkan akun serta mengirimkan undangan resmi Supabase.
+            Tinjau kredensial Ijazah, KTP, dan Surat Izin Praktik (STR) sebelum mengaktifkan akun serta mengirimkan undangan resmi Supabase.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -370,7 +370,7 @@ export function ApplicationsClient({
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-64">Nama & Kategori</TableHead>
                 <TableHead className="w-56">Kontak</TableHead>
-                <TableHead className="min-w-64">Dokumen R2 (Presigned GET)</TableHead>
+                <TableHead className="min-w-64">Berkas Kualifikasi &amp; Izin Praktik</TableHead>
                 <TableHead className="w-32">Persetujuan Etik</TableHead>
                 <TableHead className="w-28">Status</TableHead>
                 <TableHead className="w-40 text-right">Tindakan</TableHead>
@@ -477,7 +477,7 @@ export function ApplicationsClient({
                           Ijazah
                         </Button>
 
-                        {/* STR */}
+                        {/* Izin Praktik / STR */}
                         {app.strR2Key ? (
                           <Button
                             variant="secondary"
@@ -488,15 +488,15 @@ export function ApplicationsClient({
                             id={`view-str-${app.id}`}
                           >
                             <ShieldCheck className="size-3 mr-1" />
-                            STR Aktif
+                            Izin Praktik Aktif
                           </Button>
                         ) : app.counselorType === "psychologist" ? (
                           <Badge variant="destructive" className="text-[10px] h-7 px-2">
-                            STR Tidak Ada!
+                            Izin Praktik Tidak Ada
                           </Badge>
                         ) : (
                           <span className="text-[10px] text-muted-foreground self-center px-1">
-                            (Tanpa STR)
+                            (Tanpa Izin Praktik)
                           </span>
                         )}
                       </div>
@@ -755,7 +755,7 @@ export function ApplicationsClient({
                   rows={3}
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Contoh: Berkas STR tidak terbaca jelas, masa berlaku habis, atau kualifikasi belum sesuai standar klinis Solulu."
+                  placeholder="Contoh: Berkas izin praktik (STR) tidak terbaca jelas, masa berlaku habis, atau kualifikasi belum sesuai standar klinis Solulu."
                   className="text-xs"
                 />
               </div>

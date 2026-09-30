@@ -168,6 +168,21 @@
     --ring: #a78bfa;
 }
 
+/* ========================================================================= */
+/* SURFACE ISOLATION: Admin vs Public Specific Component Tokens              */
+/* ========================================================================= */
+
+.theme-admin [data-slot="card"] {
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+    background-color: var(--card);
+}
+
+.theme-public [data-slot="card"] {
+    border-radius: 1rem;
+    background-color: var(--card);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -181,4 +196,42 @@
   html {
     @apply font-sans;
     }
+}
+
+/* Accordion Smooth Height Transition Keyframes */
+@keyframes accordion-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+.animate-accordion-down {
+  animation: accordion-down 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-accordion-up {
+  animation: accordion-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-accordion-down,
+  .animate-accordion-up {
+    animation-duration: 0.01ms;
+  }
 }

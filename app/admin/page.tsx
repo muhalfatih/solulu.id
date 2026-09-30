@@ -488,7 +488,7 @@ export default function DistilledAdminDashboard() {
                       {applicant.name}
                     </span>
                     <span className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded shrink-0">
-                      {applicant.documents.str ? "STR" : "Ijazah S1"}
+                      {applicant.documents.str ? "Izin Praktik" : "Ijazah S1"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground font-medium">

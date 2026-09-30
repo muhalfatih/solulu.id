@@ -115,7 +115,7 @@ Solulu menerapkan **Dual-Surface Architecture** yang secara sadar membedakan bah
    - **Creative North Star: "The Empathetic Sanctuary (#CeritaDiSolulu)"**
    - Mengacu pada identitas resmi **solulu.id**: ruang bercerita yang hangat, terbuka, bersahabat (*friendly*), dan menurunkan kecemasan (*anxiety-reducing*).
    - Menggunakan aksen **Brand Violet/Purple** (`#7C3AED` / `#8B5CF6`), latar kanvas hangat bertint lavender lembut (`#fcfbfe`), kurva ramah (`rounded-2xl` untuk kartu dan `rounded-full` untuk badge pill & tombol CTA), serta tipografi perpaduan **Poppins** (judul/display) dan **Inter** (teks isi).
-   - Menampilkan 4 pilar kepercayaan utama (*Appointment < 24 jam*, *100% Rahasia*, *Konselor & Psikolog*, *Solutif*), paket harga transparan (Single Rp 85k, Psikolog Rp 130k, Paket 3 Sesi Rp 225k), ulasan testimoni anonim, dan widget bantuan WhatsApp. Skrining mandiri SRQ-20 ditempatkan secara terarah pada alur booking (bukan di landing page), dan tidak menampilkan tautan panggilan darurat 119.
+   - Menampilkan 4 pilar kepercayaan utama (*Appointment < 24 jam*, *100% Rahasia*, *Konselor & Psikolog*, *Solutif*), paket harga transparan (Konseling Sebaya Rp 85k, Konseling Psikolog Rp 130k), ulasan testimoni anonim, dan widget bantuan WhatsApp. Skrining mandiri SRQ-20 ditempatkan secara terarah pada alur booking (bukan di landing page), dan tidak menampilkan tautan panggilan darurat 119.
 
 **Key Characteristics:**
 - **Zero Cross-Contamination**: Gaya publik solulu.id (warna ungu, sudut bulat besar, font Poppins) tidak boleh merembes ke panel admin; demikian pula kekakuan tabular admin tidak boleh membuat landing page terasa dingin atau steril.
@@ -192,7 +192,7 @@ Palet warna Solulu dibagi menjadi dua spektrum fungsional:
   1. Sticky Navbar dengan link seksi dan CTA "Mulai Cerita".
   2. Hero Section dengan badge "Ruang Aman untuk Cerita", headline #CeritaDiSolulu, dan 4 Trust Pills.
   3. Alasan Solulu (Kenapa Kami): Empati, Terjangkau, Fleksibel, Privasi.
-  4. Paket & Biaya Konseling: Single (Rp 85k), Psikolog (Rp 130k), Paket 3 Sesi (Rp 225k).
+  4. Paket & Biaya Konseling: Konseling Sebaya (Rp 85k) dan Konseling Psikolog (Rp 130k).
   5. Showcase Konselor & Partner Cerita.
   6. Ulasan & Testimoni Klien.
   7. Komitmen Privasi & FAQ.

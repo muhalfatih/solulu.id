@@ -40,7 +40,7 @@ export function PublicHeader() {
             <span className="font-bold text-base tracking-tight leading-tight text-foreground">
               Solulu
             </span>
-            <span className="text-[11px] text-purple-600 dark:text-purple-400 font-medium flex items-center gap-1">
+            <span className="text-xs text-purple-600 dark:text-purple-400 font-medium flex items-center gap-1">
               <span>Ruang Aman untuk Cerita</span>
               <Heart className="size-2.5 text-purple-600 dark:text-purple-400 fill-purple-600/40 shrink-0" />
             </span>
@@ -81,12 +81,13 @@ export function PublicHeader() {
 
           <Button
             asChild
-            size="sm"
-            className="hidden sm:inline-flex text-xs font-semibold h-9 px-4 rounded-full bg-purple-600 hover:bg-purple-700 text-white gap-1.5 shadow-sm shadow-purple-600/20"
+            variant="public"
+            size="pill-sm"
+            className="hidden sm:inline-flex"
             id="btn-header-cta"
           >
             <Link href="/counselors">
-              <span>Mulai Cerita</span>
+              <span>Pilih Konselor</span>
               <ArrowRight className="size-3.5" data-icon="inline-end" />
             </Link>
           </Button>
@@ -145,14 +146,16 @@ export function PublicHeader() {
           <div className="pt-2 border-t border-border/60">
             <Button
               asChild
-              className="w-full text-xs font-semibold h-10 rounded-xl bg-purple-600 hover:bg-purple-700 text-white gap-2 shadow-sm"
+              variant="public"
+              size="pill"
+              className="w-full"
               id="btn-mobile-menu-cta"
             >
               <Link
                 href="/counselors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <span>Mulai Cerita Sekarang</span>
+                <span>Pilih Konselor Sekarang</span>
                 <ArrowRight className="size-4" data-icon="inline-end" />
               </Link>
             </Button>

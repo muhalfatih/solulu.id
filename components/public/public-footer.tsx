@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Heart } from "lucide-react"
 
 export function PublicFooter() {
   const currentYear = new Date().getFullYear()
@@ -16,7 +17,7 @@ export function PublicFooter() {
               <span className="font-bold text-base tracking-tight">Solulu</span>
             </Link>
             <p className="text-muted-foreground leading-relaxed">
-              Ruang aman untuk cerita. Ekosistem telekonseling kesehatan mental yang mudah diakses, ramah di kantong, dan bebas stigma.
+              Ruang aman untuk cerita. Layanan konseling online yang mudah diakses, terjangkau, dan bebas stigma untuk kesehatan mental Anda.
             </p>
           </div>
 
@@ -90,7 +91,11 @@ export function PublicFooter() {
         {/* Bottom Bar */}
         <div className="pt-6 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-muted-foreground">
           <p>© {currentYear} Solulu. Hak cipta dilindungi undang-undang.</p>
-          <p>Made with 💜 for mental wellness in Indonesia.</p>
+          <p className="flex items-center gap-1.5">
+            <span>Dibuat dengan</span>
+            <Heart className="size-3.5 text-purple-600 dark:text-purple-400 fill-purple-600/30" />
+            <span>untuk kesehatan mental di Indonesia.</span>
+          </p>
         </div>
       </div>
     </footer>

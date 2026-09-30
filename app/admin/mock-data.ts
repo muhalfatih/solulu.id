@@ -131,7 +131,7 @@ export const MOCK_METRICS: StatMetric[] = [
   {
     label: "Pelamar Mitra Baru",
     value: "3 Kandidat",
-    subtext: "2 butuh review dokumen KTP/STR",
+    subtext: "2 butuh review dokumen KTP & Izin Praktik",
     trend: "Tindakan diperlukan",
     trendUp: false,
   },

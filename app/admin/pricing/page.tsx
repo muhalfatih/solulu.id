@@ -68,7 +68,7 @@ const INITIAL_ROLES: RolePricingState[] = [
     id: "psikolog",
     title: "Psikolog Klinis",
     subtitle: "Intervensi klinis psikoterapeutik dan rujukan SRQ-20.",
-    badge: "STR Aktif",
+    badge: "Izin Praktik Aktif",
     duration: "90 Menit",
     regularPrice: 150000,
     isSaleActive: true,

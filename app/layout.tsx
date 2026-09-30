@@ -26,7 +26,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Solulu — Telekonseling Kesehatan Mental Hangat & Terpercaya",
+    default: "Solulu | Telekonseling Kesehatan Mental Hangat & Terpercaya",
     template: "%s | Solulu",
   },
   description:
@@ -49,14 +49,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "id_ID",
     url: "https://solulu.id",
-    title: "Solulu — Ruang Tenang untuk Pulih & Bertumbuh",
+    title: "Solulu | Ruang Tenang untuk Pulih & Bertumbuh",
     description:
       "Telekonseling kesehatan mental terpercaya tanpa birokrasi rumit. Didampingi Psikolog Klinis dan Konselor Sebaya berpengalaman.",
     siteName: "Solulu",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Solulu — Telekonseling Kesehatan Mental",
+    title: "Solulu | Telekonseling Kesehatan Mental",
     description:
       "Ruang digital aman & nyaman untuk bercerita dan pulih bersama konselor terpercaya.",
   },

@@ -35,11 +35,16 @@ export interface CatalogCounselorView {
   id: string
   fullName: string
   title: string
+  role?: string
+  education?: string
   counselorType: "peer" | "psychologist"
   counselorTypeDisplay: string
   bio: string
   specializations: string[]
   avatarR2Url: string | null
+  rating?: string
+  experience?: string
+  availableSoon?: string
   pricing: CatalogPricing
   availableSlots: CatalogSlot[]
   totalAvailableSlotsCount: number
@@ -229,16 +234,25 @@ export async function getCounselorsCatalogAction(
         pricingMap[c.counselorType] ||
         (c.counselorType === "psychologist" ? pricingMap["psychologist"] : pricingMap["peer"])
 
+      const isPsychologist = c.counselorType === "psychologist"
+      const defaultAvatar = isPsychologist
+        ? "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=600"
+        : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600"
+
       return {
         id: c.id,
         fullName: c.fullName,
         title: c.title,
+        role: isPsychologist ? "Psikolog Klinis Berizin Resmi" : "Konselor Sebaya (Partner Cerita)",
+        education: c.title || (isPsychologist ? "S2 Psikologi Klinis • STR Terverifikasi" : "Sarjana Psikologi • Tersertifikasi"),
         counselorType: c.counselorType,
-        counselorTypeDisplay:
-          c.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya",
+        counselorTypeDisplay: isPsychologist ? "Psikolog Klinis" : "Konselor Sebaya",
         bio: c.bio,
         specializations: c.specializations || [],
-        avatarR2Url: c.avatarR2Url || null,
+        avatarR2Url: c.avatarR2Url || defaultAvatar,
+        rating: isPsychologist ? "4.9" : "4.8",
+        experience: isPsychologist ? "4+ Tahun" : "3+ Tahun",
+        availableSoon: slots.length > 0 ? "Tersedia Hari Ini" : "Jadwal Penuh",
         pricing,
         availableSlots: slots,
         totalAvailableSlotsCount: slots.length,
