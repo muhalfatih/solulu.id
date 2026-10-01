@@ -216,7 +216,7 @@ export function ScreeningClient({
                       Skor Total
                     </span>
                     <div className="flex items-baseline gap-1 my-1">
-                      <span className="text-4xl font-extrabold tracking-tight text-primary">
+                      <span className="text-4xl font-bold tracking-tight text-primary">
                         {result.evaluation.totalScore}
                       </span>
                       <span className="text-sm font-medium text-muted-foreground">/ 20</span>
@@ -265,7 +265,7 @@ export function ScreeningClient({
 
                     <div className="mt-auto pt-2 flex items-center justify-between text-xs font-medium border-t border-border/50">
                       <span className="text-muted-foreground">Sesi 90 Menit</span>
-                      <span className="text-foreground font-semibold">Mulai Rp 150.000</span>
+                      <span className="text-foreground font-semibold">Mulai Rp 130.000</span>
                     </div>
                   </div>
 
@@ -303,7 +303,7 @@ export function ScreeningClient({
 
                     <div className="mt-auto pt-2 flex items-center justify-between text-xs font-medium border-t border-border/50">
                       <span className="text-muted-foreground">Sesi 90 Menit</span>
-                      <span className="text-foreground font-semibold">Mulai Rp 35.000</span>
+                      <span className="text-foreground font-semibold">Mulai Rp 85.000</span>
                     </div>
                   </div>
                 </div>
@@ -328,10 +328,10 @@ export function ScreeningClient({
                 {/* Primary Action Buttons */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border">
                   <Button
-                    variant="outline"
-                    size="sm"
+                    variant="public-secondary"
+                    size="pill-sm"
                     onClick={handleReset}
-                    className="text-xs gap-1.5 w-full sm:w-auto"
+                    className="w-full sm:w-auto"
                   >
                     <RotateCcw className="size-3.5" data-icon="inline-start" />
                     <span>Ulangi Skrining</span>
@@ -341,8 +341,9 @@ export function ScreeningClient({
                     {initialCounselorId && initialScheduleId ? (
                       <Button
                         asChild
-                        size="default"
-                        className="w-full sm:w-auto font-semibold gap-2 shadow-xs cursor-pointer"
+                        variant="public"
+                        size="pill"
+                        className="w-full sm:w-auto"
                       >
                         <Link
                           href={`/booking?counselorId=${initialCounselorId}&scheduleId=${initialScheduleId}&screeningId=${result.screeningId}`}
@@ -354,8 +355,9 @@ export function ScreeningClient({
                     ) : (
                       <Button
                         asChild
-                        size="default"
-                        className="w-full sm:w-auto font-semibold gap-2 shadow-xs cursor-pointer"
+                        variant="public"
+                        size="pill"
+                        className="w-full sm:w-auto"
                       >
                         <Link
                           href={`/counselors?screeningId=${result.screeningId}&type=${result.evaluation.recommendedType}`}
@@ -383,7 +385,7 @@ export function ScreeningClient({
                   <Sparkles className="size-3.5" />
                   <span>Kuesioner Klinis Mandiri • 20 Pertanyaan</span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.15] text-balance">
                   Kuesioner Kesejahteraan Emosional (SRQ-20)
                 </h1>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl text-pretty">
@@ -535,11 +537,11 @@ export function ScreeningClient({
                           variant={currentValue === true ? "default" : "outline"}
                           size="sm"
                           onClick={() => handleAnswer(questionIndex, true)}
-                          className={`h-9 px-4 text-xs font-semibold cursor-pointer ${
+                          className={`h-8 px-4 text-xs font-semibold cursor-pointer rounded-full ${
                             currentValue === true
                               ? isCrisisQuestion
                                 ? "bg-rose-600 hover:bg-rose-700 text-white"
-                                : "bg-primary text-primary-foreground shadow-xs"
+                                : "bg-[#7c3aed] text-white shadow-xs"
                               : "hover:bg-muted"
                           }`}
                         >
@@ -550,9 +552,9 @@ export function ScreeningClient({
                           variant={currentValue === false ? "secondary" : "outline"}
                           size="sm"
                           onClick={() => handleAnswer(questionIndex, false)}
-                          className={`h-9 px-4 text-xs font-semibold cursor-pointer ${
+                          className={`h-8 px-4 text-xs font-semibold cursor-pointer rounded-full ${
                             currentValue === false
-                              ? "bg-muted-foreground/15 text-foreground font-bold shadow-xs"
+                              ? "bg-muted-foreground/20 text-foreground font-bold shadow-xs"
                               : "hover:bg-muted"
                           }`}
                         >
@@ -594,19 +596,20 @@ export function ScreeningClient({
               <div className="flex items-center gap-2.5 w-full sm:w-auto">
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
+                  variant="public-secondary"
+                  size="pill-sm"
                   onClick={handleReset}
-                  className="text-xs h-9"
+                  className="w-full sm:w-auto"
                 >
                   Reset
                 </Button>
                 <Button
                   type="button"
-                  size="default"
+                  variant="public"
+                  size="pill"
                   disabled={!isAllAnswered || isSubmitting}
                   onClick={handleSubmit}
-                  className="w-full sm:w-auto text-xs font-semibold gap-1.5 h-9 cursor-pointer shadow-xs"
+                  className="w-full sm:w-auto"
                 >
                   <span>{isSubmitting ? "Mengevaluasi..." : "Lihat Hasil Skrining"}</span>
                   <ArrowRight className="size-3.5" data-icon="inline-end" />

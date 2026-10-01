@@ -213,7 +213,7 @@ export default function HomePage() {
           </div>
 
           {/* Natural Typographic Headline */}
-          <h1 className="font-heading text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight text-foreground leading-[1.14] text-balance">
+          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.15] text-balance">
             Saatnya didengarkan tanpa penghakiman.
             <span className="block mt-1 font-semibold text-purple-700 dark:text-purple-400">
               Ruang aman untuk mengurai ceritamu.
@@ -426,7 +426,7 @@ export default function HomePage() {
 
                 <div className="pt-3 border-t border-border/50 flex flex-col gap-1">
                   <div className="flex items-baseline gap-1.5 flex-wrap">
-                    <span className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight tabular-nums whitespace-nowrap">
+                    <span className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight tabular-nums whitespace-nowrap">
                       Rp 85.000
                     </span>
                     <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap"> / 90 menit</span>
@@ -507,7 +507,7 @@ export default function HomePage() {
 
                 <div className="pt-3 border-t border-border/50 flex flex-col gap-1">
                   <div className="flex items-baseline gap-1.5 flex-wrap">
-                    <span className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight tabular-nums whitespace-nowrap">
+                    <span className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight tabular-nums whitespace-nowrap">
                       Rp 130.000
                     </span>
                     <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap"> / 90 menit</span>
@@ -571,7 +571,7 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col gap-8 sm:gap-10">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="flex flex-col gap-1.5 max-w-lg">
-              <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground text-balance">
+              <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground text-balance">
                 Mitra Konselor Berpengalaman
               </h2>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
@@ -707,7 +707,7 @@ export default function HomePage() {
       <section id="testimoni" className="py-16 sm:py-20 md:py-24 border-b border-border/70 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col gap-10">
           <div className="text-center flex flex-col gap-2 max-w-lg mx-auto">
-            <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground text-balance">
+            <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground text-balance">
               Pengalaman Klien di Solulu
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
@@ -715,40 +715,47 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 items-stretch">
             {TESTIMONIALS.map((t, idx) => (
-              <Card
+              <div
                 key={idx}
-                className="group border border-border/70 shadow-xs hover:border-purple-500/30 hover:shadow-md transition-all flex flex-col justify-between rounded-2xl bg-card p-6 sm:p-7 gap-5"
+                className="p-6 rounded-2xl bg-card border border-border/80 flex flex-col justify-between gap-3.5 shadow-2xs"
               >
-                {/* 1. Rating & Verified Indicator */}
-                <div className="flex items-center justify-between">
+                {/* 1. Header with purple indicator dot & Rating */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-purple-600" aria-hidden="true" />
+                    <span className="font-heading font-semibold text-xs text-foreground uppercase tracking-wider">
+                      Sesi Terverifikasi
+                    </span>
+                  </div>
                   <div className="flex items-center gap-1 text-amber-400" aria-label="Rating 5 bintang">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <Star key={i} className="size-3.5 fill-amber-400 text-amber-400" aria-hidden="true" />
                     ))}
                   </div>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                    <BadgeCheck className="size-3.5 text-purple-600 dark:text-purple-400 shrink-0" aria-hidden="true" />
-                    <span>Sesi Terverifikasi</span>
-                  </span>
                 </div>
 
                 {/* 2. Pure Distilled Quote */}
-                <p className="text-sm sm:text-[15px] text-foreground/90 font-normal leading-relaxed text-pretty flex-1">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty flex-1">
                   &ldquo;{t.quote}&rdquo;
                 </p>
 
-                {/* 3. Essential Author Context */}
-                <div className="pt-4 border-t border-border/50 flex flex-col gap-1">
-                  <span className="font-heading font-semibold text-sm text-foreground">
-                    {t.author}
-                  </span>
+                {/* 3. Essential Author Context & Topic Pill */}
+                <div className="pt-3.5 border-t border-border/60 flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="font-heading font-semibold text-xs sm:text-sm text-foreground">
+                      {t.author}
+                    </span>
+                    <span className="px-3.5 py-1.5 rounded-full bg-secondary/80 border border-border/60 text-xs font-medium text-foreground/90">
+                      {t.topic}
+                    </span>
+                  </div>
                   <span className="text-xs text-muted-foreground leading-normal">
-                    {t.topic} • Sesi bersama <strong className="font-medium text-purple-600 dark:text-purple-400">{t.counselor}</strong>
+                    Sesi bersama <strong className="font-medium text-purple-600 dark:text-purple-400">{t.counselor}</strong>
                   </span>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         </div>
@@ -758,7 +765,7 @@ export default function HomePage() {
       <section id="faq" className="py-16 sm:py-20 md:py-24 border-b border-border/70 bg-muted/20 scroll-mt-20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 flex flex-col gap-8">
           <div className="text-center flex flex-col gap-2">
-            <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground text-balance">
+            <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground text-balance">
               Pertanyaan yang Sering Diajukan
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground text-pretty">

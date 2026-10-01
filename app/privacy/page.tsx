@@ -1,5 +1,4 @@
 import { ShieldCheck, Lock, FileText, HeartHandshake, EyeOff } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { PublicShell } from "@/components/public/public-shell"
 
@@ -18,7 +17,7 @@ export default function PrivacyPolicyPage() {
             <ShieldCheck className="size-3.5" />
             <span>Kepatuhan UU PDP No. 27/2022 &amp; Standar Etik Psikologi</span>
           </Badge>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl text-foreground">
+          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.15] text-balance">
             Kebijakan Privasi &amp; Kerahasiaan Klinis
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -41,7 +40,7 @@ export default function PrivacyPolicyPage() {
         <div className="flex flex-col gap-8 text-sm leading-relaxed">
           {/* Section 1 */}
           <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-bold text-foreground tracking-tight">
+            <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground tracking-tight">
               1. Data yang Kami Kumpulkan
             </h2>
             <p className="text-muted-foreground">
@@ -56,7 +55,7 @@ export default function PrivacyPolicyPage() {
 
           {/* Section 2 */}
           <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-bold text-foreground tracking-tight">
+            <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground tracking-tight">
               2. Kerahasiaan Percakapan Telekonseling
             </h2>
             <p className="text-muted-foreground">
@@ -71,7 +70,7 @@ export default function PrivacyPolicyPage() {
 
           {/* Section 3 */}
           <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-bold text-foreground tracking-tight">
+            <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground tracking-tight">
               3. Pengecualian Batas Kerahasiaan (Prosedur Darurat)
             </h2>
             <p className="text-muted-foreground">
@@ -85,7 +84,7 @@ export default function PrivacyPolicyPage() {
 
           {/* Section 4 */}
           <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-bold text-foreground tracking-tight">
+            <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground tracking-tight">
               4. Hak Pengguna atas Data Pribadi
             </h2>
             <p className="text-muted-foreground">

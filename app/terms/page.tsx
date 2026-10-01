@@ -1,5 +1,4 @@
 import { Scale, Clock, AlertTriangle, ShieldCheck } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { PublicShell } from "@/components/public/public-shell"
 
@@ -18,7 +17,7 @@ export default function TermsOfServicePage() {
             <Scale className="size-3.5" />
             <span>Ketentuan Hukum &amp; Kesepakatan Layanan Pasien</span>
           </Badge>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl text-foreground">
+          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.15] text-balance">
             Syarat &amp; Ketentuan Layanan
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -33,7 +32,7 @@ export default function TermsOfServicePage() {
             <span>Pemberitahuan Penting: Batasan Layanan Telekonseling</span>
           </div>
           <p className="leading-relaxed">
-            Solulu adalah platform telekonseling terjadwal dan <strong>BUKAN merupakan layanan gawat darurat medis/jiwa</strong>. Jika Anda atau orang di sekitar Anda sedang dalam krisis akut yang mengancam nyawa atau berniat menyakiti diri sendiri, segera hubungi <strong>119 ext 8</strong> (Hotline Kemenkes) atau datangi Instalasi Gawat Darurat (IGD) rumah sakit terdekat.
+            Solulu adalah platform telekonseling terjadwal dan <strong>BUKAN merupakan layanan gawat darurat medis/jiwa</strong>. Jika Anda atau orang di sekitar Anda sedang dalam krisis akut yang mengancam nyawa atau berniat menyakiti diri sendiri, segera hubungi Instalasi Gawat Darurat (IGD) atau fasilitas kesehatan terdekat.
           </p>
         </div>
 
@@ -41,7 +40,7 @@ export default function TermsOfServicePage() {
         <div className="flex flex-col gap-8 text-sm leading-relaxed">
           {/* Section 1 */}
           <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-bold text-foreground tracking-tight">
+            <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground tracking-tight">
               1. Definisi &amp; Peran Konselor
             </h2>
             <ul className="list-disc pl-5 flex flex-col gap-2 text-muted-foreground">
@@ -56,7 +55,7 @@ export default function TermsOfServicePage() {
 
           {/* Section 2: Reschedule Policy H-12 */}
           <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
+            <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
               <Clock className="size-4 text-primary" />
               <span>2. Kebijakan Perubahan Jadwal (Aturan H-12)</span>
             </h2>
@@ -78,7 +77,7 @@ export default function TermsOfServicePage() {
 
           {/* Section 3 */}
           <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-bold text-foreground tracking-tight">
+            <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground tracking-tight">
               3. Ketepatan Waktu &amp; Toleransi Kehadiran
             </h2>
             <p className="text-muted-foreground">
@@ -88,7 +87,7 @@ export default function TermsOfServicePage() {
 
           {/* Section 4 */}
           <section className="flex flex-col gap-3">
-            <h2 className="text-lg font-bold text-foreground tracking-tight">
+            <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground tracking-tight">
               4. Etika Berkomunikasi &amp; Kebijakan Nol Toleransi
             </h2>
             <p className="text-muted-foreground">

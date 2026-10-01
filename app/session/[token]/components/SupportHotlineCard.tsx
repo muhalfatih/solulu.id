@@ -1,6 +1,6 @@
 import * as React from "react"
 import Link from "next/link"
-import { MessageSquare, PhoneCall, LifeBuoy, HeartPulse, Search } from "lucide-react"
+import { MessageSquare, LifeBuoy, HeartPulse, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -25,12 +25,12 @@ export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
   return (
     <div className="flex flex-col gap-4">
       {/* Technical Support Card (US-18) */}
-      <Card className="border-border/80 shadow-xs bg-card">
+      <Card className="rounded-2xl border-border/80 shadow-xs bg-card">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <LifeBuoy className="size-4 text-primary" />
-            <CardTitle className="text-base font-semibold tracking-tight">
-              Bantuan & Kendala Teknis
+            <CardTitle className="text-base font-semibold tracking-tight font-heading">
+              Bantuan &amp; Kendala Teknis
             </CardTitle>
           </div>
           <CardDescription className="text-xs">
@@ -43,10 +43,10 @@ export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
           </p>
           <Button
             asChild
-            variant="outline"
-            size="sm"
+            variant="public-secondary"
+            size="pill-sm"
             id="btn-whatsapp-support"
-            className="border-border/80 hover:bg-muted text-xs h-9 shrink-0"
+            className="shrink-0"
           >
             <a href={helpDeskUrl} target="_blank" rel="noopener noreferrer">
               <MessageSquare data-icon="inline-start" />
@@ -56,30 +56,17 @@ export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
         </CardContent>
       </Card>
 
-      {/* Emergency Crisis Hotline (US-6 & Grounding Sanctuary) */}
-      <div className="rounded-lg border border-border/60 bg-muted/20 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-        <div className="flex items-start gap-2.5">
-          <HeartPulse className="size-4 text-muted-foreground mt-0.5 shrink-0" />
-          <div className="flex flex-col gap-0.5">
-            <span className="font-semibold text-foreground">
-              Butuh Dukungan Darurat Krisis?
-            </span>
-            <span className="text-muted-foreground">
-              Layanan Hotline Kemenkes SEJIWA (119 Ext 8) beroperasi 24 jam setiap hari untuk bantuan segera.
-            </span>
-          </div>
+      {/* Emergency Crisis Notice (ADR-0003 & Grounding Sanctuary) */}
+      <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 flex items-start gap-3 text-xs">
+        <HeartPulse className="size-4 text-destructive mt-0.5 shrink-0" />
+        <div className="flex flex-col gap-0.5 leading-relaxed">
+          <span className="font-semibold text-foreground">
+            Pemberitahuan Krisis Medis
+          </span>
+          <span className="text-muted-foreground">
+            Solulu bukan layanan gawat darurat. Jika Anda sedang mengalami krisis yang mengancam nyawa atau membutuhkan bantuan segera, hubungi Instalasi Gawat Darurat (IGD) rumah sakit terdekat.
+          </span>
         </div>
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="text-xs text-muted-foreground hover:text-foreground h-8 shrink-0 self-end sm:self-center"
-        >
-          <a href="tel:119">
-            <PhoneCall data-icon="inline-start" />
-            <span>Panggil 119 Ext 8</span>
-          </a>
-        </Button>
       </div>
 
       {/* Self-Service Session Recovery Hint */}

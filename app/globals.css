@@ -181,6 +181,50 @@
 .theme-public [data-slot="card"] {
     border-radius: 1rem;
     background-color: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px 0 rgba(124, 58, 237, 0.04), 0 1px 2px -1px rgba(124, 58, 237, 0.04);
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.theme-public h1,
+.theme-public h2,
+.theme-public h3,
+.theme-public h4,
+.theme-public .font-heading {
+    font-family: var(--font-poppins), sans-serif;
+    letter-spacing: -0.025em;
+    color: var(--foreground);
+}
+
+.theme-public h1 {
+    font-weight: 700;
+}
+
+.theme-public h2 {
+    font-weight: 700;
+}
+
+.theme-public h3 {
+    font-weight: 700;
+}
+
+.theme-public h4 {
+    font-weight: 600;
+}
+
+/* Enforce max font-weight 700 on public surface */
+.theme-public .font-extrabold,
+.theme-public .font-black {
+    font-weight: 700 !important;
+}
+
+.theme-public p,
+.theme-public label,
+.theme-public input,
+.theme-public textarea,
+.theme-public button {
+    font-family: var(--font-inter), sans-serif;
 }
 
 @layer base {

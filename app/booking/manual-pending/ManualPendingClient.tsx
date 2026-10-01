@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { PublicShell } from "@/components/public/public-shell"
 import { OFFICIAL_BANK_ACCOUNTS } from "@/lib/booking/hold"
 
 interface ManualPendingClientProps {
@@ -101,36 +102,25 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
   )}`
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* Header */}
-      <header className="border-b border-border/80 bg-background/95 backdrop-blur-md">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="font-semibold text-sm tracking-tight text-foreground">
-            Solulu
-          </Link>
-          <ThemeToggle />
-        </div>
-      </header>
-
-      {/* Main Container */}
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8 md:py-12 flex flex-col items-center">
+    <PublicShell>
+      <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-8 md:py-12 flex flex-col items-center">
         {/* Status Header */}
         <div className="text-center mb-8 flex flex-col items-center gap-3">
           <div className="size-16 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center ring-8 ring-amber-500/5">
             <Clock className="size-8" />
           </div>
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground text-balance">
               Menunggu Pembayaran Transfer
             </h1>
-            <p className="text-xs md:text-sm text-muted-foreground max-w-md mx-auto">
+            <p className="text-xs md:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
               Silakan lakukan transfer ke salah satu rekening resmi platform dan kirimkan bukti pembayaran untuk aktivasi ruang Zoom oleh Admin.
             </p>
           </div>
         </div>
 
         {/* Highlight Payment Info Card */}
-        <Card className="w-full border-border/60 mb-6 bg-muted/20">
+        <Card className="w-full border-border/80 rounded-2xl mb-6 bg-muted/20 shadow-xs">
           <CardContent className="pt-6 flex flex-col gap-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Reference Number */}
@@ -268,11 +258,12 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
               <span>Admin memverifikasi mutasi bank, dan status pemesanan Anda langsung terkonfirmasi.</span>
             </div>
           </CardContent>
-          <CardFooter className="pt-2 flex flex-col sm:flex-row gap-2">
+          <CardFooter className="pt-2 flex flex-col sm:flex-row gap-2.5">
             <Button
               asChild
-              size="lg"
-              className="w-full sm:flex-1 h-11 text-xs font-semibold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+              variant="public"
+              size="pill"
+              className="w-full sm:flex-1"
             >
               <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="size-4" data-icon="inline-start" />
@@ -281,9 +272,9 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
             </Button>
             <Button
               asChild
-              variant="outline"
-              size="lg"
-              className="w-full sm:w-auto h-11 text-xs font-medium cursor-pointer"
+              variant="public-secondary"
+              size="pill"
+              className="w-full sm:w-auto"
             >
               <Link href={`/session/${booking.accessToken}`}>
                 <span>Buka Halaman Sesi</span>
@@ -292,7 +283,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
             </Button>
           </CardFooter>
         </Card>
-      </main>
-    </div>
+      </div>
+    </PublicShell>
   )
 }

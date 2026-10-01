@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { PublicShell } from "@/components/public/public-shell"
 
 interface BookingSuccessClientProps {
   data: {
@@ -82,29 +83,18 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
   )}`
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* Header */}
-      <header className="border-b border-border/80 bg-background/95 backdrop-blur-md">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="font-semibold text-sm tracking-tight text-foreground">
-            Solulu
-          </Link>
-          <ThemeToggle />
-        </div>
-      </header>
-
-      {/* Main Container */}
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-8 md:py-12 flex flex-col items-center">
+    <PublicShell>
+      <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-8 md:py-12 flex flex-col items-center">
         {/* Celebration Header */}
         <div className="text-center mb-8 flex flex-col items-center gap-3">
           <div className="size-16 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center ring-8 ring-emerald-500/5">
             <CheckCircle2 className="size-8" />
           </div>
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground text-balance">
               Pemesanan Sesi Berhasil Terkonfirmasi
             </h1>
-            <p className="text-xs md:text-sm text-muted-foreground max-w-md mx-auto">
+            <p className="text-xs md:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
               Terima kasih, <span className="font-semibold text-foreground">{booking.patientName}</span>. Ruang telekonseling privat Anda telah disiapkan.
             </p>
           </div>
@@ -114,21 +104,23 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
         <div className="w-full mb-8">
           <Button
             asChild
-            size="lg"
-            className="w-full h-12 text-sm font-semibold gap-2 shadow-xs cursor-pointer"
+            variant="public"
+            size="pill-lg"
+            className="w-full"
+            id="btn-open-session"
           >
             <Link href={`/session/${booking.accessToken}`}>
               <span>Buka Halaman Sesi Saya Sekarang</span>
               <ArrowRight className="size-4" data-icon="inline-end" />
             </Link>
           </Button>
-          <p className="text-[11px] text-muted-foreground text-center mt-2">
+          <p className="text-xs text-muted-foreground text-center mt-2.5">
             Anda dapat langsung mengakses ruang sesi tanpa perlu registrasi akun atau kata sandi.
           </p>
         </div>
 
         {/* Session Details Card */}
-        <Card className="w-full border-border/60 mb-6">
+        <Card className="w-full border-border/80 shadow-xs rounded-2xl mb-6">
           <CardHeader className="pb-3 border-b border-border/40">
             <CardTitle className="text-sm font-semibold">Rincian Jadwal Konseling</CardTitle>
           </CardHeader>
@@ -268,7 +260,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
             </a>
           </CardFooter>
         </Card>
-      </main>
-    </div>
+      </div>
+    </PublicShell>
   )
 }

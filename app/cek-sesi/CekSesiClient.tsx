@@ -10,8 +10,10 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  ArrowLeft,
+  ArrowRight,
   MessageCircle,
+  Sparkles,
+  Lock,
 } from "lucide-react"
 import { PublicShell } from "@/components/public/public-shell"
 import { Button } from "@/components/ui/button"
@@ -113,49 +115,75 @@ export default function CekSesiClient() {
 
   return (
     <PublicShell>
-      <div className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-12 sm:py-16 flex flex-col justify-center">
-        <Card className="border-border/80 shadow-sm relative overflow-hidden bg-card">
-          <div className="h-1.5 w-full bg-primary/20" />
+      <div className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 py-12 sm:py-16 flex flex-col gap-8 justify-center">
+        {/* 1. Welcoming Hero & Context Header */}
+        <section className="flex flex-col items-center text-center gap-3.5 max-w-md mx-auto">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-xs font-semibold shadow-2xs">
+            <Sparkles className="size-3.5 text-purple-600 dark:text-purple-400" />
+            <span>Pemulihan Tautan Akses Privat #CeritaDiSolulu</span>
+          </div>
 
-          <CardHeader className="text-center pb-4 pt-6">
-            <div className="size-11 rounded-full bg-primary/10 border border-primary/20 mx-auto flex items-center justify-center text-primary mb-2">
+          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.15] text-balance">
+            Cek &amp; Pulihkan Tautan Sesi
+          </h1>
+
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
+            Lupa atau belum menerima tautan ruang Zoom telekonseling Anda? Masukkan data email dan WhatsApp terdaftar untuk menerima kembali tautan sesi langsung ke email Anda.
+          </p>
+
+          {/* Trust Guarantee Pills */}
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-xs">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/80 border border-border/70 text-foreground/90 font-medium shadow-2xs">
+              <Lock className="size-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>100% Rahasia &amp; Aman</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary/80 border border-border/70 text-foreground/90 font-medium shadow-2xs">
+              <Mail className="size-3 text-purple-600 dark:text-purple-400 shrink-0" />
+              <span>Kirim Langsung ke Email</span>
+            </span>
+          </div>
+        </section>
+
+        {/* 2. Interactive Form Card */}
+        <Card className="border border-border/80 shadow-xs relative overflow-hidden rounded-2xl bg-card">
+          <CardHeader className="text-center pb-4 pt-7 px-6 sm:px-8">
+            <div className="size-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 mx-auto flex items-center justify-center text-purple-600 dark:text-purple-400 mb-2 shadow-2xs">
               <Search className="size-5" />
             </div>
-            <CardTitle className="text-xl sm:text-2xl font-semibold tracking-tight">
-              Cek & Pulihkan Tautan Sesi
+            <CardTitle className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              Verifikasi Data Pemesanan
             </CardTitle>
-            <CardDescription className="max-w-md mx-auto text-xs sm:text-sm">
-              Kehilangan atau belum menerima tautan ruang Zoom telekonseling Anda? Masukkan data
-              pendaftaran untuk mengirimkan kembali tautan langsung ke email Anda.
+            <CardDescription className="max-w-md mx-auto text-xs sm:text-sm text-muted-foreground text-pretty leading-relaxed pt-1">
+              Sistem akan memverifikasi kesesuaian email dan nomor WhatsApp dengan reservasi aktif yang tersimpan di Solulu.
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="flex flex-col gap-6 pt-2">
+          <CardContent className="flex flex-col gap-6 pt-2 px-6 sm:px-8">
             {/* Status Notifications */}
             {status.type === "success" && (
-              <Alert className="border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100">
+              <Alert className="rounded-2xl border-emerald-500/30 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100 p-4">
                 <CheckCircle2
                   data-icon="inline-start"
-                  className="text-emerald-600 dark:text-emerald-400 size-4"
+                  className="text-emerald-600 dark:text-emerald-400 size-4.5"
                 />
                 <AlertTitle className="font-semibold text-sm">
-                  Permintaan Berhasil Dikirim
+                  Permintaan Berhasil Diproses
                 </AlertTitle>
                 <AlertDescription className="text-xs leading-relaxed flex flex-col gap-2 mt-1">
                   <span>{status.message}</span>
                   <span className="text-[11px] text-muted-foreground/90">
-                    💡 <em>Tips:</em> Jika email tidak muncul dalam 3–5 menit, pastikan mengecek
-                    folder <strong>Spam</strong> atau <strong>Promosi</strong>.
+                    💡 <em>Tips:</em> Jika email tidak muncul dalam 3–5 menit, pastikan memeriksa
+                    folder <strong>Spam</strong> atau <strong>Promosi</strong> Anda.
                   </span>
                 </AlertDescription>
               </Alert>
             )}
 
             {status.type === "rate_limited" && (
-              <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100">
+              <Alert className="rounded-2xl border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-100 p-4">
                 <AlertCircle
                   data-icon="inline-start"
-                  className="text-amber-600 dark:text-amber-400 size-4"
+                  className="text-amber-600 dark:text-amber-400 size-4.5"
                 />
                 <AlertTitle className="font-semibold text-sm">
                   Batas Pengecekan Tercapai
@@ -166,12 +194,11 @@ export default function CekSesiClient() {
                     <Button
                       asChild
                       variant="outline"
-                      size="sm"
-                      className="border-amber-500/40 hover:bg-amber-500/20 text-xs h-8"
+                      className="border-amber-500/40 hover:bg-amber-500/20 text-xs h-9 px-4 rounded-full font-semibold cursor-pointer"
                     >
                       <a href={waSupportUrl} target="_blank" rel="noopener noreferrer">
-                        <MessageCircle data-icon="inline-start" />
-                        Bantuan Langsung WhatsApp
+                        <MessageCircle data-icon="inline-start" className="size-3.5" />
+                        <span>Bantuan Langsung WhatsApp</span>
                       </a>
                     </Button>
                   </div>
@@ -180,13 +207,13 @@ export default function CekSesiClient() {
             )}
 
             {status.type === "error" && (
-              <Alert className="border-destructive/30 bg-destructive/10 text-destructive">
+              <Alert className="rounded-2xl border-destructive/30 bg-destructive/10 text-destructive p-4">
                 <AlertCircle
                   data-icon="inline-start"
-                  className="text-destructive size-4"
+                  className="text-destructive size-4.5"
                 />
-                <AlertTitle className="font-semibold text-sm">Gagal Memproses</AlertTitle>
-                <AlertDescription className="text-xs mt-1">
+                <AlertTitle className="font-semibold text-sm">Gagal Memproses Data</AlertTitle>
+                <AlertDescription className="text-xs mt-1 leading-relaxed">
                   {status.message}
                 </AlertDescription>
               </Alert>
@@ -194,9 +221,11 @@ export default function CekSesiClient() {
 
             {/* Form Inputs */}
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-              <FieldGroup>
+              <FieldGroup className="flex flex-col gap-4">
                 <Field data-invalid={Boolean(fieldErrors.email)}>
-                  <FieldLabel htmlFor="patientEmail">Email Pendaftaran</FieldLabel>
+                  <FieldLabel htmlFor="patientEmail" className="text-xs font-semibold text-foreground">
+                    Email Pendaftaran
+                  </FieldLabel>
                   <div className="relative">
                     <Input
                       id="patientEmail"
@@ -211,21 +240,23 @@ export default function CekSesiClient() {
                       }}
                       disabled={isSubmitting}
                       aria-invalid={Boolean(fieldErrors.email)}
-                      className="pl-9"
+                      className="h-11 pl-10 rounded-xl border-border/80 bg-background text-sm focus-visible:ring-purple-500/30 shadow-2xs font-normal"
                     />
-                    <Mail className="size-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Mail className="size-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                   {fieldErrors.email ? (
-                    <FieldError>{fieldErrors.email}</FieldError>
+                    <FieldError className="text-xs text-destructive mt-1">{fieldErrors.email}</FieldError>
                   ) : (
-                    <FieldDescription>
-                      Alamat email yang Anda masukkan saat checkout sesi konseling.
+                    <FieldDescription className="text-xs text-muted-foreground mt-1">
+                      Alamat email yang Anda masukkan saat checkout sesi telekonseling.
                     </FieldDescription>
                   )}
                 </Field>
 
                 <Field data-invalid={Boolean(fieldErrors.phone)}>
-                  <FieldLabel htmlFor="patientPhone">Nomor WhatsApp</FieldLabel>
+                  <FieldLabel htmlFor="patientPhone" className="text-xs font-semibold text-foreground">
+                    Nomor WhatsApp Terdaftar
+                  </FieldLabel>
                   <div className="relative">
                     <Input
                       id="patientPhone"
@@ -240,35 +271,37 @@ export default function CekSesiClient() {
                       }}
                       disabled={isSubmitting}
                       aria-invalid={Boolean(fieldErrors.phone)}
-                      className="pl-9"
+                      className="h-11 pl-10 rounded-xl border-border/80 bg-background text-sm focus-visible:ring-purple-500/30 shadow-2xs font-normal"
                     />
-                    <Phone className="size-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Phone className="size-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                   {fieldErrors.phone ? (
-                    <FieldError>{fieldErrors.phone}</FieldError>
+                    <FieldError className="text-xs text-destructive mt-1">{fieldErrors.phone}</FieldError>
                   ) : (
-                    <FieldDescription>
-                      Nomor telepon aktif untuk memverifikasi kepemilikan sesi.
+                    <FieldDescription className="text-xs text-muted-foreground mt-1">
+                      Nomor telepon aktif untuk memverifikasi keabsahan kepemilikan sesi.
                     </FieldDescription>
                   )}
                 </Field>
               </FieldGroup>
 
+              {/* Standard Public Primary Button (h-11, rounded-full, text-sm font-semibold, #7c3aed) */}
               <Button
                 type="submit"
                 id="btn-recover-submit"
-                size="lg"
                 disabled={isSubmitting}
-                className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all"
+                variant="public"
+                size="pill"
+                className="w-full"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 data-icon="inline-start" className="animate-spin" />
+                    <Loader2 className="size-4 animate-spin" />
                     <span>Memeriksa Data Sesi...</span>
                   </>
                 ) : (
                   <>
-                    <Search data-icon="inline-start" />
+                    <Search className="size-4" />
                     <span>Kirim Ulang Tautan Sesi</span>
                   </>
                 )}
@@ -276,40 +309,44 @@ export default function CekSesiClient() {
             </form>
 
             {/* Privacy Protection Callout (US-20) */}
-            <div className="rounded-lg border border-border/60 bg-muted/30 p-3.5 flex items-start gap-3">
-              <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+            <div className="rounded-2xl border border-border/70 bg-secondary/50 p-4 flex items-start gap-3">
+              <ShieldCheck className="size-4.5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
               <div className="flex flex-col gap-0.5 text-xs text-muted-foreground leading-relaxed">
-                <span className="font-medium text-foreground">Perlindungan Privasi Pasien</span>
-                <span>
-                  Demi menjaga kerahasiaan identitas dan rekam medis pasien, sistem tidak pernah
-                  menampilkan konfirmasi status publik di layar. Tautan sesi hanya dikirimkan ke
-                  alamat email yang terdaftar pada sistem.
+                <span className="font-semibold text-foreground">Perlindungan Privasi Pasien</span>
+                <span className="text-pretty">
+                  Demi menjaga kerahasiaan identitas dan data klinis pasien, sistem tidak pernah menampilkan konfirmasi status publik di layar. Tautan sesi hanya dikirimkan ke alamat email yang terdaftar resmi pada sistem Solulu.
                 </span>
               </div>
             </div>
           </CardContent>
 
-          <CardFooter className="border-t border-border/60 bg-muted/15 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+          {/* Card Footer: Support link & Link to Catalog */}
+          <CardFooter className="border-t border-border/60 bg-muted/20 px-6 sm:px-8 py-4.5 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
             <span className="text-center sm:text-left">
               Butuh bantuan mendesak?{" "}
               <a
                 href={waSupportUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-foreground hover:underline font-medium"
+                className="text-purple-600 dark:text-purple-400 hover:underline font-semibold"
               >
-                Chat Tim Bantuan
+                Hubungi Tim Bantuan
               </a>
             </span>
-            <Link
-              href="/counselors"
-              className="hover:text-foreground underline underline-offset-3"
+            <Button
+              asChild
+              variant="public-secondary"
+              size="pill-sm"
             >
-              Pesan Sesi Baru
-            </Link>
+              <Link href="/counselors">
+                <span>Pesan Sesi Baru</span>
+                <ArrowRight className="size-3.5" data-icon="inline-end" />
+              </Link>
+            </Button>
           </CardFooter>
         </Card>
       </div>
     </PublicShell>
   )
 }
+

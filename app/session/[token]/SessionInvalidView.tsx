@@ -1,6 +1,6 @@
 import * as React from "react"
 import Link from "next/link"
-import { Compass, Search, MessageSquare, ArrowLeft, Shield } from "lucide-react"
+import { Compass, Search, MessageSquare, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -26,12 +26,12 @@ export function SessionInvalidView({ token, error }: SessionInvalidViewProps) {
   )}`
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="theme-public min-h-screen bg-background text-foreground flex flex-col font-sans">
       {/* Header */}
       <header className="border-b border-border/80 bg-background/95 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="font-semibold text-sm tracking-tight text-foreground flex items-center gap-2">
-            <span className="size-2 rounded-full bg-primary" />
+            <span className="size-2 rounded-full bg-[#7c3aed]" />
             Solulu
           </Link>
           <ThemeToggle />
@@ -40,12 +40,12 @@ export function SessionInvalidView({ token, error }: SessionInvalidViewProps) {
 
       {/* Main Container */}
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-12 md:py-20 flex flex-col items-center justify-center">
-        <Card className="w-full border-border/80 shadow-sm text-center">
+        <Card className="w-full rounded-2xl border-border/80 shadow-sm text-center">
           <CardHeader className="flex flex-col items-center gap-3 pb-4">
-            <div className="size-16 rounded-full bg-muted flex items-center justify-center text-muted-foreground ring-8 ring-muted/50 mb-1">
+            <div className="size-16 rounded-full bg-purple-500/10 flex items-center justify-center text-[#7c3aed] ring-8 ring-purple-500/5 mb-1">
               <Compass className="size-8" />
             </div>
-            <CardTitle className="text-xl md:text-2xl font-bold tracking-tight">
+            <CardTitle className="text-xl md:text-2xl font-bold tracking-tight font-heading">
               Tautan Sesi Tidak Ditemukan
             </CardTitle>
             <CardDescription className="text-sm leading-relaxed text-balance">
@@ -56,20 +56,20 @@ export function SessionInvalidView({ token, error }: SessionInvalidViewProps) {
 
           <CardContent className="flex flex-col gap-4 pt-2">
             {token && (
-              <div className="rounded-lg bg-muted/40 border border-border/60 p-2.5 text-xs text-muted-foreground font-mono break-all">
+              <div className="rounded-xl bg-muted/40 border border-border/60 p-2.5 text-xs text-muted-foreground font-mono break-all">
                 Token: {token}
               </div>
             )}
 
             <div className="flex flex-col gap-2.5 pt-2">
-              <Button asChild size="lg" className="w-full">
+              <Button asChild variant="public" size="pill" className="w-full">
                 <Link href="/cek-sesi" className="flex items-center justify-center gap-2">
                   <Search data-icon="inline-start" />
                   <span>Cari Sesi Saya di /cek-sesi</span>
                 </Link>
               </Button>
 
-              <Button asChild variant="outline" size="lg" className="w-full">
+              <Button asChild variant="public-secondary" size="pill" className="w-full">
                 <a href={helpDeskUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
                   <MessageSquare data-icon="inline-start" />
                   <span>Bantuan Tim Solulu via WhatsApp</span>

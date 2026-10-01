@@ -12,7 +12,7 @@ import {
   catalogFilterSchema,
   type CatalogFilterInput,
 } from "@/lib/validations/schedules"
-import { getFallbackCounselors } from "./data"
+import { getFallbackCounselors, getFallbackCounselorById } from "./data"
 
 export interface CatalogPricing {
   basePrice: number
@@ -272,6 +272,34 @@ export async function getCounselorsCatalogAction(
   } catch (err: any) {
     // If DB is offline or table does not exist, return realistic fallback catalog
     const fallback = getFallbackCounselors(typeFilter, dateFilter)
+    return {
+      success: true,
+      data: fallback,
+    }
+  }
+}
+
+export async function getCounselorByIdAction(
+  counselorId: string
+): Promise<ActionResponse<CatalogCounselorView | null>> {
+  try {
+    const catalogResult = await getCounselorsCatalogAction({ type: "all" })
+    if (catalogResult.success && catalogResult.data) {
+      const found = catalogResult.data.find((c) => c.id === counselorId)
+      if (found) {
+        return {
+          success: true,
+          data: found,
+        }
+      }
+    }
+    const fallback = getFallbackCounselorById(counselorId)
+    return {
+      success: true,
+      data: fallback,
+    }
+  } catch (err: any) {
+    const fallback = getFallbackCounselorById(counselorId)
     return {
       success: true,
       data: fallback,

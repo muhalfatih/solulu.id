@@ -225,12 +225,12 @@ export function ApplyFormClient() {
   if (submittedSuccess) {
     return (
       <div className="mx-auto max-w-2xl py-12 px-4">
-        <Card className="border-border shadow-lg">
+        <Card className="rounded-2xl border-border shadow-lg">
           <CardHeader className="text-center pb-4">
             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
               <CheckCircle2 className="size-8" />
             </div>
-            <CardTitle className="text-2xl font-bold tracking-tight">
+            <CardTitle className="text-2xl font-bold tracking-tight font-heading">
               Pendaftaran Mitra Berhasil Dikirimkan
             </CardTitle>
             <CardDescription className="text-base text-muted-foreground pt-1">
@@ -238,7 +238,7 @@ export function ApplyFormClient() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-6 text-sm">
-            <Alert className="border-emerald-500/30 bg-emerald-500/5">
+            <Alert className="rounded-2xl border-emerald-500/30 bg-emerald-500/5">
               <ShieldCheck className="size-5 text-emerald-600" />
               <AlertTitle className="font-semibold text-foreground">
                 Dokumen Tersimpan Aman di Cloudflare R2
@@ -248,7 +248,7 @@ export function ApplyFormClient() {
               </AlertDescription>
             </Alert>
 
-            <div className="rounded-xl border border-border p-5 bg-card flex flex-col gap-3">
+            <div className="rounded-2xl border border-border p-5 bg-card flex flex-col gap-3">
               <h4 className="font-semibold text-foreground flex items-center gap-2">
                 <Info className="size-4 text-primary" />
                 Langkah Selanjutnya:
@@ -267,7 +267,7 @@ export function ApplyFormClient() {
             </div>
 
             <div className="pt-2 flex justify-center">
-              <Button asChild variant="outline">
+              <Button asChild variant="public-secondary" size="pill">
                 <a href="/">Kembali ke Beranda Solulu</a>
               </Button>
             </div>
@@ -288,7 +288,7 @@ export function ApplyFormClient() {
             Layanan Terbuka untuk Konselor & Psikolog
           </span>
         </div>
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+        <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.15] text-balance">
           Pendaftaran Mitra Konselor Solulu
         </h1>
         <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
@@ -778,9 +778,10 @@ export function ApplyFormClient() {
           </span>
           <Button
             type="submit"
-            size="lg"
+            variant="public"
+            size="pill-lg"
             disabled={submitting}
-            className="w-full sm:w-auto px-8 font-semibold"
+            className="w-full sm:w-auto px-8"
             id="submit-application-btn"
           >
             {submitting ? (
@@ -790,7 +791,7 @@ export function ApplyFormClient() {
               </>
             ) : (
               <>
-                Kirim Berkas Pendaftaran
+                <span>Kirim Berkas Pendaftaran</span>
                 <ArrowRight className="size-4 ml-2" />
               </>
             )}
@@ -800,9 +801,9 @@ export function ApplyFormClient() {
 
       {/* Terms of Partnership Modal */}
       <Dialog open={termsModalOpen} onOpenChange={setTermsModalOpen}>
-        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Ketentuan & Kode Etik Kemitraan Solulu</DialogTitle>
+            <DialogTitle className="font-heading font-bold">Ketentuan &amp; Kode Etik Kemitraan Solulu</DialogTitle>
             <DialogDescription>
               Pedoman integritas dan standar profesional bagi calon mitra konselor Solulu.
             </DialogDescription>
@@ -810,7 +811,7 @@ export function ApplyFormClient() {
           <div className="flex flex-col gap-4 text-xs text-muted-foreground leading-relaxed py-2">
             <div>
               <strong className="text-foreground text-sm block mb-1">
-                1. Kerahasiaan & Privasi Pasien
+                1. Kerahasiaan &amp; Privasi Pasien
               </strong>
               Mitra wajib mematuhi standar perlindungan data pribadi dan menjaga kerahasiaan seluruh informasi, catatan asesmen, serta dinamika sesi konseling kecuali diatur lain oleh ketentuan hukum penanganan krisis darurat.
             </div>
@@ -836,12 +837,14 @@ export function ApplyFormClient() {
           <DialogFooter>
             <Button
               type="button"
+              variant="public"
+              size="pill"
               onClick={() => {
                 setAgreeToTerms(true)
                 setTermsModalOpen(false)
               }}
             >
-              Saya Mengerti & Setuju
+              Saya Mengerti &amp; Setuju
             </Button>
           </DialogFooter>
         </DialogContent>

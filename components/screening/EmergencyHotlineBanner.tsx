@@ -1,5 +1,5 @@
 import * as React from "react";
-import { PhoneCall, ShieldAlert, HeartHandshake, ExternalLink } from "lucide-react";
+import { ShieldAlert, HeartHandshake, ExternalLink } from "lucide-react";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 
@@ -57,21 +57,9 @@ export function EmergencyHotlineBanner({
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button
-            asChild
-            variant={isCrisis ? "destructive" : "outline"}
-            size="sm"
-            className={cn(
-              "h-7 text-xs font-semibold px-2.5 gap-1.5 shadow-none",
-              !isCrisis &&
-                "border-amber-500/30 bg-amber-500/10 text-amber-950 hover:bg-amber-500/20 dark:text-amber-100"
-            )}
-          >
-            <a href="tel:119" aria-label="Telepon Hotline Kemenkes 119 Ext 8">
-              <PhoneCall className="size-3.5" data-icon="inline-start" />
-              <span>Telepon 119 Ext. 8</span>
-            </a>
-          </Button>
+          <span className="text-[11px] font-medium text-muted-foreground">
+            Hubungi IGD atau RS Terdekat
+          </span>
         </div>
       </aside>
     );
@@ -142,22 +130,10 @@ export function EmergencyHotlineBanner({
             variant={isCrisis ? "destructive" : "default"}
             size="default"
             className={cn(
-              "font-semibold gap-2 shadow-xs cursor-pointer w-full sm:w-auto justify-center",
+              "font-semibold gap-2 shadow-xs cursor-pointer w-full sm:w-auto justify-center rounded-full",
               !isCrisis &&
                 "bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-700"
             )}
-          >
-            <a href="tel:119" aria-label="Panggil Hotline Kemenkes 119 Ext 8">
-              <PhoneCall className="size-4" data-icon="inline-start" />
-              <span>Telepon 119 Ext. 8 (SEJIWA)</span>
-            </a>
-          </Button>
-
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="text-xs gap-1.5 w-full sm:w-auto justify-center border-border hover:bg-muted"
           >
             <a
               href="https://ayosehat.kemkes.go.id"
@@ -165,8 +141,8 @@ export function EmergencyHotlineBanner({
               rel="noopener noreferrer"
               aria-label="Buka portal Kemenkes Ayo Sehat"
             >
-              <span>Info Layanan Kemenkes</span>
-              <ExternalLink className="size-3" data-icon="inline-end" />
+              <span>Info Layanan Resmi Kemenkes</span>
+              <ExternalLink className="size-3.5" data-icon="inline-end" />
             </a>
           </Button>
         </div>

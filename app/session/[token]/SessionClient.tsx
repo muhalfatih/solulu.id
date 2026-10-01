@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ShieldCheck, ArrowLeft, HeartPulse, RefreshCw } from "lucide-react"
+import { ShieldCheck, ArrowLeft, RefreshCw } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { SessionCountdownCard } from "./components/SessionCountdownCard"
@@ -55,14 +55,12 @@ export default function SessionClient({ initialData }: SessionClientProps) {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Crisis Hotline Quick Action */}
-            <a
-              href="tel:119"
-              className="hidden md:inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/70 px-2.5 py-1 rounded-full border border-border/60 transition-colors"
+            <Link
+              href="/cek-sesi"
+              className="hidden md:inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/70 px-3 py-1.5 rounded-full border border-border/60 transition-colors"
             >
-              <HeartPulse className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Hotline 119 Ext 8 (SEJIWA)</span>
-            </a>
+              <span>Cek Status Sesi</span>
+            </Link>
 
             <ThemeToggle />
           </div>
@@ -75,9 +73,10 @@ export default function SessionClient({ initialData }: SessionClientProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-1">
           <div className="flex items-center gap-2">
             <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <h1 className="text-sm font-medium text-foreground">
-              Selamat datang, <span className="font-semibold">{data.booking.patientName}</span>
-            </h1>
+            <span className="text-sm font-medium text-foreground">
+              Selamat datang, <strong className="font-semibold">{data.booking.patientName}</strong>
+            </span>
+            <h1 className="sr-only">Ruang Sesi Privat Pasien Solulu</h1>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" />

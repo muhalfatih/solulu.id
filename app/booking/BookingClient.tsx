@@ -703,9 +703,10 @@ export default function BookingClient({
                 <CardFooter className="pt-2 flex flex-col gap-3">
                   <Button
                     type="submit"
-                    size="lg"
+                    variant="public"
+                    size="pill"
                     disabled={isSubmitting || (isScreeningRequired && !screening)}
-                    className="w-full text-xs font-semibold gap-2 h-10 cursor-pointer"
+                    className="w-full"
                   >
                     {isSubmitting ? (
                       <>

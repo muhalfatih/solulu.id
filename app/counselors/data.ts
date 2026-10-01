@@ -28,12 +28,12 @@ export function getFallbackCounselors(
       experience: "4+ Tahun",
       availableSoon: "Tersedia Besok",
       pricing: {
-        basePrice: 150000,
+        basePrice: 130000,
         promoPrice: null,
         isSaleActive: false,
         allowVoucher: true,
-        displayPrice: 150000,
-        displayPriceFormatted: "Rp 150.000",
+        displayPrice: 130000,
+        displayPriceFormatted: "Rp 130.000",
       },
       availableSlots: [
         {
@@ -75,13 +75,12 @@ export function getFallbackCounselors(
       experience: "3+ Tahun",
       availableSoon: "Tersedia Besok",
       pricing: {
-        basePrice: 50000,
-        promoPrice: 35000,
-        isSaleActive: true,
+        basePrice: 85000,
+        promoPrice: null,
+        isSaleActive: false,
         allowVoucher: true,
-        displayPrice: 35000,
-        displayPriceFormatted: "Rp 35.000",
-        originalPriceFormatted: "Rp 50.000",
+        displayPrice: 85000,
+        displayPriceFormatted: "Rp 85.000",
       },
       availableSlots: [
         {
@@ -123,12 +122,12 @@ export function getFallbackCounselors(
       experience: "6+ Tahun",
       availableSoon: "Tersedia Lusa",
       pricing: {
-        basePrice: 150000,
+        basePrice: 130000,
         promoPrice: null,
         isSaleActive: false,
         allowVoucher: true,
-        displayPrice: 150000,
-        displayPriceFormatted: "Rp 150.000",
+        displayPrice: 130000,
+        displayPriceFormatted: "Rp 130.000",
       },
       availableSlots: [
         {
@@ -163,12 +162,12 @@ export function getFallbackCounselors(
       experience: "3+ Tahun",
       availableSoon: "Tersedia Besok",
       pricing: {
-        basePrice: 50000,
+        basePrice: 85000,
         promoPrice: null,
         isSaleActive: false,
         allowVoucher: true,
-        displayPrice: 50000,
-        displayPriceFormatted: "Rp 50.000",
+        displayPrice: 85000,
+        displayPriceFormatted: "Rp 85.000",
       },
       availableSlots: [
         {
@@ -198,4 +197,9 @@ export function getFallbackCounselors(
     filtered = filtered.filter((c) => c.availableSlots.some((s) => s.date === dateFilter))
   }
   return filtered
+}
+
+export function getFallbackCounselorById(id: string): CatalogCounselorView | null {
+  const all = getFallbackCounselors("all")
+  return all.find((c) => c.id === id) || all.find((c) => c.id.toLowerCase() === id.toLowerCase()) || all[0] || null
 }
