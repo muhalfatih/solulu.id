@@ -293,9 +293,9 @@ export default function CounselorDetailClient({
                           <CheckCircle2 className="size-3.5 sm:size-4 text-muted-foreground" />
                         </div>
                         <div>
-                          <div className="text-xs text-muted-foreground font-normal leading-normal">Sesi Selesai</div>
+                          <div className="text-xs text-muted-foreground font-normal leading-normal">Durasi Sesi</div>
                           <div className="text-xs sm:text-sm font-semibold text-foreground leading-normal">
-                            300+ Sesi
+                            90 Menit Penuh
                           </div>
                         </div>
                       </div>
@@ -556,7 +556,7 @@ export default function CounselorDetailClient({
                       <Calendar className="size-4.5" />
                     </div>
                     <h2 className="text-base sm:text-lg font-heading font-semibold text-foreground tracking-tight leading-snug">
-                      Reservasi Sesi
+                      Pilih Jadwal Sesi
                     </h2>
                   </div>
                   <Badge
@@ -567,7 +567,7 @@ export default function CounselorDetailClient({
                   </Badge>
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed pl-11">
-                  Konsultasi privat online via Meet/Zoom
+                  Ngobrol privat online via Zoom (90 Menit)
                 </p>
               </div>
 
@@ -575,7 +575,7 @@ export default function CounselorDetailClient({
                 {/* 1. Pilih Tanggal (Available Dates) */}
                 <div>
                   <div className="text-xs sm:text-sm font-semibold text-foreground flex items-center justify-between mb-3 leading-normal">
-                    <span>Tanggal Konseling</span>
+                    <span>Pilihan Tanggal</span>
                     <span className="text-xs text-muted-foreground font-normal leading-normal">
                       {availableDates.length} hari tersedia
                     </span>
@@ -682,7 +682,7 @@ export default function CounselorDetailClient({
                   </div>
 
                   <div className="pt-2.5 mt-0.5 border-t border-border/50 flex items-baseline justify-between leading-normal">
-                    <span className="text-xs sm:text-sm font-semibold text-foreground leading-normal">Total Investasi:</span>
+                    <span className="text-xs sm:text-sm font-semibold text-foreground leading-normal">Total Biaya Sesi:</span>
                     <strong className="text-xl font-heading font-bold text-foreground tabular-nums leading-none">
                       {counselor.pricing.displayPriceFormatted}
                     </strong>
@@ -701,8 +701,8 @@ export default function CounselorDetailClient({
                 >
                   <span>
                     {settings.isScreeningRequired
-                      ? "Lanjut ke Skrining Singkat"
-                      : "Lanjut ke Reservasi Pasien"}
+                      ? "Lanjut ke Cek Mandiri"
+                      : "Lanjut Isi Data Sesi"}
                   </span>
                   <ArrowRight data-icon="inline-end" aria-hidden="true" />
                 </Button>
@@ -717,11 +717,11 @@ export default function CounselorDetailClient({
                 <div className="pt-1 flex flex-col gap-2 text-xs text-muted-foreground">
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 className="size-4 text-emerald-600/90 dark:text-emerald-400 shrink-0 mt-0.5" />
-                    <span className="leading-relaxed">Garansi reschedule fleksibel hingga 4 jam sebelum sesi.</span>
+                    <span className="leading-relaxed">Bisa atur ulang jadwal (reschedule) maksimal 4 jam sebelum sesi.</span>
                   </div>
                   <div className="flex items-start gap-2.5">
                     <ShieldCheck className="size-4 text-purple-600/90 dark:text-purple-400 shrink-0 mt-0.5" />
-                    <span className="leading-relaxed">Pembayaran aman via QRIS, Virtual Account, &amp; E-Wallet.</span>
+                    <span className="leading-relaxed">Pembayaran mudah via QRIS, Virtual Account, atau Dompet Digital.</span>
                   </div>
                 </div>
 
@@ -734,7 +734,7 @@ export default function CounselorDetailClient({
                     rel="noopener noreferrer"
                     className="font-semibold text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-0.5 leading-relaxed"
                   >
-                    <span>Chat Admin</span>
+                    <span>Tanya Admin</span>
                     <ChevronRight className="size-3" />
                   </a>
                 </div>
@@ -766,7 +766,7 @@ export default function CounselorDetailClient({
           }}
           className="rounded-full px-5 font-medium text-xs cursor-pointer shadow-xs"
         >
-          <span>{selectedSlot ? "Lanjut Reservasi" : "Pilih Jadwal Sesi"}</span>
+          <span>{selectedSlot ? "Lanjut Isi Data" : "Pilih Jadwal Sesi"}</span>
           <ArrowRight data-icon="inline-end" aria-hidden="true" />
         </Button>
       </div>

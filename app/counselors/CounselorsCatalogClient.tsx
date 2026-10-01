@@ -60,13 +60,13 @@ const DEFAULT_FALLBACK_PORTRAITS: Record<string, string> = {
 
 // Curated popular mental health topics for fast 1-click discovery
 const POPULAR_TOPICS = [
-  "Kecemasan (Anxiety)",
-  "Depresi",
-  "Burnout Karir",
+  "Kecemasan",
+  "Overthinking",
+  "Burnout",
   "Quarter-life Crisis",
   "Relasi Asmara",
+  "Keluarga",
   "Trauma",
-  "Overthinking",
 ]
 
 function formatSlotChipDate(dateStr: string, tomorrowStr: string, dayAfterStr: string): string {
@@ -227,15 +227,15 @@ export default function CounselorsCatalogClient({
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center gap-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-purple-100/80 dark:bg-purple-900/40 border border-purple-200/60 dark:border-purple-800/40 text-xs font-semibold text-purple-700 dark:text-purple-300">
             <Sparkles className="size-3.5 text-purple-600 dark:text-purple-400" aria-hidden="true" />
-            <span>Katalog Mitra Terverifikasi #CeritaDiSolulu</span>
+            <span>Pilihan Konselor Terverifikasi Solulu</span>
           </div>
 
           <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.15] text-balance">
-            Temukan Mitra Konselor &amp; Jadwal Sesi
+            Temukan Konselor yang Cocok Buatmu
           </h1>
 
           <p className="text-sm sm:text-base text-muted-foreground max-w-2xl leading-relaxed text-pretty">
-            Konsultasi privat 90 menit via Zoom dengan psikolog klinis berizin resmi atau konselor sebaya tersertifikasi. Tanpa registrasi akun, 100% terjaga kerahasiaannya.
+            Sesi ngobrol privat 90 menit via Zoom bareng Psikolog Klinis Berizin Resmi atau Teman Cerita Terlatih. Bebas cerita tanpa takut dihakimi, bisa langsung pilih jadwal tanpa ribet bikin akun.
           </p>
 
           {/* 3 Core Trust Signals */}
@@ -262,7 +262,7 @@ export default function CounselorsCatalogClient({
               className="text-xs text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400 font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer px-3 py-1 rounded-full hover:bg-purple-50 dark:hover:bg-purple-950/40 border border-transparent hover:border-purple-200/50"
             >
               <HelpCircle className="size-3.5 text-purple-500" aria-hidden="true" />
-              <span>Bingung memilih Konselor Sebaya vs Psikolog Klinis?</span>
+              <span>Masih bingung bedanya Konselor Sebaya dan Psikolog Klinis?</span>
               <ChevronRight className="size-3 opacity-70" aria-hidden="true" />
             </button>
           </div>
@@ -278,12 +278,12 @@ export default function CounselorsCatalogClient({
               <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <div className="flex flex-col gap-0.5">
                 <span className="font-semibold text-emerald-950 dark:text-emerald-200">
-                  Hasil skrining SRQ-20 Anda tersimpan
+                  Hasil cek kondisi emosionalmu sudah tersimpan
                 </span>
                 <span className="text-muted-foreground">
                   {initialRecommendedType && (
                     <>
-                      Rekomendasi kebutuhan:{" "}
+                      Rekomendasi untukmu:{" "}
                       <strong className="text-foreground">
                         {initialRecommendedType === "psychologist"
                           ? "Psikolog Klinis"
@@ -292,13 +292,13 @@ export default function CounselorsCatalogClient({
                       .{" "}
                     </>
                   )}
-                  Data skrining akan otomatis dilampirkan ke konselor saat Anda memilih jadwal.
+                  Catatan ini akan otomatis diteruskan ke konselormu saat kamu memilih jadwal.
                 </span>
               </div>
             </div>
             <Button asChild variant="outline" size="sm" className="h-8 text-xs shrink-0 rounded-full">
               <Link href={`/screening?screeningId=${initialScreeningId}`}>
-                Lihat Hasil Evaluasi
+                Lihat Hasil Cek Mandiri
               </Link>
             </Button>
           </div>
@@ -319,7 +319,7 @@ export default function CounselorsCatalogClient({
               <Input
                 id="search-counselor-input"
                 type="text"
-                placeholder="Cari psikolog, topik masalah (anxiety, burnout, overthinking, relasi), atau keahlian..."
+                placeholder="Cari nama konselor, topik masalah (cemas, kerjaan, asmara, minder), atau keahlian..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-11 pr-10 text-xs sm:text-sm h-11 sm:h-12 rounded-full border-border/80 bg-background/90 shadow-2xs focus-visible:border-purple-500 focus-visible:ring-purple-500/20"
@@ -370,7 +370,7 @@ export default function CounselorsCatalogClient({
             <div className="lg:col-span-7 flex flex-col gap-2">
               <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                 <Layers className="size-3.5 text-purple-600 dark:text-purple-400" />
-                <span>Jenis Mitra Konseling:</span>
+                <span>Pilihan Konseling:</span>
               </span>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -383,7 +383,7 @@ export default function CounselorsCatalogClient({
                       : "bg-secondary hover:bg-secondary/80 text-foreground border border-border/60"
                   }`}
                 >
-                  <span>Semua Mitra</span>
+                  <span>Semua</span>
                   <span className="tabular-nums opacity-85">({counselors.length})</span>
                 </button>
 
@@ -486,7 +486,7 @@ export default function CounselorsCatalogClient({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-muted-foreground font-medium">
                 Menampilkan <strong className="text-foreground tabular-nums">{filteredCounselors.length}</strong> dari{" "}
-                <span className="tabular-nums">{counselors.length}</span> mitra konselor
+                <span className="tabular-nums">{counselors.length}</span> konselor
               </span>
 
               {isFiltered && (
@@ -549,7 +549,7 @@ export default function CounselorsCatalogClient({
 
             <span className="hidden sm:inline-flex items-center gap-1.5 text-muted-foreground font-medium text-xs">
               <Clock className="size-3.5 text-purple-600 dark:text-purple-400" />
-              <span>Sesi 90 menit penuh via Zoom privat</span>
+              <span>Sesi 90 menit privat via Zoom</span>
             </span>
           </div>
         </section>
@@ -561,10 +561,10 @@ export default function CounselorsCatalogClient({
               <Search className="size-6" />
             </div>
             <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground text-balance">
-              Tidak Ada Mitra yang Cocok
+              Belum Ada Konselor yang Cocok
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-md leading-relaxed text-pretty">
-              Tidak ditemukan mitra konselor dengan kriteria filter saat ini. Coba pilih &ldquo;Kapan Saja&rdquo; atau reset kata kunci pencarian untuk melihat semua jadwal mitra.
+              Belum ada konselor yang pas dengan pilihan filtermu saat ini. Coba pilih &ldquo;Kapan Saja&rdquo; atau reset kata kunci pencarian untuk melihat semua jadwal yang ada.
             </p>
             <div className="flex items-center gap-2 pt-1">
               <Button
@@ -689,7 +689,7 @@ export default function CounselorsCatalogClient({
                         />
                       </div>
                       <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 line-clamp-1">
-                        {counselor.role || (isPsychologist ? "Psikolog Klinis Berizin Resmi" : "Konselor Sebaya (Partner Cerita)")}
+                        {counselor.role || (isPsychologist ? "Psikolog Klinis Berizin Resmi" : "Konselor Sebaya (Teman Cerita)")}
                       </p>
                       <p className="text-xs text-muted-foreground line-clamp-1">
                         {counselor.education || counselor.title}
@@ -731,13 +731,13 @@ export default function CounselorsCatalogClient({
                           <span>Pilihan Jadwal (90 Menit):</span>
                         </span>
                         <span className="text-xs font-normal text-muted-foreground tabular-nums">
-                          {counselor.availableSlots.length} slot terbuka
+                          {counselor.availableSlots.length} slot tersedia
                         </span>
                       </div>
 
                       {!hasSlots ? (
                         <div className="p-3 rounded-xl bg-muted/30 border border-dashed border-border/70 text-center text-xs text-muted-foreground min-h-[92px] flex items-center justify-center">
-                          Belum ada slot pada tanggal ini
+                          Belum ada jadwal di tanggal ini
                         </div>
                       ) : (
                         <div className="flex flex-col gap-2 min-h-[92px]">
@@ -766,7 +766,7 @@ export default function CounselorsCatalogClient({
                               href={`/counselors/${counselor.id}`}
                               className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline text-center py-0.5 transition-colors cursor-pointer"
                             >
-                              +{counselor.availableSlots.length - 2} jadwal lainnya tersedia
+                              +{counselor.availableSlots.length - 2} pilihan jadwal lainnya
                             </Link>
                           ) : (
                             <div className="h-5" aria-hidden="true" />
@@ -819,7 +819,7 @@ export default function CounselorsCatalogClient({
                       }}
                     >
                       <span>
-                        {hasSlots ? "Pilih Jadwal Konseling" : "Jadwal Sedang Penuh"}
+                        {hasSlots ? "Pilih Jadwal Sesi" : "Jadwal Sedang Penuh"}
                       </span>
                       <ArrowRight data-icon="inline-end" aria-hidden="true" />
                     </Button>
@@ -834,7 +834,7 @@ export default function CounselorsCatalogClient({
                     >
                       <Link href={`/counselors/${counselor.id}`}>
                         <UserCheck data-icon="inline-start" aria-hidden="true" />
-                        <span>Lihat Detail Lengkap Konselor</span>
+                        <span>Lihat Profil Lengkap</span>
                       </Link>
                     </Button>
                   </CardFooter>
@@ -857,7 +857,7 @@ export default function CounselorsCatalogClient({
               <span>Profil Lengkap Konselor</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Informasi lisensi klinis, latar belakang pendidikan, spesialisasi, dan pendekatan konseling.
+              Informasi izin praktik resmi, latar belakang pendidikan, spesialisasi, dan pendekatan konseling.
             </DialogDescription>
           </DialogHeader>
 
@@ -914,7 +914,7 @@ export default function CounselorsCatalogClient({
                   <div>
                     <div className="text-[11px] text-muted-foreground">Rating Klien</div>
                     <div className="font-semibold text-foreground">
-                      {selectedBioCounselor.rating || "4.9"} / 5.0 (Puas)
+                      {selectedBioCounselor.rating || "4.9"} / 5.0 (Ulasan Klien)
                     </div>
                   </div>
                 </div>
@@ -924,7 +924,7 @@ export default function CounselorsCatalogClient({
               <div className="flex flex-col gap-1.5 text-xs">
                 <span className="font-bold text-foreground flex items-center gap-1.5">
                   <GraduationCap className="size-3.5 text-purple-600 dark:text-purple-400" />
-                  <span>Tentang &amp; Pendekatan Konseling:</span>
+                  <span>Tentang &amp; Pendekatan Sesi:</span>
                 </span>
                 <p className="text-muted-foreground leading-relaxed text-pretty bg-background p-3.5 rounded-xl border border-border/60">
                   {selectedBioCounselor.bio}
@@ -933,7 +933,7 @@ export default function CounselorsCatalogClient({
 
               {/* Focus Areas */}
               <div className="flex flex-col gap-2 text-xs">
-                <span className="font-bold text-foreground">Fokus Topik / Spesialisasi:</span>
+                <span className="font-bold text-foreground">Fokus Masalah &amp; Spesialisasi:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {selectedBioCounselor.specializations.map((spec) => (
                     <span
@@ -951,16 +951,16 @@ export default function CounselorsCatalogClient({
                 <span className="font-bold text-foreground flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <CalendarDays className="size-3.5 text-purple-600 dark:text-purple-400" />
-                    <span>Jadwal Praktik Tersedia (90 Menit):</span>
+                    <span>Jadwal Tersedia (90 Menit):</span>
                   </span>
                   <span className="text-muted-foreground font-normal tabular-nums">
-                    {selectedBioCounselor.availableSlots.length} slot terbuka
+                    {selectedBioCounselor.availableSlots.length} slot tersedia
                   </span>
                 </span>
 
                 {selectedBioCounselor.availableSlots.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic p-3 bg-muted/20 rounded-xl text-center">
-                    Belum ada slot terbuka untuk mitra ini saat ini.
+                    Belum ada jadwal terbuka untuk konselor ini saat ini.
                   </p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
@@ -992,7 +992,7 @@ export default function CounselorsCatalogClient({
 
               {/* Pricing Notice */}
               <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Tarif Resmi Sesi (90 Menit):</span>
+                <span className="text-muted-foreground">Biaya Sesi (90 Menit):</span>
                 <strong className="text-foreground font-heading font-bold text-sm sm:text-base tabular-nums">
                   {selectedBioCounselor.pricing.displayPriceFormatted}
                 </strong>
@@ -1005,7 +1005,7 @@ export default function CounselorsCatalogClient({
                   onClick={() => setSelectedBioCounselor(null)}
                   className="w-full sm:w-auto h-9 px-4 text-xs font-semibold rounded-full cursor-pointer"
                 >
-                  Tutup Profil
+                  Tutup
                 </Button>
                 {selectedBioCounselor.availableSlots.length > 0 && (
                   <Button
@@ -1021,7 +1021,7 @@ export default function CounselorsCatalogClient({
                     }}
                     className="w-full sm:w-auto h-9 px-4 text-xs font-semibold rounded-full cursor-pointer"
                   >
-                    <span>Pilih Jadwal Konseling</span>
+                    <span>Pilih Jadwal Sesi</span>
                     <ArrowRight data-icon="inline-end" aria-hidden="true" />
                   </Button>
                 )}
@@ -1040,10 +1040,10 @@ export default function CounselorsCatalogClient({
           <DialogHeader>
             <DialogTitle className="font-heading text-base font-bold flex items-center gap-2 text-balance">
               <CheckCircle2 className="size-4.5 text-purple-600 dark:text-purple-400" />
-              <span>Konfirmasi Pilihan Jadwal Konseling</span>
+              <span>Konfirmasi Pilihan Jadwal</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground pt-1 text-pretty">
-              Jadwal yang Anda pilih diamankan selama 15 menit agar tidak diambil pengguna lain selama pengisian formulir.
+              Jadwal yang kamu pilih kami amankan selama 15 menit selagi kamu melengkapi data pemesanan.
             </DialogDescription>
           </DialogHeader>
 
@@ -1096,7 +1096,7 @@ export default function CounselorsCatalogClient({
               <div className="flex items-start gap-2.5 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-900 dark:text-emerald-300 text-xs">
                 <ShieldCheck className="size-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
                 <span className="text-pretty">
-                  Ruang Zoom Pro privat otomatis dialokasikan ke email Anda setelah pembayaran. Identitas Anda 100% terjaga dan tanpa perlu membuat akun.
+                  Tautan Zoom privat otomatis dikirimkan ke emailmu setelah pembayaran. Ceritamu 100% aman dan rahasia, tanpa perlu ribet bikin akun.
                 </span>
               </div>
 
@@ -1107,8 +1107,8 @@ export default function CounselorsCatalogClient({
                     <Sparkles className="size-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
                     <span className="text-pretty">
                       {isScreeningRequired
-                        ? "Skrining SRQ-20 diwajibkan sebelum menyelesaikan booking."
-                        : "Ingin memberi gambaran emosional sebelum konseling?"}
+                        ? "Cek kondisi emosional diwajibkan sebelum menyelesaikan pemesanan."
+                        : "Mau beri gambaran perasaanmu sebelum sesi dimulai?"}
                     </span>
                   </div>
                   {!isScreeningRequired && (
@@ -1121,7 +1121,7 @@ export default function CounselorsCatalogClient({
                       <Link
                         href={`/screening?counselorId=${selectedSlotModal?.counselor.id}&scheduleId=${selectedSlotModal?.slot.id}`}
                       >
-                        Isi Skrining SRQ-20 Dulu
+                        Isi Cek Mandiri Dulu
                       </Link>
                     </Button>
                   )}
@@ -1150,7 +1150,7 @@ export default function CounselorsCatalogClient({
                 <Link
                   href={`/screening?counselorId=${selectedSlotModal?.counselor.id}&scheduleId=${selectedSlotModal?.slot.id}`}
                 >
-                  <span>Lanjut ke Skrining (Wajib)</span>
+                  <span>Lanjut ke Cek Mandiri (Wajib)</span>
                   <ArrowRight data-icon="inline-end" />
                 </Link>
               </Button>
@@ -1166,7 +1166,7 @@ export default function CounselorsCatalogClient({
                     initialScreeningId ? `&screeningId=${initialScreeningId}` : ""
                   }`}
                 >
-                  <span>Lanjut ke Formulir Pasien</span>
+                  <span>Lanjut Isi Data Sesi</span>
                   <ArrowRight data-icon="inline-end" />
                 </Link>
               </Button>
@@ -1184,7 +1184,7 @@ export default function CounselorsCatalogClient({
               <span>Konselor Sebaya vs Psikolog Klinis</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground pt-1">
-              Pilih mitra yang paling sesuai dengan kebutuhan emosional dan kondisi Anda saat ini.
+              Keduanya siap mendengarkan tanpa menghakimi. Pilih yang paling sesuai dengan kebutuhanmu saat ini.
             </DialogDescription>
           </DialogHeader>
 
@@ -1194,17 +1194,17 @@ export default function CounselorsCatalogClient({
               <div className="flex items-center justify-between">
                 <span className="font-heading font-bold text-sm text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-blue-500" />
-                  Konselor Sebaya (Partner Cerita)
+                  Konselor Sebaya (Teman Cerita)
                 </span>
-                <span className="font-bold text-foreground tabular-nums">Mulai Rp 35.000 / 90 mnt</span>
+                <span className="font-bold text-foreground tabular-nums">Rp 85.000 / 90 mnt</span>
               </div>
               <p className="text-muted-foreground leading-relaxed text-pretty">
-                Lulusan sarjana psikologi (S.Psi) yang tersertifikasi dalam peer counseling. Cocok untuk Anda yang butuh teman bicara suportif tanpa penghakiman untuk:
+                Lulusan sarjana psikologi terlatih. Cocok banget buat kamu yang butuh teman ngobrol suportif tanpa dihakimi untuk:
               </p>
               <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                <li>Curhat masalah relasi, pertemanan, dan keluarga</li>
-                <li>Stres kuliah, skripsi, atau adaptasi dunia kerja baru</li>
-                <li>Overthinking ringan dan quarter-life crisis</li>
+                <li>Curhat masalah hubungan, pertemanan, dan keluarga</li>
+                <li>Stres kuliah, skripsi, atau adaptasi di dunia kerja baru</li>
+                <li>Overthinking ringan dan rasa bimbang usia 20-an</li>
                 <li>Validasi emosi dan mencari sudut pandang segar</li>
               </ul>
             </div>
@@ -1216,16 +1216,16 @@ export default function CounselorsCatalogClient({
                   <span className="size-2 rounded-full bg-purple-500" />
                   Psikolog Klinis Berizin Resmi
                 </span>
-                <span className="font-bold text-foreground tabular-nums">Rp 150.000 / 90 mnt</span>
+                <span className="font-bold text-foreground tabular-nums">Rp 130.000 / 90 mnt</span>
               </div>
               <p className="text-muted-foreground leading-relaxed text-pretty">
-                Magister Psikologi Profesi (M.Psi., Psikolog) dengan Surat Tanda Registrasi (STR) aktif dari Kemenkes. Wajib dipilih untuk:
+                Magister Psikologi Profesi dengan izin praktik resmi Kemenkes. Tepat dipilih jika kamu menghadapi:
               </p>
               <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                <li>Gejala kecemasan akut, panik, dan depresi berkepanjangan</li>
-                <li>Pemulihan trauma masa lalu dan duka mendalam</li>
-                <li>Burnout parah yang mengganggu fungsi keseharian</li>
-                <li>Intervensi klinis terstruktur (CBT, ACT, Regulasi Emosi)</li>
+                <li>Rasa cemas intens, serangan panik, dan kesedihan berkepanjangan</li>
+                <li>Pemulihan trauma masa lalu dan rasa duka mendalam</li>
+                <li>Kelelahan mental berat (burnout) yang mengganggu aktivitas sehari-hari</li>
+                <li>Pendampingan terstruktur dengan metode psikologi profesional</li>
               </ul>
             </div>
           </div>

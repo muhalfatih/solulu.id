@@ -27,13 +27,13 @@ export default function GlobalError({
 
         <div className="flex flex-col gap-2">
           <Badge variant="outline" className="w-fit mx-auto text-xs font-mono text-destructive border-destructive/20 bg-destructive/5">
-            500 • Kendala Sistem
+            500 • Kendala Teknis
           </Badge>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Mohon Maaf, Terjadi Sedikit Kendala
+            Ada Sedikit Kendala
           </h1>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Sistem kami sedang mengalami gangguan sementara saat memproses permintaan Anda. Kami telah mencatat kendala ini agar segera ditangani tim teknis.
+            Sistem kami sempat mengalami gangguan saat memuat halaman ini. Jangan khawatir, kamu bisa coba muat ulang atau kembali ke beranda.
           </p>
         </div>
 
@@ -49,14 +49,14 @@ export default function GlobalError({
           <Button asChild variant="outline" className="h-10 text-xs font-medium gap-2 w-full">
             <Link href="/">
               <Home className="size-3.5" />
-              <span>Kembali ke Halaman Utama</span>
+              <span>Kembali ke Beranda</span>
             </Link>
           </Button>
 
           <Button asChild variant="ghost" className="h-9 text-xs text-muted-foreground hover:text-foreground gap-2 w-full">
             <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer">
               <MessageSquare className="size-3.5" />
-              <span>Hubungi Bantuan Helpdesk WhatsApp</span>
+              <span>Hubungi Bantuan di WhatsApp</span>
             </a>
           </Button>
         </div>

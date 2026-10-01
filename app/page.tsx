@@ -28,9 +28,9 @@ import { PublicShell } from "@/components/public/public-shell"
 import { FaqAccordion } from "@/components/public/FaqAccordion"
 
 export const metadata = {
-  title: "Solulu | Ruang Konseling Online Mental Health & Self Care",
+  title: "Solulu | Ruang Konseling Online & Kesehatan Jiwa",
   description:
-    "Ruang aman dan privat untuk konseling online bersama psikolog klinis berizin resmi dan konselor sebaya. Durasi penuh 90 menit, 100% rahasia tanpa wajib membuat akun.",
+    "Ruang aman dan privat untuk konseling bersama psikolog klinis berizin resmi dan teman cerita terlatih. Durasi 90 menit penuh, rahasia, tanpa perlu membuat akun.",
 }
 
 const HERO_COUNSELORS = [
@@ -56,22 +56,22 @@ const TRUST_PILLARS = [
   {
     icon: Clock,
     title: "90 Menit Penuh",
-    desc: "Sesi lega & mendalam",
+    desc: "Sesi lega, nggak buru-buru",
   },
   {
     icon: ShieldCheck,
     title: "100% Rahasia",
-    desc: "Bebas nama samaran",
+    desc: "Boleh pakai nama samaran",
   },
   {
     icon: Users,
     title: "Mitra Berizin",
-    desc: "Psikolog & konselor",
+    desc: "Psikolog & konselor resmi",
   },
   {
     icon: Calendar,
-    title: "Tanpa Buat Akun",
-    desc: "Pilih jadwal langsung",
+    title: "Tanpa Bikin Akun",
+    desc: "Tinggal pilih jadwal langsung",
   },
 ]
 
@@ -81,8 +81,8 @@ const FEATURED_COUNSELORS = [
     name: "Sarah Annisa, M.Psi",
     role: "Psikolog Klinis Berizin Resmi",
     type: "psychologist" as const,
-    education: "S2 Psikologi Klinis • Izin Kemenkes",
-    specializations: ["Kecemasan (Anxiety)", "Trauma", "Burnout Karir"],
+    education: "S2 Profesi Psikologi • Izin Kementerian Kesehatan",
+    specializations: ["Kecemasan Berlebih", "Pemulihan Trauma", "Kejenuhan Kerja"],
     rate: "Rp 130.000",
     avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=600",
     rating: "4.9",
@@ -92,10 +92,10 @@ const FEATURED_COUNSELORS = [
   {
     id: "c-2",
     name: "Rian Hidayat, S.Psi",
-    role: "Konselor Sebaya (Partner Cerita)",
+    role: "Konselor Sebaya (Teman Cerita Terlatih)",
     type: "peer" as const,
-    education: "Sarjana Psikologi (S.Psi) • Fasilitator",
-    specializations: ["Quarter-life Crisis", "Stres Kuliah & Kerja", "Relasi Asmara"],
+    education: "Sarjana Psikologi • Pendamping Sebaya",
+    specializations: ["Bimbang Arah Masa Depan", "Stres Kuliah & Kerja", "Hubungan Asmara"],
     rate: "Rp 85.000",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600",
     rating: "4.8",
@@ -107,8 +107,8 @@ const FEATURED_COUNSELORS = [
     name: "Dr. Nadia Larasati, M.Psi",
     role: "Psikolog Klinis Berizin Resmi",
     type: "psychologist" as const,
-    education: "Doktor & S2 Psikologi • Izin Kemenkes",
-    specializations: ["Depresi Ringan-Sedang", "Insecurity", "Penerimaan Diri"],
+    education: "Doktor & Magister Psikologi • Izin Kementerian Kesehatan",
+    specializations: ["Gejala Depresi", "Rasa Kurang Percaya Diri", "Penerimaan Diri"],
     rate: "Rp 130.000",
     avatar: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&q=80&w=600",
     rating: "5.0",
@@ -119,34 +119,34 @@ const FEATURED_COUNSELORS = [
 
 const TOPIC_CATEGORIES = [
   {
-    category: "Stres & Tekanan Hidup",
-    topics: ["Overthinking & Cemas", "Burnout Kerja & Akademik", "Homesick & Adaptasi Rantau", "Regulasi Emosi"],
+    category: "Tekanan & Beban Pikiran",
+    topics: ["Pikiran Nggak Tenang & Cemas", "Capek Kuliah & Kerja", "Kangen Rumah & Susah Adaptasi", "Susah Kelola Emosi"],
   },
   {
-    category: "Relasi & Identitas Diri",
-    topics: ["Quarter-life Crisis", "Konflik Hubungan & Asmara", "Insecurity & Self-Esteem", "Duka & Kehilangan"],
+    category: "Hubungan & Diri Sendiri",
+    topics: ["Bingung Arah Hidup Usia 20-an", "Masalah Hubungan Asmara", "Sering Ngerasa Kurang PD", "Duka & Kehilangan"],
   },
 ]
 
 const CORE_PILLARS = [
   {
     title: "Durasi Penuh 90 Menit",
-    desc: "Bukan sesi 45 menit yang terburu-buru. Kami memberi ruang bernapas yang cukup untuk mendengarkan ceritamu secara utuh hingga ke akar masalah.",
+    desc: "Bukan sesi 45 menit yang serba buru-buru. Kamu punya waktu cukup buat cerita sampai tuntas dan cari jalan keluar bareng.",
     icon: Clock,
   },
   {
-    title: "100% Rahasia & Anonim",
-    desc: "Privasimu terlindungi penuh. Bebas menggunakan nama samaran pada sesi Zoom privat tanpa rekaman sistem, patuh UU PDP No. 27/2022.",
+    title: "100% Rahasia & Aman",
+    desc: "Privasimu nomor satu. Bebas pakai nama samaran di panggilan video privat tanpa rekaman sistem, aman sesuai aturan perlindungan data pribadi.",
     icon: Lock,
   },
   {
-    title: "Mendengar Tanpa Menghakimi",
-    desc: "Ruang yang aman, tenang, dan setara. Apa pun ceritamu, tidak ada hal yang salah, berlebihan, atau sepele untuk didiskusikan bersama.",
+    title: "Didengar Tanpa Dihakimi",
+    desc: "Ruang yang tenang dan setara. Apa pun ceritamu, nggak ada hal yang salah, berlebihan, atau sepele buat diobrolin bersama.",
     icon: Heart,
   },
   {
-    title: "Rencana Pemulihan Konkret",
-    desc: "Bukan sekadar tempat curhat. Konselor membantumu memetakan pola pikir dan merumuskan rencana aksi pemulihan yang realistis.",
+    title: "Bukan Sekadar Curhat",
+    desc: "Konselor bakal bantu kamu mengurai benang kusut di kepala dan nemuin langkah kecil yang realistis buat dijalani sehari-hari.",
     icon: Sparkles,
   },
 ]
@@ -154,75 +154,75 @@ const CORE_PILLARS = [
 const TESTIMONIALS = [
   {
     author: "Mahasiswa, 21 tahun",
-    topic: "Kecemasan Studi",
+    topic: "Kecemasan Kuliah & Ujian",
     counselor: "Sarah Annisa, M.Psi",
-    quote: "Awalnya ragu mau cerita karena takut dinilai berlebihan. Konselornya sangat menenangkan sejak menit awal, dan durasi 90 menit benar-benar melegakan tanpa rasa terburu-buru.",
+    quote: "Awalnya sempat ragu mau cerita karena takut dinilai lebay. Tapi konselornya sangat menenangkan sejak menit awal, dan durasi 90 menit beneran bikin lega tanpa rasa diburu-buru.",
   },
   {
     author: "Karyawan Swasta, 26 tahun",
-    topic: "Quarter-life Crisis & Burnout",
+    topic: "Capek Kerja & Bingung Arah",
     counselor: "Rian Hidayat, S.Psi",
-    quote: "Burnout kerja sempat membuat saya buntu arah. Melalui sesi ini, beban di kepala pelan-pelan diurai menjadi langkah konkret yang realistis untuk langsung diterapkan.",
+    quote: "Tekanan kerja sempat bikin kepala buntu banget. Lewat sesi ini, beban pikiran pelan-pelan diurai jadi langkah nyata yang masuk akal buat langsung saya jalanin.",
   },
   {
-    author: "Fresh Graduate, 23 tahun",
-    topic: "Regulasi Emosi & Overthinking",
+    author: "Lulusan Baru Kuliah, 23 tahun",
+    topic: "Pikiran Cemas & Berputar",
     counselor: "Dr. Nadia Larasati, M.Psi",
-    quote: "Konselingnya terarah dan menenangkan. Kami melatih teknik grounding yang langsung membantu saat kecemasan tiba-tiba muncul di malam hari.",
+    quote: "Konselingnya terarah dan bikin adem. Kami latihan cara menenangkan diri yang langsung ngebantu waktu rasa cemas tiba-tiba muncul di malam hari.",
   },
 ]
 
 const FAQS = [
   {
-    question: "Apa perbedaan antara Konselor Sebaya dan Psikolog Klinis?",
+    question: "Apa bedanya Konselor Sebaya dan Psikolog Klinis?",
     answer:
-      "Konselor Sebaya adalah Sarjana Psikologi (S.Psi) terlatih yang memberikan pendampingan suportif untuk stres harian, quarter-life crisis, burnout kuliah atau kerja, dan ruang curhat hangat. Sementara Psikolog Klinis adalah lulusan Magister Profesi Psikologi yang memegang izin praktik resmi dari Kemenkes untuk memberikan pendampingan klinis mendalam (seperti kecemasan berlebih, depresi, trauma, dan evaluasi emosi klinis).",
+      "Konselor Sebaya adalah Sarjana Psikologi terlatih yang siap mendampingi stres harian, rasa jenuh belajar atau bekerja, kebingungan arah hidup usia muda, serta jadi teman curhat yang aman dan suportif. Sementara Psikolog Klinis adalah tenaga profesional berizin resmi (Surat Tanda Registrasi dari Kementerian Kesehatan) untuk membantu penanganan keluhan emosional yang lebih mendalam, seperti cemas berlebih, depresi, pemulihan trauma masa lalu, hingga evaluasi kesehatan psikologis.",
   },
   {
     question: "Berapa lama durasi satu sesi konseling di Solulu?",
     answer:
-      "Setiap sesi berlangsung 90 menit penuh via tautan Zoom Meeting privat. Durasi 90 menit memberi ruang yang lega untuk bercerita tanpa terburu-buru, mengurai akar masalah secara mendalam, dan merumuskan rencana aksi pemulihan yang konkret.",
+      "Setiap sesi berlangsung selama 90 menit penuh lewat panggilan video privat (Zoom). Durasi 90 menit memberi waktu yang cukup buat bercerita tanpa terburu-buru, menemukan akar persoalan, dan menyusun langkah pemulihan bareng konselor.",
   },
   {
-    question: "Apakah saya harus membuat akun atau menginstal aplikasi khusus?",
+    question: "Apakah saya harus bikin akun atau download aplikasi khusus?",
     answer:
-      "Tidak perlu. Solulu menerapkan sistem pemesanan langsung tanpa akun (guest booking). Anda cukup memilih konselor dan jadwal yang cocok, memasukkan nama (boleh nama panggilan atau inisial), nomor WhatsApp, dan email. Tautan Zoom privat dapat diakses langsung dari peramban ponsel maupun laptop Anda.",
+      "Nggak perlu sama sekali. Kamu bisa langsung pesan jadwal tanpa harus registrasi akun. Cukup pilih konselor dan jadwal yang cocok, lalu isi nama (boleh nama panggilan atau samaran), nomor WhatsApp, dan email. Tautan sesi privatnya bisa langsung dibuka lewat peramban di HP maupun laptop.",
   },
   {
-    question: "Bagaimana jika saya berhalangan hadir pada jam yang dijadwalkan?",
+    question: "Gimana kalau saya berhalangan hadir pada jam yang dijadwalkan?",
     answer:
-      "Anda dapat mengajukan perubahan jadwal (reschedule) secara mandiri melalui tautan sesi Anda hingga minimal 12 jam sebelum sesi dimulai, agar waktu konselor dapat dialokasikan kembali secara adil.",
+      "Kamu bisa mengajukan ganti jadwal secara mandiri lewat tautan sesimu selambat-lambatnya 12 jam sebelum sesi dimulai, biar waktu konselor bisa dialihkan dengan baik bagi yang membutuhkan.",
   },
   {
-    question: "Bagaimana Solulu menjamin kerahasiaan data dan cerita saya?",
+    question: "Bagaimana Solulu menjaga kerahasiaan cerita dan data pribadi saya?",
     answer:
-      "Kerahasiaan adalah prinsip utama kami. Anda bebas menggunakan nama samaran. Sesi Zoom privat tidak pernah direkam secara otomatis oleh sistem, dan seluruh data pribadi dilindungi secara ketat sesuai ketentuan UU PDP No. 27/2022.",
+      "Kerahasiaan adalah komitmen utama kami. Kamu bebas pakai nama samaran. Sesi panggilan video bersifat privat tanpa rekaman sistem, dan seluruh datamu dilindungi ketat sesuai Undang-Undang Pelindungan Data Pribadi (UU PDP No. 27 Tahun 2022).",
   },
 ]
 
 export default function HomePage() {
   return (
     <PublicShell>
-      {/* 1. Hero Section: Focused, Empathetic, Dignified */}
-      <section className="relative overflow-hidden pt-16 pb-20 sm:pt-20 sm:pb-24 border-b border-border/70 bg-radial from-purple-50/60 via-background to-background dark:from-purple-950/25 dark:via-background dark:to-background">
+      {/* 1. Hero Section: Focused, Empathetic, Contemporary */}
+      <section className="relative overflow-hidden pt-20 pb-24 sm:pt-28 sm:pb-32 border-b border-border/40 bg-radial-[at_50%_0%] from-purple-100/70 via-background to-background dark:from-purple-950/30 dark:via-background dark:to-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center gap-6 sm:gap-7">
-          {/* Subtle Trust Anchor */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-800 dark:text-purple-300 text-xs font-medium">
+          {/* Subtle Trust Anchor with subtle animation */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-800 dark:text-purple-300 text-xs font-medium shadow-2xs animate-float-subtle">
             <span className="size-2 rounded-full bg-purple-600 dark:bg-purple-400 animate-pulse" aria-hidden="true" />
-            <span>Sesi Privat 90 Menit • Langsung Pesan Tanpa Perlu Akun</span>
+            <span>Sesi Santai 90 Menit • Langsung Pesan Tanpa Perlu Bikin Akun</span>
           </div>
 
-          {/* Natural Typographic Headline */}
-          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.15] text-balance">
-            Saatnya didengarkan tanpa penghakiman.
+          {/* Simple, to-the-point, contemporary headline */}
+          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] font-bold tracking-tight text-foreground leading-[1.14] text-balance">
+            Cerita apa adanya, tanpa dihakimi.
             <span className="block mt-1 font-semibold text-purple-700 dark:text-purple-400">
-              Ruang aman untuk mengurai ceritamu.
+              Ruang aman buat urai isi kepalamu.
             </span>
           </h1>
 
-          {/* Subtitle with optimal reading line-length */}
+          {/* Subtitle with friendly tone */}
           <p className="text-sm sm:text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl font-normal text-pretty">
-            Konseling online privat bersama <strong>Psikolog Klinis Berizin Resmi</strong> dan <strong>Teman Cerita Terlatih</strong>. Sesi lega 90 menit tanpa terburu-buru, langsung pilih jadwal tanpa repot bikin akun.
+            Ngobrol privat 90 menit bareng <strong>Psikolog Klinis Berizin Resmi</strong> atau <strong>Teman Cerita Terlatih</strong>. Sesi lebih lega tanpa diburu waktu, bisa langsung pilih jadwal tanpa ribet bikin akun.
           </p>
 
           {/* Actions & Social Proof */}
@@ -233,7 +233,7 @@ export default function HomePage() {
                 asChild
                 variant="public"
                 size="pill-lg"
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto shadow-sm shadow-purple-600/20 hover:shadow-md hover:shadow-purple-600/30 active:scale-[0.98] transition-all"
                 id="btn-hero-primary"
               >
                 <Link href="/counselors">
@@ -247,7 +247,7 @@ export default function HomePage() {
                 asChild
                 variant="public-secondary"
                 size="pill-lg"
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto active:scale-[0.98]"
                 id="btn-hero-secondary"
               >
                 <Link href="#harga">
@@ -260,7 +260,7 @@ export default function HomePage() {
             <div className="flex items-center justify-center gap-2.5 pt-1 text-xs text-muted-foreground">
               <div className="flex items-center -space-x-2">
                 {HERO_COUNSELORS.map((c, i) => (
-                  <Avatar key={i} className="size-7 border-2 border-background ring-1 ring-border/80 shadow-2xs">
+                  <Avatar key={i} className="size-7.5 border-2 border-background ring-1 ring-purple-500/20 shadow-xs">
                     <AvatarImage src={c.src} alt={c.name} />
                     <AvatarFallback className="text-[9px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
                       {c.name.slice(0, 2)}
@@ -269,26 +269,26 @@ export default function HomePage() {
                 ))}
               </div>
               <div className="flex items-center gap-1.5 font-medium text-foreground">
-                <div className="flex items-center text-amber-500" aria-label="Rating 4.9 dari 5 bintang">
+                <div className="flex items-center text-amber-500" aria-label="Penilaian 4.9 dari 5 bintang">
                   <Star className="size-3.5 fill-amber-400 text-amber-400" aria-hidden="true" />
                   <span className="tabular-nums font-bold ml-1 text-xs">4.9/5.0</span>
                 </div>
-                <span className="text-muted-foreground font-normal">dari 1.200+ sesi selesai</span>
+                <span className="text-muted-foreground font-normal">ulasan kepuasan sesi</span>
               </div>
             </div>
           </div>
 
-          {/* Structured Trust Grid: Balanced 4-card layout with top icon and zero awkward wrapping */}
-          <div className="w-full max-w-4xl pt-8 border-t border-border/60">
+          {/* Structured Trust Grid: Balanced 4-card layout with top icon and tactile hover */}
+          <div className="w-full max-w-4xl pt-10 border-t border-border/60">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-left items-stretch">
               {TRUST_PILLARS.map((item, idx) => {
                 const IconComp = item.icon
                 return (
                   <div
                     key={idx}
-                    className="p-3.5 sm:p-4 rounded-2xl bg-card/75 border border-border/80 shadow-2xs hover:border-purple-500/30 hover:shadow-xs transition-all flex flex-col gap-3 justify-between"
+                    className="p-4 sm:p-4.5 rounded-2xl bg-card/85 backdrop-blur-xs border border-border/80 shadow-2xs hover:border-purple-500/40 hover:-translate-y-0.5 hover:shadow-xs transition-all duration-200 flex flex-col gap-3.5 justify-between"
                   >
-                    <div className="size-9 sm:size-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                    <div className="size-9.5 sm:size-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 ring-1 ring-purple-500/15">
                       <IconComp className="size-4.5 sm:size-5" aria-hidden="true" />
                     </div>
                     <div className="flex flex-col gap-0.5 flex-1 justify-end">
@@ -307,62 +307,172 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 2. Kenapa Memilih Solulu: Standardized py-16 sm:py-20 md:py-24 padding */}
-      <section id="tentang" className="py-16 sm:py-20 md:py-24 border-b border-border/70 scroll-mt-20">
+      {/* 2. Kenapa Memilih Solulu: Asymmetric Bento Grid (Section 11.D Lever 5) */}
+      <section id="tentang" className="py-20 sm:py-24 md:py-28 border-b border-border/40 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col gap-10 sm:gap-12">
-          <div className="text-center flex flex-col gap-2 max-w-xl mx-auto">
+          <div className="text-center flex flex-col gap-2.5 max-w-xl mx-auto">
             <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground text-balance">
-              Kenapa Memilih Solulu?
+              Kenapa Cerita di Solulu?
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
-              Pendampingan kesehatan mental yang berlandaskan rasa aman, empati penuh, dan kepastian privasi.
+              Pendampingan yang bikin kamu merasa aman, didengar seutuhnya, dan privasimu selalu terjaga.
             </p>
           </div>
 
-          {/* Balanced 4-Card Grid with uniform p-6 sm:p-7 padding */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 items-stretch">
-            {CORE_PILLARS.map((pillar, idx) => {
-              const IconComp = pillar.icon
-              return (
-                <div
-                  key={idx}
-                  className="p-6 sm:p-7 rounded-2xl border border-border/80 bg-card hover:border-purple-500/30 hover:shadow-xs transition-all flex flex-col gap-4"
-                >
-                  <div className="size-11 sm:size-12 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
-                    <IconComp className="size-5 sm:size-6" aria-hidden="true" />
+          {/* Asymmetric Bento Grid with rich visual rhythm and no empty cells */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 items-stretch">
+            {/* Bento Cell 1: 90 Minutes Hero Spotlight (Col-span 2 on Desktop) */}
+            <div className="md:col-span-2 p-7 sm:p-8 rounded-3xl border border-border/80 bg-gradient-to-br from-card via-card to-purple-500/[0.03] hover:border-purple-500/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-6 shadow-2xs">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="size-12 sm:size-13 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 ring-1 ring-purple-500/15">
+                    <Clock className="size-6" aria-hidden="true" />
                   </div>
-                  <div className="flex flex-col gap-2 flex-1">
-                    <h3 className="font-heading font-semibold text-lg sm:text-xl text-foreground tracking-tight text-balance">
-                      {pillar.title}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
-                      {pillar.desc}
-                    </p>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                    <Sparkles className="size-3 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+                    <span>Keunggulan Utama Solulu</span>
+                  </span>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-heading font-semibold text-lg sm:text-xl md:text-2xl text-foreground tracking-tight text-balance">
+                    Durasi 90 Menit Penuh
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-xl text-pretty">
+                    Bukan sesi 45 menit yang serba buru-buru. Kamu punya waktu cukup buat cerita sampai tuntas dan cari jalan keluar bareng.
+                  </p>
+                </div>
+              </div>
+
+              {/* Graphic Comparison Timeline */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-background/80 border border-border/60 flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground font-medium">Layanan Biasa (45-50 Menit)</span>
+                    <span className="text-muted-foreground text-[11px]">Terasa buru-buru</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
+                    <div className="w-1/2 h-full bg-muted-foreground/30 rounded-full" />
                   </div>
                 </div>
-              )
-            })}
+
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                      <span className="size-2 rounded-full bg-purple-600 dark:bg-purple-400 animate-pulse" />
+                      <span>Sesi di Solulu (90 Menit)</span>
+                    </span>
+                    <span className="font-semibold text-purple-700 dark:text-purple-300 text-[11px] tabular-nums">2x Lebih Lega</span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-purple-500/20 overflow-hidden">
+                    <div className="w-full h-full bg-gradient-to-r from-purple-600 to-indigo-500 rounded-full" />
+                  </div>
+                  <span className="text-[11px] text-muted-foreground pt-0.5">
+                    Cukup waktu buat cerita tuntas, urai isi kepala, sampai bikin rencana langkah nyata.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bento Cell 2: 100% Rahasia & Anonim (Col-span 1) */}
+            <div className="md:col-span-1 p-7 sm:p-8 rounded-3xl border border-border/80 bg-card hover:border-purple-500/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-5 shadow-2xs">
+              <div className="flex flex-col gap-4">
+                <div className="size-12 sm:size-13 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 ring-1 ring-purple-500/15">
+                  <Lock className="size-6" aria-hidden="true" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-heading font-semibold text-lg sm:text-xl text-foreground tracking-tight text-balance">
+                    100% Rahasia &amp; Aman
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
+                    Privasimu nomor satu. Bebas pakai nama samaran di panggilan video privat tanpa rekaman sistem, aman sesuai aturan perlindungan data pribadi.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 flex flex-wrap gap-2">
+                <span className="px-3 py-1 rounded-full text-[11px] font-medium bg-secondary text-foreground/80 border border-border/60">
+                  Tanpa Rekaman Sistem
+                </span>
+                <span className="px-3 py-1 rounded-full text-[11px] font-medium bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                  Sesuai UU Pelindungan Data Pribadi
+                </span>
+              </div>
+            </div>
+
+            {/* Bento Cell 3: Mendengar Tanpa Menghakimi (Col-span 1) */}
+            <div className="md:col-span-1 p-7 sm:p-8 rounded-3xl border border-border/80 bg-card hover:border-purple-500/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-5 shadow-2xs">
+              <div className="flex flex-col gap-4">
+                <div className="size-12 sm:size-13 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 ring-1 ring-purple-500/15">
+                  <Heart className="size-6" aria-hidden="true" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-heading font-semibold text-lg sm:text-xl text-foreground tracking-tight text-balance">
+                    Didengar Tanpa Dihakimi
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
+                    Ruang yang tenang dan setara. Apa pun ceritamu, nggak ada hal yang salah, berlebihan, atau sepele buat diobrolin bersama.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/40 text-xs text-muted-foreground italic leading-relaxed">
+                &ldquo;Semua perasaanmu itu valid dan berharga buat didengar.&rdquo;
+              </div>
+            </div>
+
+            {/* Bento Cell 4: Rencana Pemulihan Nyata (Col-span 2 on Desktop) */}
+            <div className="md:col-span-2 p-7 sm:p-8 rounded-3xl border border-border/80 bg-gradient-to-bl from-card via-card to-purple-500/[0.03] hover:border-purple-500/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-6 shadow-2xs">
+              <div className="flex flex-col gap-4">
+                <div className="size-12 sm:size-13 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 ring-1 ring-purple-500/15">
+                  <Sparkles className="size-6" aria-hidden="true" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-heading font-semibold text-lg sm:text-xl md:text-2xl text-foreground tracking-tight text-balance">
+                    Bukan Sekadar Curhat
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-xl text-pretty">
+                    Konselor bakal bantu kamu mengurai benang kusut di kepala dan nemuin langkah kecil yang realistis buat dijalani sehari-hari.
+                  </p>
+                </div>
+              </div>
+
+              {/* Actionable Steps Roadmap Chips */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                <div className="p-3 rounded-2xl bg-background/80 border border-border/60 flex items-center gap-2.5">
+                  <span className="size-6 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center justify-center shrink-0">1</span>
+                  <span className="text-xs font-medium text-foreground">Urai Pola Pikir</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-background/80 border border-border/60 flex items-center gap-2.5">
+                  <span className="size-6 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center justify-center shrink-0">2</span>
+                  <span className="text-xs font-medium text-foreground">Latihan Tenangkan Diri</span>
+                </div>
+                <div className="p-3 rounded-2xl bg-background/80 border border-border/60 flex items-center gap-2.5">
+                  <span className="size-6 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center justify-center shrink-0">3</span>
+                  <span className="text-xs font-medium text-foreground">Langkah Kecil yang Nyata</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 3. Topik yang Sering Dikonsultasikan: Standardized py-16 sm:py-20 md:py-24 padding */}
-      <section id="layanan" className="py-16 sm:py-20 md:py-24 border-b border-border/70 bg-muted/20 scroll-mt-20">
+      {/* 3. Topik yang Sering Dikonsultasikan: Standardized py-20 sm:py-24 md:py-28 padding */}
+      <section id="layanan" className="py-20 sm:py-24 md:py-28 border-b border-border/40 bg-muted/25 scroll-mt-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col gap-8 text-center items-center">
-          <div className="flex flex-col gap-2 max-w-xl">
+          <div className="flex flex-col gap-2.5 max-w-xl">
             <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground text-balance">
-              Topik yang Sering Didiskusikan
+              Cerita yang Sering Dibawa ke Sesi
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
-              Bawa cerita apa pun yang sedang memenuhi pikiranmu. Tidak ada masalah yang terlalu sepele atau tidak berharga untuk didengarkan.
+              Bawa apa pun yang lagi mengganjal di pikiranmu. Nggak ada masalah yang terlalu kecil atau memalukan buat diobrolin.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4.5 w-full text-left">
             {TOPIC_CATEGORIES.map((cat, idx) => (
               <div
                 key={idx}
-                className="p-6 rounded-2xl bg-card border border-border/80 flex flex-col gap-3.5 shadow-2xs"
+                className="p-7 sm:p-8 rounded-2xl bg-card border border-border/80 flex flex-col gap-4 shadow-2xs hover:border-purple-500/30 transition-all duration-200"
               >
                 <div className="flex items-center gap-2">
                   <span className="size-2 rounded-full bg-purple-600" aria-hidden="true" />
@@ -370,11 +480,11 @@ export default function HomePage() {
                     {cat.category}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 pt-0.5">
                   {cat.topics.map((t, tIdx) => (
                     <span
                       key={tIdx}
-                      className="px-3.5 py-1.5 rounded-full bg-secondary/80 border border-border/60 text-xs font-medium text-foreground/90"
+                      className="px-3.5 py-1.5 rounded-full bg-secondary/80 hover:bg-purple-500/10 hover:text-purple-700 dark:hover:text-purple-300 border border-border/60 text-xs font-medium text-foreground/90 transition-colors cursor-default"
                     >
                       {t}
                     </span>
@@ -384,34 +494,34 @@ export default function HomePage() {
             ))}
           </div>
 
-          <p className="text-xs text-muted-foreground text-center">
-            Punya topik lain di luar daftar di atas? Seluruh konselor kami siap mendampingi kebutuhan unikmu.
+          <p className="text-xs text-muted-foreground text-center pt-1">
+            Punya unek-unek lain di luar topik di atas? Konselor kami siap mendengarkan cerita unikmu.
           </p>
         </div>
       </section>
 
-      {/* 4. Pilihan Layanan & Biaya (Pricing): Balanced card proportions, zero badge wrapping, pixel-perfect alignment */}
-      <section id="harga" className="py-16 sm:py-20 md:py-24 border-b border-border/70 scroll-mt-20">
+      {/* 4. Pilihan Layanan & Biaya (Pricing): Balanced card proportions, tactile hover lift */}
+      <section id="harga" className="py-20 sm:py-24 md:py-28 border-b border-border/40 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col gap-10 sm:gap-12">
           <div className="text-center flex flex-col items-center gap-2.5 max-w-xl mx-auto">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 whitespace-nowrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 whitespace-nowrap shadow-2xs">
               <Sparkles className="size-3.5 text-purple-600 dark:text-purple-400" aria-hidden="true" />
-              <span>Biaya Flat &amp; Transparan</span>
+              <span>Biaya Pasti &amp; Transparan</span>
             </span>
             <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground text-balance">
               Pilihan Layanan &amp; Biaya
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
-              Tarif flat transparan mencakup 90 menit penuh tanpa biaya pendaftaran, biaya admin, atau biaya tersembunyi.
+              Tarif pasti dan transparan untuk 90 menit penuh, tanpa biaya pendaftaran atau biaya tambahan tersembunyi.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-stretch pt-6 sm:pt-7 max-w-4xl mx-auto w-full">
             {/* Tier 1: Konseling Sebaya */}
-            <Card className="relative border border-border/80 shadow-xs flex flex-col justify-between rounded-2xl bg-card hover:border-purple-500/40 hover:shadow-sm transition-all">
+            <Card className="relative border border-border/80 shadow-xs flex flex-col justify-between rounded-2xl bg-card hover:border-purple-500/40 hover:shadow-sm hover:-translate-y-1 transition-all duration-200">
               <CardHeader className="p-6 sm:p-7 pb-4 sm:pb-5">
                 <div className="flex items-start gap-3.5 mb-4">
-                  <div className="size-11 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0">
+                  <div className="size-11 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0 ring-1 ring-purple-500/15">
                     <HeartHandshake className="size-5" aria-hidden="true" />
                   </div>
                   <div className="flex flex-col gap-0.5">
@@ -419,7 +529,7 @@ export default function HomePage() {
                       Konseling Sebaya
                     </CardTitle>
                     <CardDescription className="text-xs sm:text-sm text-muted-foreground">
-                      Partner Refleksi &amp; Dengar Aktif (S.Psi Terlatih)
+                      Teman Cerita &amp; Pendengar Aktif (Sarjana Psikologi Terlatih)
                     </CardDescription>
                   </div>
                 </div>
@@ -432,7 +542,7 @@ export default function HomePage() {
                     <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap"> / 90 menit</span>
                   </div>
                   <div className="h-5 flex items-center">
-                    <span className="text-xs text-muted-foreground">1 sesi privat tanpa komitmen paket</span>
+                    <span className="text-xs text-muted-foreground">1 sesi privat tanpa perlu beli paket langganan</span>
                   </div>
                 </div>
               </CardHeader>
@@ -445,22 +555,22 @@ export default function HomePage() {
                   </li>
                   <li className="flex items-start gap-2.5">
                     <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
-                    <span>Mendengarkan aktif dengan ruang empati hangat</span>
+                    <span>Mendengarkan dengan hangat, tanpa menghakimi</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
-                    <span>Refleksi diri &amp; pemetaan emosi yang terarah</span>
+                    <span>Bantu petakan perasaan dan pikiran yang lagi kusut</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
-                    <span>Ruang Zoom privat tanpa rekaman otomatis</span>
+                    <span>Panggilan Zoom privat tanpa rekaman otomatis</span>
                   </li>
                 </ul>
 
                 <div className="mt-auto pt-4 border-t border-border/60">
                   <div className="rounded-xl bg-muted/40 p-3.5 text-xs sm:text-sm text-foreground/80 leading-relaxed border border-border/40 min-h-[76px] flex flex-col justify-center">
                     <div>
-                      <strong className="text-foreground">Cocok untuk:</strong> Stres harian, butuh ruang curhat aman, quarter-life crisis, &amp; adaptasi baru.
+                      <strong className="text-foreground">Cocok buat kamu yang:</strong> Lagi stres sehari-hari, butuh teman curhat yang aman, bingung arah masa depan, atau lagi penyesuaian di tempat baru.
                     </div>
                   </div>
                 </div>
@@ -471,7 +581,7 @@ export default function HomePage() {
                   asChild
                   variant="public-secondary"
                   size="pill"
-                  className="w-full"
+                  className="w-full active:scale-[0.98]"
                   id="btn-pricing-peer"
                 >
                   <Link href="/counselors?type=peer">
@@ -483,11 +593,11 @@ export default function HomePage() {
             </Card>
 
             {/* Tier 2: Psikolog Klinis (Featured Flagship) */}
-            <Card className="relative border-2 border-purple-600 dark:border-purple-400 shadow-md flex flex-col justify-between rounded-2xl bg-card overflow-visible">
+            <Card className="relative border-2 border-purple-600 dark:border-purple-400 shadow-[0_12px_36px_-10px_rgba(124,58,237,0.18)] dark:shadow-[0_12px_36px_-10px_rgba(124,58,237,0.3)] hover:-translate-y-1.5 transition-all duration-200 flex flex-col justify-between rounded-2xl bg-card overflow-visible">
               {/* Floating Pill Badge: whitespace-nowrap and solid contrast */}
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-purple-600 text-white shadow-sm ring-1 ring-purple-600/30 whitespace-nowrap inline-flex items-center gap-1.5 z-10">
                 <Sparkles className="size-3 text-purple-200" aria-hidden="true" />
-                <span>Rekomendasi Klinis</span>
+                <span>Rekomendasi Tenaga Profesional</span>
               </div>
 
               <CardHeader className="p-6 sm:p-7 pb-4 sm:pb-5">
@@ -513,7 +623,7 @@ export default function HomePage() {
                     <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap"> / 90 menit</span>
                   </div>
                   <div className="h-5 flex items-center">
-                    <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">1 sesi intensif standar klinis Kemenkes</span>
+                    <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">1 sesi mendalam bersama psikolog berizin Kementerian Kesehatan</span>
                   </div>
                 </div>
               </CardHeader>
@@ -526,22 +636,22 @@ export default function HomePage() {
                   </li>
                   <li className="flex items-start gap-2.5">
                     <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
-                    <span>Izin resmi psikolog klinis dari Kemenkes</span>
+                    <span>Izin resmi praktik dari Kementerian Kesehatan</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
-                    <span>Metode klinis teruji (CBT, ACT &amp; emosi)</span>
+                    <span>Metode terapi ilmiah untuk bantu pulihkan pikiran dan emosi</span>
                   </li>
                   <li className="flex items-start gap-2.5">
                     <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
-                    <span>Rencana penanganan &amp; aksi terstruktur</span>
+                    <span>Rencana langkah pemulihan yang bertahap dan terarah</span>
                   </li>
                 </ul>
 
                 <div className="mt-auto pt-4 border-t border-border/60">
                   <div className="rounded-xl bg-purple-500/10 p-3.5 text-xs sm:text-sm text-foreground/90 leading-relaxed border border-purple-500/20 min-h-[76px] flex flex-col justify-center">
                     <div>
-                      <strong className="text-purple-700 dark:text-purple-300">Cocok untuk:</strong> Kecemasan (anxiety), depresi, trauma mendalam, &amp; keluhan klinis.
+                      <strong className="text-purple-700 dark:text-purple-300">Cocok buat kamu yang:</strong> Merasa cemas berlebih, mood lama murung, punya luka masa lalu, atau ada keluhan yang mulai ganggu aktivitas harian.
                     </div>
                   </div>
                 </div>
@@ -552,7 +662,7 @@ export default function HomePage() {
                   asChild
                   variant="public"
                   size="pill"
-                  className="w-full"
+                  className="w-full shadow-sm shadow-purple-600/20 hover:shadow-md hover:shadow-purple-600/30 active:scale-[0.98] transition-all"
                   id="btn-pricing-psychologist"
                 >
                   <Link href="/counselors?type=psychologist">
@@ -566,8 +676,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 5. Mitra Konselor Berpengalaman: Standardized py-16 sm:py-20 md:py-24 & uniform card padding p-6 */}
-      <section id="partner" className="py-16 sm:py-20 md:py-24 border-b border-border/70 bg-muted/20 scroll-mt-20">
+      {/* 5. Mitra Konselor Berpengalaman: Standardized py-20 sm:py-24 md:py-28 & uniform card padding p-6 */}
+      <section id="partner" className="py-20 sm:py-24 md:py-28 border-b border-border/40 bg-muted/25 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col gap-8 sm:gap-10">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="flex flex-col gap-1.5 max-w-lg">
@@ -575,7 +685,7 @@ export default function HomePage() {
                 Mitra Konselor Berpengalaman
               </h2>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
-                Seluruh mitra terverifikasi ijazah profesi dan izin praktik resmi Kemenkes untuk menjamin kenyamanan sesi Anda.
+                Semua konselor kami sudah diverifikasi ijazah profesi dan izin resminya dari Kementerian Kesehatan, jadi kamu bisa ngobrol dengan tenang dan nyaman.
               </p>
             </div>
 
@@ -584,7 +694,7 @@ export default function HomePage() {
               asChild
               variant="public-secondary"
               size="pill-sm"
-              className="shrink-0"
+              className="shrink-0 active:scale-[0.98]"
               id="btn-counselors-all"
             >
               <Link href="/counselors">
@@ -598,7 +708,7 @@ export default function HomePage() {
             {FEATURED_COUNSELORS.map((c) => (
               <Card
                 key={c.id}
-                className="group p-0 py-0 gap-0 ring-0 border border-border/80 shadow-xs hover:border-purple-500/40 hover:shadow-md transition-all flex flex-col justify-between rounded-2xl bg-card overflow-hidden"
+                className="group p-0 py-0 gap-0 ring-0 border border-border/80 shadow-xs hover:border-purple-500/40 hover:shadow-md hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between rounded-2xl bg-card overflow-hidden"
                 style={{ paddingTop: 0 }}
               >
                 {/* 1. Top Cover / Portrait Photo (Flush to card top, no empty padding) */}
@@ -609,7 +719,7 @@ export default function HomePage() {
                     width={600}
                     height={450}
                     loading="lazy"
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover object-center group-hover:scale-[1.04] transition-transform duration-500 ease-out"
                   />
                   {/* Subtle Gradient Vignette at bottom of image for depth */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
@@ -675,7 +785,7 @@ export default function HomePage() {
 
                   {/* Rate / Fee Row */}
                   <div className="pt-3.5 mt-auto border-t border-border/60 flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground font-medium">Tarif sesi (90 mnt):</span>
+                    <span className="text-xs text-muted-foreground font-medium">Tarif per sesi (90 menit):</span>
                     <strong className="text-foreground font-heading font-bold text-base sm:text-lg tabular-nums">
                       {c.rate}
                     </strong>
@@ -688,7 +798,7 @@ export default function HomePage() {
                     asChild
                     variant="public"
                     size="pill"
-                    className="w-full"
+                    className="w-full shadow-2xs hover:shadow active:scale-[0.98] transition-all"
                     id={`btn-counselor-${c.id}`}
                   >
                     <Link href={`/counselors?id=${c.id}`}>
@@ -703,15 +813,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 6. Pengalaman Klien di Solulu: Standardized py-16 sm:py-20 md:py-24 & uniform card padding p-6 */}
-      <section id="testimoni" className="py-16 sm:py-20 md:py-24 border-b border-border/70 scroll-mt-20">
+      {/* 6. Pengalaman Klien di Solulu: Standardized py-20 sm:py-24 md:py-28 & uniform card padding p-6 */}
+      <section id="testimoni" className="py-20 sm:py-24 md:py-28 border-b border-border/40 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col gap-10">
           <div className="text-center flex flex-col gap-2 max-w-lg mx-auto">
             <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground text-balance">
-              Pengalaman Klien di Solulu
+              Cerita Mereka yang Pernah Konseling
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
-              Cerita nyata dari klien yang telah menyelesaikan sesi (identitas disamarkan demi menjaga privasi).
+              Cerita jujur dari klien yang sudah mencoba sesi (nama dan identitas disamarkan demi menjaga privasi).
             </p>
           </div>
 
@@ -719,7 +829,7 @@ export default function HomePage() {
             {TESTIMONIALS.map((t, idx) => (
               <div
                 key={idx}
-                className="p-6 rounded-2xl bg-card border border-border/80 flex flex-col justify-between gap-3.5 shadow-2xs"
+                className="p-7 rounded-2xl bg-card border border-border/80 flex flex-col justify-between gap-4 shadow-2xs hover:border-purple-500/35 hover:-translate-y-1 hover:shadow-sm transition-all duration-200"
               >
                 {/* 1. Header with purple indicator dot & Rating */}
                 <div className="flex items-center justify-between gap-2">
@@ -761,15 +871,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 7. Pertanyaan yang Sering Diajukan: Standardized py-16 sm:py-20 md:py-24 & uniform padding p-6 */}
-      <section id="faq" className="py-16 sm:py-20 md:py-24 border-b border-border/70 bg-muted/20 scroll-mt-20">
+      {/* 7. Pertanyaan yang Sering Diajukan: Standardized py-20 sm:py-24 md:py-28 & uniform padding p-6 */}
+      <section id="faq" className="py-20 sm:py-24 md:py-28 border-b border-border/40 bg-muted/25 scroll-mt-20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 flex flex-col gap-8">
           <div className="text-center flex flex-col gap-2">
             <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground text-balance">
-              Pertanyaan yang Sering Diajukan
+              Pertanyaan yang Sering Ditanyakan
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground text-pretty">
-              Informasi lengkap seputar mekanisme konseling, jadwal, dan kepastian privasi Anda.
+              Biar kamu makin yakin, ini jawaban seputar cara konseling, pemilihan jadwal, dan privasimu.
             </p>
           </div>
 
@@ -778,34 +888,34 @@ export default function HomePage() {
           {/* Quick Support Callout */}
           <div className="text-center pt-2">
             <p className="text-xs text-muted-foreground">
-              Masih punya pertanyaan lain sebelum memesan?{" "}
+              Masih punya pertanyaan sebelum memesan jadwal?{" "}
               <a
                 href="https://wa.me/6285144909949?text=Halo%20Solulu!%20Saya%20ingin%20tanya%20tentang%20sesi%20konseling."
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-purple-600 dark:text-purple-400 font-semibold underline underline-offset-4 hover:opacity-80"
+                className="text-purple-600 dark:text-purple-400 font-semibold underline underline-offset-4 hover:opacity-80 transition-opacity"
               >
-                Tanya langsung via WhatsApp kami
+                Tanya langsung lewat WhatsApp kami
               </a>
             </p>
           </div>
         </div>
       </section>
 
-      {/* 8. Call To Action Banner: Standardized py-16 sm:py-20 md:py-24 & size="pill-lg" (48px) */}
-      <section id="privasi" className="py-16 sm:py-20 md:py-24 border-b border-border/70 bg-background scroll-mt-20">
+      {/* 8. Call To Action Banner: Standardized py-20 sm:py-24 md:py-28 & size="pill-lg" (48px) */}
+      <section id="privasi" className="py-20 sm:py-24 md:py-28 border-b border-border/40 bg-background scroll-mt-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="rounded-3xl bg-radial from-purple-900 via-purple-950 to-slate-950 text-white p-8 sm:p-12 md:p-14 text-center flex flex-col items-center gap-6 shadow-xl relative overflow-hidden border border-purple-800/40">
-            <div className="size-12 rounded-2xl bg-white/10 flex items-center justify-center text-purple-200">
+          <div className="rounded-3xl bg-radial-[at_50%_0%] from-purple-800 via-purple-950 to-slate-950 text-white p-10 sm:p-14 md:p-16 text-center flex flex-col items-center gap-6 shadow-xl relative overflow-hidden border border-purple-700/40">
+            <div className="size-13 rounded-2xl bg-white/10 flex items-center justify-center text-purple-200 ring-1 ring-white/15">
               <Heart className="size-6 fill-purple-300/30 text-purple-200" aria-hidden="true" />
             </div>
 
-            <div className="flex flex-col gap-2 max-w-xl">
+            <div className="flex flex-col gap-2.5 max-w-xl">
               <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight leading-tight text-balance">
-                Siap Memulai Ruang Ceritamu?
+                Siap Buat Lebih Lega Hari Ini?
               </h2>
               <p className="text-xs sm:text-sm text-purple-100/90 leading-relaxed font-normal text-pretty">
-                Kamu tidak perlu menunggu masalah menumpuk untuk mencari teman bicara. Pilih konselor dan jadwal yang paling nyaman untukmu hari ini.
+                Kamu nggak perlu nunggu masalah numpuk sampai kewalahan buat cari teman bicara. Pilih konselor dan jadwal yang paling nyaman buatmu sekarang.
               </p>
             </div>
 
@@ -814,6 +924,7 @@ export default function HomePage() {
               asChild
               variant="public-white"
               size="pill-lg"
+              className="shadow-md hover:shadow-lg active:scale-[0.98] transition-all"
               id="btn-footer-cta"
             >
               <Link href="/counselors">
@@ -822,14 +933,14 @@ export default function HomePage() {
               </Link>
             </Button>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[11px] text-purple-200/80 font-medium tabular-nums pt-1 border-t border-white/10 w-full max-w-lg">
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[11px] text-purple-200/80 font-medium tabular-nums pt-2 border-t border-white/10 w-full max-w-lg">
               <span>90 Menit Penuh</span>
               <span>•</span>
-              <span>Zoom Privat Tanpa Rekaman</span>
+              <span>Panggilan Video Privat Tanpa Rekaman</span>
               <span>•</span>
               <span>100% Rahasia</span>
               <span>•</span>
-              <span>Tanpa Akun</span>
+              <span>Tanpa Perlu Bikin Akun</span>
             </div>
           </div>
         </div>

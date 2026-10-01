@@ -17,9 +17,9 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { PublicShell } from "@/components/public/public-shell"
 
 export const metadata = {
-  title: "Biaya & Paket Layanan Telekonseling | Solulu",
+  title: "Biaya & Pilihan Layanan Konseling | Solulu",
   description:
-    "Transparansi biaya telekonseling 90 menit bersama Psikolog Klinis dan Konselor Sebaya di Solulu. Tanpa biaya tersembunyi, opsi bayar QRIS & Virtual Account.",
+    "Biaya transparan konseling 90 menit bareng Psikolog Klinis dan Konselor Sebaya di Solulu. Tanpa biaya tersembunyi, bayar mudah via QRIS & Virtual Account.",
 }
 
 export default function PublicPricingPage() {
@@ -30,15 +30,15 @@ export default function PublicPricingPage() {
         <section className="flex flex-col items-center text-center gap-5 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-xs font-semibold shadow-2xs">
             <Sparkles className="size-3.5 text-purple-600 dark:text-purple-400" />
-            <span>Biaya Layanan Terbuka &amp; Terjangkau #CeritaDiSolulu</span>
+            <span>Biaya Terbuka &amp; Ramah di Kantong #CeritaDiSolulu</span>
           </div>
 
           <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.15] text-balance">
-            Transparansi Biaya Konseling Tanpa Biaya Tersembunyi
+            Biaya Jelas, Tanpa Biaya Tersembunyi
           </h1>
 
           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed text-pretty max-w-2xl">
-            Setiap sesi telekonseling berdurasi penuh <strong className="text-foreground font-semibold">90 menit</strong> via Zoom privat, memberikan waktu yang cukup bagi Anda untuk mengurai masalah dan merumuskan langkah pemulihan nyata.
+            Setiap sesi konseling berlangsung penuh <strong className="text-foreground font-semibold">90 menit</strong> lewat panggilan video privat. Waktunya cukup panjang buat kamu cerita sampai tuntas dan nemuin langkah nyata ke depan.
           </p>
 
           {/* Quick Value Pillars */}
@@ -49,11 +49,11 @@ export default function PublicPricingPage() {
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/80 border border-border/70 text-foreground/90 font-medium shadow-2xs">
               <ShieldCheck className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span>100% Rahasia &amp; Anonim</span>
+              <span>100% Rahasia &amp; Boleh Pakai Nama Samaran</span>
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/80 border border-border/70 text-foreground/90 font-medium shadow-2xs">
               <QrCode className="size-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
-              <span>QRIS &amp; VA Instan</span>
+              <span>Bayar Cepat via QRIS &amp; VA</span>
             </span>
           </div>
         </section>
@@ -74,10 +74,10 @@ export default function PublicPricingPage() {
                 </span>
               </div>
               <CardTitle className="font-heading text-2xl sm:text-3xl font-bold pt-1 text-foreground">
-                Konselor Sebaya
+                Konseling Sebaya
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm font-normal text-muted-foreground text-pretty leading-relaxed pt-1">
-                Didampingi lulusan Sarjana Psikologi (S.Psi) bersertifikasi untuk mendampingi stres harian, quarter-life crisis, &amp; tempat curhat aman.
+                Didampingi Sarjana Psikologi (S.Psi) terlatih buat bantu urai stres sehari-hari, rasa bimbang di usia 20-an, atau sekadar jadi teman curhat yang aman.
               </CardDescription>
             </CardHeader>
 
@@ -89,12 +89,12 @@ export default function PublicPricingPage() {
                     Rp 85.000
                   </span>
                   <span className="text-xs text-muted-foreground font-medium tabular-nums">
-                    / sesi (90 mnt)
+                    / sesi (90 menit)
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <span className="text-muted-foreground text-xs">
-                    Tarif resmi tetap tanpa komitmen paket berkepanjangan
+                    Tarif tetap tanpa harus langganan paket
                   </span>
                 </div>
               </div>
@@ -104,25 +104,25 @@ export default function PublicPricingPage() {
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
                   <span className="text-foreground/90 font-medium text-pretty leading-relaxed">
-                    Pendampingan suportif dengan menyimak aktif dan penerimaan tanpa stigma
+                    Pendampingan hangat, mendengarkan aktif tanpa rasa takut dihakimi
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
                   <span className="text-pretty leading-relaxed">
-                    Eksplorasi masalah stres akademik, skripsi, karier baru, dan dinamika asmara
+                    Cocok buat urusan kuliah, skripsi, adaptasi kerja baru, dan masalah asmara
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
                   <span className="text-pretty leading-relaxed">
-                    Latihan regulasi emosi dasar, pernapasan diafragma, &amp; journaling terarah
+                    Latihan tenangkan diri, olah napas sederhana, dan cara urai emosi
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
                   <span className="text-pretty leading-relaxed">
-                    Ruang Zoom privat 1-on-1 dengan kerahasiaan identitas 100% terjaga
+                    Ruang Zoom privat satu-lawan-satu dengan privasi 100% aman
                   </span>
                 </div>
               </div>
@@ -150,7 +150,7 @@ export default function PublicPricingPage() {
               <div className="flex items-center justify-between mb-3.5">
                 <span className="inline-flex items-center gap-1.5 h-7 px-3.5 rounded-full bg-[#7c3aed] text-white text-xs font-semibold shadow-xs">
                   <Sparkles className="size-3" />
-                  <span>Rekomendasi Klinis</span>
+                  <span>Rekomendasi Tenaga Profesional</span>
                 </span>
                 <span className="h-7 px-2.5 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 text-xs font-semibold border border-purple-500/20 inline-flex items-center gap-1.5 tabular-nums">
                   <Clock className="size-3.5 text-purple-600 dark:text-purple-400" />
@@ -161,7 +161,7 @@ export default function PublicPricingPage() {
                 Psikolog Klinis
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm font-normal text-muted-foreground text-pretty leading-relaxed pt-1">
-                Didampingi Magister Psikologi Profesi (M.Psi., Psikolog) berizin resmi STR Kemenkes untuk intervensi klinis terstruktur.
+                Didampingi Magister Psikologi Profesi (M.Psi., Psikolog) berizin resmi Kementerian Kesehatan buat penanganan emosional yang lebih mendalam.
               </CardDescription>
             </CardHeader>
 
@@ -173,12 +173,12 @@ export default function PublicPricingPage() {
                     Rp 130.000
                   </span>
                   <span className="text-xs text-muted-foreground font-medium tabular-nums">
-                    / sesi (90 mnt)
+                    / sesi (90 menit)
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <span className="text-muted-foreground text-xs">
-                    Tarif resmi tetap tanpa biaya admin tersembunyi
+                    Tarif resmi tetap tanpa biaya admin tambahan
                   </span>
                 </div>
               </div>
@@ -188,25 +188,25 @@ export default function PublicPricingPage() {
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
                   <span className="text-foreground font-semibold text-pretty leading-relaxed">
-                    Pemeriksaan klinis awal &amp; pemetaan mendalam akar keluhan psikologis
+                    Pemetaan mendalam terhadap akar masalah dan keluhan yang kamu rasakan
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
                   <span className="text-pretty leading-relaxed">
-                    Intervensi berbasis bukti ilmiah: CBT, ACT, DBT, dan Mindfulness klinis
+                    Pendekatan terapi ilmiah buat bantu pulihkan pikiran dan emosi
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
                   <span className="text-pretty leading-relaxed">
-                    Penanganan kecemasan akut, panic attack, depresi berkepanjangan, &amp; trauma
+                    Penanganan rasa cemas berlebih, serangan panik, depresi, dan trauma
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
                   <span className="text-pretty leading-relaxed">
-                    Rencana pemulihan personal (*action plan*) &amp; lembar catatan evaluasi sesi
+                    Rencana langkah pemulihan terarah dan catatan evaluasi sesi buat panduanmu
                   </span>
                 </div>
               </div>
@@ -229,21 +229,20 @@ export default function PublicPricingPage() {
           </Card>
         </section>
 
-
         {/* 4. Payment Methods Supported */}
         <section className="p-7 sm:p-8 rounded-2xl border border-border/80 bg-card shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6 max-w-4xl mx-auto w-full">
           <div className="flex flex-col gap-2 max-w-md">
             <span className="font-heading font-bold text-base sm:text-lg text-foreground flex items-center gap-2.5">
               <CreditCard className="size-5 text-purple-600 dark:text-purple-400 shrink-0" />
-              <span>Metode Pembayaran Otomatis &amp; Instan</span>
+              <span>Pilihan Pembayaran Cepat &amp; Otomatis</span>
             </span>
             <p className="text-xs sm:text-sm text-muted-foreground text-pretty leading-relaxed">
-              Dukungan pembayaran digital instan dengan verifikasi otomatis 24 jam melalui QRIS, Virtual Account bank nasional, atau Transfer Manual.
+              Bisa bayar instan kapan saja selama 24 jam lewat QRIS (semua e-wallet dan m-banking), Virtual Account bank nasional, atau transfer manual.
             </p>
             <div className="flex items-center gap-3 pt-1 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <Lock className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Enkripsi 256-bit</span>
+                <span>Enkripsi Aman 256-bit</span>
               </span>
               <span>•</span>
               <span className="inline-flex items-center gap-1">
@@ -283,7 +282,7 @@ export default function PublicPricingPage() {
               Pertanyaan Seputar Biaya Layanan
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground text-pretty">
-              Informasi transparan mengenai voucher diskon, reschedule, jaminan privasi, dan komitmen sesi.
+              Informasi jelas seputar voucer diskon, ganti jadwal, jaminan privasi, dan kepastian sesi.
             </p>
           </div>
 
@@ -291,30 +290,30 @@ export default function PublicPricingPage() {
             <div className="p-6 rounded-2xl border border-border/80 bg-card shadow-2xs hover:border-purple-500/30 transition-colors flex flex-col gap-2">
               <span className="font-heading font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
                 <HelpCircle className="size-4 text-purple-600 dark:text-purple-400 shrink-0" />
-                <span>Apakah saya bisa menggunakan kode voucher diskon?</span>
+                <span>Apakah saya bisa menggunakan kode voucer diskon?</span>
               </span>
               <p className="text-muted-foreground text-pretty pl-6 leading-relaxed">
-                Ya! Jika Anda memiliki kode promosi, voucer komunitas, atau kerja sama kampus/organisasi, Anda dapat memasukkannya pada halaman ringkasan reservasi (*checkout*). Diskon akan otomatis memotong total biaya sesi sebelum pembayaran.
+                Bisa banget! Kalau kamu punya kode promo, voucer komunitas, atau kerja sama kampus, kamu tinggal masukkan kodenya saat mengisi data pemesanan. Potongan harga bakal otomatis memotong total biaya sebelum pembayaran.
               </p>
             </div>
 
             <div className="p-6 rounded-2xl border border-border/80 bg-card shadow-2xs hover:border-purple-500/30 transition-colors flex flex-col gap-2">
               <span className="font-heading font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
                 <CalendarCheck className="size-4 text-purple-600 dark:text-purple-400 shrink-0" />
-                <span>Bagaimana jika saya berhalangan hadir pada jam yang dijadwalkan?</span>
+                <span>Bagaimana kalau saya berhalangan hadir pada jam yang dijadwalkan?</span>
               </span>
               <p className="text-muted-foreground text-pretty pl-6 leading-relaxed">
-                Anda dapat mengajukan perubahan jadwal (*reschedule*) secara gratis maksimal 1 kali, asalkan diajukan minimal 12 jam sebelum sesi dimulai (Aturan H-12). Hal ini diperlukan demi menghormati alokasi waktu dan jadwal kerja mitra konselor kami.
+                Kamu bisa mengajukan ganti jadwal secara gratis maksimal 1 kali, asalkan diajukan paling lambat 12 jam sebelum sesi dimulai. Ini penting biar jadwal konselor kami bisa dialokasikan dengan baik buat yang membutuhkan.
               </p>
             </div>
 
             <div className="p-6 rounded-2xl border border-border/80 bg-card shadow-2xs hover:border-purple-500/30 transition-colors flex flex-col gap-2">
               <span className="font-heading font-bold text-sm sm:text-base text-foreground flex items-center gap-2">
                 <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>Apakah ada jaminan bila konselor berhalangan hadir?</span>
+                <span>Apakah ada jaminan kalau konselor mendadak berhalangan?</span>
               </span>
               <p className="text-muted-foreground text-pretty pl-6 leading-relaxed">
-                Tentu. Apabila mitra konselor berhalangan karena kondisi darurat medis atau tak terduga, tim Solulu akan segera menawarkan opsi pergantian jadwal prioritas di waktu terdekat atau pengembalian dana 100% tanpa potongan.
+                Tentu ada. Kalau konselor mendadak berhalangan karena kondisi darurat, tim Solulu bakal langsung nawarin pilihan jadwal prioritas pengganti di waktu terdekat atau pengembalian dana 100% tanpa potongan apa pun.
               </p>
             </div>
 
@@ -324,7 +323,7 @@ export default function PublicPricingPage() {
                 <span>Bagaimana tautan sesi Zoom dikirimkan setelah pembayaran?</span>
               </span>
               <p className="text-muted-foreground text-pretty pl-6 leading-relaxed">
-                Sistem Solulu mengalokasikan tautan Zoom Pro privat secara instan ke email Anda begitu pembayaran terkonfirmasi. Anda juga dapat mengecek tautan sesi kapan saja melalui menu &ldquo;Cek Sesi&rdquo; hanya dengan memasukkan alamat email Anda.
+                Tautan Zoom privat bakal otomatis dikirimkan ke email kamu segera setelah pembayaran terkonfirmasi. Kamu juga bisa mengecek tautan sesimu kapan saja lewat menu &ldquo;Cek Sesi&rdquo; cukup dengan memasukkan alamat email yang terdaftar.
               </p>
             </div>
           </div>
@@ -337,7 +336,7 @@ export default function PublicPricingPage() {
               Siap Memulai Cerita Tanpa Ragu?
             </h3>
             <p className="text-xs sm:text-sm text-purple-100 max-w-lg leading-relaxed text-pretty">
-              Temukan mitra konselor yang tepat dan amankan jadwal konsultasi privat Anda hari ini. 100% terjaga kerahasiaannya tanpa registrasi akun yang rumit.
+              Temukan konselor yang cocok dan amankan jadwalmu hari ini. 100% terjaga kerahasiaannya tanpa perlu ribet registrasi akun.
             </p>
           </div>
           <Button
@@ -345,7 +344,7 @@ export default function PublicPricingPage() {
             className="h-11 px-6 text-sm font-semibold rounded-full bg-white text-purple-950 hover:bg-purple-50 shadow-sm shrink-0 cursor-pointer flex items-center gap-2"
           >
             <Link href="/counselors">
-              <span>Pilih Mitra Konselor</span>
+              <span>Pilih Konselor Sekarang</span>
               <ArrowRight className="size-4" data-icon="inline-end" />
             </Link>
           </Button>

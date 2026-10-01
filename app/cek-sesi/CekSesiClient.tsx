@@ -120,15 +120,15 @@ export default function CekSesiClient() {
         <section className="flex flex-col items-center text-center gap-3.5 max-w-md mx-auto">
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-xs font-semibold shadow-2xs">
             <Sparkles className="size-3.5 text-purple-600 dark:text-purple-400" />
-            <span>Pemulihan Tautan Akses Privat #CeritaDiSolulu</span>
+            <span>Bantuan Akses Sesi Solulu</span>
           </div>
 
           <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.15] text-balance">
-            Cek &amp; Pulihkan Tautan Sesi
+            Cek &amp; Temukan Tautan Sesi
           </h1>
 
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
-            Lupa atau belum menerima tautan ruang Zoom telekonseling Anda? Masukkan data email dan WhatsApp terdaftar untuk menerima kembali tautan sesi langsung ke email Anda.
+            Lupa simpan atau belum menerima tautan ruang Zoom konselingmu? Masukkan email dan nomor WhatsApp yang kamu pakai saat mendaftar, tautan sesi akan langsung kami kirimkan ulang ke emailmu.
           </p>
 
           {/* Trust Guarantee Pills */}
@@ -151,10 +151,10 @@ export default function CekSesiClient() {
               <Search className="size-5" />
             </div>
             <CardTitle className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              Verifikasi Data Pemesanan
+              Verifikasi Data Sesi
             </CardTitle>
             <CardDescription className="max-w-md mx-auto text-xs sm:text-sm text-muted-foreground text-pretty leading-relaxed pt-1">
-              Sistem akan memverifikasi kesesuaian email dan nomor WhatsApp dengan reservasi aktif yang tersimpan di Solulu.
+              Kami akan mencocokkan email dan nomor WhatsApp dengan jadwal sesi aktifmu di Solulu.
             </CardDescription>
           </CardHeader>
 
@@ -224,7 +224,7 @@ export default function CekSesiClient() {
               <FieldGroup className="flex flex-col gap-4">
                 <Field data-invalid={Boolean(fieldErrors.email)}>
                   <FieldLabel htmlFor="patientEmail" className="text-xs font-semibold text-foreground">
-                    Email Pendaftaran
+                    Email Saat Mendaftar
                   </FieldLabel>
                   <div className="relative">
                     <Input
@@ -248,7 +248,7 @@ export default function CekSesiClient() {
                     <FieldError className="text-xs text-destructive mt-1">{fieldErrors.email}</FieldError>
                   ) : (
                     <FieldDescription className="text-xs text-muted-foreground mt-1">
-                      Alamat email yang Anda masukkan saat checkout sesi telekonseling.
+                      Alamat email yang kamu gunakan saat memesan jadwal sesi.
                     </FieldDescription>
                   )}
                 </Field>
@@ -279,7 +279,7 @@ export default function CekSesiClient() {
                     <FieldError className="text-xs text-destructive mt-1">{fieldErrors.phone}</FieldError>
                   ) : (
                     <FieldDescription className="text-xs text-muted-foreground mt-1">
-                      Nomor telepon aktif untuk memverifikasi keabsahan kepemilikan sesi.
+                      Nomor telepon aktif untuk memastikan kepemilikan sesi.
                     </FieldDescription>
                   )}
                 </Field>
@@ -297,7 +297,7 @@ export default function CekSesiClient() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
-                    <span>Memeriksa Data Sesi...</span>
+                    <span>Mencari Data Sesimu...</span>
                   </>
                 ) : (
                   <>
@@ -312,9 +312,9 @@ export default function CekSesiClient() {
             <div className="rounded-2xl border border-border/70 bg-secondary/50 p-4 flex items-start gap-3">
               <ShieldCheck className="size-4.5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
               <div className="flex flex-col gap-0.5 text-xs text-muted-foreground leading-relaxed">
-                <span className="font-semibold text-foreground">Perlindungan Privasi Pasien</span>
+                <span className="font-semibold text-foreground">Kerahasiaan Datamu Terjaga</span>
                 <span className="text-pretty">
-                  Demi menjaga kerahasiaan identitas dan data klinis pasien, sistem tidak pernah menampilkan konfirmasi status publik di layar. Tautan sesi hanya dikirimkan ke alamat email yang terdaftar resmi pada sistem Solulu.
+                  Demi menjaga privasi dan kerahasiaan identitasmu, detail sesi tidak kami tampilkan langsung di layar. Tautan sesi hanya dikirimkan ke alamat email yang terdaftar resmi di Solulu.
                 </span>
               </div>
             </div>
@@ -323,14 +323,14 @@ export default function CekSesiClient() {
           {/* Card Footer: Support link & Link to Catalog */}
           <CardFooter className="border-t border-border/60 bg-muted/20 px-6 sm:px-8 py-4.5 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
             <span className="text-center sm:text-left">
-              Butuh bantuan mendesak?{" "}
+              Ada kendala atau butuh bantuan segera?{" "}
               <a
                 href={waSupportUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-purple-600 dark:text-purple-400 hover:underline font-semibold"
               >
-                Hubungi Tim Bantuan
+                Hubungi Kami di WhatsApp
               </a>
             </span>
             <Button

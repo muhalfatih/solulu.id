@@ -83,7 +83,7 @@ export function PublicHeader() {
             asChild
             variant="public"
             size="pill-sm"
-            className="hidden sm:inline-flex"
+            className="hidden sm:inline-flex active:scale-[0.98]"
             id="btn-header-cta"
           >
             <Link href="/counselors">
@@ -148,7 +148,7 @@ export function PublicHeader() {
               asChild
               variant="public"
               size="pill"
-              className="w-full"
+              className="w-full active:scale-[0.98]"
               id="btn-mobile-menu-cta"
             >
               <Link

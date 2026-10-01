@@ -31,7 +31,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
         onClick={() => setTheme("light")}
         className={`p-1.5 rounded-lg transition-all cursor-pointer ${
           theme === "light"
-            ? "bg-white text-emerald-600 dark:bg-neutral-700 dark:text-emerald-400 shadow-xs font-semibold"
+            ? "bg-white text-purple-600 dark:bg-neutral-700 dark:text-purple-300 shadow-xs font-semibold"
             : "hover:text-neutral-900 dark:hover:text-white"
         }`}
         title="Mode Terang"
@@ -45,7 +45,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
         onClick={() => setTheme("dark")}
         className={`p-1.5 rounded-lg transition-all cursor-pointer ${
           theme === "dark"
-            ? "bg-neutral-900 text-emerald-400 dark:bg-neutral-700 shadow-xs font-semibold"
+            ? "bg-neutral-900 text-purple-400 dark:bg-neutral-700 shadow-xs font-semibold"
             : "hover:text-neutral-900 dark:hover:text-white"
         }`}
         title="Mode Gelap"
@@ -59,7 +59,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
         onClick={() => setTheme("system")}
         className={`p-1.5 rounded-lg transition-all cursor-pointer ${
           theme === "system"
-            ? "bg-white text-emerald-600 dark:bg-neutral-700 dark:text-emerald-400 shadow-xs font-semibold"
+            ? "bg-white text-purple-600 dark:bg-neutral-700 dark:text-purple-300 shadow-xs font-semibold"
             : "hover:text-neutral-900 dark:hover:text-white"
         }`}
         title="Ikuti Tema Sistem"

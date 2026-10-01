@@ -4,9 +4,9 @@ import { getPlatformSettings } from "@/lib/settings/platform"
 import CounselorsCatalogClient from "./CounselorsCatalogClient"
 
 export const metadata = {
-  title: "Pilih Mitra Konselor | Solulu",
+  title: "Pilih Konselor | Solulu",
   description:
-    "Katalog psikolog klinis dan konselor sebaya terverifikasi untuk sesi konsultasi 90 menit via Zoom tanpa perlu membuat akun.",
+    "Pilihan psikolog klinis berizin resmi dan teman cerita terlatih untuk sesi ngobrol 90 menit via Zoom tanpa ribet bikin akun.",
 }
 
 export default async function CounselorsCatalogPage({

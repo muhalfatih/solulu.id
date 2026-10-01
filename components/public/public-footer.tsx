@@ -84,7 +84,7 @@ export function PublicFooter() {
             >
               Syarat &amp; Ketentuan
             </Link>
-            <span className="text-muted-foreground">Kepatuhan UU PDP No. 27/2022</span>
+            <span className="text-muted-foreground">Kepatuhan UU Pelindungan Data Pribadi</span>
           </div>
         </div>
 

@@ -183,6 +183,7 @@
     background-color: var(--card);
     border: 1px solid var(--border);
     box-shadow: 0 1px 3px 0 rgba(124, 58, 237, 0.04), 0 1px 2px -1px rgba(124, 58, 237, 0.04);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     padding-top: 0 !important;
     padding-bottom: 0 !important;
 }
@@ -193,24 +194,27 @@
 .theme-public h4,
 .theme-public .font-heading {
     font-family: var(--font-poppins), sans-serif;
-    letter-spacing: -0.025em;
     color: var(--foreground);
 }
 
 .theme-public h1 {
     font-weight: 700;
+    letter-spacing: -0.03em;
 }
 
 .theme-public h2 {
     font-weight: 700;
+    letter-spacing: -0.025em;
 }
 
 .theme-public h3 {
     font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
 .theme-public h4 {
     font-weight: 600;
+    letter-spacing: -0.015em;
 }
 
 /* Enforce max font-weight 700 on public surface */
@@ -225,6 +229,19 @@
 .theme-public textarea,
 .theme-public button {
     font-family: var(--font-inter), sans-serif;
+}
+
+@keyframes float-subtle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-float-subtle {
+  animation: float-subtle 6s ease-in-out infinite;
 }
 
 @layer base {

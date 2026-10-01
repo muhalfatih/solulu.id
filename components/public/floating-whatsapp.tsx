@@ -11,7 +11,7 @@ export function FloatingWhatsApp() {
         id="btn-floating-whatsapp"
       >
         <MessageCircle className="size-5 fill-white text-[#25D366]" />
-        <span className="font-semibold hidden sm:inline">Chat Sekarang</span>
+        <span className="font-semibold hidden sm:inline">Tanya Kami</span>
       </a>
     </aside>
   )

@@ -14,13 +14,13 @@ export default function NotFound() {
 
         <div className="flex flex-col gap-2">
           <Badge variant="outline" className="w-fit mx-auto text-xs font-mono">
-            404 • Halaman Belum Ditemukan
+            404 • Halaman Tidak Ditemukan
           </Badge>
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Tampaknya Anda Keluar dari Jalur
+            Wah, Halamannya Nggak Ketemu
           </h1>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Halaman yang Anda tuju mungkin telah dipindahkan atau tautan yang dimasukkan keliru. Jangan khawatir, mari kembali ke ruang yang aman.
+            Halaman yang kamu cari mungkin sudah berpindah alamat atau tautannya kurang pas. Yuk, kembali ke halaman utama.
           </p>
         </div>
 
@@ -29,21 +29,21 @@ export default function NotFound() {
           <Button asChild className="h-10 text-xs font-semibold gap-2 w-full">
             <Link href="/">
               <Home className="size-4" />
-              <span>Kembali ke Halaman Utama</span>
+              <span>Kembali ke Beranda</span>
             </Link>
           </Button>
 
           <Button asChild variant="outline" className="h-10 text-xs font-medium gap-2 w-full">
             <Link href="/cek-sesi">
               <Search className="size-4" />
-              <span>Cek Tautan Sesi Konseling Saya</span>
+              <span>Cek Tautan Sesi Saya</span>
             </Link>
           </Button>
 
           <Button asChild variant="ghost" className="h-9 text-xs text-muted-foreground hover:text-foreground gap-2 w-full">
             <Link href="/counselors">
               <HeartHandshake className="size-4" />
-              <span>Lihat Katalog Mitra Konselor</span>
+              <span>Pilih Konselor</span>
             </Link>
           </Button>
         </div>
@@ -55,7 +55,7 @@ export default function NotFound() {
             Butuh Bantuan Krisis Cepat?
           </span>
           <p className="text-muted-foreground leading-relaxed">
-            Jika Anda atau kerabat sedang dalam kondisi darurat mental, hubungi Hotline Kesehatan Jiwa Kemenkes di <strong>119 ext 8</strong> atau Lisa Hotline di <strong>0811-3855-472</strong>.
+            Jika kamu atau kerabat sedang dalam kondisi darurat mental, hubungi Layanan Kesehatan Jiwa Kemenkes di <strong>119 ext 8</strong> atau Lisa Hotline di <strong>0811-3855-472</strong>.
           </p>
         </div>
       </div>
