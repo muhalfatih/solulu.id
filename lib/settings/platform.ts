@@ -12,6 +12,7 @@ let cachedSettings: PlatformSettingsData = {
 }
 
 let isTableInitialized = false
+let isDbAvailable = true
 
 async function ensureSettingsTable(): Promise<void> {
   if (isTableInitialized) return
@@ -24,7 +25,10 @@ async function ensureSettingsTable(): Promise<void> {
       );
     `)
     isTableInitialized = true
+    isDbAvailable = true
   } catch (error) {
+    isTableInitialized = true
+    isDbAvailable = false
     // If permission or pooler restricts DDL, continue with runtime query/memory fallback
     console.warn("[settings] Table auto-ensure skipped:", error)
   }
@@ -35,8 +39,10 @@ async function ensureSettingsTable(): Promise<void> {
  * Defaults to `isScreeningRequired: false` (screening is optional).
  */
 export async function getPlatformSettings(): Promise<PlatformSettingsData> {
+  if (!isDbAvailable) return cachedSettings
   try {
     await ensureSettingsTable()
+    if (!isDbAvailable) return cachedSettings
     const rows = await db
       .select({
         isScreeningRequired: platformSettings.isScreeningRequired,
@@ -51,6 +57,7 @@ export async function getPlatformSettings(): Promise<PlatformSettingsData> {
       }
     }
   } catch (error) {
+    isDbAvailable = false
     console.warn("[settings] Failed to read platform_settings from DB, using fallback:", error)
   }
 
