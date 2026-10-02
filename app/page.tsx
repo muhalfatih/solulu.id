@@ -7,7 +7,8 @@ import {
   Clock,
   Sparkles,
   ArrowRight,
-  Star,
+  CheckCircle2,
+  Quote,
   Users,
   Lock,
   Check,
@@ -209,17 +210,17 @@ export default function HomePage() {
       {/* 1. Hero Section: Focused, Empathetic, Contemporary */}
       <section className="relative overflow-hidden pt-20 pb-24 sm:pt-28 sm:pb-32 border-b border-border/40 bg-radial-[at_50%_0%] from-purple-100/70 via-background to-background dark:from-purple-950/30 dark:via-background dark:to-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center gap-6 sm:gap-7">
-          {/* Subtle Trust Anchor with subtle animation */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary dark:text-purple-300 text-xs font-medium shadow-2xs animate-float-subtle">
-            <span className="size-2 rounded-full bg-primary dark:bg-purple-400 animate-pulse" aria-hidden="true" />
-            <span>Sesi Santai 90 Menit • Langsung Pesan Tanpa Perlu Bikin Akun</span>
+          {/* Subtle Trust Anchor with Heart icon */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary dark:text-purple-300 text-xs font-semibold shadow-2xs animate-float-subtle">
+            <Heart className="size-3.5 fill-primary/30 text-primary dark:text-purple-300" aria-hidden="true" />
+            <span>Layanan Konseling &amp; Teman Cerita Privat</span>
           </div>
 
           {/* Simple, to-the-point, contemporary headline */}
           <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.15] text-balance">
-            Cerita apa adanya, tanpa dihakimi.
+            Ruang Aman untuk Bercerita
             <span className="block mt-1 font-semibold text-primary dark:text-purple-300">
-              Ruang aman buat urai isi kepalamu.
+              #CeritaDiSolulu
             </span>
           </h1>
 
@@ -272,11 +273,10 @@ export default function HomePage() {
                 ))}
               </div>
               <div className="flex items-center gap-1.5 font-medium text-foreground">
-                <div className="flex items-center text-amber-500" aria-label="Penilaian 4.9 dari 5 bintang">
-                  <Star className="size-3.5 fill-amber-400 text-amber-400" aria-hidden="true" />
-                  <span className="tabular-nums font-bold ml-1 text-xs">4.9/5.0</span>
-                </div>
-                <span className="text-muted-foreground font-normal">ulasan kepuasan sesi</span>
+                <CheckCircle2 className="size-4 text-emerald-500 shrink-0" aria-hidden="true" />
+                <span>
+                  Dipercaya oleh <strong className="font-semibold text-foreground">500+ klien</strong> di seluruh Indonesia
+                </span>
               </div>
             </div>
           </div>
@@ -751,12 +751,6 @@ export default function HomePage() {
                     </span>
                   </div>
 
-                  {/* Top-right Rating Badge */}
-                  <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-bold shadow-xs border border-white/10">
-                    <Star className="size-3 text-amber-400 fill-amber-400" aria-hidden="true" />
-                    <span className="tabular-nums">{c.rating}</span>
-                  </div>
-
                   {/* Bottom Availability Status */}
                   <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-xs font-medium text-white/95">
                     <div className="flex items-center gap-1.5">
@@ -849,7 +843,7 @@ export default function HomePage() {
                 key={idx}
                 className="p-7 rounded-2xl bg-card border border-border/80 flex flex-col justify-between gap-4 shadow-2xs hover:border-primary/35 hover:-translate-y-1 hover:shadow-sm transition-all duration-200"
               >
-                {/* 1. Header with purple indicator dot & Rating */}
+                {/* 1. Header with purple indicator dot & Quote icon */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
@@ -857,11 +851,7 @@ export default function HomePage() {
                       Sesi Terverifikasi
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 text-amber-400" aria-label="Rating 5 bintang">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className="size-3.5 fill-amber-400 text-amber-400" aria-hidden="true" />
-                    ))}
-                  </div>
+                  <Quote className="size-4 text-primary/40 shrink-0" aria-hidden="true" />
                 </div>
 
                 {/* 2. Pure Distilled Quote */}

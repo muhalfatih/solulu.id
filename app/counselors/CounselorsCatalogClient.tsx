@@ -12,7 +12,6 @@ import {
   HelpCircle,
   ArrowRight,
   ChevronRight,
-  Star,
   BadgeCheck,
   X,
   Sparkles,
@@ -113,7 +112,7 @@ export default function CounselorsCatalogClient({
     initialRecommendedType || "all"
   )
   const [dateFilter, setDateFilter] = React.useState<string>("")
-  const [topicFilter, setTopicFilter] = React.useState<string>("")
+  const [selectedTopics, setSelectedTopics] = React.useState<string[]>([])
   const [searchQuery, setSearchQuery] = React.useState<string>("")
   const [isSearchingServer, setIsSearchingServer] = React.useState(false)
   const [isTopicsExpanded, setIsTopicsExpanded] = React.useState(false)
@@ -177,23 +176,21 @@ export default function CounselorsCatalogClient({
   }
 
   const handleTopicClick = (topic: string) => {
-    if (topicFilter.toLowerCase() === topic.toLowerCase()) {
-      setTopicFilter("")
-    } else {
-      setTopicFilter(topic)
-    }
+    setSelectedTopics((prev) =>
+      prev.includes(topic) ? prev.filter((t) => t !== topic) : [...prev, topic]
+    )
   }
 
   const clearFilters = () => {
     setTypeFilter("all")
     setDateFilter("")
-    setTopicFilter("")
+    setSelectedTopics([])
     setSearchQuery("")
     syncServerCatalog("all", "")
   }
 
   const isFiltered =
-    typeFilter !== "all" || dateFilter !== "" || topicFilter !== "" || searchQuery.trim() !== ""
+    typeFilter !== "all" || dateFilter !== "" || selectedTopics.length > 0 || searchQuery.trim() !== ""
 
   // Comprehensive, instant client-side filtering across all fields & facets
   const filteredCounselors = React.useMemo(() => {
@@ -209,13 +206,16 @@ export default function CounselorsCatalogClient({
         if (!hasSlotOnDate) return false
       }
 
-      // 3. Dedicated Topic Populer filter
-      if (topicFilter) {
-        const targetTopic = topicFilter.toLowerCase()
-        const matchTopic =
-          c.specializations.some((s) => s.toLowerCase().includes(targetTopic)) ||
-          (c.bio ? c.bio.toLowerCase().includes(targetTopic) : false) ||
-          (c.role ? c.role.toLowerCase().includes(targetTopic) : false)
+      // 3. Dedicated Topic Populer filter (multi-select support)
+      if (selectedTopics.length > 0) {
+        const matchTopic = selectedTopics.some((topic) => {
+          const targetTopic = topic.toLowerCase()
+          return (
+            c.specializations.some((s) => s.toLowerCase().includes(targetTopic)) ||
+            (c.bio ? c.bio.toLowerCase().includes(targetTopic) : false) ||
+            (c.role ? c.role.toLowerCase().includes(targetTopic) : false)
+          )
+        })
         if (!matchTopic) return false
       }
 
@@ -236,7 +236,7 @@ export default function CounselorsCatalogClient({
 
       return true
     })
-  }, [counselors, typeFilter, dateFilter, topicFilter, searchQuery])
+  }, [counselors, typeFilter, dateFilter, selectedTopics, searchQuery])
 
   // Count by counselor type for badge telemetry
   const peerCount = React.useMemo(
@@ -385,7 +385,6 @@ export default function CounselorsCatalogClient({
                   className="h-8 px-3 rounded-lg text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer"
                 >
                   <span>Semua</span>
-                  <span className="tabular-nums opacity-80 text-xs">({initialCounselors.length})</span>
                 </ToggleGroupItem>
 
                 <ToggleGroupItem
@@ -395,7 +394,6 @@ export default function CounselorsCatalogClient({
                 >
                   <span className="size-1.5 rounded-full bg-blue-500" />
                   <span>Konselor Sebaya</span>
-                  <span className="opacity-75 tabular-nums text-xs">({peerCount} • Rp 85rb)</span>
                 </ToggleGroupItem>
 
                 <ToggleGroupItem
@@ -405,7 +403,6 @@ export default function CounselorsCatalogClient({
                 >
                   <span className="size-1.5 rounded-full bg-purple-500" />
                   <span>Psikolog Klinis</span>
-                  <span className="opacity-75 tabular-nums text-xs">({psychologistCount} • Rp 130rb)</span>
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
@@ -485,15 +482,15 @@ export default function CounselorsCatalogClient({
               <button
                 type="button"
                 id="btn-topic-all"
-                onClick={() => setTopicFilter("")}
-                aria-pressed={topicFilter === ""}
-                className={getTopicChipClass(topicFilter === "")}
+                onClick={() => setSelectedTopics([])}
+                aria-pressed={selectedTopics.length === 0}
+                className={getTopicChipClass(selectedTopics.length === 0)}
               >
                 <span>Semua Topik</span>
               </button>
 
               {POPULAR_TOPICS.map((topic, idx) => {
-                const isSelected = topicFilter.toLowerCase() === topic.toLowerCase()
+                const isSelected = selectedTopics.includes(topic)
                 // In collapsed mode, display first 4 topics unless this topic is currently selected
                 const isHiddenOnCollapse = !isTopicsExpanded && idx >= 4 && !isSelected
                 if (isHiddenOnCollapse) return null
@@ -570,19 +567,22 @@ export default function CounselorsCatalogClient({
                   </span>
                 )}
 
-                {topicFilter && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
-                    <span>Topik: {topicFilter}</span>
+                {selectedTopics.map((topic) => (
+                  <span
+                    key={topic}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium"
+                  >
+                    <span>Topik: {topic}</span>
                     <button
                       type="button"
-                      onClick={() => setTopicFilter("")}
+                      onClick={() => handleTopicClick(topic)}
                       className="size-4 rounded-full inline-flex items-center justify-center hover:bg-primary/20 text-primary transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary active:scale-[0.95]"
-                      aria-label="Hapus filter topik"
+                      aria-label={`Hapus filter topik ${topic}`}
                     >
                       <X className="size-3" />
                     </button>
                   </span>
-                )}
+                ))}
 
                 {searchQuery.trim() && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
@@ -706,12 +706,6 @@ export default function CounselorsCatalogClient({
                       </span>
                     </div>
 
-                    {/* Top-right: Rating Badge */}
-                    <div className="absolute top-3.5 right-3.5 z-10 h-7 px-2.5 rounded-full bg-black/65 backdrop-blur-md text-white text-xs font-bold shadow-xs border border-white/15 inline-flex items-center gap-1.5 select-none">
-                      <Star className="size-3 text-amber-400 fill-amber-400" aria-hidden="true" />
-                      <span className="tabular-nums">{counselor.rating || (isPsychologist ? "4.9" : "4.8")}</span>
-                    </div>
-
                     {/* Bottom overlay: Availability Status & Experience */}
                     <div className="absolute bottom-3 left-3.5 right-3.5 z-10 flex items-center justify-between text-xs font-medium text-white/95 select-none">
                       <div className="h-7 px-2.5 rounded-full bg-black/45 backdrop-blur-md border border-white/15 inline-flex items-center gap-1.5">
@@ -761,7 +755,9 @@ export default function CounselorsCatalogClient({
                     {/* Specializations / Focus Topic Pills */}
                     <div className="flex flex-wrap items-center gap-1.5 min-h-[28px]">
                       {counselor.specializations.slice(0, 3).map((spec) => {
-                        const isSpecActive = topicFilter.toLowerCase() === spec.toLowerCase()
+                        const isSpecActive = selectedTopics.some(
+                          (t) => t.toLowerCase() === spec.toLowerCase()
+                        )
                         return (
                           <button
                             key={spec}
@@ -979,11 +975,11 @@ export default function CounselorsCatalogClient({
                   </div>
                 </div>
                 <div className="p-3 rounded-xl bg-background border border-border/70 flex items-center gap-2.5">
-                  <Star className="size-4 text-amber-500 fill-amber-500 shrink-0" />
+                  <Clock className="size-4 text-purple-600 dark:text-purple-400 shrink-0" />
                   <div>
-                    <div className="text-[11px] text-muted-foreground">Rating Klien</div>
+                    <div className="text-[11px] text-muted-foreground">Durasi Konseling</div>
                     <div className="font-semibold text-foreground">
-                      {selectedBioCounselor.rating || "4.9"} / 5.0 (Ulasan Klien)
+                      90 Menit Penuh
                     </div>
                   </div>
                 </div>

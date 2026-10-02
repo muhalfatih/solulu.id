@@ -19,7 +19,6 @@ import {
   ShieldAlert,
   ShieldCheck,
   Sparkles,
-  Star,
   Users,
   Video,
   Check,
@@ -198,11 +197,11 @@ export default function CounselorDetailClient({
             {/* 1. Core Profile & Clinical Approach Card */}
             <Card className="border-border/60 shadow-xs overflow-hidden bg-card rounded-2xl">
               <CardContent className="p-6 sm:p-7 lg:p-8">
-                {/* Hero Header: Avatar + Identity */}
-                <div className="flex flex-col sm:flex-row gap-6 sm:gap-7 items-start">
-                  {/* Avatar with Verified Badge */}
-                  <div className="relative shrink-0 mx-auto sm:mx-0">
-                    <div className="size-28 sm:size-32 rounded-2xl overflow-hidden ring-1 ring-border/80 shadow-xs bg-muted/40">
+                {/* 2-Column Hero Header: Enlarged Photo + Identity */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 sm:gap-8 items-center sm:items-start">
+                  {/* Column 1: Enlarged Photo (Aspect 4/5) */}
+                  <div className="sm:col-span-4 md:col-span-4 flex justify-center sm:justify-start">
+                    <div className="w-44 sm:w-full max-w-[220px] aspect-[4/5] rounded-2xl overflow-hidden ring-1 ring-border/80 shadow-xs bg-muted/40 relative">
                       <img
                         src={
                           counselor.avatarR2Url ||
@@ -213,91 +212,85 @@ export default function CounselorDetailClient({
                         loading="eager"
                       />
                     </div>
-                    <div className="absolute -bottom-1.5 -right-1.5 p-1 rounded-full bg-background border border-border/80 shadow-2xs">
+                  </div>
+
+                  {/* Column 2: Plain Role, Name with BadgeCheck, Education */}
+                  <div className="sm:col-span-8 flex flex-col items-center sm:items-start text-center sm:text-left min-w-0 justify-center h-full gap-2.5 sm:gap-3">
+                    {/* Role: Simpel polos text dan icon tanpa style badge seperti kapsul */}
+                    <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary dark:text-purple-300">
+                      {isPsychologist ? (
+                        <ShieldCheck className="size-4 shrink-0 text-primary dark:text-purple-400" />
+                      ) : (
+                        <HeartHandshake className="size-4 shrink-0 text-primary dark:text-purple-400" />
+                      )}
+                      <span>{counselor.counselorTypeDisplay}</span>
+                    </div>
+
+                    {/* Nama Konselor dengan centang verifikasi di samping nama */}
+                    <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground leading-tight flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                      <span>{counselor.fullName}</span>
                       <BadgeCheck
-                        className="size-4.5 text-purple-600/80 dark:text-purple-400"
+                        className="size-5 sm:size-6 text-primary dark:text-purple-400 shrink-0 inline-block"
                         aria-label="Profil Terverifikasi"
                       />
+                    </h1>
+
+                    {/* Pendidikan dan Gelar saja (nomor STR, sertifikasi, dll dihilangkan) */}
+                    {counselor.education && (
+                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed flex items-center justify-center sm:justify-start gap-1.5 pt-0.5">
+                        <GraduationCap className="size-4 shrink-0 text-muted-foreground/80" />
+                        <span>{counselor.education}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Stats Strip: Full Width 4-card balanced grid */}
+                <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 pt-5 sm:pt-6 mt-6 sm:mt-7 border-t border-border/50">
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/50 flex items-center gap-3">
+                    <div className="size-9 rounded-lg bg-background border border-border/60 flex items-center justify-center text-primary shrink-0 shadow-2xs">
+                      <Clock className="size-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground font-normal leading-normal">Pengalaman Praktik</div>
+                      <div className="text-xs sm:text-sm font-semibold text-foreground leading-normal">
+                        {counselor.experience || "3+ Tahun"}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Identity Info */}
-                  <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left min-w-0 w-full">
-                    {/* Top Badges */}
-                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-3.5 sm:mb-4">
-                      <Badge
-                        variant="secondary"
-                        className="px-2.5 py-0.5 font-medium text-xs border border-border/70 rounded-full gap-1.5 bg-secondary/60 text-secondary-foreground leading-normal"
-                      >
-                        {isPsychologist ? (
-                          <ShieldCheck className="size-3.5 shrink-0 text-muted-foreground" />
-                        ) : (
-                          <HeartHandshake className="size-3.5 shrink-0 text-muted-foreground" />
-                        )}
-                        <span>{counselor.counselorTypeDisplay}</span>
-                      </Badge>
-
-                      <Badge
-                        variant="outline"
-                        className="px-2.5 py-0.5 text-xs text-muted-foreground rounded-full border-border/70 font-normal gap-1.5 flex items-center leading-normal"
-                      >
-                        <Lock className="size-3 text-muted-foreground shrink-0" />
-                        <span>Kerahasiaan 100%</span>
-                      </Badge>
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/50 flex items-center gap-3">
+                    <div className="size-9 rounded-lg bg-background border border-border/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 shadow-2xs">
+                      <CheckCircle2 className="size-4" />
                     </div>
-
-                    {/* Headings Hierarchy with Generous Breathing Room */}
-                    <div className="space-y-1.5 sm:space-y-2 mb-6 w-full">
-                      <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground leading-tight">
-                        {counselor.fullName}
-                      </h1>
-
-                      <p className="text-sm sm:text-base text-foreground/80 font-medium leading-relaxed">
-                        {counselor.title}
-                      </p>
-
-                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed flex items-start justify-center sm:justify-start gap-1.5 pt-0.5">
-                        <GraduationCap className="size-3.5 shrink-0 text-muted-foreground/80 mt-0.5" />
-                        <span className="leading-relaxed">{counselor.education || counselor.title}</span>
-                      </p>
+                    <div>
+                      <div className="text-xs text-muted-foreground font-normal leading-normal">Durasi Konseling</div>
+                      <div className="text-xs sm:text-sm font-semibold text-foreground leading-normal">
+                        90 Menit Penuh
+                      </div>
                     </div>
+                  </div>
 
-                    {/* Stats Strip: Unified, Serene & Proportional */}
-                    <div className="w-full grid grid-cols-3 gap-2.5 sm:gap-3.5 pt-5 sm:pt-6 border-t border-border/50">
-                      <div className="p-2.5 sm:p-3.5 rounded-xl bg-muted/30 border border-border/50 flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-3 text-center sm:text-left">
-                        <div className="size-8 sm:size-9 rounded-lg bg-background border border-border/60 flex items-center justify-center text-muted-foreground shrink-0">
-                          <Star className="size-3.5 sm:size-4 fill-foreground/70 text-foreground/70" />
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground font-normal leading-normal">Rating</div>
-                          <div className="text-xs sm:text-sm font-semibold text-foreground leading-normal">
-                            {counselor.rating || "4.9"} / 5.0
-                          </div>
-                        </div>
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/50 flex items-center gap-3">
+                    <div className="size-9 rounded-lg bg-background border border-border/60 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0 shadow-2xs">
+                      <ShieldCheck className="size-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground font-normal leading-normal">Jaminan Privasi</div>
+                      <div className="text-xs sm:text-sm font-semibold text-foreground leading-normal">
+                        100% Rahasia &amp; Anonim
                       </div>
+                    </div>
+                  </div>
 
-                      <div className="p-2.5 sm:p-3.5 rounded-xl bg-muted/30 border border-border/50 flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-3 text-center sm:text-left">
-                        <div className="size-8 sm:size-9 rounded-lg bg-background border border-border/60 flex items-center justify-center text-muted-foreground shrink-0">
-                          <Clock className="size-3.5 sm:size-4 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground font-normal leading-normal">Pengalaman</div>
-                          <div className="text-xs sm:text-sm font-semibold text-foreground leading-normal">
-                            {counselor.experience || "3+ Tahun"}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 sm:p-3.5 rounded-xl bg-muted/30 border border-border/50 flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-3 text-center sm:text-left">
-                        <div className="size-8 sm:size-9 rounded-lg bg-background border border-border/60 flex items-center justify-center text-muted-foreground shrink-0">
-                          <CheckCircle2 className="size-3.5 sm:size-4 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground font-normal leading-normal">Durasi Sesi</div>
-                          <div className="text-xs sm:text-sm font-semibold text-foreground leading-normal">
-                            90 Menit Penuh
-                          </div>
-                        </div>
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-muted/30 border border-border/50 flex items-center gap-3">
+                    <div className="size-9 rounded-lg bg-background border border-border/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-2xs">
+                      <Video className="size-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground font-normal leading-normal">Format Sesi</div>
+                      <div className="text-xs sm:text-sm font-semibold text-foreground leading-normal">
+                        1-on-1 Privat Online
                       </div>
                     </div>
                   </div>
