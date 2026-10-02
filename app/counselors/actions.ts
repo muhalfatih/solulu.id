@@ -126,20 +126,22 @@ export async function getCounselorsCatalogAction(
 
     const pricingMap: Record<string, CatalogPricing> = {}
     pricingMap["peer"] = {
-      basePrice: 50000,
-      promoPrice: null,
-      isSaleActive: false,
+      basePrice: 150000,
+      promoPrice: 85000,
+      isSaleActive: true,
       allowVoucher: true,
-      displayPrice: 50000,
-      displayPriceFormatted: formatRupiah(50000),
+      displayPrice: 85000,
+      displayPriceFormatted: formatRupiah(85000),
+      originalPriceFormatted: formatRupiah(150000),
     }
     pricingMap["psychologist"] = {
-      basePrice: 150000,
-      promoPrice: null,
-      isSaleActive: false,
+      basePrice: 250000,
+      promoPrice: 130000,
+      isSaleActive: true,
       allowVoucher: true,
-      displayPrice: 150000,
-      displayPriceFormatted: formatRupiah(150000),
+      displayPrice: 130000,
+      displayPriceFormatted: formatRupiah(130000),
+      originalPriceFormatted: formatRupiah(250000),
     }
 
     for (const pr of pricingRows) {

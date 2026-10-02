@@ -84,6 +84,7 @@ const FEATURED_COUNSELORS = [
     education: "S2 Profesi Psikologi • Izin Kementerian Kesehatan",
     specializations: ["Kecemasan Berlebih", "Pemulihan Trauma", "Kejenuhan Kerja"],
     rate: "Rp 130.000",
+    originalRate: "Rp 250.000",
     avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=600",
     rating: "4.9",
     experience: "4+ Tahun",
@@ -97,6 +98,7 @@ const FEATURED_COUNSELORS = [
     education: "Sarjana Psikologi • Pendamping Sebaya",
     specializations: ["Bimbang Arah Masa Depan", "Stres Kuliah & Kerja", "Hubungan Asmara"],
     rate: "Rp 85.000",
+    originalRate: "Rp 150.000",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600",
     rating: "4.8",
     experience: "3+ Tahun",
@@ -110,6 +112,7 @@ const FEATURED_COUNSELORS = [
     education: "Doktor & Magister Psikologi • Izin Kementerian Kesehatan",
     specializations: ["Gejala Depresi", "Rasa Kurang Percaya Diri", "Penerimaan Diri"],
     rate: "Rp 130.000",
+    originalRate: "Rp 250.000",
     avatar: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&q=80&w=600",
     rating: "5.0",
     experience: "6+ Tahun",
@@ -207,15 +210,15 @@ export default function HomePage() {
       <section className="relative overflow-hidden pt-20 pb-24 sm:pt-28 sm:pb-32 border-b border-border/40 bg-radial-[at_50%_0%] from-purple-100/70 via-background to-background dark:from-purple-950/30 dark:via-background dark:to-background">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center flex flex-col items-center gap-6 sm:gap-7">
           {/* Subtle Trust Anchor with subtle animation */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-800 dark:text-purple-300 text-xs font-medium shadow-2xs animate-float-subtle">
-            <span className="size-2 rounded-full bg-purple-600 dark:bg-purple-400 animate-pulse" aria-hidden="true" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary dark:text-purple-300 text-xs font-medium shadow-2xs animate-float-subtle">
+            <span className="size-2 rounded-full bg-primary dark:bg-purple-400 animate-pulse" aria-hidden="true" />
             <span>Sesi Santai 90 Menit • Langsung Pesan Tanpa Perlu Bikin Akun</span>
           </div>
 
           {/* Simple, to-the-point, contemporary headline */}
-          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] font-bold tracking-tight text-foreground leading-[1.14] text-balance">
+          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.15] text-balance">
             Cerita apa adanya, tanpa dihakimi.
-            <span className="block mt-1 font-semibold text-purple-700 dark:text-purple-400">
+            <span className="block mt-1 font-semibold text-primary dark:text-purple-300">
               Ruang aman buat urai isi kepalamu.
             </span>
           </h1>
@@ -233,7 +236,7 @@ export default function HomePage() {
                 asChild
                 variant="public"
                 size="pill-lg"
-                className="w-full sm:w-auto shadow-sm shadow-purple-600/20 hover:shadow-md hover:shadow-purple-600/30 active:scale-[0.98] transition-all"
+                className="w-full sm:w-auto shadow-sm shadow-primary/20 hover:shadow-md hover:shadow-primary/30 active:scale-[0.98] transition-all"
                 id="btn-hero-primary"
               >
                 <Link href="/counselors">
@@ -260,9 +263,9 @@ export default function HomePage() {
             <div className="flex items-center justify-center gap-2.5 pt-1 text-xs text-muted-foreground">
               <div className="flex items-center -space-x-2">
                 {HERO_COUNSELORS.map((c, i) => (
-                  <Avatar key={i} className="size-7.5 border-2 border-background ring-1 ring-purple-500/20 shadow-xs">
+                  <Avatar key={i} className="size-7.5 border-2 border-background ring-1 ring-primary/20 shadow-xs">
                     <AvatarImage src={c.src} alt={c.name} />
-                    <AvatarFallback className="text-[9px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                    <AvatarFallback className="text-xs font-semibold bg-primary/15 text-primary dark:bg-purple-950 dark:text-purple-300">
                       {c.name.slice(0, 2)}
                     </AvatarFallback>
                   </Avatar>
@@ -286,16 +289,16 @@ export default function HomePage() {
                 return (
                   <div
                     key={idx}
-                    className="p-4 sm:p-4.5 rounded-2xl bg-card/85 backdrop-blur-xs border border-border/80 shadow-2xs hover:border-purple-500/40 hover:-translate-y-0.5 hover:shadow-xs transition-all duration-200 flex flex-col gap-3.5 justify-between"
+                    className="p-4 sm:p-4.5 rounded-2xl bg-card/85 backdrop-blur-xs border border-border/80 shadow-2xs hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-xs transition-all duration-200 flex flex-col gap-3.5 justify-between"
                   >
-                    <div className="size-9.5 sm:size-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 ring-1 ring-purple-500/15">
+                    <div className="size-9.5 sm:size-10 rounded-xl bg-primary/10 text-primary dark:text-purple-300 flex items-center justify-center shrink-0 ring-1 ring-primary/15">
                       <IconComp className="size-4.5 sm:size-5" aria-hidden="true" />
                     </div>
                     <div className="flex flex-col gap-0.5 flex-1 justify-end">
                       <span className="font-heading font-semibold text-xs sm:text-sm text-foreground tracking-tight line-clamp-1">
                         {item.title}
                       </span>
-                      <span className="text-[11px] sm:text-xs text-muted-foreground leading-snug line-clamp-1">
+                      <span className="text-xs text-muted-foreground leading-snug line-clamp-1">
                         {item.desc}
                       </span>
                     </div>
@@ -322,14 +325,14 @@ export default function HomePage() {
           {/* Asymmetric Bento Grid with rich visual rhythm and no empty cells */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 items-stretch">
             {/* Bento Cell 1: 90 Minutes Hero Spotlight (Col-span 2 on Desktop) */}
-            <div className="md:col-span-2 p-7 sm:p-8 rounded-3xl border border-border/80 bg-gradient-to-br from-card via-card to-purple-500/[0.03] hover:border-purple-500/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-6 shadow-2xs">
+            <div className="md:col-span-2 p-7 sm:p-8 rounded-3xl border border-border/80 bg-gradient-to-br from-card via-card to-primary/[0.03] hover:border-primary/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-6 shadow-2xs">
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="size-12 sm:size-13 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 ring-1 ring-purple-500/15">
+                  <div className="size-12 sm:size-13 rounded-2xl bg-primary/10 text-primary dark:text-purple-300 flex items-center justify-center shrink-0 ring-1 ring-primary/15">
                     <Clock className="size-6" aria-hidden="true" />
                   </div>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
-                    <Sparkles className="size-3 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary dark:text-purple-300 border border-primary/20">
+                    <Sparkles className="size-3 text-primary dark:text-purple-300" aria-hidden="true" />
                     <span>Keunggulan Utama Solulu</span>
                   </span>
                 </div>
@@ -348,7 +351,7 @@ export default function HomePage() {
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground font-medium">Layanan Biasa (45-50 Menit)</span>
-                    <span className="text-muted-foreground text-[11px]">Terasa buru-buru</span>
+                    <span className="text-muted-foreground text-xs">Terasa buru-buru</span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
                     <div className="w-1/2 h-full bg-muted-foreground/30 rounded-full" />
@@ -357,16 +360,16 @@ export default function HomePage() {
 
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-purple-600 dark:bg-purple-400 animate-pulse" />
+                    <span className="font-semibold text-primary dark:text-purple-300 flex items-center gap-1.5">
+                      <span className="size-2 rounded-full bg-primary dark:bg-purple-400 animate-pulse" />
                       <span>Sesi di Solulu (90 Menit)</span>
                     </span>
-                    <span className="font-semibold text-purple-700 dark:text-purple-300 text-[11px] tabular-nums">2x Lebih Lega</span>
+                    <span className="font-semibold text-primary dark:text-purple-300 text-xs tabular-nums">2x Lebih Lega</span>
                   </div>
-                  <div className="w-full h-2 rounded-full bg-purple-500/20 overflow-hidden">
-                    <div className="w-full h-full bg-gradient-to-r from-purple-600 to-indigo-500 rounded-full" />
+                  <div className="w-full h-2 rounded-full bg-primary/20 overflow-hidden">
+                    <div className="w-full h-full bg-primary rounded-full" />
                   </div>
-                  <span className="text-[11px] text-muted-foreground pt-0.5">
+                  <span className="text-xs text-muted-foreground pt-0.5">
                     Cukup waktu buat cerita tuntas, urai isi kepala, sampai bikin rencana langkah nyata.
                   </span>
                 </div>
@@ -374,9 +377,9 @@ export default function HomePage() {
             </div>
 
             {/* Bento Cell 2: 100% Rahasia & Anonim (Col-span 1) */}
-            <div className="md:col-span-1 p-7 sm:p-8 rounded-3xl border border-border/80 bg-card hover:border-purple-500/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-5 shadow-2xs">
+            <div className="md:col-span-1 p-7 sm:p-8 rounded-3xl border border-border/80 bg-card hover:border-primary/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-5 shadow-2xs">
               <div className="flex flex-col gap-4">
-                <div className="size-12 sm:size-13 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 ring-1 ring-purple-500/15">
+                <div className="size-12 sm:size-13 rounded-2xl bg-primary/10 text-primary dark:text-purple-300 flex items-center justify-center shrink-0 ring-1 ring-primary/15">
                   <Lock className="size-6" aria-hidden="true" />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -390,19 +393,19 @@ export default function HomePage() {
               </div>
 
               <div className="pt-2 flex flex-wrap gap-2">
-                <span className="px-3 py-1 rounded-full text-[11px] font-medium bg-secondary text-foreground/80 border border-border/60">
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-secondary text-foreground/80 border border-border/60">
                   Tanpa Rekaman Sistem
                 </span>
-                <span className="px-3 py-1 rounded-full text-[11px] font-medium bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary dark:text-purple-300 border border-primary/20">
                   Sesuai UU Pelindungan Data Pribadi
                 </span>
               </div>
             </div>
 
             {/* Bento Cell 3: Mendengar Tanpa Menghakimi (Col-span 1) */}
-            <div className="md:col-span-1 p-7 sm:p-8 rounded-3xl border border-border/80 bg-card hover:border-purple-500/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-5 shadow-2xs">
+            <div className="md:col-span-1 p-7 sm:p-8 rounded-3xl border border-border/80 bg-card hover:border-primary/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-5 shadow-2xs">
               <div className="flex flex-col gap-4">
-                <div className="size-12 sm:size-13 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 ring-1 ring-purple-500/15">
+                <div className="size-12 sm:size-13 rounded-2xl bg-primary/10 text-primary dark:text-purple-300 flex items-center justify-center shrink-0 ring-1 ring-primary/15">
                   <Heart className="size-6" aria-hidden="true" />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -421,9 +424,9 @@ export default function HomePage() {
             </div>
 
             {/* Bento Cell 4: Rencana Pemulihan Nyata (Col-span 2 on Desktop) */}
-            <div className="md:col-span-2 p-7 sm:p-8 rounded-3xl border border-border/80 bg-gradient-to-bl from-card via-card to-purple-500/[0.03] hover:border-purple-500/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-6 shadow-2xs">
+            <div className="md:col-span-2 p-7 sm:p-8 rounded-3xl border border-border/80 bg-gradient-to-bl from-card via-card to-primary/[0.03] hover:border-primary/40 hover:-translate-y-1 hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-6 shadow-2xs">
               <div className="flex flex-col gap-4">
-                <div className="size-12 sm:size-13 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 ring-1 ring-purple-500/15">
+                <div className="size-12 sm:size-13 rounded-2xl bg-primary/10 text-primary dark:text-purple-300 flex items-center justify-center shrink-0 ring-1 ring-primary/15">
                   <Sparkles className="size-6" aria-hidden="true" />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -439,15 +442,15 @@ export default function HomePage() {
               {/* Actionable Steps Roadmap Chips */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
                 <div className="p-3 rounded-2xl bg-background/80 border border-border/60 flex items-center gap-2.5">
-                  <span className="size-6 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center justify-center shrink-0">1</span>
+                  <span className="size-6 rounded-full bg-primary/10 text-primary dark:text-purple-300 font-bold text-xs flex items-center justify-center shrink-0">1</span>
                   <span className="text-xs font-medium text-foreground">Urai Pola Pikir</span>
                 </div>
                 <div className="p-3 rounded-2xl bg-background/80 border border-border/60 flex items-center gap-2.5">
-                  <span className="size-6 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center justify-center shrink-0">2</span>
+                  <span className="size-6 rounded-full bg-primary/10 text-primary dark:text-purple-300 font-bold text-xs flex items-center justify-center shrink-0">2</span>
                   <span className="text-xs font-medium text-foreground">Latihan Tenangkan Diri</span>
                 </div>
                 <div className="p-3 rounded-2xl bg-background/80 border border-border/60 flex items-center gap-2.5">
-                  <span className="size-6 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-xs flex items-center justify-center shrink-0">3</span>
+                  <span className="size-6 rounded-full bg-primary/10 text-primary dark:text-purple-300 font-bold text-xs flex items-center justify-center shrink-0">3</span>
                   <span className="text-xs font-medium text-foreground">Langkah Kecil yang Nyata</span>
                 </div>
               </div>
@@ -504,8 +507,8 @@ export default function HomePage() {
       <section id="harga" className="py-20 sm:py-24 md:py-28 border-b border-border/40 scroll-mt-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col gap-10 sm:gap-12">
           <div className="text-center flex flex-col items-center gap-2.5 max-w-xl mx-auto">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 whitespace-nowrap shadow-2xs">
-              <Sparkles className="size-3.5 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary dark:text-purple-300 border border-primary/20 whitespace-nowrap shadow-2xs">
+              <Sparkles className="size-3.5 text-primary dark:text-purple-300" aria-hidden="true" />
               <span>Biaya Pasti &amp; Transparan</span>
             </span>
             <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground text-balance">
@@ -518,10 +521,10 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-stretch pt-6 sm:pt-7 max-w-4xl mx-auto w-full">
             {/* Tier 1: Konseling Sebaya */}
-            <Card className="relative border border-border/80 shadow-xs flex flex-col justify-between rounded-2xl bg-card hover:border-purple-500/40 hover:shadow-sm hover:-translate-y-1 transition-all duration-200">
+            <Card className="relative border border-border/80 shadow-xs flex flex-col justify-between rounded-2xl bg-card hover:border-primary/40 hover:shadow-sm hover:-translate-y-1 transition-all duration-200">
               <CardHeader className="p-6 sm:p-7 pb-4 sm:pb-5">
                 <div className="flex items-start gap-3.5 mb-4">
-                  <div className="size-11 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0 ring-1 ring-purple-500/15">
+                  <div className="size-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary dark:text-purple-300 shrink-0 ring-1 ring-primary/15">
                     <HeartHandshake className="size-5" aria-hidden="true" />
                   </div>
                   <div className="flex flex-col gap-0.5">
@@ -541,6 +544,11 @@ export default function HomePage() {
                     </span>
                     <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap"> / 90 menit</span>
                   </div>
+                  <div className="pt-0.5 pb-2">
+                    <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
+                      Rp 150.000
+                    </span>
+                  </div>
                   <div className="h-5 flex items-center">
                     <span className="text-xs text-muted-foreground">1 sesi privat tanpa perlu beli paket langganan</span>
                   </div>
@@ -550,19 +558,19 @@ export default function HomePage() {
               <CardContent className="px-6 sm:px-7 flex flex-col gap-4 text-xs sm:text-sm text-muted-foreground flex-1">
                 <ul className="space-y-3">
                   <li className="flex items-start gap-2.5">
-                    <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
+                    <Check className="size-4 text-primary dark:text-purple-300 shrink-0 mt-0.5" aria-hidden="true" />
                     <span>Sarjana Psikologi (S.Psi) terverifikasi resmi</span>
                   </li>
                   <li className="flex items-start gap-2.5">
-                    <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
+                    <Check className="size-4 text-primary dark:text-purple-300 shrink-0 mt-0.5" aria-hidden="true" />
                     <span>Mendengarkan dengan hangat, tanpa menghakimi</span>
                   </li>
                   <li className="flex items-start gap-2.5">
-                    <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
+                    <Check className="size-4 text-primary dark:text-purple-300 shrink-0 mt-0.5" aria-hidden="true" />
                     <span>Bantu petakan perasaan dan pikiran yang lagi kusut</span>
                   </li>
                   <li className="flex items-start gap-2.5">
-                    <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
+                    <Check className="size-4 text-primary dark:text-purple-300 shrink-0 mt-0.5" aria-hidden="true" />
                     <span>Panggilan Zoom privat tanpa rekaman otomatis</span>
                   </li>
                 </ul>
@@ -593,16 +601,16 @@ export default function HomePage() {
             </Card>
 
             {/* Tier 2: Psikolog Klinis (Featured Flagship) */}
-            <Card className="relative border-2 border-purple-600 dark:border-purple-400 shadow-[0_12px_36px_-10px_rgba(124,58,237,0.18)] dark:shadow-[0_12px_36px_-10px_rgba(124,58,237,0.3)] hover:-translate-y-1.5 transition-all duration-200 flex flex-col justify-between rounded-2xl bg-card overflow-visible">
+            <Card className="relative border-2 border-primary dark:border-purple-400 shadow-[0_12px_36px_-10px_rgba(124,58,237,0.18)] dark:shadow-[0_12px_36px_-10px_rgba(124,58,237,0.3)] hover:-translate-y-1.5 transition-all duration-200 flex flex-col justify-between rounded-2xl bg-card overflow-visible">
               {/* Floating Pill Badge: whitespace-nowrap and solid contrast */}
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-purple-600 text-white shadow-sm ring-1 ring-purple-600/30 whitespace-nowrap inline-flex items-center gap-1.5 z-10">
-                <Sparkles className="size-3 text-purple-200" aria-hidden="true" />
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full text-xs font-semibold tracking-wide uppercase bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/30 whitespace-nowrap inline-flex items-center gap-1.5 z-10">
+                <Sparkles className="size-3 text-primary-foreground/90" aria-hidden="true" />
                 <span>Rekomendasi Tenaga Profesional</span>
               </div>
 
               <CardHeader className="p-6 sm:p-7 pb-4 sm:pb-5">
                 <div className="flex items-start gap-3.5 mb-4">
-                  <div className="size-11 rounded-xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <div className="size-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-2xs">
                     <Users className="size-5" aria-hidden="true" />
                   </div>
                   <div className="flex flex-col gap-0.5">
@@ -622,8 +630,13 @@ export default function HomePage() {
                     </span>
                     <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap"> / 90 menit</span>
                   </div>
+                  <div className="pt-0.5 pb-2">
+                    <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
+                      Rp 250.000
+                    </span>
+                  </div>
                   <div className="h-5 flex items-center">
-                    <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">1 sesi mendalam bersama psikolog berizin Kementerian Kesehatan</span>
+                    <span className="text-xs text-primary dark:text-purple-300 font-medium">1 sesi mendalam bersama psikolog berizin Kementerian Kesehatan</span>
                   </div>
                 </div>
               </CardHeader>
@@ -631,27 +644,27 @@ export default function HomePage() {
               <CardContent className="px-6 sm:px-7 flex flex-col gap-4 text-xs sm:text-sm text-muted-foreground flex-1">
                 <ul className="space-y-3">
                   <li className="flex items-start gap-2.5">
-                    <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
+                    <Check className="size-4 text-primary dark:text-purple-300 shrink-0 mt-0.5" aria-hidden="true" />
                     <span className="font-medium text-foreground">Psikolog klinis berpendidikan S2 Profesi resmi</span>
                   </li>
                   <li className="flex items-start gap-2.5">
-                    <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
+                    <Check className="size-4 text-primary dark:text-purple-300 shrink-0 mt-0.5" aria-hidden="true" />
                     <span>Izin resmi praktik dari Kementerian Kesehatan</span>
                   </li>
                   <li className="flex items-start gap-2.5">
-                    <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
+                    <Check className="size-4 text-primary dark:text-purple-300 shrink-0 mt-0.5" aria-hidden="true" />
                     <span>Metode terapi ilmiah untuk bantu pulihkan pikiran dan emosi</span>
                   </li>
                   <li className="flex items-start gap-2.5">
-                    <Check className="size-4 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" aria-hidden="true" />
+                    <Check className="size-4 text-primary dark:text-purple-300 shrink-0 mt-0.5" aria-hidden="true" />
                     <span>Rencana langkah pemulihan yang bertahap dan terarah</span>
                   </li>
                 </ul>
 
                 <div className="mt-auto pt-4 border-t border-border/60">
-                  <div className="rounded-xl bg-purple-500/10 p-3.5 text-xs sm:text-sm text-foreground/90 leading-relaxed border border-purple-500/20 min-h-[76px] flex flex-col justify-center">
+                  <div className="rounded-xl bg-primary/10 p-3.5 text-xs sm:text-sm text-foreground/90 leading-relaxed border border-primary/20 min-h-[76px] flex flex-col justify-center">
                     <div>
-                      <strong className="text-purple-700 dark:text-purple-300">Cocok buat kamu yang:</strong> Merasa cemas berlebih, mood lama murung, punya luka masa lalu, atau ada keluhan yang mulai ganggu aktivitas harian.
+                      <strong className="text-primary dark:text-purple-300">Cocok buat kamu yang:</strong> Merasa cemas berlebih, mood lama murung, punya luka masa lalu, atau ada keluhan yang mulai ganggu aktivitas harian.
                     </div>
                   </div>
                 </div>
@@ -662,7 +675,7 @@ export default function HomePage() {
                   asChild
                   variant="public"
                   size="pill"
-                  className="w-full shadow-sm shadow-purple-600/20 hover:shadow-md hover:shadow-purple-600/30 active:scale-[0.98] transition-all"
+                  className="w-full shadow-sm shadow-primary/20 hover:shadow-md hover:shadow-primary/30 active:scale-[0.98] transition-all"
                   id="btn-pricing-psychologist"
                 >
                   <Link href="/counselors?type=psychologist">
@@ -761,9 +774,9 @@ export default function HomePage() {
                       <h3 className="font-heading font-semibold text-base sm:text-lg text-foreground tracking-tight">
                         {c.name}
                       </h3>
-                      <BadgeCheck className="size-4.5 text-purple-600 dark:text-purple-400 shrink-0" aria-label="Terverifikasi" />
+                      <BadgeCheck className="size-4.5 text-primary dark:text-purple-300 shrink-0" aria-label="Terverifikasi" />
                     </div>
-                    <p className="text-xs font-medium text-purple-600 dark:text-purple-400 line-clamp-1">
+                    <p className="text-xs font-medium text-primary dark:text-purple-300 line-clamp-1">
                       {c.role}
                     </p>
                     <p className="text-xs text-muted-foreground line-clamp-1">
@@ -776,7 +789,7 @@ export default function HomePage() {
                     {c.specializations.map((spec) => (
                       <span
                         key={spec}
-                        className="text-[11px] font-medium text-muted-foreground px-2.5 py-0.5 rounded-full bg-secondary/80 border border-border/40 whitespace-nowrap"
+                        className="text-xs font-medium text-muted-foreground px-2.5 py-0.5 rounded-full bg-secondary/80 border border-border/40 whitespace-nowrap"
                       >
                         {spec}
                       </span>
@@ -786,9 +799,14 @@ export default function HomePage() {
                   {/* Rate / Fee Row */}
                   <div className="pt-3.5 mt-auto border-t border-border/60 flex items-center justify-between">
                     <span className="text-xs text-muted-foreground font-medium">Tarif per sesi (90 menit):</span>
-                    <strong className="text-foreground font-heading font-bold text-base sm:text-lg tabular-nums">
-                      {c.rate}
-                    </strong>
+                    <div className="flex flex-col items-end">
+                      <strong className="text-foreground font-heading font-bold text-base sm:text-lg tabular-nums">
+                        {c.rate}
+                      </strong>
+                      <span className="text-xs text-muted-foreground line-through tabular-nums leading-tight">
+                        {c.originalRate}
+                      </span>
+                    </div>
                   </div>
                 </CardContent>
 
@@ -829,12 +847,12 @@ export default function HomePage() {
             {TESTIMONIALS.map((t, idx) => (
               <div
                 key={idx}
-                className="p-7 rounded-2xl bg-card border border-border/80 flex flex-col justify-between gap-4 shadow-2xs hover:border-purple-500/35 hover:-translate-y-1 hover:shadow-sm transition-all duration-200"
+                className="p-7 rounded-2xl bg-card border border-border/80 flex flex-col justify-between gap-4 shadow-2xs hover:border-primary/35 hover:-translate-y-1 hover:shadow-sm transition-all duration-200"
               >
                 {/* 1. Header with purple indicator dot & Rating */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="size-2 rounded-full bg-purple-600" aria-hidden="true" />
+                    <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
                     <span className="font-heading font-semibold text-xs text-foreground uppercase tracking-wider">
                       Sesi Terverifikasi
                     </span>
@@ -862,7 +880,7 @@ export default function HomePage() {
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground leading-normal">
-                    Sesi bersama <strong className="font-medium text-purple-600 dark:text-purple-400">{t.counselor}</strong>
+                    Sesi bersama <strong className="font-medium text-primary dark:text-purple-300">{t.counselor}</strong>
                   </span>
                 </div>
               </div>
@@ -893,7 +911,7 @@ export default function HomePage() {
                 href="https://wa.me/6285144909949?text=Halo%20Solulu!%20Saya%20ingin%20tanya%20tentang%20sesi%20konseling."
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-purple-600 dark:text-purple-400 font-semibold underline underline-offset-4 hover:opacity-80 transition-opacity"
+                className="text-primary dark:text-purple-300 font-semibold underline underline-offset-4 hover:opacity-80 transition-opacity"
               >
                 Tanya langsung lewat WhatsApp kami
               </a>
@@ -911,7 +929,7 @@ export default function HomePage() {
             </div>
 
             <div className="flex flex-col gap-2.5 max-w-xl">
-              <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight leading-tight text-balance">
+              <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight leading-tight text-balance text-white">
                 Siap Buat Lebih Lega Hari Ini?
               </h2>
               <p className="text-xs sm:text-sm text-purple-100/90 leading-relaxed font-normal text-pretty">
@@ -933,7 +951,7 @@ export default function HomePage() {
               </Link>
             </Button>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[11px] text-purple-200/80 font-medium tabular-nums pt-2 border-t border-white/10 w-full max-w-lg">
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-purple-200/80 font-medium tabular-nums pt-2 border-t border-white/10 w-full max-w-lg">
               <span>90 Menit Penuh</span>
               <span>•</span>
               <span>Panggilan Video Privat Tanpa Rekaman</span>

@@ -77,7 +77,7 @@ export function PublicHeader() {
 
         {/* Right Actions: Theme Toggle, CTA, and Mobile Toggle */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <ThemeToggle />
+          <ThemeToggle variant="icon" />
 
           <Button
             asChild

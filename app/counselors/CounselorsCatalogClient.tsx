@@ -23,11 +23,14 @@ import {
   GraduationCap,
   Award,
   Layers,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   Dialog,
   DialogContent,
@@ -37,6 +40,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { PublicShell } from "@/components/public/public-shell"
+import { cn } from "@/lib/utils"
 import {
   getCounselorsCatalogAction,
   type CatalogCounselorView,
@@ -84,6 +88,16 @@ function formatSlotChipDate(dateStr: string, tomorrowStr: string, dayAfterStr: s
   }
 }
 
+// Semantic topic pill styling using primary & secondary design tokens
+const getTopicChipClass = (isSelected: boolean) =>
+  cn(
+    "h-8 px-3.5 rounded-full text-xs font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5 select-none",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    isSelected
+      ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+      : "bg-secondary/60 hover:bg-secondary text-secondary-foreground border border-border/70 hover:border-primary/40"
+  )
+
 export default function CounselorsCatalogClient({
   initialCounselors,
   initialScreeningId,
@@ -99,8 +113,10 @@ export default function CounselorsCatalogClient({
     initialRecommendedType || "all"
   )
   const [dateFilter, setDateFilter] = React.useState<string>("")
+  const [topicFilter, setTopicFilter] = React.useState<string>("")
   const [searchQuery, setSearchQuery] = React.useState<string>("")
   const [isSearchingServer, setIsSearchingServer] = React.useState(false)
+  const [isTopicsExpanded, setIsTopicsExpanded] = React.useState(false)
 
   // Booking slot selection modal
   const [selectedSlotModal, setSelectedSlotModal] = React.useState<{
@@ -161,21 +177,23 @@ export default function CounselorsCatalogClient({
   }
 
   const handleTopicClick = (topic: string) => {
-    if (searchQuery.toLowerCase() === topic.toLowerCase()) {
-      setSearchQuery("")
+    if (topicFilter.toLowerCase() === topic.toLowerCase()) {
+      setTopicFilter("")
     } else {
-      setSearchQuery(topic)
+      setTopicFilter(topic)
     }
   }
 
   const clearFilters = () => {
     setTypeFilter("all")
     setDateFilter("")
+    setTopicFilter("")
     setSearchQuery("")
     syncServerCatalog("all", "")
   }
 
-  const isFiltered = typeFilter !== "all" || dateFilter !== "" || searchQuery.trim() !== ""
+  const isFiltered =
+    typeFilter !== "all" || dateFilter !== "" || topicFilter !== "" || searchQuery.trim() !== ""
 
   // Comprehensive, instant client-side filtering across all fields & facets
   const filteredCounselors = React.useMemo(() => {
@@ -191,7 +209,17 @@ export default function CounselorsCatalogClient({
         if (!hasSlotOnDate) return false
       }
 
-      // 3. Search query across name, role, title, bio, education, and specializations
+      // 3. Dedicated Topic Populer filter
+      if (topicFilter) {
+        const targetTopic = topicFilter.toLowerCase()
+        const matchTopic =
+          c.specializations.some((s) => s.toLowerCase().includes(targetTopic)) ||
+          (c.bio ? c.bio.toLowerCase().includes(targetTopic) : false) ||
+          (c.role ? c.role.toLowerCase().includes(targetTopic) : false)
+        if (!matchTopic) return false
+      }
+
+      // 4. Search query across name, role, title, bio, education, and specializations
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim()
         const matchName = c.fullName.toLowerCase().includes(q)
@@ -208,7 +236,7 @@ export default function CounselorsCatalogClient({
 
       return true
     })
-  }, [counselors, typeFilter, dateFilter, searchQuery])
+  }, [counselors, typeFilter, dateFilter, topicFilter, searchQuery])
 
   // Count by counselor type for badge telemetry
   const peerCount = React.useMemo(
@@ -253,19 +281,6 @@ export default function CounselorsCatalogClient({
               <span>Tautan Zoom Otomatis</span>
             </span>
           </div>
-
-          {/* Distinction helper button */}
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => setShowTypeInfoModal(true)}
-              className="text-xs text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400 font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer px-3 py-1 rounded-full hover:bg-purple-50 dark:hover:bg-purple-950/40 border border-transparent hover:border-purple-200/50"
-            >
-              <HelpCircle className="size-3.5 text-purple-500" aria-hidden="true" />
-              <span>Masih bingung bedanya Konselor Sebaya dan Psikolog Klinis?</span>
-              <ChevronRight className="size-3 opacity-70" aria-hidden="true" />
-            </button>
-          </div>
         </div>
       </section>
 
@@ -305,167 +320,135 @@ export default function CounselorsCatalogClient({
         )}
 
         {/* 3. Redesigned Unified Search & Filter Command Center */}
+        {/* 3. Unified Search & Filter Command Center */}
         <section
           aria-label="Filter dan Pencarian Konselor"
-          className="rounded-2xl border border-border/80 bg-card/90 backdrop-blur-md shadow-xs p-5 sm:p-6 flex flex-col gap-5 transition-all"
+          className="rounded-2xl border border-border/80 bg-card/90 backdrop-blur-md shadow-xs p-5 sm:p-6 flex flex-col gap-4.5 transition-all"
         >
-          {/* Top Layer: Prominent Smart Search Field */}
-          <div className="flex flex-col gap-3">
-            <div className="relative w-full">
+          {/* Top Layer: Search Input & Accurate Status Telemetry */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="relative w-full sm:max-w-[420px]">
               <Search
-                className="absolute left-4 top-1/2 -translate-y-1/2 size-4.5 text-purple-600 dark:text-purple-400 pointer-events-none"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
                 aria-hidden="true"
               />
               <Input
                 id="search-counselor-input"
                 type="text"
-                placeholder="Cari nama konselor, topik masalah (cemas, kerjaan, asmara, minder), atau keahlian..."
+                placeholder="Cari nama konselor atau keahlian..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-11 pr-10 text-xs sm:text-sm h-11 sm:h-12 rounded-full border-border/80 bg-background/90 shadow-2xs focus-visible:border-purple-500 focus-visible:ring-purple-500/20"
+                className="pl-10 pr-9 text-xs sm:text-sm h-10 sm:h-11 rounded-full border-border/80 bg-background/90 shadow-2xs focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring transition-all"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-1 rounded-full hover:bg-muted transition-colors"
-                  aria-label="Hapus pencarian"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer size-6 rounded-full hover:bg-muted/80 transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.95]"
+                  aria-label="Hapus kata kunci pencarian"
                 >
-                  <X className="size-4" />
+                  <X className="size-3.5" />
                 </button>
               )}
             </div>
 
-            {/* Quick Topic Chips (Mental health topics clickable shortcuts) */}
-            <div className="flex items-center gap-1.5 flex-wrap text-xs pt-0.5">
-              <span className="text-muted-foreground font-medium text-[11px] sm:text-xs shrink-0 flex items-center gap-1 mr-1">
-                <Sparkles className="size-3 text-purple-600 dark:text-purple-400" />
-                <span>Topik Populer:</span>
+            <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+              <span className="text-xs text-muted-foreground font-medium">
+                Menampilkan <strong className="text-foreground tabular-nums font-semibold">{filteredCounselors.length}</strong> dari{" "}
+                <span className="tabular-nums font-semibold text-foreground/90">{initialCounselors.length}</span> konselor
               </span>
-              {POPULAR_TOPICS.map((topic) => {
-                const isSelected = searchQuery.toLowerCase() === topic.toLowerCase()
-                return (
-                  <button
-                    key={topic}
-                    type="button"
-                    onClick={() => handleTopicClick(topic)}
-                    className={`px-2.5 py-1 rounded-full text-xs transition-all cursor-pointer border ${
-                      isSelected
-                        ? "bg-purple-600 text-white border-purple-600 font-semibold shadow-2xs"
-                        : "bg-secondary/70 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 dark:hover:bg-purple-950/40 dark:hover:text-purple-300 text-muted-foreground border-border/60 font-medium"
-                    }`}
-                  >
-                    {topic}
-                  </button>
-                )
-              })}
             </div>
           </div>
 
           <div className="h-px bg-border/60 w-full" aria-hidden="true" />
 
-          {/* Bottom Layer: Structured Dual Filters (Jenis Mitra & Jadwal Sesi) */}
+          {/* Middle Layer: Structured Dual Segmented Controls (Pilihan Konseling & Waktu Praktik) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-start lg:items-center">
             {/* Filter 1: Counselor Category / Type Segment */}
             <div className="lg:col-span-7 flex flex-col gap-2">
               <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Layers className="size-3.5 text-purple-600 dark:text-purple-400" />
+                <Layers className="size-3.5 text-primary" aria-hidden="true" />
                 <span>Pilihan Konseling:</span>
               </span>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
+              <ToggleGroup
+                type="single"
+                value={typeFilter}
+                onValueChange={(val) => {
+                  if (val) handleTypeChange(val as "all" | "peer" | "psychologist")
+                }}
+                aria-label="Pilihan Konseling"
+                className="w-full sm:w-auto justify-start flex-wrap gap-1 p-1 rounded-xl bg-muted/60 border border-border/60"
+              >
+                <ToggleGroupItem
+                  value="all"
                   id="btn-filter-all"
-                  onClick={() => handleTypeChange("all")}
-                  className={`h-9 px-4 rounded-full text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5 ${
-                    typeFilter === "all"
-                      ? "bg-[#7c3aed] text-white shadow-xs"
-                      : "bg-secondary hover:bg-secondary/80 text-foreground border border-border/60"
-                  }`}
+                  className="h-8 px-3 rounded-lg text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer"
                 >
                   <span>Semua</span>
-                  <span className="tabular-nums opacity-85">({counselors.length})</span>
-                </button>
+                  <span className="tabular-nums opacity-80 text-xs">({initialCounselors.length})</span>
+                </ToggleGroupItem>
 
-                <button
-                  type="button"
+                <ToggleGroupItem
+                  value="peer"
                   id="btn-filter-peer"
-                  onClick={() => handleTypeChange("peer")}
-                  className={`h-9 px-4 rounded-full text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5 ${
-                    typeFilter === "peer"
-                      ? "bg-[#7c3aed] text-white shadow-xs"
-                      : "bg-secondary hover:bg-secondary/80 text-foreground border border-border/60"
-                  }`}
+                  className="h-8 px-3 rounded-lg text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5"
                 >
-                  <span className="size-1.5 rounded-full bg-blue-400" />
+                  <span className="size-1.5 rounded-full bg-blue-500" />
                   <span>Konselor Sebaya</span>
-                  <span className="opacity-80 tabular-nums">({peerCount} • Rp 85rb)</span>
-                </button>
+                  <span className="opacity-75 tabular-nums text-xs">({peerCount} • Rp 85rb)</span>
+                </ToggleGroupItem>
 
-                <button
-                  type="button"
+                <ToggleGroupItem
+                  value="psychologist"
                   id="btn-filter-psychologist"
-                  onClick={() => handleTypeChange("psychologist")}
-                  className={`h-9 px-4 rounded-full text-xs font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5 ${
-                    typeFilter === "psychologist"
-                      ? "bg-[#7c3aed] text-white shadow-xs"
-                      : "bg-secondary hover:bg-secondary/80 text-foreground border border-border/60"
-                  }`}
+                  className="h-8 px-3 rounded-lg text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5"
                 >
-                  <span className="size-1.5 rounded-full bg-purple-400" />
+                  <span className="size-1.5 rounded-full bg-purple-500" />
                   <span>Psikolog Klinis</span>
-                  <span className="opacity-80 tabular-nums">({psychologistCount} • Rp 130rb)</span>
-                </button>
-              </div>
+                  <span className="opacity-75 tabular-nums text-xs">({psychologistCount} • Rp 130rb)</span>
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
 
             {/* Filter 2: Date / Practice Schedule Segment */}
             <div className="lg:col-span-5 flex flex-col gap-2 lg:border-l lg:border-border/60 lg:pl-6">
               <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <CalendarIcon className="size-3.5 text-purple-600 dark:text-purple-400" />
+                <CalendarIcon className="size-3.5 text-primary" aria-hidden="true" />
                 <span>Waktu Praktik:</span>
               </span>
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  id="btn-date-any"
-                  onClick={() => handleDateChange("")}
-                  className={`h-9 px-4 rounded-full text-xs font-semibold transition-all cursor-pointer inline-flex items-center ${
-                    dateFilter === ""
-                      ? "bg-[#7c3aed] text-white shadow-xs"
-                      : "bg-secondary hover:bg-secondary/80 text-foreground border border-border/60"
-                  }`}
+                <ToggleGroup
+                  type="single"
+                  value={dateFilter}
+                  onValueChange={(val) => handleDateChange(val || "")}
+                  aria-label="Waktu Praktik"
+                  className="justify-start flex-wrap gap-1 p-1 rounded-xl bg-muted/60 border border-border/60"
                 >
-                  Kapan Saja
-                </button>
+                  <ToggleGroupItem
+                    value=""
+                    id="btn-date-any"
+                    className="h-8 px-3 rounded-lg text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer"
+                  >
+                    Kapan Saja
+                  </ToggleGroupItem>
 
-                <button
-                  type="button"
-                  id="btn-date-tomorrow"
-                  onClick={() => handleDateChange(tomorrowStr)}
-                  className={`h-9 px-4 rounded-full text-xs font-semibold transition-all cursor-pointer inline-flex items-center ${
-                    dateFilter === tomorrowStr
-                      ? "bg-[#7c3aed] text-white shadow-xs"
-                      : "bg-secondary hover:bg-secondary/80 text-foreground border border-border/60"
-                  }`}
-                >
-                  Besok
-                </button>
+                  <ToggleGroupItem
+                    value={tomorrowStr}
+                    id="btn-date-tomorrow"
+                    className="h-8 px-3 rounded-lg text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer"
+                  >
+                    Besok
+                  </ToggleGroupItem>
 
-                <button
-                  type="button"
-                  id="btn-date-dayafter"
-                  onClick={() => handleDateChange(dayAfterStr)}
-                  className={`h-9 px-4 rounded-full text-xs font-semibold transition-all cursor-pointer inline-flex items-center ${
-                    dateFilter === dayAfterStr
-                      ? "bg-[#7c3aed] text-white shadow-xs"
-                      : "bg-secondary hover:bg-secondary/80 text-foreground border border-border/60"
-                  }`}
-                >
-                  Lusa
-                </button>
+                  <ToggleGroupItem
+                    value={dayAfterStr}
+                    id="btn-date-dayafter"
+                    className="h-8 px-3 rounded-lg text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer"
+                  >
+                    Lusa
+                  </ToggleGroupItem>
+                </ToggleGroup>
 
-                {/* Styled Native Date Picker for Custom Dates */}
                 <div className="flex items-center">
                   <Input
                     type="date"
@@ -473,85 +456,164 @@ export default function CounselorsCatalogClient({
                     min={new Date().toISOString().split("T")[0]}
                     value={dateFilter}
                     onChange={(e) => handleDateChange(e.target.value)}
-                    className="text-xs h-9 w-34 px-3 rounded-full border-border/80 bg-background text-foreground shadow-2xs font-semibold"
+                    className={cn(
+                      "text-xs h-8.5 w-34 px-2.5 rounded-lg shadow-2xs font-medium transition-all cursor-pointer border-border/80 bg-background/90",
+                      dateFilter && dateFilter !== tomorrowStr && dateFilter !== dayAfterStr
+                        ? "border-primary bg-primary/10 text-primary font-semibold ring-1 ring-primary/30"
+                        : "hover:bg-muted text-foreground"
+                    )}
                     title="Pilih tanggal khusus"
+                    aria-label="Pilih tanggal praktik khusus"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Active Filter Chips & Live Telemetry Summary */}
-          <div className="pt-2 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-muted-foreground font-medium">
-                Menampilkan <strong className="text-foreground tabular-nums">{filteredCounselors.length}</strong> dari{" "}
-                <span className="tabular-nums">{counselors.length}</span> konselor
+          <div className="h-px bg-border/60 w-full" aria-hidden="true" />
+
+          {/* Bottom Layer: Dedicated Topik Populer Filter with Collapsible/Expandable view */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Sparkles className="size-3.5 text-primary" aria-hidden="true" />
+                <span>Topik Populer:</span>
               </span>
-
-              {isFiltered && (
-                <div className="flex items-center gap-1.5 flex-wrap ml-1">
-                  {typeFilter !== "all" && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-xs font-semibold">
-                      <span>{typeFilter === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleTypeChange("all")}
-                        className="hover:opacity-75 cursor-pointer ml-0.5"
-                        aria-label="Hapus filter jenis mitra"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </span>
-                  )}
-
-                  {dateFilter && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-xs font-semibold">
-                      <span>
-                        Tanggal: {formatSlotChipDate(dateFilter, tomorrowStr, dayAfterStr)} ({dateFilter})
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleDateChange("")}
-                        className="hover:opacity-75 cursor-pointer ml-0.5"
-                        aria-label="Hapus filter tanggal"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </span>
-                  )}
-
-                  {searchQuery.trim() && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 text-xs font-semibold">
-                      <span>Kata kunci: &ldquo;{searchQuery}&rdquo;</span>
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery("")}
-                        className="hover:opacity-75 cursor-pointer ml-0.5"
-                        aria-label="Hapus kata kunci pencarian"
-                      >
-                        <X className="size-3" />
-                      </button>
-                    </span>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="text-purple-600 dark:text-purple-400 font-semibold hover:underline text-xs inline-flex items-center gap-1 cursor-pointer ml-1"
-                  >
-                    <RotateCcw className="size-3" />
-                    <span>Reset Semua</span>
-                  </button>
-                </div>
-              )}
             </div>
 
-            <span className="hidden sm:inline-flex items-center gap-1.5 text-muted-foreground font-medium text-xs">
-              <Clock className="size-3.5 text-purple-600 dark:text-purple-400" />
-              <span>Sesi 90 menit privat via Zoom</span>
-            </span>
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Topik Populer">
+              <button
+                type="button"
+                id="btn-topic-all"
+                onClick={() => setTopicFilter("")}
+                aria-pressed={topicFilter === ""}
+                className={getTopicChipClass(topicFilter === "")}
+              >
+                <span>Semua Topik</span>
+              </button>
+
+              {POPULAR_TOPICS.map((topic, idx) => {
+                const isSelected = topicFilter.toLowerCase() === topic.toLowerCase()
+                // In collapsed mode, display first 4 topics unless this topic is currently selected
+                const isHiddenOnCollapse = !isTopicsExpanded && idx >= 4 && !isSelected
+                if (isHiddenOnCollapse) return null
+
+                return (
+                  <button
+                    key={topic}
+                    type="button"
+                    id={`btn-topic-${topic.toLowerCase().replace(/\s+/g, "-")}`}
+                    onClick={() => handleTopicClick(topic)}
+                    aria-pressed={isSelected}
+                    className={getTopicChipClass(isSelected)}
+                  >
+                    <span>{topic}</span>
+                  </button>
+                )
+              })}
+
+              <button
+                type="button"
+                onClick={() => setIsTopicsExpanded(!isTopicsExpanded)}
+                className="h-8 px-2.5 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground inline-flex items-center gap-1 border border-dashed border-border/80 hover:border-border transition-colors cursor-pointer select-none"
+                aria-expanded={isTopicsExpanded}
+                aria-label={isTopicsExpanded ? "Sembunyikan topik tambahan" : "Lihat topik lainnya"}
+              >
+                {isTopicsExpanded ? (
+                  <>
+                    <span>Tutup</span>
+                    <ChevronUp className="size-3" />
+                  </>
+                ) : (
+                  <>
+                    <span>+{POPULAR_TOPICS.length - 4} Topik Lainnya</span>
+                    <ChevronDown className="size-3" />
+                  </>
+                )}
+              </button>
+            </div>
           </div>
+
+          {/* Active Filter Chips & Single Comprehensive Reset */}
+          {isFiltered && (
+            <div className="pt-2 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-muted-foreground font-medium mr-1">Filter aktif:</span>
+
+                {typeFilter !== "all" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+                    <span>{typeFilter === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleTypeChange("all")}
+                      className="size-4 rounded-full inline-flex items-center justify-center hover:bg-primary/20 text-primary transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary active:scale-[0.95]"
+                      aria-label="Hapus filter jenis mitra"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                )}
+
+                {dateFilter && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-semibold">
+                    <span>
+                      Tanggal: {formatSlotChipDate(dateFilter, tomorrowStr, dayAfterStr)} ({dateFilter})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDateChange("")}
+                      className="size-4 rounded-full inline-flex items-center justify-center hover:bg-primary/20 text-primary transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary active:scale-[0.95]"
+                      aria-label="Hapus filter tanggal"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                )}
+
+                {topicFilter && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+                    <span>Topik: {topicFilter}</span>
+                    <button
+                      type="button"
+                      onClick={() => setTopicFilter("")}
+                      className="size-4 rounded-full inline-flex items-center justify-center hover:bg-primary/20 text-primary transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary active:scale-[0.95]"
+                      aria-label="Hapus filter topik"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                )}
+
+                {searchQuery.trim() && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+                    <span>Kata kunci: &ldquo;{searchQuery}&rdquo;</span>
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="size-4 rounded-full inline-flex items-center justify-center hover:bg-primary/20 text-primary transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary active:scale-[0.95]"
+                      aria-label="Hapus kata kunci pencarian"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="h-7 px-2.5 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary/60 hover:bg-secondary border border-border/70 inline-flex items-center gap-1.5 transition-colors cursor-pointer ml-1 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <RotateCcw className="size-3" />
+                  <span>Reset Semua Filter</span>
+                </button>
+              </div>
+
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-muted-foreground font-medium text-xs">
+                <Clock className="size-3.5 text-primary" />
+                <span>Sesi 90 menit privat via Zoom</span>
+              </span>
+            </div>
+          )}
         </section>
 
         {/* 4. Counselors Catalog Grid */}
@@ -568,10 +630,10 @@ export default function CounselorsCatalogClient({
             </p>
             <div className="flex items-center gap-2 pt-1">
               <Button
-                variant="outline"
-                size="sm"
+                variant="public"
+                size="pill-sm"
                 onClick={clearFilters}
-                className="text-xs h-9 px-4 rounded-full cursor-pointer border-border/80 font-semibold"
+                className="cursor-pointer"
               >
                 <RotateCcw data-icon="inline-start" />
                 <span>Reset Semua Filter</span>
@@ -629,7 +691,7 @@ export default function CounselorsCatalogClient({
                     {/* Top-left: Role Badge */}
                     <div className="absolute top-3.5 left-3.5 z-10">
                       <span
-                        className={`h-7 px-3 rounded-full text-xs font-semibold backdrop-blur-md shadow-xs inline-flex items-center gap-1.5 ${
+                        className={`h-7 px-3 rounded-full text-xs font-semibold backdrop-blur-md shadow-xs inline-flex items-center gap-1.5 select-none ${
                           isPsychologist
                             ? "bg-purple-950/90 text-purple-200 border border-purple-400/40"
                             : "bg-blue-950/90 text-blue-200 border border-blue-400/40"
@@ -645,13 +707,13 @@ export default function CounselorsCatalogClient({
                     </div>
 
                     {/* Top-right: Rating Badge */}
-                    <div className="absolute top-3.5 right-3.5 z-10 h-7 px-2.5 rounded-full bg-black/65 backdrop-blur-md text-white text-xs font-bold shadow-xs border border-white/15 inline-flex items-center gap-1.5">
+                    <div className="absolute top-3.5 right-3.5 z-10 h-7 px-2.5 rounded-full bg-black/65 backdrop-blur-md text-white text-xs font-bold shadow-xs border border-white/15 inline-flex items-center gap-1.5 select-none">
                       <Star className="size-3 text-amber-400 fill-amber-400" aria-hidden="true" />
                       <span className="tabular-nums">{counselor.rating || (isPsychologist ? "4.9" : "4.8")}</span>
                     </div>
 
                     {/* Bottom overlay: Availability Status & Experience */}
-                    <div className="absolute bottom-3 left-3.5 right-3.5 z-10 flex items-center justify-between text-xs font-medium text-white/95">
+                    <div className="absolute bottom-3 left-3.5 right-3.5 z-10 flex items-center justify-between text-xs font-medium text-white/95 select-none">
                       <div className="h-7 px-2.5 rounded-full bg-black/45 backdrop-blur-md border border-white/15 inline-flex items-center gap-1.5">
                         <span
                           className={`size-2 rounded-full shrink-0 ${
@@ -698,19 +760,30 @@ export default function CounselorsCatalogClient({
 
                     {/* Specializations / Focus Topic Pills */}
                     <div className="flex flex-wrap items-center gap-1.5 min-h-[28px]">
-                      {counselor.specializations.slice(0, 3).map((spec) => (
-                        <button
-                          key={spec}
-                          type="button"
-                          onClick={() => handleTopicClick(spec)}
-                          className="h-6 text-xs font-medium text-muted-foreground px-2.5 rounded-full bg-secondary/80 border border-border/50 hover:border-purple-300 hover:text-purple-600 dark:hover:text-purple-300 transition-colors whitespace-nowrap cursor-pointer inline-flex items-center"
-                          title={`Cari topik ${spec}`}
-                        >
-                          {spec}
-                        </button>
-                      ))}
+                      {counselor.specializations.slice(0, 3).map((spec) => {
+                        const isSpecActive = topicFilter.toLowerCase() === spec.toLowerCase()
+                        return (
+                          <button
+                            key={spec}
+                            type="button"
+                            onClick={() => handleTopicClick(spec)}
+                            aria-pressed={isSpecActive}
+                            className={cn(
+                              "h-6 text-xs px-2.5 rounded-full transition-all whitespace-nowrap cursor-pointer inline-flex items-center select-none",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500",
+                              "active:scale-[0.97]",
+                              isSpecActive
+                                ? "bg-[#7c3aed] text-white border border-[#7c3aed] font-semibold shadow-2xs"
+                                : "font-medium text-muted-foreground bg-secondary/80 border border-border/50 hover:border-purple-300 hover:text-purple-600 dark:hover:text-purple-300"
+                            )}
+                            title={`Filter topik ${spec}`}
+                          >
+                            {spec}
+                          </button>
+                        )
+                      })}
                       {counselor.specializations.length > 3 && (
-                        <span className="h-6 text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 rounded-full tabular-nums inline-flex items-center">
+                        <span className="h-6 text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 rounded-full tabular-nums inline-flex items-center select-none">
                           +{counselor.specializations.length - 3} lainnya
                         </span>
                       )}
@@ -746,7 +819,7 @@ export default function CounselorsCatalogClient({
                               key={slot.id}
                               type="button"
                               onClick={() => setSelectedSlotModal({ counselor, slot })}
-                              className="w-full flex items-center justify-between p-2.5 sm:p-3 rounded-xl border border-border/80 bg-muted/20 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all text-left cursor-pointer group shadow-2xs"
+                              className="w-full flex items-center justify-between p-2.5 sm:p-3 rounded-xl border border-border/80 bg-muted/20 hover:bg-purple-500/10 hover:border-purple-500/50 transition-all text-left cursor-pointer group shadow-2xs active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
                               title={`Pilih jadwal ${slot.date} pukul ${slot.timeRange}`}
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
@@ -781,20 +854,16 @@ export default function CounselorsCatalogClient({
                         <span className="text-xs text-muted-foreground font-medium">
                           Tarif sesi (90 mnt):
                         </span>
-                        {counselor.pricing.isSaleActive && counselor.pricing.originalPriceFormatted ? (
-                          <span className="text-xs text-muted-foreground line-through tabular-nums leading-none pt-0.5">
-                            {counselor.pricing.originalPriceFormatted}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-transparent select-none leading-none pt-0.5" aria-hidden="true">
-                            -
-                          </span>
-                        )}
                       </div>
-                      <div className="flex items-baseline gap-1.5">
+                      <div className="flex flex-col items-end">
                         <strong className="text-foreground font-heading font-bold text-base sm:text-lg tabular-nums">
                           {counselor.pricing.displayPriceFormatted}
                         </strong>
+                        {counselor.pricing.isSaleActive && counselor.pricing.originalPriceFormatted && (
+                          <span className="text-[11px] sm:text-xs text-muted-foreground line-through tabular-nums leading-tight">
+                            {counselor.pricing.originalPriceFormatted}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -973,7 +1042,7 @@ export default function CounselorsCatalogClient({
                           setSelectedBioCounselor(null)
                           setSelectedSlotModal({ counselor: c, slot })
                         }}
-                        className="flex items-center justify-between p-2.5 rounded-xl border border-border/70 hover:border-purple-600 hover:bg-purple-500/10 transition-all text-left text-xs cursor-pointer group shadow-2xs"
+                        className="flex items-center justify-between p-2.5 rounded-xl border border-border/70 hover:border-purple-600 hover:bg-purple-500/10 transition-all text-left text-xs cursor-pointer group shadow-2xs active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
                       >
                         <div className="flex flex-col">
                           <span className="font-semibold text-foreground tabular-nums group-hover:text-purple-600 transition-colors">
@@ -993,24 +1062,31 @@ export default function CounselorsCatalogClient({
               {/* Pricing Notice */}
               <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Biaya Sesi (90 Menit):</span>
-                <strong className="text-foreground font-heading font-bold text-sm sm:text-base tabular-nums">
-                  {selectedBioCounselor.pricing.displayPriceFormatted}
-                </strong>
+                <div className="flex flex-col items-end">
+                  <strong className="text-foreground font-heading font-bold text-sm sm:text-base tabular-nums">
+                    {selectedBioCounselor.pricing.displayPriceFormatted}
+                  </strong>
+                  {selectedBioCounselor.pricing.isSaleActive && selectedBioCounselor.pricing.originalPriceFormatted && (
+                    <span className="text-[11px] text-muted-foreground line-through tabular-nums leading-tight">
+                      {selectedBioCounselor.pricing.originalPriceFormatted}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <DialogFooter className="pt-2 flex flex-col sm:flex-row gap-2">
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="pill-sm"
                   onClick={() => setSelectedBioCounselor(null)}
-                  className="w-full sm:w-auto h-9 px-4 text-xs font-semibold rounded-full cursor-pointer"
+                  className="w-full sm:w-auto cursor-pointer"
                 >
                   Tutup
                 </Button>
                 {selectedBioCounselor.availableSlots.length > 0 && (
                   <Button
                     variant="public"
-                    size="sm"
+                    size="pill-sm"
                     onClick={() => {
                       const c = selectedBioCounselor
                       setSelectedBioCounselor(null)
@@ -1019,7 +1095,7 @@ export default function CounselorsCatalogClient({
                         slot: c.availableSlots[0],
                       })
                     }}
-                    className="w-full sm:w-auto h-9 px-4 text-xs font-semibold rounded-full cursor-pointer"
+                    className="w-full sm:w-auto cursor-pointer"
                   >
                     <span>Pilih Jadwal Sesi</span>
                     <ArrowRight data-icon="inline-end" aria-hidden="true" />
@@ -1085,9 +1161,16 @@ export default function CounselorsCatalogClient({
                   </div>
                   <div className="flex justify-between items-baseline pt-1 border-t border-border/40">
                     <span className="font-medium text-foreground">Total Biaya Sesi:</span>
-                    <span className="font-heading font-bold text-sm sm:text-base text-foreground tabular-nums">
-                      {selectedSlotModal.counselor.pricing.displayPriceFormatted}
-                    </span>
+                    <div className="flex flex-col items-end">
+                      <span className="font-heading font-bold text-sm sm:text-base text-foreground tabular-nums">
+                        {selectedSlotModal.counselor.pricing.displayPriceFormatted}
+                      </span>
+                      {selectedSlotModal.counselor.pricing.isSaleActive && selectedSlotModal.counselor.pricing.originalPriceFormatted && (
+                        <span className="text-[11px] text-muted-foreground line-through tabular-nums leading-tight">
+                          {selectedSlotModal.counselor.pricing.originalPriceFormatted}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1130,13 +1213,13 @@ export default function CounselorsCatalogClient({
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-0 pt-2">
+          <DialogFooter className="gap-2 sm:gap-2 pt-2">
             <Button
               type="button"
               variant="outline"
-              size="sm"
+              size="pill-sm"
               onClick={() => setSelectedSlotModal(null)}
-              className="h-9 px-4 text-xs font-semibold rounded-full cursor-pointer"
+              className="w-full sm:w-auto cursor-pointer"
             >
               Pilih Waktu Lain
             </Button>
@@ -1144,8 +1227,8 @@ export default function CounselorsCatalogClient({
               <Button
                 asChild
                 variant="public"
-                size="sm"
-                className="h-9 px-4 text-xs gap-1.5 font-semibold rounded-full cursor-pointer"
+                size="pill-sm"
+                className="w-full sm:w-auto cursor-pointer"
               >
                 <Link
                   href={`/screening?counselorId=${selectedSlotModal?.counselor.id}&scheduleId=${selectedSlotModal?.slot.id}`}
@@ -1158,8 +1241,8 @@ export default function CounselorsCatalogClient({
               <Button
                 asChild
                 variant="public"
-                size="sm"
-                className="h-9 px-4 text-xs gap-1.5 font-semibold rounded-full cursor-pointer"
+                size="pill-sm"
+                className="w-full sm:w-auto cursor-pointer"
               >
                 <Link
                   href={`/booking?counselorId=${selectedSlotModal?.counselor.id}&scheduleId=${selectedSlotModal?.slot.id}${
@@ -1233,10 +1316,10 @@ export default function CounselorsCatalogClient({
           <DialogFooter>
             <Button
               type="button"
-              variant="outline"
-              size="sm"
+              variant="public"
+              size="pill-sm"
               onClick={() => setShowTypeInfoModal(false)}
-              className="w-full h-9 px-4 text-xs font-semibold rounded-full cursor-pointer"
+              className="w-full sm:w-auto cursor-pointer"
             >
               Saya Mengerti
             </Button>

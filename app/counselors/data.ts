@@ -28,12 +28,13 @@ export function getFallbackCounselors(
       experience: "4+ Tahun",
       availableSoon: "Tersedia Besok",
       pricing: {
-        basePrice: 130000,
-        promoPrice: null,
-        isSaleActive: false,
+        basePrice: 250000,
+        promoPrice: 130000,
+        isSaleActive: true,
         allowVoucher: true,
         displayPrice: 130000,
         displayPriceFormatted: "Rp 130.000",
+        originalPriceFormatted: "Rp 250.000",
       },
       availableSlots: [
         {
@@ -75,12 +76,13 @@ export function getFallbackCounselors(
       experience: "3+ Tahun",
       availableSoon: "Tersedia Besok",
       pricing: {
-        basePrice: 85000,
-        promoPrice: null,
-        isSaleActive: false,
+        basePrice: 150000,
+        promoPrice: 85000,
+        isSaleActive: true,
         allowVoucher: true,
         displayPrice: 85000,
         displayPriceFormatted: "Rp 85.000",
+        originalPriceFormatted: "Rp 150.000",
       },
       availableSlots: [
         {
@@ -122,12 +124,13 @@ export function getFallbackCounselors(
       experience: "6+ Tahun",
       availableSoon: "Tersedia Lusa",
       pricing: {
-        basePrice: 130000,
-        promoPrice: null,
-        isSaleActive: false,
+        basePrice: 250000,
+        promoPrice: 130000,
+        isSaleActive: true,
         allowVoucher: true,
         displayPrice: 130000,
         displayPriceFormatted: "Rp 130.000",
+        originalPriceFormatted: "Rp 250.000",
       },
       availableSlots: [
         {
@@ -162,12 +165,13 @@ export function getFallbackCounselors(
       experience: "3+ Tahun",
       availableSoon: "Tersedia Besok",
       pricing: {
-        basePrice: 85000,
-        promoPrice: null,
-        isSaleActive: false,
+        basePrice: 150000,
+        promoPrice: 85000,
+        isSaleActive: true,
         allowVoucher: true,
         displayPrice: 85000,
         displayPriceFormatted: "Rp 85.000",
+        originalPriceFormatted: "Rp 150.000",
       },
       availableSlots: [
         {

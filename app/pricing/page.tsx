@@ -92,6 +92,11 @@ export default function PublicPricingPage() {
                     / sesi (90 menit)
                   </span>
                 </div>
+                <div className="pt-0.5 pb-2">
+                  <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
+                    Rp 150.000
+                  </span>
+                </div>
                 <div className="flex items-center gap-2 text-xs">
                   <span className="text-muted-foreground text-xs">
                     Tarif tetap tanpa harus langganan paket
@@ -174,6 +179,11 @@ export default function PublicPricingPage() {
                   </span>
                   <span className="text-xs text-muted-foreground font-medium tabular-nums">
                     / sesi (90 menit)
+                  </span>
+                </div>
+                <div className="pt-0.5 pb-2">
+                  <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
+                    Rp 250.000
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">

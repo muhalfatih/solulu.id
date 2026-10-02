@@ -669,9 +669,16 @@ export default function CounselorDetailClient({
                 <div className="p-4.5 rounded-xl bg-muted/20 border border-border/50 flex flex-col gap-2.5">
                   <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground leading-normal">
                     <span>Biaya Sesi (90 Menit):</span>
-                    <span className="font-semibold text-foreground tabular-nums leading-normal">
-                      {counselor.pricing.displayPriceFormatted}
-                    </span>
+                    <div className="flex flex-col items-end">
+                      <span className="font-semibold text-foreground tabular-nums leading-normal">
+                        {counselor.pricing.displayPriceFormatted}
+                      </span>
+                      {counselor.pricing.isSaleActive && counselor.pricing.originalPriceFormatted && (
+                        <span className="text-[11px] text-muted-foreground line-through tabular-nums leading-tight">
+                          {counselor.pricing.originalPriceFormatted}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground leading-normal">
@@ -751,6 +758,11 @@ export default function CounselorDetailClient({
           <strong className="text-base font-semibold text-foreground tabular-nums leading-normal">
             {counselor.pricing.displayPriceFormatted}
           </strong>
+          {counselor.pricing.isSaleActive && counselor.pricing.originalPriceFormatted && (
+            <span className="text-[11px] text-muted-foreground line-through tabular-nums leading-tight">
+              {counselor.pricing.originalPriceFormatted}
+            </span>
+          )}
         </div>
 
         <Button

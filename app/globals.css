@@ -194,7 +194,7 @@
 .theme-public h4,
 .theme-public .font-heading {
     font-family: var(--font-poppins), sans-serif;
-    color: var(--foreground);
+    color: inherit;
 }
 
 .theme-public h1 {
