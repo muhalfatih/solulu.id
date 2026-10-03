@@ -111,7 +111,7 @@ export default function CounselorsCatalogClient({
   const [typeFilter, setTypeFilter] = React.useState<"all" | "peer" | "psychologist">(
     initialRecommendedType || "all"
   )
-  const [dateFilter, setDateFilter] = React.useState<string>("")
+  const [dateFilter, setDateFilter] = React.useState<string>("any")
   const [selectedTopics, setSelectedTopics] = React.useState<string[]>([])
   const [searchQuery, setSearchQuery] = React.useState<string>("")
   const [isSearchingServer, setIsSearchingServer] = React.useState(false)
@@ -151,7 +151,7 @@ export default function CounselorsCatalogClient({
       try {
         const res = await getCounselorsCatalogAction({
           type: type === "all" ? undefined : type,
-          date: date || undefined,
+          date: date && date !== "any" ? date : undefined,
         })
         if (res.success && res.data && res.data.length > 0) {
           setCounselors(res.data)
@@ -171,8 +171,9 @@ export default function CounselorsCatalogClient({
   }
 
   const handleDateChange = (newDate: string) => {
-    setDateFilter(newDate)
-    syncServerCatalog(typeFilter, newDate)
+    const targetDate = newDate || "any"
+    setDateFilter(targetDate)
+    syncServerCatalog(typeFilter, targetDate)
   }
 
   const handleTopicClick = (topic: string) => {
@@ -183,14 +184,17 @@ export default function CounselorsCatalogClient({
 
   const clearFilters = () => {
     setTypeFilter("all")
-    setDateFilter("")
+    setDateFilter("any")
     setSelectedTopics([])
     setSearchQuery("")
-    syncServerCatalog("all", "")
+    syncServerCatalog("all", "any")
   }
 
   const isFiltered =
-    typeFilter !== "all" || dateFilter !== "" || selectedTopics.length > 0 || searchQuery.trim() !== ""
+    typeFilter !== "all" ||
+    (dateFilter !== "" && dateFilter !== "any") ||
+    selectedTopics.length > 0 ||
+    searchQuery.trim() !== ""
 
   // Comprehensive, instant client-side filtering across all fields & facets
   const filteredCounselors = React.useMemo(() => {
@@ -201,7 +205,7 @@ export default function CounselorsCatalogClient({
       }
 
       // 2. Date availability filter
-      if (dateFilter) {
+      if (dateFilter && dateFilter !== "any") {
         const hasSlotOnDate = c.availableSlots.some((slot) => slot.date === dateFilter)
         if (!hasSlotOnDate) return false
       }
@@ -382,7 +386,7 @@ export default function CounselorsCatalogClient({
                 <ToggleGroupItem
                   value="all"
                   id="btn-filter-all"
-                  className="h-8 px-3 rounded-lg text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer"
+                  className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:bg-background/80 hover:text-foreground active:scale-[0.98] data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer select-none"
                 >
                   <span>Semua</span>
                 </ToggleGroupItem>
@@ -390,18 +394,28 @@ export default function CounselorsCatalogClient({
                 <ToggleGroupItem
                   value="peer"
                   id="btn-filter-peer"
-                  className="h-8 px-3 rounded-lg text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5"
+                  className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:bg-background/80 hover:text-foreground active:scale-[0.98] data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer select-none inline-flex items-center gap-1.5"
                 >
-                  <span className="size-1.5 rounded-full bg-blue-500" />
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full transition-colors",
+                      typeFilter === "peer" ? "bg-sky-200 ring-1 ring-white/50" : "bg-blue-500"
+                    )}
+                  />
                   <span>Konselor Sebaya</span>
                 </ToggleGroupItem>
 
                 <ToggleGroupItem
                   value="psychologist"
                   id="btn-filter-psychologist"
-                  className="h-8 px-3 rounded-lg text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer inline-flex items-center gap-1.5"
+                  className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:bg-background/80 hover:text-foreground active:scale-[0.98] data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer select-none inline-flex items-center gap-1.5"
                 >
-                  <span className="size-1.5 rounded-full bg-purple-500" />
+                  <span
+                    className={cn(
+                      "size-1.5 rounded-full transition-colors",
+                      typeFilter === "psychologist" ? "bg-purple-200 ring-1 ring-white/50" : "bg-purple-500"
+                    )}
+                  />
                   <span>Psikolog Klinis</span>
                 </ToggleGroupItem>
               </ToggleGroup>
@@ -422,9 +436,9 @@ export default function CounselorsCatalogClient({
                   className="justify-start flex-wrap gap-1 p-1 rounded-xl bg-muted/60 border border-border/60"
                 >
                   <ToggleGroupItem
-                    value=""
+                    value="any"
                     id="btn-date-any"
-                    className="h-8 px-3 rounded-lg text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer"
+                    className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:bg-background/80 hover:text-foreground active:scale-[0.98] data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer select-none"
                   >
                     Kapan Saja
                   </ToggleGroupItem>
@@ -432,7 +446,7 @@ export default function CounselorsCatalogClient({
                   <ToggleGroupItem
                     value={tomorrowStr}
                     id="btn-date-tomorrow"
-                    className="h-8 px-3 rounded-lg text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer"
+                    className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:bg-background/80 hover:text-foreground active:scale-[0.98] data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer select-none"
                   >
                     Besok
                   </ToggleGroupItem>
@@ -440,7 +454,7 @@ export default function CounselorsCatalogClient({
                   <ToggleGroupItem
                     value={dayAfterStr}
                     id="btn-date-dayafter"
-                    className="h-8 px-3 rounded-lg text-xs font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer"
+                    className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:bg-background/80 hover:text-foreground active:scale-[0.98] data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer select-none"
                   >
                     Lusa
                   </ToggleGroupItem>
@@ -451,12 +465,12 @@ export default function CounselorsCatalogClient({
                     type="date"
                     id="input-custom-date"
                     min={new Date().toISOString().split("T")[0]}
-                    value={dateFilter}
+                    value={dateFilter === "any" ? "" : dateFilter}
                     onChange={(e) => handleDateChange(e.target.value)}
                     className={cn(
                       "text-xs h-8.5 w-34 px-2.5 rounded-lg shadow-2xs font-medium transition-all cursor-pointer border-border/80 bg-background/90",
-                      dateFilter && dateFilter !== tomorrowStr && dateFilter !== dayAfterStr
-                        ? "border-primary bg-primary/10 text-primary font-semibold ring-1 ring-primary/30"
+                      dateFilter && dateFilter !== "any" && dateFilter !== tomorrowStr && dateFilter !== dayAfterStr
+                        ? "border-primary bg-primary/10 text-primary font-semibold ring-2 ring-primary/25"
                         : "hover:bg-muted text-foreground"
                     )}
                     title="Pilih tanggal khusus"
@@ -551,14 +565,14 @@ export default function CounselorsCatalogClient({
                   </span>
                 )}
 
-                {dateFilter && (
+                {dateFilter && dateFilter !== "any" && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-semibold">
                     <span>
                       Tanggal: {formatSlotChipDate(dateFilter, tomorrowStr, dayAfterStr)} ({dateFilter})
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleDateChange("")}
+                      onClick={() => handleDateChange("any")}
                       className="size-4 rounded-full inline-flex items-center justify-center hover:bg-primary/20 text-primary transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary active:scale-[0.95]"
                       aria-label="Hapus filter tanggal"
                     >
@@ -653,7 +667,7 @@ export default function CounselorsCatalogClient({
               const isHighlighted = targetCounselorId === counselor.id
 
               // Sort slots so that slots matching dateFilter are prioritized
-              const sortedSlots = dateFilter
+              const sortedSlots = dateFilter && dateFilter !== "any"
                 ? [...counselor.availableSlots].sort((a, b) => {
                     if (a.date === dateFilter && b.date !== dateFilter) return -1
                     if (b.date === dateFilter && a.date !== dateFilter) return 1

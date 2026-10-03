@@ -244,6 +244,73 @@
   animation: float-subtle 6s ease-in-out infinite;
 }
 
+/* Organic Breathing Aura for Hero Reassurance */
+@keyframes calm-breath {
+  0%, 100% {
+    transform: scale(0.96) translate3d(0, 0, 0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.04) translate3d(0, -6px, 0);
+    opacity: 0.85;
+  }
+}
+
+.animate-calm-breath {
+  animation: calm-breath 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform, opacity;
+}
+
+/* Deliberate Hero Stagger Arrival (Exponential Deceleration) */
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-hero-fade-up {
+  animation: hero-fade-up 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Shimmer Sweep for Dynamic Living Progress */
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer-sweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Beacon Pulse Ring for Urgent Support (WhatsApp Widget) */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.28);
+    opacity: 0;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 3.5s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -256,6 +323,7 @@
     }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
     }
 }
 
@@ -291,8 +359,20 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .animate-accordion-down,
-  .animate-accordion-up {
-    animation-duration: 0.01ms;
+  .animate-accordion-up,
+  .animate-float-subtle,
+  .animate-calm-breath,
+  .animate-hero-fade-up,
+  .animate-shimmer,
+  .animate-pulse-ring {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
