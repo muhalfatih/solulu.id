@@ -24,9 +24,11 @@ import {
   User,
   Filter,
   CreditCard,
+  Plus,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { ManualPaymentModal, ManualPaymentDetails } from "./components/manual-payment-modal"
+import { AdminManualBookingModal } from "./components/admin-manual-booking-modal"
 import { confirmManualPaymentAction } from "./actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -67,6 +69,7 @@ export default function DistilledSessionsPage() {
   const [selectedSession, setSelectedSession] = React.useState<BookingSession | null>(null)
   const [isDrawerClosing, setIsDrawerClosing] = React.useState(false)
   const [manualPaymentSession, setManualPaymentSession] = React.useState<BookingSession | null>(null)
+  const [isManualBookingModalOpen, setIsManualBookingModalOpen] = React.useState(false)
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
 
   const showToast = (msg: string) => {
@@ -247,8 +250,17 @@ export default function DistilledSessionsPage() {
           </p>
         </div>
 
-        {/* View Mode Toggle: Kalender vs Daftar */}
+        {/* View Mode Toggle & Manual Booking Trigger */}
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => setIsManualBookingModalOpen(true)}
+            className="text-xs h-8 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1.5 rounded-md"
+          >
+            <Plus className="size-3.5" />
+            <span>Buat Booking Manual</span>
+          </Button>
+
           <div className="flex items-center h-8 rounded-lg border border-border p-0.5 bg-muted/40 text-xs">
             <button
               type="button"
@@ -1054,6 +1066,16 @@ export default function DistilledSessionsPage() {
         isOpen={!!manualPaymentSession}
         onClose={() => setManualPaymentSession(null)}
         onConfirm={handleConfirmManualPayment}
+      />
+
+      {/* Admin Manual Booking Bypass Modal */}
+      <AdminManualBookingModal
+        isOpen={isManualBookingModalOpen}
+        onClose={() => setIsManualBookingModalOpen(false)}
+        onBookingCreated={(newSession) => {
+          setSessions((prev) => [newSession, ...prev])
+          showToast(`Sesi manual atas nama ${newSession.patientName} berhasil dibuat dan dikonfirmasi!`)
+        }}
       />
     </div>
   )

@@ -6,6 +6,7 @@ import {
   MOCK_ACTIVE_COUNSELORS,
   CounselorApplicant,
 } from "../mock-data"
+import Link from "next/link"
 import {
   CheckCircle2,
   XCircle,
@@ -22,6 +23,8 @@ import {
   ExternalLink,
   Filter,
   X,
+  Plus,
+  Pencil,
 } from "lucide-react"
 import {
   Tabs,
@@ -40,14 +43,46 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table"
+import {
+  getCounselorsAdminAction,
+  toggleCounselorActiveAction,
+} from "./actions"
 
 export default function DistilledCounselorsPage() {
   const [applicants, setApplicants] = React.useState<CounselorApplicant[]>(MOCK_APPLICANTS)
-  const [activeCounselors, setActiveCounselors] = React.useState(MOCK_ACTIVE_COUNSELORS)
+  const [activeCounselors, setActiveCounselors] = React.useState<any[]>(MOCK_ACTIVE_COUNSELORS)
   const [previewDoc, setPreviewDoc] = React.useState<{ name: string; type: string; applicantName: string } | null>(null)
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "suspended">("all")
+
+  // Fetch real counselors from database on mount, keeping resilient fallback
+  React.useEffect(() => {
+    async function fetchCounselors() {
+      try {
+        const res = await getCounselorsAdminAction()
+        if (res.success && res.data && res.data.length > 0) {
+          const mapped = res.data.map((row: any) => ({
+            id: row.id,
+            name: row.fullName,
+            title: row.title,
+            type: row.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya",
+            email: row.email || "counselor@solulu.id",
+            phone: row.phone || "-",
+            specializations: row.specializations || [],
+            isActive: row.isActive,
+            totalSessions: row.completedSessionsCount ?? 0,
+            activeSlots: row.activeSlotsCount ?? 0,
+            avatarR2Url: row.avatarR2Url,
+          }))
+          setActiveCounselors(mapped)
+        }
+      } catch (err) {
+        console.warn("Failed to fetch counselors from db, keeping active view:", err)
+      }
+    }
+    fetchCounselors()
+  }, [])
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -68,18 +103,37 @@ export default function DistilledCounselorsPage() {
     showToast(`Berkas atas nama ${name} ditolak.`)
   }
 
-  const toggleCounselorStatus = (id: string) => {
+  const toggleCounselorStatus = async (id: string) => {
+    const counselor = activeCounselors.find((c) => c.id === id)
+    if (!counselor) return
+    const nextState = !counselor.isActive
+
+    // Optimistic UI update
     setActiveCounselors((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, isActive: !c.isActive } : c))
+      prev.map((c) => (c.id === id ? { ...c, isActive: nextState } : c))
     )
-    showToast("Status praktik konselor berhasil diperbarui.")
+
+    try {
+      const res = await toggleCounselorActiveAction(id, nextState)
+      if (res.success) {
+        showToast(res.message || "Status praktik konselor berhasil diperbarui.")
+      } else {
+        // Rollback
+        setActiveCounselors((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, isActive: !nextState } : c))
+        )
+        showToast("Gagal memperbarui status: " + res.error)
+      }
+    } catch {
+      showToast("Status praktik konselor diperbarui secara lokal.")
+    }
   }
 
   const pendingApplicants = applicants.filter((a) => a.status === "pending")
   const filteredCounselors = activeCounselors.filter((c) => {
     const matchesSearch =
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.specializations.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase()))
+      c.specializations?.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase()))
     const matchesStatus =
       statusFilter === "all" ? true : statusFilter === "active" ? c.isActive : !c.isActive
     return matchesSearch && matchesStatus
@@ -119,6 +173,12 @@ export default function DistilledCounselorsPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <Button asChild size="sm" className="text-xs h-9 bg-primary text-primary-foreground hover:bg-primary/90">
+              <Link href="/admin/counselors/new">
+                <Plus className="size-3.5 mr-1.5" />
+                <span>Tambah Konselor</span>
+              </Link>
+            </Button>
             <Button asChild size="sm" variant="outline" className="text-xs h-9">
               <a href="/admin/counselors/applications">
                 <FileText className="size-3.5 mr-1.5 text-primary" />
@@ -461,7 +521,7 @@ export default function DistilledCounselorsPage() {
 
                     <TableCell className="py-3.5 px-3.5">
                       <div className="flex flex-wrap gap-1 max-w-xs">
-                        {c.specializations.map((spec) => (
+                        {c.specializations?.map((spec: string) => (
                           <span
                             key={spec}
                             className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium"
@@ -490,14 +550,27 @@ export default function DistilledCounselorsPage() {
                     </TableCell>
 
                     <TableCell className="py-3.5 px-3.5 text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleCounselorStatus(c.id)}
-                        className="h-8 px-2.5 text-xs font-normal"
-                      >
-                        {c.isActive ? "Tangguhkan" : "Aktifkan"}
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-2.5 text-xs font-normal"
+                        >
+                          <Link href={`/admin/counselors/${c.id}/edit`}>
+                            <Pencil className="size-3 mr-1 text-muted-foreground" />
+                            <span>Edit</span>
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleCounselorStatus(c.id)}
+                          className="h-8 px-2.5 text-xs font-normal"
+                        >
+                          {c.isActive ? "Tangguhkan" : "Aktifkan"}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
