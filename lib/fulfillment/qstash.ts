@@ -15,7 +15,8 @@ export async function dispatchFulfillmentJob(
 ): Promise<{ success: boolean; messageId?: string; directExecuted?: boolean }> {
   const fetchFn = options.fetchFn ?? fetch
   const qstashToken = process.env.QSTASH_TOKEN
-  const qstashUrl = process.env.QSTASH_URL || "https://qstash.upstash.io/v2"
+  const rawUrl = process.env.QSTASH_URL || "https://qstash.upstash.io/v2"
+  const qstashUrl = rawUrl.endsWith("/v2") ? rawUrl : `${rawUrl.replace(/\/+$/, "")}/v2`
   const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://solulu.id"
 
   // In local development or test without QStash, perform direct execution

@@ -29,7 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ManualPaymentModal, ManualPaymentDetails } from "./components/manual-payment-modal"
 import { AdminManualBookingModal } from "./components/admin-manual-booking-modal"
-import { confirmManualPaymentAction } from "./actions"
+import { confirmManualPaymentAction, getBookingsAdminAction } from "./actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -59,7 +59,8 @@ import {
 } from "@/components/ui/table"
 
 export default function DistilledSessionsPage() {
-  const [sessions, setSessions] = React.useState<BookingSession[]>(MOCK_SESSIONS)
+  const [sessions, setSessions] = React.useState<BookingSession[]>([])
+  const [isLoading, setIsLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
   const [roomFilter, setRoomFilter] = React.useState<string>("all")
@@ -71,6 +72,72 @@ export default function DistilledSessionsPage() {
   const [manualPaymentSession, setManualPaymentSession] = React.useState<BookingSession | null>(null)
   const [isManualBookingModalOpen, setIsManualBookingModalOpen] = React.useState(false)
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    async function loadSessions() {
+      try {
+        const res = await getBookingsAdminAction()
+        if (res.success && res.data && res.data.length > 0) {
+          const mapped: BookingSession[] = res.data.map((r: any) => {
+            const b = r.booking
+            const c = r.counselor
+            const s = r.schedule
+            const t = r.transaction
+
+            const counselorType = c?.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"
+
+            let hoursUntilSession = 24
+            if (s?.date && s?.startTime) {
+              try {
+                const sessionDate = new Date(`${s.date}T${s.startTime}`)
+                hoursUntilSession = Math.round((sessionDate.getTime() - Date.now()) / (1000 * 60 * 60))
+              } catch {}
+            }
+
+            const dateStr = s?.date ? String(s.date) : ""
+            const timeRange = s ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)}` : "09:00 - 10:30"
+
+            const status = (["in_session", "confirmed", "completed", "cancelled", "pending_payment"].includes(b.status)
+              ? b.status
+              : "pending_payment") as BookingSession["status"]
+
+            return {
+              id: b.id,
+              code: `SOL-${b.id.slice(0, 4).toUpperCase()}`,
+              patientName: b.patientName,
+              patientContact: b.patientPhone || b.patientEmail,
+              counselorName: c?.fullName ? `${c.fullName}, ${c.title || ""}`.trim() : "Konselor",
+              counselorType,
+              date: dateStr,
+              timeRange,
+              hoursUntilSession,
+              status,
+              zoomRoom: b.zoomMeetingId ? `Room #${b.zoomMeetingId.slice(-3)}` : "Belum Dijadwalkan",
+              zoomJoinUrl: b.zoomJoinUrl || "#",
+              srqScore: 0,
+              hasSuicidalThoughts: false,
+              waiverSigned: !!b.waiverAcceptedAt,
+              paymentMethod: t?.paymentMethod || "Transfer Bank Manual",
+              paymentProvider: (t?.paymentProvider as any) || "manual",
+              referenceNumber: t?.referenceNumber || undefined,
+              adminNotes: t?.adminNotes || undefined,
+              amount: t?.netAmount ? Number(t.netAmount) : 150000,
+            }
+          })
+          setSessions(mapped)
+        } else {
+          // If no bookings in DB yet, fallback to empty list (or MOCK_SESSIONS if DB is untouched)
+          setSessions(res.success && res.data ? [] : MOCK_SESSIONS)
+        }
+      } catch (err) {
+        console.error("Gagal memuat sesi booking:", err)
+        setSessions(MOCK_SESSIONS)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadSessions()
+  }, [])
 
   const showToast = (msg: string) => {
     setToastMessage(msg)

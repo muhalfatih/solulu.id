@@ -25,6 +25,7 @@ import {
   X,
   Plus,
   Pencil,
+  Trash2,
 } from "lucide-react"
 import {
   Tabs,
@@ -46,7 +47,12 @@ import {
 import {
   getCounselorsAdminAction,
   toggleCounselorActiveAction,
+  deleteCounselorAction,
 } from "./actions"
+import {
+  getCounselorApplicationsAction,
+  reviewCounselorApplicationAction,
+} from "./applications/actions"
 
 export default function DistilledCounselorsPage() {
   const [applicants, setApplicants] = React.useState<CounselorApplicant[]>(MOCK_APPLICANTS)
@@ -56,13 +62,17 @@ export default function DistilledCounselorsPage() {
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "suspended">("all")
 
-  // Fetch real counselors from database on mount, keeping resilient fallback
+  // Fetch real counselors and applications from database on mount, keeping resilient fallback
   React.useEffect(() => {
-    async function fetchCounselors() {
+    async function loadData() {
       try {
-        const res = await getCounselorsAdminAction()
-        if (res.success && res.data && res.data.length > 0) {
-          const mapped = res.data.map((row: any) => ({
+        const [counselorsRes, appsRes] = await Promise.all([
+          getCounselorsAdminAction(),
+          getCounselorApplicationsAction(),
+        ])
+
+        if (counselorsRes.success && counselorsRes.data && counselorsRes.data.length > 0) {
+          const mapped = counselorsRes.data.map((row: any) => ({
             id: row.id,
             name: row.fullName,
             title: row.title,
@@ -74,14 +84,44 @@ export default function DistilledCounselorsPage() {
             totalSessions: row.completedSessionsCount ?? 0,
             activeSlots: row.activeSlotsCount ?? 0,
             avatarR2Url: row.avatarR2Url,
+            education: row.education,
           }))
           setActiveCounselors(mapped)
         }
+
+        if (appsRes.success && appsRes.data) {
+          if (appsRes.data.length > 0) {
+            const mappedApps: CounselorApplicant[] = appsRes.data.map((app: any) => ({
+              id: app.id,
+              name: app.fullName,
+              email: app.email,
+              phone: app.phone || "-",
+              type: app.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya",
+              appliedAt: new Date(app.createdAt).toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              }),
+              status: app.status as any,
+              education: app.counselorType === "psychologist" ? "S2 Profesi Psikologi" : "S1 Psikologi",
+              bio: app.bio || "",
+              documents: {
+                ktp: Boolean(app.ktpR2Key),
+                cv: Boolean(app.cvR2Key),
+                diploma: Boolean(app.diplomaR2Key),
+                str: Boolean(app.strR2Key),
+              },
+            }))
+            setApplicants(mappedApps)
+          } else {
+            setApplicants([])
+          }
+        }
       } catch (err) {
-        console.warn("Failed to fetch counselors from db, keeping active view:", err)
+        console.warn("Failed to fetch counselors or applications from db:", err)
       }
     }
-    fetchCounselors()
+    loadData()
   }, [])
 
   const showToast = (msg: string) => {
@@ -89,14 +129,35 @@ export default function DistilledCounselorsPage() {
     setTimeout(() => setToastMessage(null), 4000)
   }
 
-  const handleApprove = (id: string, name: string, email: string) => {
+  const handleApprove = async (id: string, name: string, email: string) => {
+    try {
+      if (!id.startsWith("app-")) {
+        await reviewCounselorApplicationAction({
+          applicationId: id,
+          status: "approved",
+        })
+      }
+    } catch (e) {
+      console.warn("Approve action error:", e)
+    }
     setApplicants((prev) =>
       prev.map((app) => (app.id === id ? { ...app, status: "approved" as const } : app))
     )
     showToast(`Undangan aktivasi akun berhasil dikirimkan ke ${email}.`)
   }
 
-  const handleReject = (id: string, name: string) => {
+  const handleReject = async (id: string, name: string) => {
+    try {
+      if (!id.startsWith("app-")) {
+        await reviewCounselorApplicationAction({
+          applicationId: id,
+          status: "rejected",
+          rejectionReason: "Berkas persyaratan belum memenuhi standar kualifikasi Solulu.",
+        })
+      }
+    } catch (e) {
+      console.warn("Reject action error:", e)
+    }
     setApplicants((prev) =>
       prev.map((app) => (app.id === id ? { ...app, status: "rejected" as const } : app))
     )
@@ -126,6 +187,25 @@ export default function DistilledCounselorsPage() {
       }
     } catch {
       showToast("Status praktik konselor diperbarui secara lokal.")
+    }
+  }
+
+  const handleDeleteCounselor = async (id: string, name: string) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus data konselor ${name}? Tindakan ini permanen.`)) {
+      return
+    }
+
+    try {
+      const res = await deleteCounselorAction(id)
+      if (res.success) {
+        setActiveCounselors((prev) => prev.filter((c) => c.id !== id))
+        showToast(`Konselor ${name} berhasil dihapus.`)
+      } else {
+        showToast("Gagal menghapus: " + res.error)
+      }
+    } catch {
+      setActiveCounselors((prev) => prev.filter((c) => c.id !== id))
+      showToast(`Konselor ${name} dihapus dari tampilan.`)
     }
   }
 
@@ -497,6 +577,11 @@ export default function DistilledCounselorsPage() {
                     <TableCell className="py-3.5 px-3.5">
                       <div className="font-semibold text-foreground">{c.name}</div>
                       <div className="text-[11px] text-muted-foreground">{c.title}</div>
+                      {c.education && (
+                        <div className="text-[10px] text-muted-foreground/80 mt-0.5 max-w-[220px] truncate" title={c.education}>
+                          {c.education}
+                        </div>
+                      )}
                     </TableCell>
 
                     <TableCell className="py-3.5 px-3.5">
@@ -569,6 +654,15 @@ export default function DistilledCounselorsPage() {
                           className="h-8 px-2.5 text-xs font-normal"
                         >
                           {c.isActive ? "Tangguhkan" : "Aktifkan"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteCounselor(c.id, c.name)}
+                          className="h-8 px-2 text-xs font-normal text-destructive hover:bg-destructive/10"
+                          title="Hapus Konselor"
+                        >
+                          <Trash2 className="size-3.5" />
                         </Button>
                       </div>
                     </TableCell>

@@ -33,36 +33,36 @@ export function PreparationTipsCard() {
   ]
 
   return (
-    <Card className="border-border/80 shadow-xs bg-card">
-      <CardHeader className="pb-3">
-        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+    <Card className="rounded-2xl border border-border/80 shadow-xs bg-card hover:shadow-sm transition-all overflow-hidden gap-0">
+      <CardHeader className="p-6 sm:p-7 border-b border-border/40">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Panduan Sesi
         </span>
-        <CardTitle className="text-lg font-semibold tracking-tight">
+        <CardTitle className="font-heading text-lg sm:text-xl font-bold tracking-tight text-foreground">
           Persiapan Sebelum Memulai
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-1">
           Langkah sederhana untuk memastikan pengalaman telekonseling yang nyaman dan optimal.
         </CardDescription>
       </CardHeader>
 
-      <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+      <CardContent className="p-6 sm:p-7">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {tips.map((tip, idx) => {
             const Icon = tip.icon
             return (
               <div
                 key={idx}
-                className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 hover:bg-muted/40 transition-colors"
+                className="flex items-start gap-3.5 rounded-xl border border-border/60 bg-muted/25 p-4 hover:bg-muted/40 hover:border-primary/30 transition-all"
               >
-                <div className="size-8 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5">
-                  <Icon className="size-4" />
+                <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                  <Icon className="size-4.5" />
                 </div>
-                <div className="flex flex-col gap-0.5">
-                  <h4 className="text-xs font-semibold text-foreground leading-snug">
+                <div className="flex flex-col gap-1">
+                  <h4 className="font-heading text-xs sm:text-sm font-semibold text-foreground leading-snug">
                     {tip.title}
                   </h4>
-                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     {tip.desc}
                   </p>
                 </div>

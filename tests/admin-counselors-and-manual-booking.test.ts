@@ -9,6 +9,7 @@ import {
   updateCounselorAction,
   toggleCounselorActiveAction,
   getCounselorsAdminAction,
+  getCounselorByIdAction,
 } from "../app/admin/counselors/actions"
 import {
   createAdminManualBookingAction,
@@ -202,6 +203,53 @@ describe("Spec 0002 & ADR 0004: Admin Counselor Management & Zero-Cost Booking B
       expect(res.success).toBe(true)
       expect(mockToggle).toHaveBeenCalledWith("counselor-1", false)
       expect(res.message).toContain("Ditangguhkan")
+    })
+
+    it("resolves counselor by ID with clean name and title separation", async () => {
+      const res = await getCounselorByIdAction("c-1", {
+        currentUser: adminUser,
+      })
+
+      expect(res.success).toBe(true)
+      expect(res.data).toBeDefined()
+      // Should separate name and degree rather than dumping "Mitra Konselor"
+      expect(res.data.fullName).toBe("Sarah Annisa")
+      expect(res.data.title).toBe("M.Psi., Psikolog")
+      expect(res.data.counselorType).toBe("psychologist")
+      expect(res.data.email).toBe("sarah.annisa@solulu.id")
+    })
+
+    it("updates counselor profile cleanly with updateCounselorAction", async () => {
+      const mockUpdate = vi.fn().mockResolvedValue({
+        id: "c-1",
+        fullName: "Sarah Annisa",
+        title: "M.Psi., Psikolog",
+        counselorType: "psychologist",
+        bio: "Psikolog klinis berlisensi dengan keahlian intervensi CBT dan ACT.",
+        specializations: ["Kecemasan", "Depresi"],
+        avatarR2Url: null,
+        isActive: true,
+      })
+
+      const res = await updateCounselorAction(
+        "c-1",
+        {
+          fullName: "Sarah Annisa",
+          title: "M.Psi., Psikolog",
+          counselorType: "psychologist",
+          bio: "Psikolog klinis berlisensi dengan keahlian intervensi CBT dan ACT.",
+          specializations: ["Kecemasan", "Depresi"],
+          isActive: true,
+        },
+        {
+          currentUser: adminUser,
+          updateCounselorFn: mockUpdate,
+        }
+      )
+
+      expect(res.success).toBe(true)
+      expect(res.message).toContain("Sarah Annisa")
+      expect(mockUpdate).toHaveBeenCalled()
     })
   })
 

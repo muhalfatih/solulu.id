@@ -5,54 +5,136 @@ import { MOCK_TESTIMONIALS, TestimonialItem } from "../mock-data"
 import { TestimonialVariantA } from "./components/testimonial-variant-a"
 import { Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  getTestimonialsAdminAction,
+  createTestimonialAdminAction,
+  updateTestimonialAdminAction,
+  toggleTestimonialActiveAction,
+  deleteTestimonialAdminAction,
+} from "./actions"
 
 export default function TestimonialsAdminPage() {
   const [items, setItems] = React.useState<TestimonialItem[]>(MOCK_TESTIMONIALS)
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
+  const [isLoading, setIsLoading] = React.useState(true)
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
     setTimeout(() => setToastMessage(null), 3200)
   }
 
+  // Fetch real testimonials from database on mount
+  React.useEffect(() => {
+    async function loadTestimonials() {
+      try {
+        const res = await getTestimonialsAdminAction()
+        if (res.success && res.data && res.data.length > 0) {
+          const mapped: TestimonialItem[] = res.data.map((r: any) => ({
+            id: r.id,
+            clientName: r.clientName,
+            isAnonymous: r.isAnonymous,
+            anonymousDisplay: r.anonymousDisplay,
+            sessionCode: r.sessionCode || "",
+            counselorName: r.counselorName,
+            counselorType: r.counselorType || "Psikolog Klinis",
+            rating: r.rating,
+            quoteHighlight: r.quoteHighlight,
+            comment: r.comment,
+            topic: r.topic,
+            submittedAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
+            date: new Date(r.createdAt).toLocaleDateString("id-ID", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            }),
+            isActive: r.isActive,
+          }))
+          setItems(mapped)
+        }
+      } catch (err) {
+        console.error("Failed to load real testimonials:", err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadTestimonials()
+  }, [])
+
   // Handle Add New Post
-  const handleAddPost = (newPost: TestimonialItem) => {
+  const handleAddPost = async (newPost: TestimonialItem) => {
     setItems((prev) => [newPost, ...prev])
+    try {
+      await createTestimonialAdminAction({
+        clientName: newPost.clientName,
+        isAnonymous: newPost.isAnonymous,
+        anonymousDisplay: newPost.anonymousDisplay,
+        sessionCode: newPost.sessionCode,
+        counselorName: newPost.counselorName,
+        counselorType: newPost.counselorType || "Psikolog Klinis",
+        rating: newPost.rating,
+        quoteHighlight: newPost.quoteHighlight,
+        comment: newPost.comment,
+        topic: newPost.topic,
+        isActive: newPost.isActive,
+      })
+    } catch (err) {
+      console.error("Failed to persist testimonial to DB:", err)
+    }
+
     showToast(
       newPost.isActive
-        ? `Ulasan ${newPost.anonymousDisplay} berhasil disimpan dan berstatus Aktif.`
-        : `Ulasan ${newPost.anonymousDisplay} berhasil disimpan (Tidak Aktif).`
+        ? `Ulasan ${newPost.anonymousDisplay} berhasil disimpan ke database dan berstatus Aktif.`
+        : `Ulasan ${newPost.anonymousDisplay} berhasil disimpan ke database (Tidak Aktif).`
     )
   }
 
   // Handle Update Existing Post
-  const handleUpdatePost = (id: string, updated: Partial<TestimonialItem>) => {
+  const handleUpdatePost = async (id: string, updated: Partial<TestimonialItem>) => {
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...updated } : item))
     )
+    try {
+      await updateTestimonialAdminAction(id, updated as any)
+    } catch (err) {
+      console.error("Failed to update testimonial in DB:", err)
+    }
     showToast("Perubahan ulasan berhasil disimpan.")
   }
 
   // Handle Toggle Active Status
-  const handleToggleActive = (id: string) => {
+  const handleToggleActive = async (id: string) => {
+    const target = items.find((i) => i.id === id)
+    const nextActive = target ? !target.isActive : true
+
     setItems((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item
-        const nextActive = !item.isActive
-        showToast(
-          nextActive
-            ? `Ulasan ${item.anonymousDisplay} kini berstatus Aktif di website.`
-            : `Ulasan ${item.anonymousDisplay} dinonaktifkan dari website.`
-        )
         return { ...item, isActive: nextActive }
       })
+    )
+
+    try {
+      await toggleTestimonialActiveAction(id, nextActive)
+    } catch (err) {
+      console.error("Failed to toggle testimonial in DB:", err)
+    }
+
+    showToast(
+      nextActive
+        ? `Ulasan kini berstatus Aktif di website.`
+        : `Ulasan dinonaktifkan dari website.`
     )
   }
 
   // Handle Delete Post
-  const handleDeletePost = (id: string) => {
+  const handleDeletePost = async (id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id))
-    showToast("Testimoni telah dihapus.")
+    try {
+      await deleteTestimonialAdminAction(id)
+    } catch (err) {
+      console.error("Failed to delete testimonial in DB:", err)
+    }
+    showToast("Testimoni telah dihapus dari database.")
   }
 
   const activeCount = items.filter((i) => i.isActive).length

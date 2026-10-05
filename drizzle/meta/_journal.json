@@ -8,6 +8,13 @@
       "when": 1789657184027,
       "tag": "0000_square_morgan_stark",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791206158456,
+      "tag": "0001_clumsy_secret_warriors",
+      "breakpoints": true
     }
   ]
 }

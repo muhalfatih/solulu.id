@@ -159,7 +159,7 @@ export async function recoverSessionLinkAction(
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: "Solulu <no-reply@solulu.id>",
+              from: process.env.RESEND_FROM_EMAIL || "Solulu Support <halo@solulu.id>",
               to: [email],
               subject: "Pemulihan Tautan Ruang Sesi Konseling - Solulu",
               html: `

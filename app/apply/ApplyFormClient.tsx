@@ -1,20 +1,17 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import {
   counselorApplicationInputSchema,
   type CounselorType,
 } from "@/lib/validations/counselor-application"
-import {
-  getPresignedUploadUrlAction,
-  submitCounselorApplicationAction,
-} from "./actions"
+import { submitCounselorApplicationAction } from "./actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import {
   Dialog,
@@ -37,11 +34,16 @@ import {
   UploadCloud,
   FileCheck,
   ShieldCheck,
-  UserCheck,
-  HeartHandshake,
   ArrowRight,
   Info,
   Loader2,
+  Clock,
+  Lock,
+  FileText,
+  Users,
+  GraduationCap,
+  IdCard,
+  Award,
 } from "lucide-react"
 
 interface DocumentUploadState {
@@ -59,7 +61,6 @@ export function ApplyFormClient() {
   const [bio, setBio] = React.useState("")
   const [agreeToTerms, setAgreeToTerms] = React.useState<boolean>(false)
 
-  // Document states
   const [cvDoc, setCvDoc] = React.useState<DocumentUploadState>({
     file: null,
     r2Key: null,
@@ -91,7 +92,6 @@ export function ApplyFormClient() {
   const [submittedSuccess, setSubmittedSuccess] = React.useState(false)
   const [termsModalOpen, setTermsModalOpen] = React.useState(false)
 
-  // Direct R2 file upload handler
   const handleFileUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     category: "cv" | "ktp" | "diploma" | "str",
@@ -100,7 +100,6 @@ export function ApplyFormClient() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Allowed types check
     const allowedTypes = [
       "application/pdf",
       "image/jpeg",
@@ -135,35 +134,24 @@ export function ApplyFormClient() {
     })
 
     try {
-      // 1. Request presigned PUT URL from server action
-      const presignedRes = await getPresignedUploadUrlAction({
-        fileType: file.type as any,
-        fileName: file.name,
-        category,
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("category", category)
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       })
 
-      if (!presignedRes.success || !presignedRes.data) {
-        throw new Error(presignedRes.error || "Gagal memperoleh izin upload R2.")
-      }
+      const uploadJson = await uploadRes.json()
 
-      const { uploadUrl, r2Key } = presignedRes.data
-
-      // 2. Direct PUT to Cloudflare R2 bucket (bypassing Vercel server)
-      const uploadRes = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type,
-        },
-        body: file,
-      })
-
-      if (!uploadRes.ok) {
-        throw new Error(`Upload berkas ke penyimpanan privat gagal (${uploadRes.status})`)
+      if (!uploadRes.ok || !uploadJson.success || !uploadJson.data?.r2Key) {
+        throw new Error(uploadJson.error || `Upload berkas gagal (${uploadRes.status})`)
       }
 
       setDocState({
         file,
-        r2Key,
+        r2Key: uploadJson.data.r2Key,
         uploading: false,
         error: null,
       })
@@ -195,7 +183,6 @@ export function ApplyFormClient() {
       agreeToTerms,
     }
 
-    // Client-side Zod validation
     const validation = counselorApplicationInputSchema.safeParse(payload)
     if (!validation.success) {
       setFieldErrors(validation.error.flatten().fieldErrors)
@@ -224,278 +211,339 @@ export function ApplyFormClient() {
 
   if (submittedSuccess) {
     return (
-      <div className="mx-auto max-w-2xl py-12 px-4">
-        <Card className="rounded-2xl border-border shadow-lg">
-          <CardHeader className="text-center pb-4">
-            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
-              <CheckCircle2 className="size-8" />
-            </div>
-            <CardTitle className="text-2xl font-bold tracking-tight font-heading">
+      <div className="mx-auto max-w-xl px-4 py-10 sm:py-16">
+        <div className="rounded-2xl border border-border/80 bg-card p-8 sm:p-10 shadow-xs flex flex-col gap-6 text-center">
+          <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 ring-8 ring-emerald-500/5">
+            <CheckCircle2 className="size-9" />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
               Pendaftaran Mitra Berhasil Dikirimkan
-            </CardTitle>
-            <CardDescription className="text-base text-muted-foreground pt-1">
-              Terima kasih atas dedikasi Anda untuk bergabung bersama ekosistem layanan kesehatan mental Solulu.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6 text-sm">
-            <Alert className="rounded-2xl border-emerald-500/30 bg-emerald-500/5">
-              <ShieldCheck className="size-5 text-emerald-600" />
-              <AlertTitle className="font-semibold text-foreground">
-                Dokumen Tersimpan Aman di Cloudflare R2
-              </AlertTitle>
-              <AlertDescription className="text-muted-foreground">
-                Semua berkas kredensial dan identitas Anda telah diunggah langsung ke bucket privat berstandar enkripsi tinggi untuk proses audit administrasi.
-              </AlertDescription>
-            </Alert>
+            </h1>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+              Terima kasih telah mendaftar. Seluruh berkas Anda sudah tersimpan dengan aman untuk proses verifikasi tim kami.
+            </p>
+          </div>
 
-            <div className="rounded-2xl border border-border p-5 bg-card flex flex-col gap-3">
-              <h4 className="font-semibold text-foreground flex items-center gap-2">
-                <Info className="size-4 text-primary" />
-                Langkah Selanjutnya:
-              </h4>
-              <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
-                <li>
-                  <strong className="text-foreground">Verifikasi Berkas:</strong> Tim administrasi kami akan meneliti keabsahan ijazah, KTP, dan STR Anda dalam 1–3 hari kerja.
-                </li>
-                <li>
-                  <strong className="text-foreground">Undangan Aktivasi Akun:</strong> Setelah berkas dinyatakan lengkap dan valid, Anda akan menerima email undangan resmi dari sistem Supabase untuk membuat kata sandi dan mengakses Portal Konselor Solulu.
-                </li>
-                <li>
-                  <strong className="text-foreground">Pengaturan Jadwal:</strong> Di portal konselor, Anda dapat menentukan jadwal praktik mandiri 90 menit dan menyematkan ruang Zoom otomatis.
-                </li>
-              </ul>
+          <div className="rounded-xl border border-border/80 bg-muted/30 p-5 text-left text-xs sm:text-sm space-y-3 text-muted-foreground">
+            <div className="flex items-start gap-2.5">
+              <span className="size-2 rounded-full bg-purple-600 mt-1.5 shrink-0" />
+              <span>
+                <strong className="text-foreground">Verifikasi Berkas:</strong> Tim kami akan memverifikasi keabsahan dokumen (ijazah, KTP, dan STR) dalam 1-3 hari kerja.
+              </span>
             </div>
+            <div className="flex items-start gap-2.5">
+              <span className="size-2 rounded-full bg-purple-600 mt-1.5 shrink-0" />
+              <span>
+                <strong className="text-foreground">Undangan Aktivasi Akun:</strong> Tautan resmi akan dikirim via email untuk mengatur kata sandi dan mengakses Portal Konselor.
+              </span>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <span className="size-2 rounded-full bg-purple-600 mt-1.5 shrink-0" />
+              <span>
+                <strong className="text-foreground">Pengaturan Jadwal:</strong> Atur jadwal konsultasi mandiri dengan durasi penuh 90 menit dan tautan Zoom otomatis.
+              </span>
+            </div>
+          </div>
 
-            <div className="pt-2 flex justify-center">
-              <Button asChild variant="public-secondary" size="pill">
-                <a href="/">Kembali ke Beranda Solulu</a>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          <div className="pt-2">
+            <Button asChild variant="public" size="pill" className="w-full sm:w-auto">
+              <Link href="/">Kembali ke Beranda Solulu</Link>
+            </Button>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-3xl py-12 px-4 sm:px-6">
-      <div className="mb-8 flex flex-col gap-3 text-center sm:text-left">
-        <div className="flex items-center justify-center sm:justify-start gap-2">
-          <Badge variant="secondary" className="px-3 py-1 text-xs font-semibold">
-            Kemitraan Profesional
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            Layanan Terbuka untuk Konselor & Psikolog
-          </span>
-        </div>
-        <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.15] text-balance">
-          Pendaftaran Mitra Konselor Solulu
+    <div className="mx-auto max-w-2xl px-4 sm:px-6">
+      <div className="mb-8 sm:mb-10 text-center sm:text-left space-y-3.5">
+        <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-[1.12]">
+          Pendaftaran Mitra Konselor
         </h1>
-        <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-          Bergabunglah dalam ruang konsultasi psikologis yang ramah, privat, dan terstandarisasi. Dokumen kredensial Anda diunggah langsung secara aman tanpa perantara.
+        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xl">
+          Lengkapi data diri dan unggah berkas profesi Anda. Seluruh dokumen disimpan aman dan terenkripsi untuk proses verifikasi kemitraan.
         </p>
+
+        <div className="pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-3 text-xs">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 font-medium shadow-2xs">
+            <Lock className="size-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+            <span>Berkas Aman &amp; Terenkripsi</span>
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 font-medium shadow-2xs">
+            <Clock className="size-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+            <span>Verifikasi 1-3 Hari Kerja</span>
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 font-medium shadow-2xs">
+            <ShieldCheck className="size-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+            <span>Standar Sesi 90 Menit</span>
+          </div>
+        </div>
       </div>
 
       {globalError && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert variant="destructive" className="rounded-2xl border-destructive/30 mb-6 p-4">
           <AlertCircle className="size-4" />
-          <AlertTitle>Periksa Kembali Data Anda</AlertTitle>
-          <AlertDescription>{globalError}</AlertDescription>
+          <AlertTitle className="text-sm font-semibold">Periksa Kembali Data Anda</AlertTitle>
+          <AlertDescription className="text-xs">{globalError}</AlertDescription>
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-        {/* Step 1: Counselor Category Selection */}
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <UserCheck className="size-5 text-primary" />
+      <form onSubmit={handleSubmit} className="rounded-2xl border border-border/80 bg-card/95 backdrop-blur-xs p-6 sm:p-8 md:p-10 shadow-lg shadow-purple-500/5 divide-y divide-border/60 flex flex-col">
+        <section className="pb-8 space-y-4">
+          <div className="space-y-1">
+            <h2 className="font-heading text-base sm:text-lg font-bold text-foreground">
               1. Kategori Kemitraan
-            </CardTitle>
-            <CardDescription>
-              Pilih peran kemitraan yang sesuai dengan latar belakang pendidikan dan kualifikasi profesi Anda.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Pilih peran kemitraan sesuai latar belakang kualifikasi Anda.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
             <button
               type="button"
               id="counselor-type-peer-btn"
               onClick={() => setCounselorType("peer")}
-              className={`p-4 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${
+              className={`p-4 sm:p-5 rounded-xl border text-left flex flex-col justify-between gap-3 transition-all cursor-pointer ${
                 counselorType === "peer"
-                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                  : "border-border hover:bg-muted/40"
+                  ? "border-purple-600 bg-purple-500/10 ring-2 ring-purple-600/30 dark:bg-purple-950/35 shadow-xs"
+                  : "border-border/80 bg-muted/10 hover:bg-muted/30 hover:border-border"
               }`}
             >
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-foreground text-sm">
-                  Konselor Sebaya (Peer)
-                </span>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      counselorType === "peer"
+                        ? "bg-purple-600 text-white"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <Users className="size-4" />
+                  </div>
+                  <div>
+                    <span className="font-heading font-semibold text-foreground text-sm sm:text-base block">
+                      Konselor Sebaya (Peer)
+                    </span>
+                    <span className="text-xs text-muted-foreground">Teman Cerita Terlatih</span>
+                  </div>
+                </div>
                 {counselorType === "peer" && (
-                  <CheckCircle2 className="size-4 text-primary" />
+                  <CheckCircle2 className="size-5 text-purple-600 shrink-0" />
                 )}
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Lulusan S1 Psikologi atau Bimbingan Konseling dengan keahlian pendampingan non-klinis dan pertolongan pertama psikologis (PFA).
               </p>
-              <Badge variant="outline" className="w-fit text-[11px] mt-1">
-                STR Opsional
-              </Badge>
+              <div className="pt-0.5">
+                <Badge variant="outline" className="w-fit text-xs border-muted-foreground/30 font-normal">
+                  STR Opsional
+                </Badge>
+              </div>
             </button>
 
             <button
               type="button"
               id="counselor-type-psychologist-btn"
               onClick={() => setCounselorType("psychologist")}
-              className={`p-4 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${
+              className={`p-4 sm:p-5 rounded-xl border text-left flex flex-col justify-between gap-3 transition-all cursor-pointer ${
                 counselorType === "psychologist"
-                  ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                  : "border-border hover:bg-muted/40"
+                  ? "border-purple-600 bg-purple-500/10 ring-2 ring-purple-600/30 dark:bg-purple-950/35 shadow-xs"
+                  : "border-border/80 bg-muted/10 hover:bg-muted/30 hover:border-border"
               }`}
             >
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-foreground text-sm">
-                  Psikolog Klinis
-                </span>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      counselorType === "psychologist"
+                        ? "bg-purple-600 text-white"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <GraduationCap className="size-4" />
+                  </div>
+                  <div>
+                    <span className="font-heading font-semibold text-foreground text-sm sm:text-base block">
+                      Psikolog Klinis
+                    </span>
+                    <span className="text-xs text-muted-foreground">Izin Profesi Resmi</span>
+                  </div>
+                </div>
                 {counselorType === "psychologist" && (
-                  <CheckCircle2 className="size-4 text-primary" />
+                  <CheckCircle2 className="size-5 text-purple-600 shrink-0" />
                 )}
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Magister Psikologi Profesi berijazah sah dengan Surat Tanda Registrasi (STR) aktif untuk menangani diagnosis dan psikoterapi klinis.
+                Magister Psikologi Profesi berijazah sah dengan Surat Tanda Registrasi (STR) aktif untuk diagnosis dan psikoterapi klinis.
               </p>
-              <Badge variant="secondary" className="w-fit text-[11px] mt-1 bg-primary/10 text-primary">
-                STR Wajib
-              </Badge>
+              <div className="pt-0.5">
+                <Badge
+                  variant="secondary"
+                  className="w-fit text-xs bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30 font-semibold"
+                >
+                  STR Wajib
+                </Badge>
+              </div>
             </button>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        {/* Step 2: Personal Profile */}
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <HeartHandshake className="size-5 text-primary" />
+        <section className="py-8 space-y-4">
+          <div className="space-y-1">
+            <h2 className="font-heading text-base sm:text-lg font-bold text-foreground">
               2. Data Pribadi & Kontak
-            </CardTitle>
-            <CardDescription>
-              Informasi ini akan dicocokkan dengan identitas resmi dan digunakan untuk aktivasi akun.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FieldGroup>
-              <Field data-invalid={Boolean(fieldErrors.fullName)}>
-                <FieldLabel htmlFor="fullName">Nama Lengkap & Gelar</FieldLabel>
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Data ini akan dicocokkan dengan dokumen resmi untuk pembuatan akun konselor Anda.
+            </p>
+          </div>
+
+          <FieldGroup className="gap-4">
+            <Field data-invalid={Boolean(fieldErrors.fullName)}>
+              <FieldLabel htmlFor="fullName" className="text-xs sm:text-sm font-medium">
+                Nama Lengkap & Gelar
+              </FieldLabel>
+              <Input
+                id="fullName"
+                name="fullName"
+                placeholder="Contoh: Siti Rahmawati, S.Psi atau Dr. Ahmad, M.Psi., Psikolog"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                aria-invalid={Boolean(fieldErrors.fullName)}
+                className="rounded-xl border-border/80 focus-visible:ring-purple-500/30 focus-visible:border-purple-500"
+              />
+              <FieldDescription className="text-xs">
+                Sesuai KTP dan cantumkan gelar profesi jika ada.
+              </FieldDescription>
+              {fieldErrors.fullName && (
+                <FieldError className="text-xs">{fieldErrors.fullName[0]}</FieldError>
+              )}
+            </Field>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field data-invalid={Boolean(fieldErrors.email)}>
+                <FieldLabel htmlFor="email" className="text-xs sm:text-sm font-medium">
+                  Alamat Email Aktif
+                </FieldLabel>
                 <Input
-                  id="fullName"
-                  name="fullName"
-                  placeholder="Contoh: Siti Rahmawati, S.Psi atau Dr. Ahmad, M.Psi., Psikolog"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  aria-invalid={Boolean(fieldErrors.fullName)}
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="nama@domain.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  aria-invalid={Boolean(fieldErrors.email)}
+                  className="rounded-xl border-border/80 focus-visible:ring-purple-500/30 focus-visible:border-purple-500"
                 />
-                <FieldDescription>
-                  Gunakan nama lengkap sesuai KTP dan cantumkan gelar profesi jika ada.
+                <FieldDescription className="text-xs">
+                  Tautan aktivasi akun konselor akan dikirim ke email ini.
                 </FieldDescription>
-                {fieldErrors.fullName && (
-                  <FieldError>{fieldErrors.fullName[0]}</FieldError>
+                {fieldErrors.email && (
+                  <FieldError className="text-xs">{fieldErrors.email[0]}</FieldError>
                 )}
               </Field>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <Field data-invalid={Boolean(fieldErrors.email)}>
-                  <FieldLabel htmlFor="email">Alamat Email Aktif</FieldLabel>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="nama@domain.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    aria-invalid={Boolean(fieldErrors.email)}
-                  />
-                  <FieldDescription>
-                    Tautan aktivasi akun konselor akan dikirimkan ke email ini.
-                  </FieldDescription>
-                  {fieldErrors.email && (
-                    <FieldError>{fieldErrors.email[0]}</FieldError>
-                  )}
-                </Field>
-
-                <Field data-invalid={Boolean(fieldErrors.phone)}>
-                  <FieldLabel htmlFor="phone">Nomor Telepon / WhatsApp</FieldLabel>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    placeholder="081234567890"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    aria-invalid={Boolean(fieldErrors.phone)}
-                  />
-                  <FieldDescription>
-                    Format Indonesia (diawali 08 atau +62).
-                  </FieldDescription>
-                  {fieldErrors.phone && (
-                    <FieldError>{fieldErrors.phone[0]}</FieldError>
-                  )}
-                </Field>
-              </div>
-
-              <Field data-invalid={Boolean(fieldErrors.bio)}>
-                <FieldLabel htmlFor="bio">Ringkasan Profil & Pengalaman Praktik</FieldLabel>
-                <Textarea
-                  id="bio"
-                  name="bio"
-                  rows={4}
-                  placeholder="Ceritakan latar belakang pendidikan, pendekatan konseling yang digunakan (misal CBT, ACT, Humanistik), dan pengalaman pendampingan klien Anda..."
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  aria-invalid={Boolean(fieldErrors.bio)}
+              <Field data-invalid={Boolean(fieldErrors.phone)}>
+                <FieldLabel htmlFor="phone" className="text-xs sm:text-sm font-medium">
+                  Nomor WhatsApp
+                </FieldLabel>
+                <Input
+                  id="phone"
+                  name="phone"
+                  placeholder="081234567890"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  aria-invalid={Boolean(fieldErrors.phone)}
+                  className="rounded-xl border-border/80 focus-visible:ring-purple-500/30 focus-visible:border-purple-500"
                 />
-                <FieldDescription>
-                  Minimal 20 karakter. Deskripsi ini akan ditampilkan pada profil publik konselor setelah disetujui.
+                <FieldDescription className="text-xs">
+                  Nomor aktif yang terhubung ke WhatsApp (contoh: 081234567890).
                 </FieldDescription>
-                {fieldErrors.bio && <FieldError>{fieldErrors.bio[0]}</FieldError>}
+                {fieldErrors.phone && (
+                  <FieldError className="text-xs">{fieldErrors.phone[0]}</FieldError>
+                )}
               </Field>
-            </FieldGroup>
-          </CardContent>
-        </Card>
+            </div>
 
-        {/* Step 3: Document Uploads (Direct R2 Presigned PUT) */}
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <UploadCloud className="size-5 text-primary" />
-              3. Berkas Kredensial (Direct-to-R2)
-            </CardTitle>
-            <CardDescription>
-              Berkas Anda langsung dikirim ke Cloudflare R2 privat tanpa disimpan di server aplikasi, menjamin privasi penuh. Format: PDF, JPG, PNG (maks. 15MB).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
-            {/* 1. CV */}
-            <div className="rounded-xl border border-border p-4 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <span className="font-semibold text-sm text-foreground flex items-center gap-2">
-                  Curriculum Vitae (CV) Terkini
-                  <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
-                    Wajib
-                  </Badge>
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Memuat riwayat pendidikan, pelatihan konseling, dan pengalaman kerja.
-                </span>
-                {cvDoc.file && (
-                  <span className="text-xs font-mono text-emerald-600 flex items-center gap-1 mt-1">
-                    <FileCheck className="size-3.5" />
-                    {cvDoc.file.name} ({(cvDoc.file.size / 1024 / 1024).toFixed(2)} MB)
-                  </span>
-                )}
-                {cvDoc.error && (
-                  <span className="text-xs text-destructive mt-1">{cvDoc.error}</span>
-                )}
+            <Field data-invalid={Boolean(fieldErrors.bio)}>
+              <FieldLabel htmlFor="bio" className="text-xs sm:text-sm font-medium">
+                Ringkasan Profil & Pengalaman Praktik
+              </FieldLabel>
+              <Textarea
+                id="bio"
+                name="bio"
+                rows={3}
+                placeholder="Ceritakan latar belakang pendidikan, pendekatan konseling yang digunakan (misal CBT, ACT, Humanistik), dan pengalaman pendampingan klien Anda..."
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                aria-invalid={Boolean(fieldErrors.bio)}
+                className="rounded-xl border-border/80 focus-visible:ring-purple-500/30 focus-visible:border-purple-500 text-sm leading-relaxed"
+              />
+              <FieldDescription className="text-xs">
+                Minimal 20 karakter. Ringkasan ini akan ditampilkan pada profil publik Anda.
+              </FieldDescription>
+              {fieldErrors.bio && <FieldError className="text-xs">{fieldErrors.bio[0]}</FieldError>}
+            </Field>
+          </FieldGroup>
+        </section>
+
+        <section className="py-8 space-y-4">
+          <div className="space-y-1">
+            <h2 className="font-heading text-base sm:text-lg font-bold text-foreground">
+              3. Berkas &amp; Dokumen Pendukung
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Format berkas: PDF, JPG, PNG (maksimal 15MB per berkas).
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <div
+              className={`rounded-xl border p-4 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 ${
+                cvDoc.r2Key
+                  ? "border-emerald-500/50 bg-emerald-500/5 ring-1 ring-emerald-500/20"
+                  : "border-border/70 bg-muted/15 hover:border-border"
+              }`}
+            >
+              <div className="flex items-start gap-3 min-w-0">
+                <div
+                  className={`size-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                    cvDoc.r2Key
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                  }`}
+                >
+                  <FileText className="size-4" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-heading font-semibold text-sm text-foreground">
+                      Curriculum Vitae (CV) Terkini
+                    </span>
+                    <Badge variant="destructive" className="text-xs py-0.5 px-2 font-normal">
+                      Wajib
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Riwayat pendidikan, sertifikasi, dan pengalaman konseling.
+                  </p>
+                  {cvDoc.file && (
+                    <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
+                      <FileCheck className="size-3.5 shrink-0" />
+                      {cvDoc.file.name} ({(cvDoc.file.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
+                  )}
+                  {cvDoc.error && (
+                    <span className="text-xs text-destructive block font-medium">{cvDoc.error}</span>
+                  )}
+                </div>
               </div>
-              <div className="shrink-0">
+
+              <div className="shrink-0 self-end sm:self-center">
                 <input
                   type="file"
                   id="cv-file-input"
@@ -510,11 +558,16 @@ export function ApplyFormClient() {
                   size="sm"
                   asChild
                   disabled={cvDoc.uploading}
+                  className={`rounded-full cursor-pointer text-xs font-medium shadow-2xs ${
+                    cvDoc.r2Key
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                      : ""
+                  }`}
                 >
                   <label htmlFor="cv-file-input" className="cursor-pointer">
                     {cvDoc.uploading ? (
                       <>
-                        <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                        <Loader2 className="size-3.5 animate-spin mr-1.5 text-purple-600" />
                         Mengunggah...
                       </>
                     ) : cvDoc.r2Key ? (
@@ -524,7 +577,7 @@ export function ApplyFormClient() {
                       </>
                     ) : (
                       <>
-                        <UploadCloud className="size-3.5 mr-1.5" />
+                        <UploadCloud className="size-3.5 mr-1.5 text-purple-600" />
                         Pilih Berkas CV
                       </>
                     )}
@@ -533,29 +586,48 @@ export function ApplyFormClient() {
               </div>
             </div>
 
-            {/* 2. KTP */}
-            <div className="rounded-xl border border-border p-4 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <span className="font-semibold text-sm text-foreground flex items-center gap-2">
-                  KTP (Kartu Tanda Penduduk)
-                  <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
-                    Wajib
-                  </Badge>
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Foto atau pindaian KTP yang jelas untuk verifikasi identitas resmi.
-                </span>
-                {ktpDoc.file && (
-                  <span className="text-xs font-mono text-emerald-600 flex items-center gap-1 mt-1">
-                    <FileCheck className="size-3.5" />
-                    {ktpDoc.file.name} ({(ktpDoc.file.size / 1024 / 1024).toFixed(2)} MB)
-                  </span>
-                )}
-                {ktpDoc.error && (
-                  <span className="text-xs text-destructive mt-1">{ktpDoc.error}</span>
-                )}
+            <div
+              className={`rounded-xl border p-4 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 ${
+                ktpDoc.r2Key
+                  ? "border-emerald-500/50 bg-emerald-500/5 ring-1 ring-emerald-500/20"
+                  : "border-border/70 bg-muted/15 hover:border-border"
+              }`}
+            >
+              <div className="flex items-start gap-3 min-w-0">
+                <div
+                  className={`size-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                    ktpDoc.r2Key
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                  }`}
+                >
+                  <IdCard className="size-4" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-heading font-semibold text-sm text-foreground">
+                      KTP (Kartu Tanda Penduduk)
+                    </span>
+                    <Badge variant="destructive" className="text-xs py-0.5 px-2 font-normal">
+                      Wajib
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Foto atau pindaian KTP yang jelas dan terbaca.
+                  </p>
+                  {ktpDoc.file && (
+                    <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
+                      <FileCheck className="size-3.5 shrink-0" />
+                      {ktpDoc.file.name} ({(ktpDoc.file.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
+                  )}
+                  {ktpDoc.error && (
+                    <span className="text-xs text-destructive block font-medium">{ktpDoc.error}</span>
+                  )}
+                </div>
               </div>
-              <div className="shrink-0">
+
+              <div className="shrink-0 self-end sm:self-center">
                 <input
                   type="file"
                   id="ktp-file-input"
@@ -570,11 +642,16 @@ export function ApplyFormClient() {
                   size="sm"
                   asChild
                   disabled={ktpDoc.uploading}
+                  className={`rounded-full cursor-pointer text-xs font-medium shadow-2xs ${
+                    ktpDoc.r2Key
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                      : ""
+                  }`}
                 >
                   <label htmlFor="ktp-file-input" className="cursor-pointer">
                     {ktpDoc.uploading ? (
                       <>
-                        <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                        <Loader2 className="size-3.5 animate-spin mr-1.5 text-purple-600" />
                         Mengunggah...
                       </>
                     ) : ktpDoc.r2Key ? (
@@ -584,7 +661,7 @@ export function ApplyFormClient() {
                       </>
                     ) : (
                       <>
-                        <UploadCloud className="size-3.5 mr-1.5" />
+                        <UploadCloud className="size-3.5 mr-1.5 text-purple-600" />
                         Pilih Berkas KTP
                       </>
                     )}
@@ -593,29 +670,48 @@ export function ApplyFormClient() {
               </div>
             </div>
 
-            {/* 3. Diploma / Ijazah */}
-            <div className="rounded-xl border border-border p-4 bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <span className="font-semibold text-sm text-foreground flex items-center gap-2">
-                  Ijazah Terakhir (S1 / Profesi)
-                  <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
-                    Wajib
-                  </Badge>
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Pindaian ijazah asli atau legalisir dari perguruan tinggi terakreditasi.
-                </span>
-                {diplomaDoc.file && (
-                  <span className="text-xs font-mono text-emerald-600 flex items-center gap-1 mt-1">
-                    <FileCheck className="size-3.5" />
-                    {diplomaDoc.file.name} ({(diplomaDoc.file.size / 1024 / 1024).toFixed(2)} MB)
-                  </span>
-                )}
-                {diplomaDoc.error && (
-                  <span className="text-xs text-destructive mt-1">{diplomaDoc.error}</span>
-                )}
+            <div
+              className={`rounded-xl border p-4 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 ${
+                diplomaDoc.r2Key
+                  ? "border-emerald-500/50 bg-emerald-500/5 ring-1 ring-emerald-500/20"
+                  : "border-border/70 bg-muted/15 hover:border-border"
+              }`}
+            >
+              <div className="flex items-start gap-3 min-w-0">
+                <div
+                  className={`size-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                    diplomaDoc.r2Key
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                  }`}
+                >
+                  <GraduationCap className="size-4" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-heading font-semibold text-sm text-foreground">
+                      Ijazah Terakhir (S1 / Profesi)
+                    </span>
+                    <Badge variant="destructive" className="text-xs py-0.5 px-2 font-normal">
+                      Wajib
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Foto atau pindaian ijazah asli atau legalisasi resmi perguruan tinggi.
+                  </p>
+                  {diplomaDoc.file && (
+                    <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
+                      <FileCheck className="size-3.5 shrink-0" />
+                      {diplomaDoc.file.name} ({(diplomaDoc.file.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
+                  )}
+                  {diplomaDoc.error && (
+                    <span className="text-xs text-destructive block font-medium">{diplomaDoc.error}</span>
+                  )}
+                </div>
               </div>
-              <div className="shrink-0">
+
+              <div className="shrink-0 self-end sm:self-center">
                 <input
                   type="file"
                   id="diploma-file-input"
@@ -630,11 +726,16 @@ export function ApplyFormClient() {
                   size="sm"
                   asChild
                   disabled={diplomaDoc.uploading}
+                  className={`rounded-full cursor-pointer text-xs font-medium shadow-2xs ${
+                    diplomaDoc.r2Key
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                      : ""
+                  }`}
                 >
                   <label htmlFor="diploma-file-input" className="cursor-pointer">
                     {diplomaDoc.uploading ? (
                       <>
-                        <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                        <Loader2 className="size-3.5 animate-spin mr-1.5 text-purple-600" />
                         Mengunggah...
                       </>
                     ) : diplomaDoc.r2Key ? (
@@ -644,7 +745,7 @@ export function ApplyFormClient() {
                       </>
                     ) : (
                       <>
-                        <UploadCloud className="size-3.5 mr-1.5" />
+                        <UploadCloud className="size-3.5 mr-1.5 text-purple-600" />
                         Pilih Berkas Ijazah
                       </>
                     )}
@@ -653,46 +754,64 @@ export function ApplyFormClient() {
               </div>
             </div>
 
-            {/* 4. STR (Surat Tanda Registrasi) - Conditional */}
             <div
-              className={`rounded-xl border p-4 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-                counselorType === "psychologist"
-                  ? "border-primary/40 bg-primary/5"
-                  : "border-border bg-muted/20"
+              className={`rounded-xl border p-4 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 ${
+                strDoc.r2Key
+                  ? "border-emerald-500/50 bg-emerald-500/5 ring-1 ring-emerald-500/20"
+                  : counselorType === "psychologist"
+                    ? "border-purple-500/40 bg-purple-500/10 ring-1 ring-purple-500/20"
+                    : "border-border/70 bg-muted/15 hover:border-border"
               }`}
             >
-              <div className="flex flex-col gap-1">
-                <span className="font-semibold text-sm text-foreground flex items-center gap-2">
-                  Surat Tanda Registrasi (STR) Tenaga Psikologi Klinis
-                  {counselorType === "psychologist" ? (
-                    <Badge variant="destructive" className="text-[10px] py-0 px-1.5">
-                      Wajib untuk Psikolog
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[10px] py-0 px-1.5">
-                      Opsional
-                    </Badge>
+              <div className="flex items-start gap-3 min-w-0">
+                <div
+                  className={`size-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                    strDoc.r2Key
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                  }`}
+                >
+                  <Award className="size-4" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-heading font-semibold text-sm text-foreground">
+                      Surat Tanda Registrasi (STR)
+                    </span>
+                    {counselorType === "psychologist" ? (
+                      <Badge variant="destructive" className="text-xs py-0.5 px-2 font-normal">
+                        Wajib untuk Psikolog
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-xs py-0.5 px-2 border-muted-foreground/30 font-normal"
+                      >
+                        Opsional
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Nomor dan berkas STR aktif dari KTKI (khusus psikolog klinis).
+                  </p>
+                  {strDoc.file && (
+                    <span className="text-xs font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
+                      <FileCheck className="size-3.5 shrink-0" />
+                      {strDoc.file.name} ({(strDoc.file.size / 1024 / 1024).toFixed(2)} MB)
+                    </span>
                   )}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  STR yang masih berlaku dari Konsil Tenaga Kesehatan Indonesia (KTKI).
-                </span>
-                {strDoc.file && (
-                  <span className="text-xs font-mono text-emerald-600 flex items-center gap-1 mt-1">
-                    <FileCheck className="size-3.5" />
-                    {strDoc.file.name} ({(strDoc.file.size / 1024 / 1024).toFixed(2)} MB)
-                  </span>
-                )}
-                {fieldErrors.strR2Key && (
-                  <span className="text-xs text-destructive mt-1">
-                    {fieldErrors.strR2Key[0]}
-                  </span>
-                )}
-                {strDoc.error && (
-                  <span className="text-xs text-destructive mt-1">{strDoc.error}</span>
-                )}
+                  {fieldErrors.strR2Key && (
+                    <span className="text-xs text-destructive block font-medium">
+                      {fieldErrors.strR2Key[0]}
+                    </span>
+                  )}
+                  {strDoc.error && (
+                    <span className="text-xs text-destructive block font-medium">{strDoc.error}</span>
+                  )}
+                </div>
               </div>
-              <div className="shrink-0">
+
+              <div className="shrink-0 self-end sm:self-center">
                 <input
                   type="file"
                   id="str-file-input"
@@ -707,11 +826,16 @@ export function ApplyFormClient() {
                   size="sm"
                   asChild
                   disabled={strDoc.uploading}
+                  className={`rounded-full cursor-pointer text-xs font-medium shadow-2xs ${
+                    strDoc.r2Key
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                      : ""
+                  }`}
                 >
                   <label htmlFor="str-file-input" className="cursor-pointer">
                     {strDoc.uploading ? (
                       <>
-                        <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                        <Loader2 className="size-3.5 animate-spin mr-1.5 text-purple-600" />
                         Mengunggah...
                       </>
                     ) : strDoc.r2Key ? (
@@ -721,7 +845,7 @@ export function ApplyFormClient() {
                       </>
                     ) : (
                       <>
-                        <UploadCloud className="size-3.5 mr-1.5" />
+                        <UploadCloud className="size-3.5 mr-1.5 text-purple-600" />
                         Pilih Berkas STR
                       </>
                     )}
@@ -729,112 +853,109 @@ export function ApplyFormClient() {
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        {/* Step 4: Terms & Agreement */}
-        <Card className="border-border">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <Checkbox
-                id="terms"
-                name="terms"
-                checked={agreeToTerms}
-                onCheckedChange={(checked) => setAgreeToTerms(Boolean(checked))}
-                className="mt-1"
-                aria-invalid={Boolean(fieldErrors.agreeToTerms)}
-              />
-              <div className="flex flex-col gap-1 leading-snug">
-                <label
-                  htmlFor="terms"
-                  className="text-sm font-medium text-foreground cursor-pointer select-none"
+        <section className="pt-8 space-y-6">
+          <div className="rounded-xl border border-border/80 p-4 sm:p-5 bg-muted/15 flex items-start gap-3.5 transition-colors">
+            <Checkbox
+              id="terms"
+              name="terms"
+              checked={agreeToTerms}
+              onCheckedChange={(checked) => setAgreeToTerms(Boolean(checked))}
+              className="mt-0.5 shrink-0 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+              aria-invalid={Boolean(fieldErrors.agreeToTerms)}
+            />
+            <div className="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
+              <label
+                htmlFor="terms"
+                className="font-heading font-semibold text-foreground text-sm cursor-pointer select-none block"
+              >
+                Saya menyatakan kebenaran data dan menyetujui Ketentuan Kemitraan Solulu
+              </label>
+              <p>
+                Saya menjamin keaslian dokumen yang diunggah dan bersedia menjaga kerahasiaan klien serta mematuhi standar layanan Solulu.{" "}
+                <button
+                  type="button"
+                  onClick={() => setTermsModalOpen(true)}
+                  className="text-purple-600 hover:text-purple-700 dark:text-purple-400 underline underline-offset-2 font-semibold cursor-pointer"
                 >
-                  Saya menyatakan kebenaran data dan menyetujui Ketentuan Kemitraan Solulu
-                </label>
-                <p className="text-xs text-muted-foreground">
-                  Saya menjamin dokumen yang diunggah adalah asli dan sah. Saya bersedia mematuhi kode etik kerahasiaan klien, standar sesi 90 menit, dan tata kelola platform Solulu.{" "}
-                  <button
-                    type="button"
-                    onClick={() => setTermsModalOpen(true)}
-                    className="text-primary underline underline-offset-2 hover:opacity-80 inline-block font-medium cursor-pointer"
-                  >
-                    Baca Ketentuan Kemitraan
-                  </button>
-                </p>
-                {fieldErrors.agreeToTerms && (
-                  <span className="text-xs text-destructive mt-1">
-                    {fieldErrors.agreeToTerms[0]}
-                  </span>
-                )}
-              </div>
+                  Baca Ketentuan Kemitraan
+                </button>
+              </p>
+              {fieldErrors.agreeToTerms && (
+                <span className="text-xs text-destructive block font-medium">
+                  {fieldErrors.agreeToTerms[0]}
+                </span>
+              )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Action Button */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-          <span className="text-xs text-muted-foreground text-center sm:text-left">
-            Dengan mengirimkan formulir, Anda memberikan izin kepada tim Solulu untuk melakukan audit verifikasi berkas.
-          </span>
-          <Button
-            type="submit"
-            variant="public"
-            size="pill-lg"
-            disabled={submitting}
-            className="w-full sm:w-auto px-8"
-            id="submit-application-btn"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="size-4 animate-spin mr-2" />
-                Memproses Pendaftaran...
-              </>
-            ) : (
-              <>
-                <span>Kirim Berkas Pendaftaran</span>
-                <ArrowRight className="size-4 ml-2" />
-              </>
-            )}
-          </Button>
-        </div>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+            <span className="text-xs text-muted-foreground text-center sm:text-left leading-relaxed">
+              Semua data dan berkas Anda diperiksa langsung secara rahasia oleh tim Solulu.
+            </span>
+            <Button
+              type="submit"
+              variant="public"
+              size="pill-lg"
+              disabled={submitting}
+              className="w-full sm:w-auto px-8 shrink-0 shadow-md shadow-purple-500/25 hover:shadow-purple-500/40 active:scale-[0.98] transition-all font-semibold"
+              id="submit-application-btn"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin mr-2" />
+                  Memproses Pendaftaran...
+                </>
+              ) : (
+                <>
+                  <span>Kirim Berkas Pendaftaran</span>
+                  <ArrowRight className="size-4 ml-2" />
+                </>
+              )}
+            </Button>
+          </div>
+        </section>
       </form>
 
-      {/* Terms of Partnership Modal */}
       <Dialog open={termsModalOpen} onOpenChange={setTermsModalOpen}>
-        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-heading font-bold">Ketentuan &amp; Kode Etik Kemitraan Solulu</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl p-6 sm:p-8">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="font-heading font-bold text-lg text-foreground">
+              Ketentuan &amp; Kode Etik Kemitraan Solulu
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Pedoman integritas dan standar profesional bagi calon mitra konselor Solulu.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-4 text-xs text-muted-foreground leading-relaxed py-2">
-            <div>
-              <strong className="text-foreground text-sm block mb-1">
+          <div className="space-y-3 text-xs text-muted-foreground leading-relaxed py-2">
+            <div className="rounded-xl border border-border/80 p-3.5 bg-muted/20">
+              <strong className="text-foreground text-xs sm:text-sm block mb-1">
                 1. Kerahasiaan &amp; Privasi Pasien
               </strong>
-              Mitra wajib mematuhi standar perlindungan data pribadi dan menjaga kerahasiaan seluruh informasi, catatan asesmen, serta dinamika sesi konseling kecuali diatur lain oleh ketentuan hukum penanganan krisis darurat.
+              Mitra wajib mematuhi standar perlindungan data pribadi dan menjaga kerahasiaan seluruh informasi sesi konseling kecuali diatur lain oleh hukum darurat.
             </div>
-            <div>
-              <strong className="text-foreground text-sm block mb-1">
+            <div className="rounded-xl border border-border/80 p-3.5 bg-muted/20">
+              <strong className="text-foreground text-xs sm:text-sm block mb-1">
                 2. Standar Sesi Konsultasi 90 Menit
               </strong>
-              Seluruh sesi konsultasi di Solulu dijadwalkan dengan durasi penuh 90 menit melalui tautan Zoom terenkripsi yang dibuat otomatis oleh sistem untuk memastikan kedalaman pendampingan.
+              Seluruh sesi konsultasi di Solulu dijadwalkan dengan durasi penuh 90 menit melalui tautan Zoom terenkripsi yang dibuat otomatis oleh sistem.
             </div>
-            <div>
-              <strong className="text-foreground text-sm block mb-1">
+            <div className="rounded-xl border border-border/80 p-3.5 bg-muted/20">
+              <strong className="text-foreground text-xs sm:text-sm block mb-1">
                 3. Keabsahan Dokumen Profesi
               </strong>
-              Mitra menjamin bahwa seluruh berkas (KTP, Ijazah, dan STR) adalah sah, aktif, dan diterbitkan oleh otoritas resmi yang berwenang. Pemalsuan dokumen berakibat pada pemutusan kemitraan seketika dan tindakan hukum.
+              Mitra menjamin seluruh berkas sah, aktif, dan diterbitkan otoritas resmi. Pemalsuan dokumen berakibat pemutusan kemitraan seketika dan tindakan hukum.
             </div>
-            <div>
-              <strong className="text-foreground text-sm block mb-1">
+            <div className="rounded-xl border border-border/80 p-3.5 bg-muted/20">
+              <strong className="text-foreground text-xs sm:text-sm block mb-1">
                 4. Batasan Ruang Lingkup Praktik
               </strong>
-              Konselor sebaya tidak diperkenankan memberikan diagnosis klinis atau resep farmakoterapi, dan wajib merujuk kasus dengan indikasi risiko tinggi (skor SRQ-20 tinggi / ide bunuh diri) kepada psikolog klinis atau layanan krisis rujukan Solulu.
+              Konselor sebaya tidak memberikan diagnosis klinis atau resep farmasi, serta wajib merujuk kasus risiko tinggi kepada psikolog klinis Solulu.
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-2">
             <Button
               type="button"
               variant="public"

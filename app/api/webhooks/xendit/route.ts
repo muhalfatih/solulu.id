@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { eq } from "drizzle-orm"
+import { eq, or } from "drizzle-orm"
 import { db } from "@/db"
 import { bookings, schedules, transactions } from "@/db/schema"
 import { dispatchFulfillmentJob } from "@/lib/fulfillment/qstash"
@@ -52,7 +52,16 @@ export async function POST(req: Request) {
       )
     }
 
-    // 3. Find Transaction (by xenditInvoiceId or referenceNumber)
+    // 3. Find Transaction (by xenditInvoiceId, id from txn_ prefix, or referenceNumber)
+    const cleanTxId = body.external_id ? body.external_id.replace(/^txn_/, "") : ""
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanTxId)
+
+    const conditions = [
+      eq(transactions.xenditInvoiceId, body.id),
+      ...(body.external_id ? [eq(transactions.referenceNumber, body.external_id)] : []),
+      ...(isUuid ? [eq(transactions.id, cleanTxId)] : []),
+    ]
+
     const rows = await db
       .select({
         transaction: transactions,
@@ -62,31 +71,14 @@ export async function POST(req: Request) {
       .from(transactions)
       .innerJoin(bookings, eq(transactions.bookingId, bookings.id))
       .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
-      .where(eq(transactions.xenditInvoiceId, body.id))
+      .where(or(...conditions))
       .limit(1)
 
     if (rows.length === 0) {
-      // Also fallback search by referenceNumber
-      const fallbackRows = await db
-        .select({
-          transaction: transactions,
-          booking: bookings,
-          schedule: schedules,
-        })
-        .from(transactions)
-        .innerJoin(bookings, eq(transactions.bookingId, bookings.id))
-        .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
-        .where(eq(transactions.referenceNumber, body.external_id))
-        .limit(1)
-
-      if (fallbackRows.length === 0) {
-        // Return 200 to prevent Xendit from infinitely retrying unknown invoices
-        return NextResponse.json(
-          { status: "ignored", reason: "Transaction not found" },
-          { status: 200 }
-        )
-      }
-      rows.push(fallbackRows[0])
+      return NextResponse.json(
+        { status: "ignored", reason: "Transaction not found" },
+        { status: 200 }
+      )
     }
 
     const { transaction, booking, schedule } = rows[0]

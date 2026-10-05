@@ -15,6 +15,7 @@ import {
   Plus,
   Loader2,
   Pencil,
+  ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,6 +35,7 @@ import {
   SOLULU_SPECIALIZATION_PRESETS,
   type UpdateCounselorAdminInput,
 } from "@/lib/validations/counselor-admin"
+import { MOCK_ACTIVE_COUNSELORS, type ActiveCounselor } from "@/app/admin/mock-data"
 import {
   getCounselorByIdAction,
   updateCounselorAction,
@@ -48,7 +50,11 @@ export default function EditCounselorPage() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [fullName, setFullName] = React.useState("")
   const [title, setTitle] = React.useState("")
+  const [education, setEducation] = React.useState("")
   const [counselorType, setCounselorType] = React.useState<"peer" | "psychologist">("peer")
+  const [email, setEmail] = React.useState("")
+  const [phone, setPhone] = React.useState("")
+  const [strNumber, setStrNumber] = React.useState("")
   const [bio, setBio] = React.useState("")
   const [selectedSpecs, setSelectedSpecs] = React.useState<string[]>([])
   const [customTagInput, setCustomTagInput] = React.useState("")
@@ -70,21 +76,64 @@ export default function EditCounselorPage() {
           const c = res.data
           setFullName(c.fullName || "")
           setTitle(c.title || "")
+          setEducation(c.education || "")
           setCounselorType(c.counselorType || "peer")
+          setEmail(c.email || "")
+          setPhone(c.phone || "")
+          setStrNumber(c.strNumber || "")
           setBio(c.bio || "")
           setSelectedSpecs(c.specializations || [])
           setAvatarUrl(c.avatarR2Url || "")
           setIsActive(c.isActive ?? true)
         } else {
-          // If not in database, attempt fallback to mock data or demo
-          setFullName("Mitra Konselor")
-          setTitle("S.Psi")
-          setCounselorType("peer")
-          setBio("Konselor berpengalaman dalam pendampingan klinis dan konseling sebaya.")
-          setSelectedSpecs(["Kecemasan & Stres", "Pengembangan Diri"])
+          // Attempt graceful fallback to mock active counselors
+          const mock = MOCK_ACTIVE_COUNSELORS.find((m: ActiveCounselor) => m.id === counselorId)
+          if (mock) {
+            setFullName(mock.name)
+            setTitle(mock.title)
+            setEducation(
+              mock.education ||
+                (mock.type === "Psikolog Klinis"
+                  ? "S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi"
+                  : "Sarjana Psikologi (S.Psi) • Peer Counselor Indonesia")
+            )
+            setCounselorType(mock.type === "Psikolog Klinis" ? "psychologist" : "peer")
+            setEmail(mock.email || "")
+            setPhone(mock.phone || "")
+            setStrNumber(mock.strNumber || "")
+            const bioMap: Record<string, string> = {
+              "c-1": "Psikolog klinis berlisensi dengan pengalaman lebih dari 5 tahun menangani kecemasan, depresi, dan pemulihan trauma menggunakan pendekatan CBT dan ACT.",
+              "c-2": "Konselor sebaya senior yang mendampingi mahasiswa dan profesional muda dalam menghadapi stres akademik, burnout, serta krisis identitas quarter-life.",
+              "c-3": "Pendekatan berbasis bukti ilmiah untuk penanganan depresi ringan hingga sedang, pemulihan luka masa kecil, serta peningkatan self-esteem dan penerimaan diri.",
+              "c-4": "Konselor sebaya dengan fokus pada regulasi emosi, relasi keluarga, dan pendampingan kesehatan mental remaja secara empatik dan solutif.",
+            }
+            setBio(bioMap[mock.id] || "Konselor berpengalaman dalam pendampingan klinis dan konseling sebaya.")
+            setSelectedSpecs(mock.specializations || [])
+            setIsActive(mock.isActive ?? true)
+          } else {
+            setErrorMessage("Data profil mitra konselor tidak ditemukan.")
+          }
         }
       } catch (err: any) {
-        setErrorMessage(err.message || "Gagal memuat profil konselor.")
+        const mock = MOCK_ACTIVE_COUNSELORS.find((m: ActiveCounselor) => m.id === counselorId)
+        if (mock) {
+          setFullName(mock.name)
+          setTitle(mock.title)
+          setEducation(
+            mock.education ||
+              (mock.type === "Psikolog Klinis"
+                ? "S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi"
+                : "Sarjana Psikologi (S.Psi) • Peer Counselor Indonesia")
+          )
+          setCounselorType(mock.type === "Psikolog Klinis" ? "psychologist" : "peer")
+          setEmail(mock.email || "")
+          setPhone(mock.phone || "")
+          setStrNumber(mock.strNumber || "")
+          setSelectedSpecs(mock.specializations || [])
+          setIsActive(mock.isActive ?? true)
+        } else {
+          setErrorMessage(err.message || "Gagal memuat profil konselor.")
+        }
       } finally {
         setIsLoading(false)
       }
@@ -124,22 +173,21 @@ export default function EditCounselorPage() {
     setErrorMessage(null)
 
     try {
-      const res = await getAvatarUploadPresignedUrlAction(file.name, file.type)
-      if (!res.success || !res.data) {
-        throw new Error(res.error || "Gagal mendapatkan izin unggah gambar.")
-      }
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("category", "avatar")
 
-      const uploadRes = await fetch(res.data.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       })
 
-      if (!uploadRes.ok) {
-        throw new Error("Gagal mengunggah foto ke Cloudflare R2.")
+      const uploadJson = await uploadRes.json()
+      if (!uploadRes.ok || !uploadJson.success || !uploadJson.data?.publicUrl) {
+        throw new Error(uploadJson.error || "Gagal mengunggah foto ke Cloudflare R2.")
       }
 
-      setAvatarUrl(res.data.publicUrl)
+      setAvatarUrl(uploadJson.data.publicUrl)
     } catch (err: any) {
       console.warn("Direct upload error (using local preview fallback):", err.message)
     } finally {
@@ -162,6 +210,7 @@ export default function EditCounselorPage() {
     const payload: UpdateCounselorAdminInput = {
       fullName,
       title,
+      education,
       counselorType,
       bio,
       specializations: selectedSpecs,
@@ -297,12 +346,12 @@ export default function EditCounselorPage() {
             <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5 sm:col-span-2">
                 <label htmlFor="fullName" className="text-xs font-medium text-foreground">
-                  Nama Lengkap <span className="text-destructive">*</span>
+                  Nama Lengkap & Gelar Profesi <span className="text-destructive">*</span>
                 </label>
                 <Input
                   id="fullName"
                   type="text"
-                  placeholder="Contoh: Sarah Annisa"
+                  placeholder="Contoh: Sarah Annisa, M.Psi., Psikolog atau Rian Hidayat, S.Psi"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
@@ -312,12 +361,12 @@ export default function EditCounselorPage() {
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="title" className="text-xs font-medium text-foreground">
-                  Gelar / Kualifikasi Profesi <span className="text-destructive">*</span>
+                  Peran / Jabatan Klinis <span className="text-destructive">*</span>
                 </label>
                 <Input
                   id="title"
                   type="text"
-                  placeholder="Contoh: S.Psi atau M.Psi., Psikolog"
+                  placeholder="Contoh: Psikolog Klinis Dewasa atau Konselor Sebaya Senior"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
@@ -348,6 +397,40 @@ export default function EditCounselorPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <label htmlFor="education" className="text-xs font-medium text-foreground">
+                  Riwayat Pendidikan & Izin <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  id="education"
+                  type="text"
+                  placeholder="Contoh: S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi"
+                  value={education}
+                  onChange={(e) => setEducation(e.target.value)}
+                  required
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              {counselorType === "psychologist" && (
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <label htmlFor="strNumber" className="text-xs font-medium text-foreground">
+                    Nomor STR / Izin Praktik Psikolog
+                  </label>
+                  <Input
+                    id="strNumber"
+                    type="text"
+                    placeholder="Contoh: 1902837482910"
+                    value={strNumber}
+                    onChange={(e) => setStrNumber(e.target.value)}
+                    className="h-9 text-xs font-mono"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Nomor Surat Tanda Registrasi resmi dari HIMPSI atau Kemenkes RI.
+                  </p>
+                </div>
+              )}
 
               <div className="flex flex-col gap-1.5 sm:col-span-2">
                 <div className="flex items-center justify-between">
@@ -451,9 +534,60 @@ export default function EditCounselorPage() {
           )}
         </div>
 
-        {/* Section 3: Status Praktik */}
-        <div className="rounded-xl border border-border bg-card p-6 flex flex-col gap-4 shadow-xs">
-          <div className="flex items-center justify-between">
+        {/* Section 3: Akun Login & Status Praktik */}
+        <div className="rounded-xl border border-border bg-card p-6 flex flex-col gap-6 shadow-xs">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <div className="flex flex-col gap-0.5">
+              <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <ShieldCheck className="size-4 text-primary" />
+                <span>Akun Login & Status Praktik</span>
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Informasi kredensial login dashboard konselor dan pengaturan ketersediaan jadwal praktik.
+              </p>
+            </div>
+            <Badge variant="outline" className="text-[11px] font-normal">
+              Akses Sistem
+            </Badge>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="email" className="text-xs font-medium text-foreground">
+                Alamat Email Login Terdaftar
+              </label>
+              <Input
+                id="email"
+                type="email"
+                value={email || "counselor@solulu.id"}
+                disabled
+                className="h-9 text-xs bg-muted/60 text-muted-foreground font-mono"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Email terdaftar di Supabase Auth untuk masuk ke portal konselor (/counselor).
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="phone" className="text-xs font-medium text-foreground">
+                Nomor Kontak / WhatsApp
+              </label>
+              <Input
+                id="phone"
+                type="text"
+                placeholder="Contoh: 0812-3456-7890"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="h-9 text-xs font-mono"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Nomor kontak operasional koordinasi sesi dan notifikasi darurat.
+              </p>
+            </div>
+          </div>
+
+          {/* Active practicing toggle */}
+          <div className="flex items-center justify-between pt-3 border-t border-border">
             <div className="flex flex-col gap-0.5">
               <span className="text-xs font-semibold text-foreground">Status Praktik Konselor</span>
               <p className="text-xs text-muted-foreground">

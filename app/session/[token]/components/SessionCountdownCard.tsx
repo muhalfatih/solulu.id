@@ -87,7 +87,7 @@ export function SessionCountdownCard({
   )}`
 
   return (
-    <Card className="border-border/80 shadow-sm relative overflow-hidden bg-card">
+    <Card className="rounded-2xl border border-border/80 shadow-xs bg-card hover:shadow-sm transition-all relative overflow-hidden gap-0">
       {/* Visual Accent Top Bar */}
       <div
         className={`h-1.5 w-full transition-colors ${
@@ -95,71 +95,71 @@ export function SessionCountdownCard({
             ? "bg-emerald-500 animate-pulse"
             : state === "ENDED"
             ? "bg-muted-foreground/30"
-            : "bg-primary/20"
+            : "bg-primary/25"
         }`}
       />
 
-      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2">
-        <div className="flex flex-col gap-1">
+      <CardHeader className="p-6 sm:p-7 border-b border-border/40 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Status Ruang Sesi
             </span>
             {state === "UPCOMING_LOCKED" && (
-              <Badge variant="outline" className="border-border/80 text-foreground font-normal">
-                <Clock data-icon="inline-start" /> Terjadwal • Menunggu Jam Sesi
+              <Badge variant="outline" className="rounded-full border-border/80 text-foreground font-normal px-2.5 py-0.5 text-xs">
+                <Clock data-icon="inline-start" className="size-3 mr-1" /> Terjadwal • Menunggu Jam Sesi
               </Badge>
             )}
             {state === "ROOM_OPEN_PREPARING" && (
-              <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-medium">
+              <Badge className="rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-medium px-2.5 py-0.5 text-xs">
                 <span className="size-2 rounded-full bg-emerald-500 animate-ping inline-block mr-1.5" />
                 Ruang Zoom Telah Dibuka
               </Badge>
             )}
             {state === "IN_PROGRESS" && (
-              <Badge className="bg-emerald-600 text-white font-medium shadow-xs">
+              <Badge className="rounded-full bg-emerald-600 text-white font-medium shadow-xs px-2.5 py-0.5 text-xs">
                 <span className="size-2 rounded-full bg-white animate-pulse inline-block mr-1.5" />
                 Sesi Sedang Berlangsung
               </Badge>
             )}
             {state === "ENDED" && (
-              <Badge variant="secondary" className="font-normal text-muted-foreground">
-                <CheckCircle2 data-icon="inline-start" /> Sesi Telah Selesai
+              <Badge variant="secondary" className="rounded-full font-normal text-muted-foreground px-2.5 py-0.5 text-xs">
+                <CheckCircle2 data-icon="inline-start" className="size-3 mr-1" /> Sesi Telah Selesai
               </Badge>
             )}
             {booking.status === "cancelled" && (
-              <Badge variant="destructive" className="font-medium">
+              <Badge variant="destructive" className="rounded-full font-medium px-2.5 py-0.5 text-xs">
                 Sesi Dibatalkan
               </Badge>
             )}
           </div>
-          <CardTitle className="text-xl md:text-2xl font-semibold tracking-tight">
+          <CardTitle className="font-heading text-lg sm:text-xl font-bold tracking-tight text-foreground">
             Ruang Telekonseling 1-on-1
           </CardTitle>
-          <CardDescription>
-            {schedule.formattedDate} • {schedule.timeRange} (Durasi 90 Menit)
+          <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-1">
+            {schedule.formattedDate} • {schedule.timeRange} (Durasi 90 Menit Penuh)
           </CardDescription>
         </div>
 
         {/* Live Status Indicator Pill */}
         <div className="hidden md:flex flex-col items-end">
-          <span className="text-xs text-muted-foreground">Waktu Server & Sesi</span>
-          <span className="text-sm font-medium tracking-tight text-foreground">
+          <span className="text-[11px] text-muted-foreground">Waktu Server &amp; Sesi</span>
+          <span className="text-sm font-semibold tracking-tight text-foreground font-mono">
             WIB (UTC+7)
           </span>
         </div>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-6 pt-2">
+      <CardContent className="p-6 sm:p-7 flex flex-col gap-6">
         {/* Live Countdown Display */}
         {state !== "ENDED" && booking.status !== "cancelled" && (
-          <div className="rounded-lg border border-border/60 bg-muted/40 p-4 sm:p-6 flex flex-col items-center justify-center text-center gap-2">
+          <div className="rounded-xl border border-primary/20 bg-gradient-to-b from-primary/5 via-muted/30 to-muted/50 p-6 sm:p-7 flex flex-col items-center justify-center text-center gap-3 shadow-2xs">
             <span className="text-xs sm:text-sm font-medium text-muted-foreground">
               {countdown.label}
             </span>
 
             {/* Countdown Digits */}
-            <div className="flex items-center gap-2 font-mono text-3xl sm:text-5xl font-bold tracking-tight text-foreground select-none">
+            <div className="flex items-center gap-2 font-mono text-4xl sm:text-6xl font-bold tracking-tight text-primary dark:text-purple-300 select-none tabular-nums">
               {countdown.days > 0 ? (
                 <span>{countdown.formatted}</span>
               ) : (
@@ -269,13 +269,14 @@ export function SessionCountdownCard({
 
         {/* Primary Action Button (US-16, US-17) */}
         {booking.status !== "cancelled" && state !== "ENDED" && !isFulfillmentPending && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5">
             {isZoomActive && booking.zoomJoinUrl ? (
               <Button
                 asChild
-                size="lg"
+                variant="public"
+                size="pill-lg"
                 id="btn-join-zoom"
-                className="w-full h-13 text-base bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md shadow-emerald-600/25 transition-all group"
+                className="w-full h-13 text-base bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md shadow-emerald-600/25 hover:shadow-lg transition-all group rounded-full"
               >
                 <a
                   href={booking.zoomJoinUrl}
@@ -291,17 +292,17 @@ export function SessionCountdownCard({
             ) : (
               <Button
                 disabled
-                size="lg"
+                size="pill-lg"
                 id="btn-join-zoom-locked"
                 variant="outline"
-                className="w-full h-13 text-base text-muted-foreground/80 cursor-not-allowed border-dashed bg-muted/20"
+                className="w-full h-13 text-sm sm:text-base text-muted-foreground/80 cursor-not-allowed border-dashed bg-muted/20 rounded-full font-medium"
               >
                 <Lock data-icon="inline-start" />
                 <span>Masuk Ruang Zoom (Terkunci)</span>
               </Button>
             )}
 
-            <p className="text-[11px] text-center text-muted-foreground">
+            <p className="text-xs text-center text-muted-foreground leading-relaxed">
               {isZoomActive
                 ? `Bergabunglah menggunakan nama profil sesuai pemesanan: "${patientName}".`
                 : `Tombol aktif otomatis pada pukul ${unlockTimeString} WIB. Tidak perlu me-refresh halaman manual.`}
@@ -310,13 +311,13 @@ export function SessionCountdownCard({
         )}
       </CardContent>
 
-      <CardFooter className="border-t border-border/60 bg-muted/15 px-6 py-3 flex items-center justify-between text-xs text-muted-foreground">
+      <CardFooter className="border-t border-border/40 bg-muted/10 p-6 sm:p-7 flex items-center justify-between text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <Sparkles className="size-3.5 text-primary" />
           Kerahasiaan Sesi Dijamin Terenkripsi
         </span>
         {booking.zoomMeetingId && (
-          <span className="font-mono text-[11px]">
+          <span className="font-mono text-xs bg-muted/50 px-2.5 py-0.5 rounded-full border border-border/60">
             Meeting ID: {booking.zoomMeetingId}
           </span>
         )}

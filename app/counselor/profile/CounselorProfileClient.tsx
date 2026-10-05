@@ -80,33 +80,21 @@ export function CounselorProfileClient({ initialProfile }: CounselorProfileClien
     setUploadError(null)
 
     try {
-      const presignedRes = await getPresignedUploadUrlAction({
-        type: "avatar",
-        fileName: file.name,
-        contentType: file.type || "image/jpeg",
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("category", "avatar")
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       })
 
-      if (!presignedRes.success || !presignedRes.data) {
-        throw new Error(presignedRes.error || "Gagal mendapatkan izin upload R2.")
+      const data = await res.json()
+      if (!res.ok || !data.success || !data.data?.publicUrl) {
+        throw new Error(data.error || `Upload avatar gagal (Status: ${res.status})`)
       }
 
-      const { uploadUrl, publicUrl } = presignedRes.data
-
-      // Upload directly to Cloudflare R2
-      const res = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type || "image/jpeg",
-        },
-        body: file,
-      })
-
-      if (!res.ok) {
-        throw new Error(`Upload avatar gagal (Status: ${res.status})`)
-      }
-
-      const finalUrl = publicUrl || uploadUrl.split("?")[0]
-      setAvatarUrl(finalUrl)
+      setAvatarUrl(data.data.publicUrl)
     } catch (err: any) {
       setUploadError(err.message || "Gagal mengunggah foto profil.")
     } finally {

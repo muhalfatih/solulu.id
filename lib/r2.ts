@@ -145,3 +145,40 @@ export function getPublicR2Url(key: string, customDomain?: string): string {
   const cleanKey = key.replace(/^\/+/, "")
   return `${cleanDomain}/${cleanKey}`
 }
+
+/**
+ * Uploads a buffer directly to R2 from the server, eliminating any client-side CORS issues.
+ */
+export async function uploadBufferToR2({
+  bucket,
+  key,
+  buffer,
+  contentType,
+}: {
+  bucket?: string
+  key: string
+  buffer: Buffer | Uint8Array
+  contentType: string
+}): Promise<{ key: string; publicUrl: string; bucket: string }> {
+  const targetBucket =
+    bucket ||
+    (key.startsWith("avatars/") || key.startsWith("gallery/")
+      ? getR2Config().publicBucketName || "solulu-public"
+      : getR2Config().privateBucketName || "solulu-private")
+
+  const s3 = getR2Client()
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: targetBucket,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+    })
+  )
+
+  return {
+    key,
+    publicUrl: getPublicR2Url(key),
+    bucket: targetBucket,
+  }
+}

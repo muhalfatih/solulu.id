@@ -47,7 +47,7 @@ export async function sendPatientConfirmationEmail(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Solulu <no-reply@solulu.id>",
+      from: process.env.RESEND_FROM_EMAIL || "Solulu Support <halo@solulu.id>",
       to: [payload.patientEmail],
       subject: `Konfirmasi Sesi Konseling: ${payload.counselorName} - Solulu`,
       html: `
@@ -115,7 +115,7 @@ export async function sendCounselorNotificationEmail(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Solulu <no-reply@solulu.id>",
+      from: process.env.RESEND_FROM_EMAIL || "Solulu Support <halo@solulu.id>",
       to: [payload.counselorEmail],
       subject: `Sesi Baru Terkonfirmasi: ${payload.patientName} - Solulu`,
       html: `

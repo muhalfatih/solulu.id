@@ -80,6 +80,8 @@ export interface ActiveCounselor {
   isActive: boolean
   joinedDate: string
   specializations: string[]
+  avatarR2Url?: string | null
+  education?: string
 }
 
 export interface VoucherItem {
@@ -403,6 +405,7 @@ export const MOCK_ACTIVE_COUNSELORS: ActiveCounselor[] = [
     id: "c-1",
     name: "Sarah Annisa, M.Psi., Psikolog",
     title: "Psikolog Klinis Dewasa",
+    education: "S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi",
     type: "Psikolog Klinis",
     email: "sarah.annisa@solulu.id",
     phone: "0812-3456-7890",
@@ -416,6 +419,7 @@ export const MOCK_ACTIVE_COUNSELORS: ActiveCounselor[] = [
     id: "c-2",
     name: "Rian Hidayat, S.Psi",
     title: "Konselor Sebaya Senior",
+    education: "Sarjana Psikologi (S.Psi) • Peer Counselor Indonesia",
     type: "Konselor Sebaya",
     email: "rian.hidayat@solulu.id",
     phone: "0856-1122-3344",
@@ -426,15 +430,30 @@ export const MOCK_ACTIVE_COUNSELORS: ActiveCounselor[] = [
   },
   {
     id: "c-3",
+    name: "Dr. Nadia Larasati, M.Psi",
+    title: "Psikolog Klinis Dewasa",
+    education: "Doktor & Magister Psikologi • Izin Kemenkes STR Terverifikasi",
+    type: "Psikolog Klinis",
+    email: "nadia.larasati@solulu.id",
+    phone: "0813-9988-7766",
+    strNumber: "1902837482999",
+    totalSessions: 52,
+    isActive: true,
+    joinedDate: "15 Maret 2026",
+    specializations: ["Depresi Ringan-Sedang", "Insecurity", "Penerimaan Diri"],
+  },
+  {
+    id: "c-4",
     name: "Nabila Safitri, S.Psi",
     title: "Konselor Sebaya Remaja",
+    education: "Sarjana Psikologi (S.Psi) • Fasilitator Komunitas Sejiwa",
     type: "Konselor Sebaya",
     email: "nabila.safitri@solulu.id",
     phone: "0877-4455-6677",
     totalSessions: 16,
     isActive: true,
     joinedDate: "20 Juli 2026",
-    specializations: ["Self-Harm Urges", "Manajemen Emosi", "Keluarga"],
+    specializations: ["Manajemen Emosi", "Keluarga", "Kecemasan Sosial"],
   },
 ]
 

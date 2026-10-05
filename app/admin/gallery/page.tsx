@@ -7,6 +7,11 @@ import { GalleryUploadDialog } from "./components/gallery-upload-dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Check, X, Plus } from "lucide-react"
+import {
+  getGalleryAdminAction,
+  createGalleryAdminAction,
+  deleteGalleryAdminAction,
+} from "./actions"
 
 export default function GalleryAdminPage() {
   const [items, setItems] = React.useState<GalleryItem[]>(MOCK_GALLERY_ITEMS)
@@ -18,18 +23,63 @@ export default function GalleryAdminPage() {
     setTimeout(() => setToastMessage(null), 3500)
   }
 
-  const handleUpload = (newItem: GalleryItem) => {
+  // Fetch real gallery items from database on mount
+  React.useEffect(() => {
+    async function loadGallery() {
+      try {
+        const res = await getGalleryAdminAction()
+        if (res.success && res.data && res.data.length > 0) {
+          const mapped: GalleryItem[] = res.data.map((r: any) => ({
+            id: r.id,
+            imageUrl: r.r2Url,
+            aspectRatio: "16:9",
+            dimensions: "1920 × 1080",
+            fileSize: "920 KB",
+            date: new Date(r.createdAt).toLocaleDateString("id-ID", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            }),
+            isCensoredAndConsented: true,
+            uploadedBy: "Admin",
+          }))
+          setItems(mapped)
+        }
+      } catch (err) {
+        console.error("Failed to load real gallery:", err)
+      }
+    }
+    loadGallery()
+  }, [])
+
+  const handleUpload = async (newItem: GalleryItem) => {
     setItems((prev) => [newItem, ...prev])
-    showToast("Foto berhasil ditambahkan ke galeri.")
+    try {
+      await createGalleryAdminAction({
+        title: "Dokumentasi Solulu",
+        category: "general",
+        r2Url: newItem.imageUrl,
+        caption: "Dokumentasi sesi/kegiatan Solulu",
+      })
+    } catch (err) {
+      console.error("Failed to persist gallery item:", err)
+    }
+    showToast("Foto berhasil ditambahkan ke galeri dan disimpan ke database.")
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id))
+    try {
+      await deleteGalleryAdminAction(id)
+    } catch (err) {
+      console.error("Failed to delete gallery item:", err)
+    }
     showToast("Foto telah dihapus dari galeri.")
   }
 
   const handleCopyCDN = (id: string) => {
-    const url = `https://pub-r2.solulu.id/gallery/${id}.webp`
+    const item = items.find((i) => i.id === id)
+    const url = item?.imageUrl || `https://pub-r2.solulu.id/gallery/${id}.webp`
     navigator.clipboard?.writeText?.(url)
     showToast("Tautan CDN foto berhasil disalin ke papan klip.")
   }

@@ -60,8 +60,51 @@ export function GalleryUploadDialog({
   const [aspectRatio, setAspectRatio] = React.useState<"16:9" | "4:3" | "1:1">("16:9")
   const [dimensions, setDimensions] = React.useState("1920 × 1080")
   const [isCensoredAndConsented, setIsCensoredAndConsented] = React.useState(false)
+  const [isUploading, setIsUploading] = React.useState(false)
+  const [uploadError, setUploadError] = React.useState<string | null>(null)
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
   if (!isOpen) return null
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadError(null)
+    setIsUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("category", "gallery")
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+      const result = await res.json()
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || "Gagal mengunggah gambar ke R2.")
+      }
+
+      const uploadedUrl = result.data.publicUrl
+      setImageUrl(uploadedUrl)
+
+      // Calculate approximate dimensions/aspect ratio
+      const img = new Image()
+      img.onload = () => {
+        setDimensions(`${img.width} × ${img.height}`)
+        const ratio = img.width / img.height
+        if (Math.abs(ratio - 16 / 9) < 0.2) setAspectRatio("16:9")
+        else if (Math.abs(ratio - 4 / 3) < 0.2) setAspectRatio("4:3")
+        else if (Math.abs(ratio - 1) < 0.2) setAspectRatio("1:1")
+      }
+      img.src = uploadedUrl
+    } catch (err: any) {
+      setUploadError(err.message || "Gagal mengunggah gambar.")
+    } finally {
+      setIsUploading(false)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -127,10 +170,41 @@ export function GalleryUploadDialog({
             )}
           </div>
 
+          {/* Upload File Direct or Presets */}
+          <div className="flex flex-col gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isUploading}
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full h-9 text-xs font-medium border-dashed border-primary/50 hover:bg-primary/5 cursor-pointer gap-2"
+              >
+                <UploadCloud className="size-4 text-primary" />
+                <span>
+                  {isUploading
+                    ? "Mengunggah gambar ke R2..."
+                    : "Pilih Berkas dari Komputer (JPG, PNG, WebP)"}
+                </span>
+              </Button>
+            </div>
+            {uploadError && (
+              <p className="text-xs text-destructive">{uploadError}</p>
+            )}
+          </div>
+
           {/* Quick Sample Presets */}
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs font-medium text-muted-foreground">
-              Pilih Contoh Gambar atau Screenshot:
+              Atau Pilih Contoh Preset Gambar:
             </Label>
             <div className="flex flex-wrap gap-1.5">
               {PRESET_SAMPLE_IMAGES.map((preset, idx) => (

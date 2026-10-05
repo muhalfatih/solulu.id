@@ -32,20 +32,26 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
   if (!scheduleId || !counselorId) {
     return (
       <PublicShell>
-        <div className="flex-1 max-w-md mx-auto w-full px-4 py-16 sm:py-24 flex flex-col items-center justify-center">
-          <Card className="w-full border-border/80 shadow-xs rounded-2xl">
-            <CardHeader className="text-center pt-7 pb-3">
-              <div className="size-14 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center mx-auto mb-2 shadow-2xs">
+        <div className="relative flex-1 max-w-lg mx-auto w-full px-4 sm:px-6 py-16 sm:py-24 flex flex-col items-center justify-center">
+          {/* Calming Ambient Breathing Aura */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] sm:w-[500px] h-[300px] bg-gradient-to-b from-purple-400/15 via-purple-300/10 to-transparent rounded-full blur-3xl -z-10 pointer-events-none animate-calm-breath dark:from-purple-800/20 dark:via-purple-950/10"
+            aria-hidden="true"
+          />
+
+          <Card className="w-full border border-border/80 shadow-xs rounded-2xl bg-card overflow-hidden gap-0">
+            <CardHeader className="text-center p-6 sm:p-8 border-b border-border/40 flex flex-col items-center">
+              <div className="size-14 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center justify-center mb-3 shadow-2xs">
                 <AlertCircle className="size-7" />
               </div>
-              <CardTitle className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              <CardTitle className="font-heading text-lg sm:text-xl font-bold tracking-tight text-foreground">
                 Slot Jadwal Belum Dipilih
               </CardTitle>
-              <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-1 text-pretty">
+              <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-1.5 text-pretty">
                 Silakan pilih mitra konselor dan slot waktu 90 menit yang tersedia terlebih dahulu melalui katalog konselor kami.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-center pb-7 pt-3">
+            <CardContent className="p-6 sm:p-8 flex justify-center">
               <Button asChild variant="public" size="pill" className="w-full">
                 <Link href="/counselors">
                   <ArrowLeft className="size-4" data-icon="inline-start" />
@@ -68,21 +74,27 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
   if (!contextRes.success || !contextRes.data) {
     return (
       <PublicShell>
-        <div className="flex-1 max-w-md mx-auto w-full px-4 py-16 sm:py-24 flex flex-col items-center justify-center">
-          <Card className="w-full border-border/80 shadow-xs rounded-2xl">
-            <CardHeader className="text-center pt-7 pb-3">
-              <div className="size-14 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center mx-auto mb-2 shadow-2xs">
+        <div className="relative flex-1 max-w-lg mx-auto w-full px-4 sm:px-6 py-16 sm:py-24 flex flex-col items-center justify-center">
+          {/* Calming Ambient Breathing Aura */}
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] sm:w-[500px] h-[300px] bg-gradient-to-b from-purple-400/15 via-purple-300/10 to-transparent rounded-full blur-3xl -z-10 pointer-events-none animate-calm-breath dark:from-purple-800/20 dark:via-purple-950/10"
+            aria-hidden="true"
+          />
+
+          <Card className="w-full border border-border/80 shadow-xs rounded-2xl bg-card overflow-hidden gap-0">
+            <CardHeader className="text-center p-6 sm:p-8 border-b border-border/40 flex flex-col items-center">
+              <div className="size-14 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center mb-3 shadow-2xs">
                 <Calendar className="size-7" />
               </div>
-              <CardTitle className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              <CardTitle className="font-heading text-lg sm:text-xl font-bold tracking-tight text-foreground">
                 Slot Tidak Tersedia
               </CardTitle>
-              <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-1 text-pretty">
+              <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-1.5 text-pretty">
                 {contextRes.error ||
                   "Slot waktu yang Anda pilih telah dipesan atau sedang dalam proses transaksi oleh pasien lain."}
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-center pb-7 pt-3">
+            <CardContent className="p-6 sm:p-8 flex justify-center">
               <Button asChild variant="public" size="pill" className="w-full">
                 <Link href="/counselors">
                   <ArrowLeft className="size-4" data-icon="inline-start" />

@@ -12,6 +12,7 @@ import {
   reviewApplicationInputSchema,
   type ReviewApplicationInput,
 } from "@/lib/validations/counselor-application"
+import { upsertStoreCounselor } from "@/lib/counselor/registry"
 
 export interface AdminAuthContext {
   id: string
@@ -349,9 +350,26 @@ export async function reviewCounselorApplicationAction(
       status: "approved",
     })
 
+    // Synchronize to shared SSOT registry
+    upsertStoreCounselor({
+      id: newCounselor?.id || `c-${applicationId.slice(0, 8)}`,
+      fullName: application.fullName,
+      title: title?.trim() || defaultTitle,
+      education:
+        application.counselorType === "psychologist"
+          ? "S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi"
+          : "Sarjana Psikologi (S.Psi) • Peer Counselor Indonesia",
+      counselorType: application.counselorType,
+      bio: application.bio,
+      email: application.email,
+      phone: application.phone || "0812-3456-7890",
+      isActive: true,
+    })
+
     try {
       revalidatePath("/admin/counselors/applications")
       revalidatePath("/admin/counselors")
+      revalidatePath("/counselors")
     } catch {
       // Outside Next request lifecycle (e.g. unit tests)
     }

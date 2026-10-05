@@ -30,7 +30,9 @@ import {
   generateReferenceNumber,
   isHoldExpired,
 } from "@/lib/booking/hold"
-import { createXenditInvoice } from "@/lib/xendit"
+import { createXenditInvoice, getXenditInvoice } from "@/lib/xendit"
+import { dispatchFulfillmentJob } from "@/lib/fulfillment/qstash"
+import { getStoreCounselorById } from "@/lib/counselor/registry"
 
 export interface ActionResponse<T = any> {
   success: boolean
@@ -69,6 +71,16 @@ export const DEMO_COUNSELORS: Record<string, any> = {
   },
   "c-3": {
     id: "c-3",
+    fullName: "Dr. Nadia Larasati, M.Psi",
+    title: "Psikolog Klinis Dewasa • No. STR: 1902837482999",
+    counselorType: "psychologist",
+    bio: "Pendekatan berbasis bukti ilmiah untuk penanganan depresi ringan hingga sedang, pemulihan luka masa kecil, serta peningkatan self-esteem dan penerimaan diri.",
+    specializations: ["Depresi Ringan-Sedang", "Insecurity", "Penerimaan Diri", "Regulasi Emosi"],
+    avatarR2Url: null,
+    isActive: true,
+  },
+  "c-4": {
+    id: "c-4",
     fullName: "Nabila Safitri, S.Psi",
     title: "Konselor Sebaya Remaja • Fasilitator Komunitas Sejiwa",
     counselorType: "peer",
@@ -86,8 +98,10 @@ export const DEMO_SCHEDULES: Record<string, any> = {
   "s-201": { id: "s-201", counselorId: "c-2", date: "2026-09-29", startTime: "11:00", endTime: "12:30", status: "available" },
   "s-202": { id: "s-202", counselorId: "c-2", date: "2026-09-29", startTime: "15:30", endTime: "17:00", status: "available" },
   "s-203": { id: "s-203", counselorId: "c-2", date: "2026-09-30", startTime: "19:00", endTime: "20:30", status: "available" },
-  "s-301": { id: "s-301", counselorId: "c-3", date: "2026-09-29", startTime: "13:30", endTime: "15:00", status: "available" },
-  "s-302": { id: "s-302", counselorId: "c-3", date: "2026-09-30", startTime: "10:00", endTime: "11:30", status: "available" },
+  "s-301": { id: "s-301", counselorId: "c-3", date: "2026-09-29", startTime: "10:00", endTime: "11:30", status: "available" },
+  "s-302": { id: "s-302", counselorId: "c-3", date: "2026-09-30", startTime: "14:00", endTime: "15:30", status: "available" },
+  "s-401": { id: "s-401", counselorId: "c-4", date: "2026-09-29", startTime: "13:30", endTime: "15:00", status: "available" },
+  "s-402": { id: "s-402", counselorId: "c-4", date: "2026-09-30", startTime: "16:00", endTime: "17:30", status: "available" },
 }
 
 export const DEMO_BOOKINGS_CACHE = new Map<string, any>()
@@ -300,6 +314,10 @@ export async function executeGetBookingContext(
       }
     }
 
+    if (!counselor) {
+      counselor = getStoreCounselorById(counselorId)
+    }
+
     if (!counselor || !counselor.isActive) {
       return {
         success: false,
@@ -508,6 +526,10 @@ export async function executeCreateGuestBooking(
       } catch {
         counselor = DEMO_COUNSELORS[data.counselorId]
       }
+    }
+
+    if (!counselor) {
+      counselor = getStoreCounselorById(data.counselorId)
     }
 
     if (!counselor || !counselor.isActive) {
@@ -892,6 +914,56 @@ export async function executeGetBookingByToken(
     }
 
     const item = rows[0]
+
+    // AUTO-SYNC GUARD FOR PAYMENT GATEWAY (XENDIT):
+    // If booking is pending_payment and provider is xendit, check Xendit invoice status directly.
+    // If already paid, automatically mark confirmed and trigger fulfillment so it never gets stuck in manual confirmation.
+    if (
+      item.booking.status === "pending_payment" &&
+      item.transaction?.paymentProvider === "xendit" &&
+      item.transaction?.xenditInvoiceId
+    ) {
+      try {
+        const xenditInvoice = await getXenditInvoice(item.transaction.xenditInvoiceId)
+        if (
+          xenditInvoice &&
+          (xenditInvoice.status === "PAID" || xenditInvoice.status === "SETTLED")
+        ) {
+          const paidMethod =
+            xenditInvoice.payment_method ||
+            xenditInvoice.payment_channel ||
+            "XENDIT_AUTO"
+
+          await db
+            .update(transactions)
+            .set({
+              status: "PAID",
+              paidAt: xenditInvoice.paid_at ? new Date(xenditInvoice.paid_at) : new Date(),
+              paymentMethod: paidMethod,
+            })
+            .where(eq(transactions.id, item.transaction.id))
+
+          await db
+            .update(bookings)
+            .set({ status: "confirmed" })
+            .where(eq(bookings.id, item.booking.id))
+
+          await db
+            .update(schedules)
+            .set({ status: "booked" })
+            .where(eq(schedules.id, item.schedule.id))
+
+          await dispatchFulfillmentJob(item.booking.id)
+
+          item.booking.status = "confirmed"
+          item.transaction.status = "PAID"
+          item.transaction.paymentMethod = paidMethod
+        }
+      } catch (syncErr) {
+        console.error("[AUTO_SYNC_XENDIT_ERROR]", syncErr)
+      }
+    }
+
     const netAmount = item.transaction ? Number(item.transaction.netAmount) : 0
 
     return {

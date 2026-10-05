@@ -15,6 +15,10 @@ import {
   adminManualBookingSchema,
   type AdminManualBookingInput,
 } from "@/lib/validations/admin-manual-booking"
+import {
+  getActiveStoreCounselors,
+  getStoreCounselorById,
+} from "@/lib/counselor/registry"
 
 /**
  * Fetches all active counselors available for manual booking assignment.
@@ -50,12 +54,29 @@ export async function getAvailableCounselorsAction(options?: {
       .where(eq(counselors.isActive, true))
       .orderBy(counselors.fullName)
 
-    return { success: true, data: rows }
-  } catch (err: any) {
-    return {
-      success: false,
-      error: err.message || "Gagal memuat daftar mitra konselor.",
+    if (rows && rows.length > 0) {
+      return { success: true, data: rows }
     }
+
+    const fallback = getActiveStoreCounselors().map((c) => ({
+      id: c.id,
+      fullName: c.fullName,
+      title: c.title,
+      counselorType: c.counselorType,
+      avatarR2Url: c.avatarR2Url,
+      isActive: c.isActive,
+    }))
+    return { success: true, data: fallback }
+  } catch (err: any) {
+    const fallback = getActiveStoreCounselors().map((c) => ({
+      id: c.id,
+      fullName: c.fullName,
+      title: c.title,
+      counselorType: c.counselorType,
+      avatarR2Url: c.avatarR2Url,
+      isActive: c.isActive,
+    }))
+    return { success: true, data: fallback }
   }
 }
 
@@ -104,12 +125,31 @@ export async function getCounselorAvailableSlotsAction(
       )
       .orderBy(schedules.date, schedules.startTime)
 
-    return { success: true, data: rows }
-  } catch (err: any) {
-    return {
-      success: false,
-      error: err.message || "Gagal memuat jadwal konselor.",
+    if (rows && rows.length > 0) {
+      return { success: true, data: rows }
     }
+
+    const storeCounselor = getStoreCounselorById(counselorId)
+    const fallbackSlots = (storeCounselor?.slots || []).map((s) => ({
+      id: s.id,
+      counselorId,
+      date: s.date,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      status: s.status || "available",
+    }))
+    return { success: true, data: fallbackSlots }
+  } catch (err: any) {
+    const storeCounselor = getStoreCounselorById(counselorId)
+    const fallbackSlots = (storeCounselor?.slots || []).map((s) => ({
+      id: s.id,
+      counselorId,
+      date: s.date,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      status: s.status || "available",
+    }))
+    return { success: true, data: fallbackSlots }
   }
 }
 

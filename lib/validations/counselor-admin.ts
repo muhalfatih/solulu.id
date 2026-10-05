@@ -44,6 +44,12 @@ export const createCounselorAdminSchema = z.object({
   specializations: z
     .array(z.string().trim().min(2, "Spesialisasi minimal 2 karakter"))
     .min(1, "Pilih atau tambahkan minimal 1 topik spesialisasi"),
+  education: z
+    .string()
+    .trim()
+    .min(3, "Riwayat pendidikan minimal 3 karakter")
+    .max(200, "Riwayat pendidikan maksimal 200 karakter")
+    .optional(),
   avatarR2Url: z
     .string()
     .url("URL avatar tidak valid")
@@ -69,6 +75,12 @@ export const updateCounselorAdminSchema = z.object({
   counselorType: z.enum(["peer", "psychologist"], {
     message: "Tipe konselor harus Konselor Sebaya atau Psikolog Klinis",
   }),
+  education: z
+    .string()
+    .trim()
+    .min(3, "Riwayat pendidikan minimal 3 karakter")
+    .max(200, "Riwayat pendidikan maksimal 200 karakter")
+    .optional(),
   bio: z
     .string()
     .trim()

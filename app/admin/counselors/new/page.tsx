@@ -46,6 +46,7 @@ export default function NewCounselorPage() {
 
   const [fullName, setFullName] = React.useState("")
   const [title, setTitle] = React.useState("")
+  const [education, setEducation] = React.useState("")
   const [counselorType, setCounselorType] = React.useState<"peer" | "psychologist">("peer")
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
@@ -115,24 +116,21 @@ export default function NewCounselorPage() {
     setErrorMessage(null)
 
     try {
-      const res = await getAvatarUploadPresignedUrlAction(file.name, file.type)
-      if (!res.success || !res.data) {
-        throw new Error(res.error || "Gagal mendapatkan izin unggah gambar.")
-      }
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("category", "avatar")
 
-      const uploadRes = await fetch(res.data.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type,
-        },
-        body: file,
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       })
 
-      if (!uploadRes.ok) {
-        throw new Error("Gagal mengunggah foto ke Cloudflare R2.")
+      const uploadJson = await uploadRes.json()
+      if (!uploadRes.ok || !uploadJson.success || !uploadJson.data?.publicUrl) {
+        throw new Error(uploadJson.error || "Gagal mengunggah foto ke Cloudflare R2.")
       }
 
-      setAvatarUrl(res.data.publicUrl)
+      setAvatarUrl(uploadJson.data.publicUrl)
     } catch (err: any) {
       console.warn("Direct upload error (using local preview fallback):", err.message)
       // Keep local preview for form submission demo
@@ -156,6 +154,7 @@ export default function NewCounselorPage() {
     const payload: CreateCounselorAdminInput = {
       fullName,
       title,
+      education,
       counselorType,
       email,
       password,
@@ -286,12 +285,12 @@ export default function NewCounselorPage() {
             <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5 sm:col-span-2">
                 <label htmlFor="fullName" className="text-xs font-medium text-foreground">
-                  Nama Lengkap <span className="text-destructive">*</span>
+                  Nama Lengkap & Gelar Profesi <span className="text-destructive">*</span>
                 </label>
                 <Input
                   id="fullName"
                   type="text"
-                  placeholder="Contoh: Sarah Annisa"
+                  placeholder="Contoh: Sarah Annisa, M.Psi., Psikolog atau Rian Hidayat, S.Psi"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
@@ -301,12 +300,12 @@ export default function NewCounselorPage() {
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="title" className="text-xs font-medium text-foreground">
-                  Gelar / Kualifikasi Profesi <span className="text-destructive">*</span>
+                  Peran / Jabatan Klinis <span className="text-destructive">*</span>
                 </label>
                 <Input
                   id="title"
                   type="text"
-                  placeholder="Contoh: S.Psi atau M.Psi., Psikolog"
+                  placeholder="Contoh: Psikolog Klinis Dewasa atau Konselor Sebaya Senior"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
@@ -336,6 +335,21 @@ export default function NewCounselorPage() {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <label htmlFor="education" className="text-xs font-medium text-foreground">
+                  Riwayat Pendidikan & Izin <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  id="education"
+                  type="text"
+                  placeholder="Contoh: S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi"
+                  value={education}
+                  onChange={(e) => setEducation(e.target.value)}
+                  required
+                  className="h-9 text-xs"
+                />
               </div>
 
               <div className="flex flex-col gap-1.5 sm:col-span-2">
