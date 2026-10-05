@@ -13,6 +13,7 @@ import {
   type CatalogFilterInput,
 } from "@/lib/validations/schedules"
 import { getFallbackCounselors, getFallbackCounselorById } from "./data"
+import { getPlatformPricing } from "@/lib/pricing/platform-pricing"
 
 export interface CatalogPricing {
   basePrice: number
@@ -117,47 +118,43 @@ export async function getCounselorsCatalogAction(
     const counselorIds = counselorRows.map((c) => c.id)
 
     // 2. Fetch platform pricing
+    // 2. Fetch platform pricing tier configs (SSOT)
+    const platformPricingData = await getPlatformPricing()
+
+    const pricingMap: Record<string, CatalogPricing> = {}
+    for (const type of ["peer", "psychologist"] as const) {
+      const p = platformPricingData[type]
+      const isSale = Boolean(p.isSaleActive && p.promoPrice && p.promoPrice < p.basePrice)
+      const displayPrice = isSale && p.promoPrice ? p.promoPrice : p.basePrice
+      pricingMap[type] = {
+        basePrice: p.basePrice,
+        promoPrice: p.promoPrice,
+        isSaleActive: isSale,
+        allowVoucher: p.allowVoucher,
+        displayPrice,
+        displayPriceFormatted: formatRupiah(displayPrice),
+        originalPriceFormatted: isSale ? formatRupiah(p.basePrice) : undefined,
+      }
+    }
+
     let pricingRows: any[] = []
     if (options?.getPricing) {
       pricingRows = await options.getPricing()
-    } else {
-      pricingRows = await db.select().from(platformPricing)
-    }
+      for (const pr of pricingRows) {
+        const base = parseFloat(pr.basePrice)
+        const promo = pr.promoPrice ? parseFloat(pr.promoPrice) : null
+        const isSale = Boolean(pr.isSaleActive && promo && promo < base)
+        const displayPrice = isSale && promo ? promo : base
 
-    const pricingMap: Record<string, CatalogPricing> = {}
-    pricingMap["peer"] = {
-      basePrice: 150000,
-      promoPrice: 85000,
-      isSaleActive: true,
-      allowVoucher: true,
-      displayPrice: 85000,
-      displayPriceFormatted: formatRupiah(85000),
-      originalPriceFormatted: formatRupiah(150000),
-    }
-    pricingMap["psychologist"] = {
-      basePrice: 250000,
-      promoPrice: 130000,
-      isSaleActive: true,
-      allowVoucher: true,
-      displayPrice: 130000,
-      displayPriceFormatted: formatRupiah(130000),
-      originalPriceFormatted: formatRupiah(250000),
-    }
-
-    for (const pr of pricingRows) {
-      const base = parseFloat(pr.basePrice)
-      const promo = pr.promoPrice ? parseFloat(pr.promoPrice) : null
-      const isSale = Boolean(pr.isSaleActive && promo && promo < base)
-      const displayPrice = isSale && promo ? promo : base
-
-      pricingMap[pr.counselorType] = {
-        basePrice: base,
-        promoPrice: promo,
-        isSaleActive: isSale,
-        allowVoucher: pr.allowVoucher ?? true,
-        displayPrice,
-        displayPriceFormatted: formatRupiah(displayPrice),
-        originalPriceFormatted: isSale ? formatRupiah(base) : undefined,
+        pricingMap[pr.counselorType] = {
+          basePrice: base,
+          promoPrice: promo,
+          isSaleActive: isSale,
+          allowVoucher: pr.allowVoucher ?? true,
+          displayPrice,
+          displayPriceFormatted: formatRupiah(displayPrice),
+          originalPriceFormatted: isSale ? formatRupiah(base) : undefined,
+        }
       }
     }
 
@@ -272,8 +269,9 @@ export async function getCounselorsCatalogAction(
       data: catalog,
     }
   } catch (err: any) {
-    // If DB is offline or table does not exist, return realistic fallback catalog
-    const fallback = getFallbackCounselors(typeFilter, dateFilter)
+    // If DB is offline or table does not exist, return realistic fallback catalog with SSOT pricing
+    const platformPricingData = await getPlatformPricing()
+    const fallback = getFallbackCounselors(typeFilter, dateFilter, platformPricingData)
     return {
       success: true,
       data: fallback,
@@ -295,13 +293,15 @@ export async function getCounselorByIdAction(
         }
       }
     }
-    const fallback = getFallbackCounselorById(counselorId)
+    const platformPricingData = await getPlatformPricing()
+    const fallback = getFallbackCounselorById(counselorId, platformPricingData)
     return {
       success: true,
       data: fallback,
     }
   } catch (err: any) {
-    const fallback = getFallbackCounselorById(counselorId)
+    const platformPricingData = await getPlatformPricing()
+    const fallback = getFallbackCounselorById(counselorId, platformPricingData)
     return {
       success: true,
       data: fallback,

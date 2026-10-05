@@ -27,6 +27,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PublicShell } from "@/components/public/public-shell"
 import { FaqAccordion } from "@/components/public/FaqAccordion"
+import { getPlatformPricing } from "@/lib/pricing/platform-pricing"
+import { formatRupiah } from "@/lib/booking/checkout"
 
 export const metadata = {
   title: "Solulu | Ruang Konseling Online & Kesehatan Jiwa",
@@ -204,7 +206,16 @@ const FAQS = [
   },
 ]
 
-export default function HomePage() {
+export default async function HomePage() {
+  const pricing = await getPlatformPricing()
+  const peerActivePrice = pricing.peer.isSaleActive ? pricing.peer.promoPrice : pricing.peer.basePrice
+  const peerHasDiscount = pricing.peer.isSaleActive && pricing.peer.promoPrice < pricing.peer.basePrice
+  const psychologistActivePrice = pricing.psychologist.isSaleActive
+    ? pricing.psychologist.promoPrice
+    : pricing.psychologist.basePrice
+  const psychologistHasDiscount =
+    pricing.psychologist.isSaleActive && pricing.psychologist.promoPrice < pricing.psychologist.basePrice
+
   return (
     <PublicShell>
       {/* 1. Hero Section: Focused, Empathetic, Contemporary */}
@@ -544,15 +555,17 @@ export default function HomePage() {
                 <div className="pt-3 border-t border-border/50 flex flex-col gap-1">
                   <div className="flex items-baseline gap-1.5 flex-wrap">
                     <span className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight tabular-nums whitespace-nowrap">
-                      Rp 85.000
+                      {formatRupiah(peerActivePrice)}
                     </span>
                     <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap"> / 90 menit</span>
                   </div>
-                  <div className="pt-0.5 pb-2">
-                    <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
-                      Rp 150.000
-                    </span>
-                  </div>
+                  {peerHasDiscount && (
+                    <div className="pt-0.5 pb-2">
+                      <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
+                        {formatRupiah(pricing.peer.basePrice)}
+                      </span>
+                    </div>
+                  )}
                   <div className="h-5 flex items-center">
                     <span className="text-xs text-muted-foreground">1 sesi privat tanpa perlu beli paket langganan</span>
                   </div>
@@ -631,15 +644,17 @@ export default function HomePage() {
                 <div className="pt-3 border-t border-border/50 flex flex-col gap-1">
                   <div className="flex items-baseline gap-1.5 flex-wrap">
                     <span className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight tabular-nums whitespace-nowrap">
-                      Rp 130.000
+                      {formatRupiah(psychologistActivePrice)}
                     </span>
                     <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap"> / 90 menit</span>
                   </div>
-                  <div className="pt-0.5 pb-2">
-                    <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
-                      Rp 250.000
-                    </span>
-                  </div>
+                  {psychologistHasDiscount && (
+                    <div className="pt-0.5 pb-2">
+                      <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
+                        {formatRupiah(pricing.psychologist.basePrice)}
+                      </span>
+                    </div>
+                  )}
                   <div className="h-5 flex items-center">
                     <span className="text-xs text-primary dark:text-purple-300 font-medium">1 sesi mendalam bersama psikolog berizin Kementerian Kesehatan</span>
                   </div>
@@ -723,8 +738,15 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7 items-stretch">
-            {FEATURED_COUNSELORS.map((c) => (
-              <Card
+            {FEATURED_COUNSELORS.map((c) => {
+              const cPriceData = pricing[c.type]
+              const cActivePrice = cPriceData.isSaleActive ? cPriceData.promoPrice : cPriceData.basePrice
+              const cHasDiscount = cPriceData.isSaleActive && cPriceData.promoPrice < cPriceData.basePrice
+              const cRateFormatted = formatRupiah(cActivePrice)
+              const cOriginalRateFormatted = formatRupiah(cPriceData.basePrice)
+
+              return (
+                <Card
                 key={c.id}
                 className="group p-0 py-0 gap-0 ring-0 border border-border/80 shadow-xs hover:border-purple-500/40 hover:shadow-md hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between rounded-2xl bg-card overflow-hidden"
                 style={{ paddingTop: 0 }}
@@ -800,11 +822,13 @@ export default function HomePage() {
                     <span className="text-xs text-muted-foreground font-medium">Tarif per sesi (90 menit):</span>
                     <div className="flex flex-col items-end">
                       <strong className="text-foreground font-heading font-bold text-base sm:text-lg tabular-nums">
-                        {c.rate}
+                        {cRateFormatted}
                       </strong>
-                      <span className="text-xs text-muted-foreground line-through tabular-nums leading-tight">
-                        {c.originalRate}
-                      </span>
+                      {cHasDiscount && (
+                        <span className="text-xs text-muted-foreground line-through tabular-nums leading-tight">
+                          {cOriginalRateFormatted}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -825,7 +849,8 @@ export default function HomePage() {
                   </Button>
                 </CardFooter>
               </Card>
-            ))}
+              )
+            })}
           </div>
         </div>
       </section>

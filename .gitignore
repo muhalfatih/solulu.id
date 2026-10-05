@@ -37,14 +37,19 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# AI & agent files
+# AI, PRD & agent files
 .agents/
 .claude/
 .impeccable/
 .cursor/
 .codex/
 .gemini/
+.windsurf/
+.v0/
 AGENTS.md
 CLAUDE.md
+*prd*.md
+*PRD*.md
+docs/agents/
 skills-lock.json
 

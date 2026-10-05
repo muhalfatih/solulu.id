@@ -30,6 +30,10 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table"
+import {
+  getPlatformPricingAction,
+  updateRolePricingAction,
+} from "./actions"
 
 interface RolePricingState {
   id: "sebaya" | "psikolog"
@@ -115,6 +119,32 @@ export default function PricingAdminPage() {
   const [newQuota, setNewQuota] = React.useState("50")
   const [newExpiry, setNewExpiry] = React.useState("31 Des 2026")
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
+  const [isSaving, setIsSaving] = React.useState(false)
+
+  React.useEffect(() => {
+    let isMounted = true
+    getPlatformPricingAction().then((res) => {
+      if (isMounted && res.success && res.data) {
+        setRoles((prev) =>
+          prev.map((r) => {
+            const type = r.id === "sebaya" ? "peer" : "psychologist"
+            const dbData = res.data[type]
+            if (!dbData) return r
+            return {
+              ...r,
+              regularPrice: dbData.basePrice,
+              salePrice: dbData.promoPrice,
+              isSaleActive: dbData.isSaleActive,
+              allowVoucher: dbData.allowVoucher,
+            }
+          })
+        )
+      }
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -125,8 +155,23 @@ export default function PricingAdminPage() {
     setRoles((prev) => prev.map((r) => (r.id === id ? { ...r, ...field } : r)))
   }
 
-  const handleSavePricing = () => {
-    showToast("Perubahan tarif berhasil disimpan.")
+  const handleSavePricing = async () => {
+    setIsSaving(true)
+    try {
+      for (const role of roles) {
+        await updateRolePricingAction(role.id, {
+          regularPrice: role.regularPrice,
+          salePrice: role.salePrice,
+          isSaleActive: role.isSaleActive,
+          allowVoucher: role.allowVoucher,
+        })
+      }
+      showToast("Perubahan tarif berhasil disimpan ke database dan disinkronkan.")
+    } catch {
+      showToast("Gagal menyimpan tarif ke database.")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleToggleVoucherStatus = (code: string) => {
@@ -264,9 +309,10 @@ export default function PricingAdminPage() {
               type="button"
               size="sm"
               onClick={handleSavePricing}
-              className="h-8 text-xs font-medium"
+              disabled={isSaving}
+              className="h-8 text-xs font-medium cursor-pointer"
             >
-              Simpan Tarif
+              {isSaving ? "Menyimpan..." : "Simpan Tarif"}
             </Button>
           </div>
         </div>

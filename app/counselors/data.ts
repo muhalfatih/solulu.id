@@ -1,8 +1,32 @@
-import type { CatalogCounselorView } from "./actions"
+import type { CatalogCounselorView, CatalogPricing } from "./actions"
+import {
+  DEFAULT_PLATFORM_PRICING,
+  type PlatformPricingData,
+} from "@/lib/pricing/platform-pricing"
+import { formatRupiah } from "@/lib/booking/checkout"
+
+export function makeCatalogPricing(
+  type: "peer" | "psychologist",
+  pricingData: PlatformPricingData = DEFAULT_PLATFORM_PRICING
+): CatalogPricing {
+  const p = pricingData[type]
+  const isSale = Boolean(p.isSaleActive && p.promoPrice && p.promoPrice < p.basePrice)
+  const displayPrice = isSale && p.promoPrice ? p.promoPrice : p.basePrice
+  return {
+    basePrice: p.basePrice,
+    promoPrice: p.promoPrice,
+    isSaleActive: isSale,
+    allowVoucher: p.allowVoucher,
+    displayPrice,
+    displayPriceFormatted: formatRupiah(displayPrice),
+    originalPriceFormatted: isSale ? formatRupiah(p.basePrice) : undefined,
+  }
+}
 
 export function getFallbackCounselors(
   typeFilter?: "all" | "peer" | "psychologist",
-  dateFilter?: string
+  dateFilter?: string,
+  pricingData: PlatformPricingData = DEFAULT_PLATFORM_PRICING
 ): CatalogCounselorView[] {
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
@@ -27,15 +51,7 @@ export function getFallbackCounselors(
       rating: "4.9",
       experience: "4+ Tahun",
       availableSoon: "Tersedia Besok",
-      pricing: {
-        basePrice: 250000,
-        promoPrice: 130000,
-        isSaleActive: true,
-        allowVoucher: true,
-        displayPrice: 130000,
-        displayPriceFormatted: "Rp 130.000",
-        originalPriceFormatted: "Rp 250.000",
-      },
+      pricing: makeCatalogPricing("psychologist", pricingData),
       availableSlots: [
         {
           id: "s-101",
@@ -64,9 +80,9 @@ export function getFallbackCounselors(
     {
       id: "c-2",
       fullName: "Rian Hidayat, S.Psi",
-      title: "Konselor Sebaya Senior • Tersertifikasi Konseling Pemuda",
-      role: "Konselor Sebaya (Partner Cerita)",
-      education: "Sarjana Psikologi (S.Psi) • Fasilitator",
+      title: "Konselor Sebaya Dewasa • Sertifikasi Peer Counselor Indonesia",
+      role: "Konselor Sebaya (Teman Cerita)",
+      education: "Sarjana Psikologi (S.Psi) • Peer Counselor",
       counselorType: "peer",
       counselorTypeDisplay: "Konselor Sebaya",
       bio: "Berpengalaman mendampingi mahasiswa dan pekerja muda dalam menghadapi tekanan perkuliahan, quarter-life crisis, serta dinamika relasi asmara dan keluarga.",
@@ -75,15 +91,7 @@ export function getFallbackCounselors(
       rating: "4.8",
       experience: "3+ Tahun",
       availableSoon: "Tersedia Besok",
-      pricing: {
-        basePrice: 150000,
-        promoPrice: 85000,
-        isSaleActive: true,
-        allowVoucher: true,
-        displayPrice: 85000,
-        displayPriceFormatted: "Rp 85.000",
-        originalPriceFormatted: "Rp 150.000",
-      },
+      pricing: makeCatalogPricing("peer", pricingData),
       availableSlots: [
         {
           id: "s-201",
@@ -123,15 +131,7 @@ export function getFallbackCounselors(
       rating: "5.0",
       experience: "6+ Tahun",
       availableSoon: "Tersedia Lusa",
-      pricing: {
-        basePrice: 250000,
-        promoPrice: 130000,
-        isSaleActive: true,
-        allowVoucher: true,
-        displayPrice: 130000,
-        displayPriceFormatted: "Rp 130.000",
-        originalPriceFormatted: "Rp 250.000",
-      },
+      pricing: makeCatalogPricing("psychologist", pricingData),
       availableSlots: [
         {
           id: "s-301",
@@ -164,15 +164,7 @@ export function getFallbackCounselors(
       rating: "4.9",
       experience: "3+ Tahun",
       availableSoon: "Tersedia Besok",
-      pricing: {
-        basePrice: 150000,
-        promoPrice: 85000,
-        isSaleActive: true,
-        allowVoucher: true,
-        displayPrice: 85000,
-        displayPriceFormatted: "Rp 85.000",
-        originalPriceFormatted: "Rp 150.000",
-      },
+      pricing: makeCatalogPricing("peer", pricingData),
       availableSlots: [
         {
           id: "s-401",
@@ -203,7 +195,10 @@ export function getFallbackCounselors(
   return filtered
 }
 
-export function getFallbackCounselorById(id: string): CatalogCounselorView | null {
-  const all = getFallbackCounselors("all")
+export function getFallbackCounselorById(
+  id: string,
+  pricingData: PlatformPricingData = DEFAULT_PLATFORM_PRICING
+): CatalogCounselorView | null {
+  const all = getFallbackCounselors("all", undefined, pricingData)
   return all.find((c) => c.id === id) || all.find((c) => c.id.toLowerCase() === id.toLowerCase()) || all[0] || null
 }

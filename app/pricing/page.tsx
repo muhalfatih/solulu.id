@@ -15,6 +15,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { PublicShell } from "@/components/public/public-shell"
+import { getPlatformPricing } from "@/lib/pricing/platform-pricing"
+import { formatRupiah } from "@/lib/booking/checkout"
 
 export const metadata = {
   title: "Biaya & Pilihan Layanan Konseling | Solulu",
@@ -22,7 +24,15 @@ export const metadata = {
     "Biaya transparan konseling 90 menit bareng Psikolog Klinis dan Konselor Sebaya di Solulu. Tanpa biaya tersembunyi, bayar mudah via QRIS & Virtual Account.",
 }
 
-export default function PublicPricingPage() {
+export default async function PublicPricingPage() {
+  const pricing = await getPlatformPricing()
+  const peerActivePrice = pricing.peer.isSaleActive ? pricing.peer.promoPrice : pricing.peer.basePrice
+  const peerHasDiscount = pricing.peer.isSaleActive && pricing.peer.promoPrice < pricing.peer.basePrice
+  const psychologistActivePrice = pricing.psychologist.isSaleActive
+    ? pricing.psychologist.promoPrice
+    : pricing.psychologist.basePrice
+  const psychologistHasDiscount =
+    pricing.psychologist.isSaleActive && pricing.psychologist.promoPrice < pricing.psychologist.basePrice
   return (
     <PublicShell>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 md:py-20 flex flex-col gap-14 sm:gap-16">
@@ -86,17 +96,19 @@ export default function PublicPricingPage() {
               <div className="flex flex-col gap-1 pb-2 border-b border-border/60">
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl sm:text-5xl font-bold font-heading tracking-tight text-foreground tabular-nums">
-                    Rp 85.000
+                    {formatRupiah(peerActivePrice)}
                   </span>
                   <span className="text-xs text-muted-foreground font-medium tabular-nums">
                     / sesi (90 menit)
                   </span>
                 </div>
-                <div className="pt-0.5 pb-2">
-                  <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
-                    Rp 150.000
-                  </span>
-                </div>
+                {peerHasDiscount && (
+                  <div className="pt-0.5 pb-2">
+                    <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
+                      {formatRupiah(pricing.peer.basePrice)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-xs">
                   <span className="text-muted-foreground text-xs">
                     Tarif tetap tanpa harus langganan paket
@@ -175,17 +187,19 @@ export default function PublicPricingPage() {
               <div className="flex flex-col gap-1 pb-2 border-b border-border/60">
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl sm:text-5xl font-bold font-heading tracking-tight text-foreground tabular-nums">
-                    Rp 130.000
+                    {formatRupiah(psychologistActivePrice)}
                   </span>
                   <span className="text-xs text-muted-foreground font-medium tabular-nums">
                     / sesi (90 menit)
                   </span>
                 </div>
-                <div className="pt-0.5 pb-2">
-                  <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
-                    Rp 250.000
-                  </span>
-                </div>
+                {psychologistHasDiscount && (
+                  <div className="pt-0.5 pb-2">
+                    <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
+                      {formatRupiah(pricing.psychologist.basePrice)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-xs">
                   <span className="text-muted-foreground text-xs">
                     Tarif resmi tetap tanpa biaya admin tambahan
