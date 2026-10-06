@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:resend": "node scripts/test-resend.mjs",
+    "test:qstash": "node scripts/test-qstash.mjs",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node scripts/seed.mjs"
   },

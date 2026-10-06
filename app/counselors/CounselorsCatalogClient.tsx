@@ -24,6 +24,8 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
+  Video,
+  Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -72,9 +74,15 @@ const POPULAR_TOPICS = [
   "Trauma",
 ]
 
-function formatSlotChipDate(dateStr: string, tomorrowStr: string, dayAfterStr: string): string {
-  if (dateStr === tomorrowStr) return "Besok"
-  if (dateStr === dayAfterStr) return "Lusa"
+function formatSlotChipDate(
+  dateStr: string,
+  tomorrowStr?: string,
+  dayAfterStr?: string,
+  todayStr?: string
+): string {
+  if (todayStr && dateStr === todayStr) return "Hari Ini"
+  if (tomorrowStr && dateStr === tomorrowStr) return "Besok"
+  if (dayAfterStr && dateStr === dayAfterStr) return "Lusa"
   try {
     const d = new Date(dateStr + "T00:00:00")
     return new Intl.DateTimeFormat("id-ID", {
@@ -84,6 +92,32 @@ function formatSlotChipDate(dateStr: string, tomorrowStr: string, dayAfterStr: s
     }).format(d)
   } catch {
     return dateStr
+  }
+}
+
+function getSlotDateParts(
+  dateStr: string,
+  tomorrowStr?: string,
+  dayAfterStr?: string,
+  todayStr?: string
+) {
+  let relative = ""
+  if (todayStr && dateStr === todayStr) relative = "Hari Ini"
+  else if (tomorrowStr && dateStr === tomorrowStr) relative = "Besok"
+  else if (dayAfterStr && dateStr === dayAfterStr) relative = "Lusa"
+
+  try {
+    const d = new Date(dateStr + "T00:00:00")
+    const dayName = new Intl.DateTimeFormat("id-ID", { weekday: "short" }).format(d)
+    const dayDate = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short" }).format(d)
+    return {
+      relative,
+      dayName,
+      dayDate,
+      fullText: relative ? `${relative} (${dayDate})` : `${dayName}, ${dayDate}`,
+    }
+  } catch {
+    return { relative: "", dayName: dateStr, dayDate: "", fullText: dateStr }
   }
 }
 
@@ -151,17 +185,31 @@ export default function CounselorsCatalogClient({
   // Counselor type comparison info modal
   const [showTypeInfoModal, setShowTypeInfoModal] = React.useState(false)
 
-  // Tomorrow & Day after ISO date strings
+  // Today, Tomorrow & Day after ISO date strings (local calendar date YYYY-MM-DD)
+  const todayStr = React.useMemo(() => {
+    const d = new Date()
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }, [])
+
   const tomorrowStr = React.useMemo(() => {
     const d = new Date()
     d.setDate(d.getDate() + 1)
-    return d.toISOString().split("T")[0]
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
   }, [])
 
   const dayAfterStr = React.useMemo(() => {
     const d = new Date()
     d.setDate(d.getDate() + 2)
-    return d.toISOString().split("T")[0]
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
   }, [])
 
   // Dynamic server synchronization (updates master list without breaking current client view on error)
@@ -1132,297 +1180,302 @@ export default function CounselorsCatalogClient({
         </DialogContent>
       </Dialog>
 
-      {/* 6. Modal Pemilihan Jadwal Sesi (Schedule Picker Modal) */}
+      {/* 6. Modal Pemilihan Jadwal Sesi (Schedule Picker Modal) - Distilled & Refined */}
       <Dialog
         open={!!scheduleModalCounselor}
         onOpenChange={(open) => !open && handleCloseScheduleModal()}
       >
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="font-heading text-base sm:text-lg font-bold flex items-center gap-2 text-balance">
-              <CalendarDays className="size-5 text-purple-600 dark:text-purple-400" />
-              <span>Pilih Jadwal Sesi Konseling</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground pt-1 text-pretty">
-              Pilih tanggal dan jam sesi yang paling nyaman untuk Anda. Sesi berdurasi 90 menit penuh via Zoom privat.
-            </DialogDescription>
-          </DialogHeader>
-
+        <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col rounded-3xl border border-border/80 p-0 shadow-2xl bg-card overflow-hidden">
           {scheduleModalCounselor && (
-            <div className="flex flex-col gap-4 py-2 text-xs">
-              {/* Counselor Header Summary */}
-              <div className="p-3.5 rounded-2xl bg-muted/30 border border-border flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative size-11 rounded-xl overflow-hidden bg-primary/10 border border-border/80 shrink-0">
-                    <img
-                      src={
-                        scheduleModalCounselor.avatarR2Url ||
-                        DEFAULT_FALLBACK_PORTRAITS[scheduleModalCounselor.counselorType] ||
-                        DEFAULT_FALLBACK_PORTRAITS.peer
-                      }
-                      alt={scheduleModalCounselor.fullName}
-                      className="size-full object-cover object-top"
-                    />
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-heading font-semibold text-foreground text-sm truncate">
-                      {scheduleModalCounselor.fullName}
-                    </span>
-                    <span className="text-xs text-muted-foreground truncate">
-                      {scheduleModalCounselor.title}
-                    </span>
-                  </div>
-                </div>
+            <>
+              {/* Pinned Header: Clear Title & Warm Guidance per DESIGN.md */}
+              <DialogHeader className="gap-1.5 text-left px-6 pt-6 pb-4 sm:pb-5 border-b border-border/60 pr-12 shrink-0">
+                <DialogTitle className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                  Pilih Jadwal Konseling
+                </DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-relaxed">
+                  Sesi privat 90 menit via Zoom yang aman dan terjaga kerahasiaannya.
+                </DialogDescription>
+              </DialogHeader>
 
-                <div className="flex flex-col items-end shrink-0">
-                  <Badge
-                    variant="outline"
-                    className={`text-xs py-0.5 px-2 font-medium rounded-full mb-1 ${
-                      scheduleModalCounselor.counselorType === "psychologist"
-                        ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30"
-                        : "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30"
-                    }`}
-                  >
-                    {scheduleModalCounselor.counselorTypeDisplay}
-                  </Badge>
-                  <strong className="text-foreground font-heading font-bold text-sm sm:text-base tabular-nums">
-                    {scheduleModalCounselor.pricing.displayPriceFormatted}
-                  </strong>
-                </div>
-              </div>
-
-              {/* Step 1: Pilihan Tanggal & Step 2: Pilihan Jam Sesi */}
-              {(() => {
-                const uniqueDates = Array.from(
-                  new Set(scheduleModalCounselor.availableSlots.map((s) => s.date))
-                ).sort()
-
-                const activeDate = modalSelectedDate || uniqueDates[0] || ""
-                const slotsOnActiveDate = scheduleModalCounselor.availableSlots
-                  .filter((s) => s.date === activeDate)
-                  .sort((a, b) => a.startTime.localeCompare(b.startTime))
-
-                return (
-                  <div className="flex flex-col gap-3.5">
-                    {/* Tanggal */}
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-foreground text-xs">
-                          1. Pilih Tanggal:
+              {/* Scrollable Body: Consistent vertical rhythm (gap-5 to gap-6) */}
+              <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5 sm:gap-6 text-xs">
+                {/* Counselor Profile & Pricing Card (Quieter Context Bar) */}
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-muted/20 border border-border/50 flex items-center justify-between gap-3 sm:gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative size-10 sm:size-11 rounded-full overflow-hidden bg-muted border border-border/60 shrink-0">
+                      <img
+                        src={
+                          scheduleModalCounselor.avatarR2Url ||
+                          DEFAULT_FALLBACK_PORTRAITS[scheduleModalCounselor.counselorType] ||
+                          DEFAULT_FALLBACK_PORTRAITS.peer
+                        }
+                        alt={scheduleModalCounselor.fullName}
+                        className="size-full object-cover object-top"
+                      />
+                    </div>
+                    <div className="flex flex-col min-w-0 gap-0.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-heading font-medium text-foreground text-sm sm:text-base leading-snug truncate">
+                          {scheduleModalCounselor.fullName}
                         </span>
-                        <span className="text-muted-foreground text-xs">
-                          {uniqueDates.length} hari tersedia
+                        <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground border border-border/50">
+                          {scheduleModalCounselor.counselorTypeDisplay}
                         </span>
                       </div>
+                      <span className="text-xs text-muted-foreground truncate">
+                        {scheduleModalCounselor.title}
+                      </span>
+                    </div>
+                  </div>
 
-                      {uniqueDates.length === 0 ? (
-                        <div className="p-3 rounded-xl bg-muted/20 border border-dashed border-border text-center text-xs text-muted-foreground">
-                          Belum ada jadwal tersedia untuk konselor ini.
+                  <div className="flex flex-col items-end shrink-0 pl-2">
+                    {scheduleModalCounselor.pricing.isSaleActive && scheduleModalCounselor.pricing.originalPriceFormatted && (
+                      <span className="text-[11px] text-muted-foreground line-through tabular-nums leading-none">
+                        {scheduleModalCounselor.pricing.originalPriceFormatted}
+                      </span>
+                    )}
+                    <span className="text-foreground font-semibold text-sm sm:text-base tabular-nums leading-snug">
+                      {scheduleModalCounselor.pricing.displayPriceFormatted}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground leading-none">/ 90 menit</span>
+                  </div>
+                </div>
+
+                {/* Step 1: Pilihan Tanggal & Step 2: Pilihan Jam */}
+                {(() => {
+                  const uniqueDates = Array.from(
+                    new Set(scheduleModalCounselor.availableSlots.map((s) => s.date))
+                  ).sort()
+
+                  const activeDate = modalSelectedDate || uniqueDates[0] || ""
+                  const slotsOnActiveDate = scheduleModalCounselor.availableSlots
+                    .filter((s) => s.date === activeDate)
+                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+
+                  return (
+                    <div className="flex flex-col gap-5 sm:gap-6">
+                      {/* Step 1: Pilihan Tanggal */}
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between text-xs sm:text-sm font-semibold text-foreground font-heading">
+                          <span className="flex items-center gap-2">
+                            <CalendarDays className="size-4 text-[#7c3aed] shrink-0" />
+                            <span>1. Pilih Tanggal:</span>
+                          </span>
+                          <span className="text-xs font-normal text-muted-foreground tabular-nums">
+                            {uniqueDates.length} hari tersedia
+                          </span>
                         </div>
-                      ) : (
-                        <div className="flex flex-wrap gap-1.5">
-                          {uniqueDates.map((dateStr) => {
-                            const isSelected = dateStr === activeDate
-                            const slotsCount = scheduleModalCounselor.availableSlots.filter(
-                              (s) => s.date === dateStr
-                            ).length
 
-                            return (
-                              <button
-                                key={dateStr}
-                                type="button"
-                                onClick={() => {
-                                  setModalSelectedDate(dateStr)
-                                  if (modalSelectedSlot && modalSelectedSlot.date !== dateStr) {
-                                    setModalSelectedSlot(null)
-                                  }
-                                }}
-                                className={cn(
-                                  "px-3 py-2 rounded-xl text-xs font-medium border transition-all cursor-pointer text-left flex items-center gap-2",
-                                  isSelected
-                                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                                    : "bg-muted/30 hover:bg-muted/60 text-foreground border-border/80"
-                                )}
-                              >
-                                <span>{formatSlotChipDate(dateStr, tomorrowStr, dayAfterStr)}</span>
-                                <span
+                        {uniqueDates.length === 0 ? (
+                          <div className="p-4 rounded-2xl bg-muted/20 border border-dashed border-border/80 text-center text-xs text-muted-foreground">
+                            Belum ada tanggal tersedia untuk konselor ini.
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap gap-2 sm:gap-2.5">
+                            {uniqueDates.map((dateStr) => {
+                              const isSelected = dateStr === activeDate
+                              const slotsCount = scheduleModalCounselor.availableSlots.filter(
+                                (s) => s.date === dateStr
+                              ).length
+                              const dateInfo = getSlotDateParts(dateStr, tomorrowStr, dayAfterStr, todayStr)
+
+                              return (
+                                <button
+                                  key={dateStr}
+                                  type="button"
+                                  aria-pressed={isSelected}
+                                  onClick={() => {
+                                    setModalSelectedDate(dateStr)
+                                    if (modalSelectedSlot && modalSelectedSlot.date !== dateStr) {
+                                      setModalSelectedSlot(null)
+                                    }
+                                  }}
                                   className={cn(
-                                    "text-xs px-1.5 py-0.2 rounded-full tabular-nums",
+                                    "h-9 px-4 rounded-full text-xs font-medium border transition-all cursor-pointer inline-flex items-center gap-2 select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed]",
                                     isSelected
-                                      ? "bg-primary-foreground/20 text-primary-foreground"
-                                      : "bg-background/80 text-muted-foreground border border-border/60"
+                                      ? "bg-[#7c3aed] text-white border-[#7c3aed] shadow-sm shadow-[#7c3aed]/25 font-semibold"
+                                      : "border border-border/80 bg-background text-foreground hover:bg-secondary hover:text-[#7c3aed] hover:border-purple-300/60 shadow-2xs font-medium"
                                   )}
                                 >
-                                  {slotsCount}
-                                </span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Jam Sesi */}
-                    <div className="flex flex-col gap-1.5 pt-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-foreground text-xs">
-                          2. Pilih Jam Sesi (90 Menit):
-                        </span>
-                        {modalSelectedSlot && (
-                          <span className="text-purple-600 dark:text-purple-400 font-semibold text-xs flex items-center gap-1">
-                            <CheckCircle2 className="size-3.5" />
-                            <span>Jam dipilih: {modalSelectedSlot.timeRange}</span>
-                          </span>
+                                  <span>{dateInfo.fullText}</span>
+                                  <span
+                                    className={cn(
+                                      "text-xs px-2 py-0.5 rounded-full tabular-nums font-semibold",
+                                      isSelected
+                                        ? "bg-white/20 text-white"
+                                        : "bg-muted text-muted-foreground border border-border/60"
+                                    )}
+                                  >
+                                    {slotsCount}
+                                  </span>
+                                </button>
+                              )
+                            })}
+                          </div>
                         )}
                       </div>
 
-                      {slotsOnActiveDate.length === 0 ? (
-                        <div className="p-3 rounded-xl bg-muted/20 border border-dashed border-border text-center text-xs text-muted-foreground">
-                          Tidak ada jam sesi yang tersedia di tanggal ini.
+                      {/* Step 2: Pilihan Jam Sesi (Bolder, Full-Width Row Layout) */}
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between font-heading">
+                          <span className="flex items-center gap-2 text-sm font-bold text-foreground tracking-tight">
+                            <Clock className="size-4 text-[#7c3aed] shrink-0" />
+                            <span>2. Pilih Jam Sesi (WIB):</span>
+                          </span>
+                          {modalSelectedSlot ? (
+                            <span className="text-[#7c3aed] font-semibold text-xs flex items-center gap-1.5 tabular-nums">
+                              <CheckCircle2 className="size-3.5 text-[#7c3aed]" />
+                              <span>{modalSelectedSlot.timeRange.includes("WIB") ? modalSelectedSlot.timeRange : `${modalSelectedSlot.timeRange} WIB`}</span>
+                            </span>
+                          ) : (
+                            <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                              {slotsOnActiveDate.length} slot terbuka
+                            </span>
+                          )}
                         </div>
-                      ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {slotsOnActiveDate.map((slot) => {
-                            const isChosen = modalSelectedSlot?.id === slot.id
 
-                            return (
-                              <button
-                                key={slot.id}
-                                type="button"
-                                onClick={() => setModalSelectedSlot(slot)}
-                                className={cn(
-                                  "p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-1",
-                                  isChosen
-                                    ? "bg-purple-600 text-white border-purple-600 shadow-xs ring-2 ring-purple-600/30 font-bold"
-                                    : "bg-muted/20 hover:bg-purple-500/10 hover:border-purple-500/40 text-foreground border-border/80"
-                                )}
-                              >
-                                <span className="text-xs sm:text-sm tabular-nums font-semibold">
-                                  {slot.timeRange}
-                                </span>
-                                <span
+                        {slotsOnActiveDate.length === 0 ? (
+                          <div className="p-4 rounded-2xl bg-muted/20 border border-dashed border-border/80 text-center text-xs text-muted-foreground">
+                            Tidak ada jam sesi yang tersedia di tanggal ini.
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-2.5 w-full">
+                            {slotsOnActiveDate.map((slot) => {
+                              const isChosen = modalSelectedSlot?.id === slot.id
+
+                              return (
+                                <button
+                                  key={slot.id}
+                                  type="button"
+                                  aria-pressed={isChosen}
+                                  onClick={() => setModalSelectedSlot(slot)}
                                   className={cn(
-                                    "text-xs",
-                                    isChosen ? "text-purple-100" : "text-muted-foreground"
+                                    "w-full h-12 px-5 sm:px-6 rounded-full border transition-all cursor-pointer flex items-center justify-between gap-4 select-none active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7c3aed]",
+                                    isChosen
+                                      ? "bg-[#7c3aed] text-white border-[#7c3aed] shadow-md shadow-[#7c3aed]/25 ring-2 ring-[#7c3aed]/20 font-bold"
+                                      : "border border-border/80 bg-background text-foreground hover:bg-violet-50/50 hover:border-[#7c3aed]/50 dark:hover:bg-violet-950/20 shadow-2xs font-semibold"
                                   )}
                                 >
-                                  {isChosen ? "✓ Terpilih" : "Tersedia"}
-                                </span>
-                              </button>
-                            )
-                          })}
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div
+                                      className={cn(
+                                        "size-7 rounded-full flex items-center justify-center shrink-0 transition-colors",
+                                        isChosen ? "bg-white/20 text-white" : "bg-violet-100 text-[#7c3aed] dark:bg-violet-950 dark:text-violet-300"
+                                      )}
+                                    >
+                                      <Clock className="size-3.5" />
+                                    </div>
+                                    <span className="text-sm sm:text-base tabular-nums font-bold tracking-tight truncate">
+                                      {slot.timeRange.includes("WIB") ? slot.timeRange : `${slot.timeRange} WIB`}
+                                    </span>
+                                  </div>
+                                  <span
+                                    className={cn(
+                                      "text-xs px-3 py-1 rounded-full tabular-nums font-bold shrink-0 transition-all",
+                                      isChosen
+                                        ? "bg-white/20 text-white shadow-2xs"
+                                        : "bg-muted text-muted-foreground border border-border/60"
+                                    )}
+                                  >
+                                    {isChosen ? "✓ Terpilih" : "90 Menit"}
+                                  </span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Inline Selection Status (Compact & Calming) */}
+                      {modalSelectedSlot ? (
+                        <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-950 dark:text-emerald-200 flex items-center gap-3.5 shadow-2xs">
+                          <CheckCircle2 className="size-4.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <p className="text-xs font-medium leading-relaxed">
+                            Sesi terpilih: <strong className="font-semibold text-emerald-900 dark:text-emerald-100">{getSlotDateParts(modalSelectedSlot.date, tomorrowStr, dayAfterStr, todayStr).fullText}, {modalSelectedSlot.timeRange.includes("WIB") ? modalSelectedSlot.timeRange : `${modalSelectedSlot.timeRange} WIB`}</strong>. Tautan Zoom akan dikirim otomatis ke email Anda.
+                          </p>
                         </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground text-center py-0.5">
+                          Klik salah satu slot jam di atas untuk melanjutkan pemesanan sesi.
+                        </p>
                       )}
                     </div>
+                  );
+                })()}
 
-                    {/* Ringkasan Konfirmasi */}
-                    {modalSelectedSlot ? (
-                      <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-950 dark:text-emerald-200 flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2 font-semibold text-xs">
-                          <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <span>
-                            Jadwal Terpilih: {formatSlotChipDate(modalSelectedSlot.date, tomorrowStr, dayAfterStr)}, {modalSelectedSlot.timeRange}
-                          </span>
-                        </div>
-                        <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed pl-6">
-                          Tautan Zoom privat otomatis disiapkan dan dikirimkan ke email Anda setelah pembayaran terkonfirmasi.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2">
-                        <HelpCircle className="size-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                        <span>Silakan klik salah satu jam sesi di atas untuk melanjutkan pemesanan.</span>
-                      </div>
-                    )}
+                {/* Optional Screening Link (Subtle, non-intrusive) */}
+                {!initialScreeningId && modalSelectedSlot && !isScreeningRequired && (
+                  <div className="text-center pt-1 pb-0.5">
+                    <Link
+                      href={`/screening?counselorId=${scheduleModalCounselor.id}&scheduleId=${modalSelectedSlot.id}`}
+                      className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 underline font-medium inline-flex items-center gap-1.5 transition-colors"
+                    >
+                      <Sparkles className="size-3.5" />
+                      <span>Ingin isi cek mandiri kondisi emosional (SRQ-20) terlebih dahulu?</span>
+                    </Link>
                   </div>
-                )
-              })()}
+                )}
+              </div>
 
-              {/* Optional Screening Hook */}
-              {!initialScreeningId && modalSelectedSlot && (
-                <div className="p-3 rounded-xl bg-muted/40 border border-border/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="size-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
-                    <span className="text-pretty">
-                      {isScreeningRequired
-                        ? "Cek kondisi emosional diwajibkan sebelum menyelesaikan pemesanan."
-                        : "Mau beri gambaran perasaanmu sebelum sesi dimulai?"}
-                    </span>
-                  </div>
-                  {!isScreeningRequired && (
+              {/* Pinned Footer: Single row with pill buttons on all devices */}
+              <DialogFooter className="px-6 py-4 border-t border-border/60 flex flex-row items-center justify-end gap-3 shrink-0 bg-card">
+                <Button
+                  type="button"
+                  variant="public-secondary"
+                  size="pill-sm"
+                  onClick={handleCloseScheduleModal}
+                  className="cursor-pointer rounded-full px-5 font-semibold shrink-0"
+                >
+                  Batal
+                </Button>
+                {modalSelectedSlot ? (
+                  isScreeningRequired && !initialScreeningId ? (
                     <Button
                       asChild
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 underline px-1 shrink-0"
+                      variant="public"
+                      size="pill-sm"
+                      className="cursor-pointer rounded-full shadow-md shadow-violet-500/20 font-semibold px-6 flex-1 sm:flex-initial"
                     >
                       <Link
-                        href={`/screening?counselorId=${scheduleModalCounselor.id}&scheduleId=${modalSelectedSlot.id}`}
+                        href={`/screening?counselorId=${scheduleModalCounselor?.id}&scheduleId=${modalSelectedSlot.id}`}
                       >
-                        Isi Cek Mandiri Dulu
+                        <span>Lanjut ke Cek Mandiri (Wajib)</span>
+                        <ArrowRight data-icon="inline-end" className="size-4" />
                       </Link>
                     </Button>
-                  )}
-                </div>
-              )}
-            </div>
+                  ) : (
+                    <Button
+                      asChild
+                      variant="public"
+                      size="pill-sm"
+                      className="cursor-pointer rounded-full shadow-md shadow-violet-500/20 font-semibold px-6 flex-1 sm:flex-initial"
+                    >
+                      <Link
+                        href={`/booking?counselorId=${scheduleModalCounselor?.id}&scheduleId=${modalSelectedSlot.id}${
+                          initialScreeningId ? `&screeningId=${initialScreeningId}` : ""
+                        }`}
+                      >
+                        <span>Lanjut Isi Data Sesi</span>
+                        <ArrowRight data-icon="inline-end" className="size-4" />
+                      </Link>
+                    </Button>
+                  )
+                ) : (
+                  <Button
+                    type="button"
+                    variant="public"
+                    size="pill-sm"
+                    disabled
+                    className="opacity-50 cursor-not-allowed rounded-full font-semibold px-6 flex-1 sm:flex-initial"
+                  >
+                    <span>Pilih Jam Sesi Dahulu</span>
+                    <ArrowRight data-icon="inline-end" className="size-4" />
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
           )}
-
-          <DialogFooter className="gap-2 sm:gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="pill-sm"
-              onClick={handleCloseScheduleModal}
-              className="w-full sm:w-auto cursor-pointer"
-            >
-              Batal
-            </Button>
-            {modalSelectedSlot ? (
-              isScreeningRequired && !initialScreeningId ? (
-                <Button
-                  asChild
-                  variant="public"
-                  size="pill-sm"
-                  className="w-full sm:w-auto cursor-pointer"
-                >
-                  <Link
-                    href={`/screening?counselorId=${scheduleModalCounselor?.id}&scheduleId=${modalSelectedSlot.id}`}
-                  >
-                    <span>Lanjut ke Cek Mandiri (Wajib)</span>
-                    <ArrowRight data-icon="inline-end" />
-                  </Link>
-                </Button>
-              ) : (
-                <Button
-                  asChild
-                  variant="public"
-                  size="pill-sm"
-                  className="w-full sm:w-auto cursor-pointer"
-                >
-                  <Link
-                    href={`/booking?counselorId=${scheduleModalCounselor?.id}&scheduleId=${modalSelectedSlot.id}${
-                      initialScreeningId ? `&screeningId=${initialScreeningId}` : ""
-                    }`}
-                  >
-                    <span>Lanjut Isi Data Sesi</span>
-                    <ArrowRight data-icon="inline-end" />
-                  </Link>
-                </Button>
-              )
-            ) : (
-              <Button
-                type="button"
-                variant="public"
-                size="pill-sm"
-                disabled
-                className="w-full sm:w-auto opacity-50 cursor-not-allowed"
-              >
-                <span>Pilih Jam Sesi Dahulu</span>
-                <ArrowRight data-icon="inline-end" />
-              </Button>
-            )}
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
