@@ -11,6 +11,7 @@
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:resend": "node scripts/test-resend.mjs",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node scripts/seed.mjs"
   },

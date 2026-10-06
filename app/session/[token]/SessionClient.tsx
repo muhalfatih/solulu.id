@@ -7,6 +7,7 @@ import { ShieldCheck, ArrowLeft, RefreshCw, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PublicShell } from "@/components/public/public-shell"
 import { SessionCountdownCard } from "./components/SessionCountdownCard"
+import { PaymentVerificationWaitingCard } from "./components/PaymentVerificationWaitingCard"
 import { CounselorDetailsCard } from "./components/CounselorDetailsCard"
 import { PreparationTipsCard } from "./components/PreparationTipsCard"
 import { SupportHotlineCard } from "./components/SupportHotlineCard"
@@ -22,7 +23,7 @@ export default function SessionClient({ initialData }: SessionClientProps) {
   const [data, setData] = React.useState<SessionPageData>(initialData)
   const [isRefreshing, setIsRefreshing] = React.useState(false)
 
-  const handleRefresh = async () => {
+  const handleRefresh = React.useCallback(async () => {
     setIsRefreshing(true)
     try {
       const res = await getSessionByTokenAction(data.booking.accessToken)
@@ -34,7 +35,18 @@ export default function SessionClient({ initialData }: SessionClientProps) {
     } finally {
       setIsRefreshing(false)
     }
-  }
+  }, [data.booking.accessToken])
+
+  // Auto-polling every 20 seconds if booking is pending payment
+  React.useEffect(() => {
+    if (data.booking.status !== "pending_payment") return
+
+    const interval = setInterval(() => {
+      handleRefresh()
+    }, 20000)
+
+    return () => clearInterval(interval)
+  }, [data.booking.status, handleRefresh])
 
   return (
     <PublicShell>
@@ -63,15 +75,30 @@ export default function SessionClient({ initialData }: SessionClientProps) {
 
         {/* Empathetic Welcome Header */}
         <div className="flex flex-col gap-2.5">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary dark:text-purple-300 text-xs font-semibold shadow-2xs w-fit">
-            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Ruang Telekonseling Privat • Sesi Terjadwal</span>
-          </div>
+          {data.booking.status === "pending_payment" ? (
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-400 text-xs font-semibold shadow-2xs w-fit">
+              <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+              <span>Menunggu Verifikasi Pembayaran • Sesi Telah Dipesan</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary dark:text-purple-300 text-xs font-semibold shadow-2xs w-fit">
+              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Ruang Telekonseling Privat • Sesi Terjadwal</span>
+            </div>
+          )}
           <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground leading-[1.2]">
             Ruang Sesi Bersama {data.counselor.fullName}
           </h1>
           <p className="text-xs sm:text-sm md:text-base text-muted-foreground leading-relaxed max-w-2xl font-normal text-pretty">
-            Selamat datang, <strong className="font-semibold text-foreground">{data.booking.patientName}</strong>. Ruang aman dan privat ini disiapkan khusus untuk Anda tanpa perlu membuat akun.
+            {data.booking.status === "pending_payment" ? (
+              <>
+                Halo, <strong className="font-semibold text-foreground">{data.booking.patientName}</strong>. Jadwal sesi Anda telah berhasil dipesan dan sedang menunggu verifikasi pembayaran oleh tim admin Solulu.
+              </>
+            ) : (
+              <>
+                Selamat datang, <strong className="font-semibold text-foreground">{data.booking.patientName}</strong>. Ruang aman dan privat ini disiapkan khusus untuk Anda tanpa perlu membuat akun.
+              </>
+            )}
           </p>
         </div>
 
@@ -79,13 +106,25 @@ export default function SessionClient({ initialData }: SessionClientProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           {/* Main Action Column (Left, 7 cols) */}
           <div className="lg:col-span-7 flex flex-col gap-6">
-            <SessionCountdownCard
-              booking={data.booking}
-              schedule={data.schedule}
-              patientName={data.booking.patientName}
-              onRefresh={handleRefresh}
-              isRefreshing={isRefreshing}
-            />
+            {data.booking.status === "pending_payment" ? (
+              <PaymentVerificationWaitingCard
+                booking={data.booking}
+                schedule={data.schedule}
+                counselor={data.counselor}
+                transaction={data.transaction}
+                patientName={data.booking.patientName}
+                onRefresh={handleRefresh}
+                isRefreshing={isRefreshing}
+              />
+            ) : (
+              <SessionCountdownCard
+                booking={data.booking}
+                schedule={data.schedule}
+                patientName={data.booking.patientName}
+                onRefresh={handleRefresh}
+                isRefreshing={isRefreshing}
+              />
+            )}
 
             <PreparationTipsCard />
           </div>

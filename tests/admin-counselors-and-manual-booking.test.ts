@@ -39,6 +39,8 @@ describe("Spec 0002 & ADR 0004: Admin Counselor Management & Zero-Cost Booking B
         fullName: "Fajar Nugraha, M.Psi., Psikolog",
         title: "Psikolog Klinis Dewasa",
         counselorType: "psychologist",
+        strNumber: "1902837482910",
+        education: "S2 Profesi Psikologi UI",
         email: "fajar@solulu.id",
         password: "securePassword123!",
         bio: "Berpengalaman selama 8 tahun menangani depresi, kecemasan, dan trauma masa kecil.",
@@ -47,6 +49,32 @@ describe("Spec 0002 & ADR 0004: Admin Counselor Management & Zero-Cost Booking B
         isActive: true,
       })
       expect(valid.success).toBe(true)
+    })
+
+    it("requires strNumber for psychologist but allows peer counselor without strNumber", () => {
+      const invalidPsychologist = createCounselorAdminSchema.safeParse({
+        fullName: "Fajar Nugraha, M.Psi., Psikolog",
+        title: "Psikolog Klinis Dewasa",
+        counselorType: "psychologist",
+        email: "fajar@solulu.id",
+        password: "securePassword123!",
+        bio: "Berpengalaman selama 8 tahun menangani depresi, kecemasan, dan trauma masa kecil.",
+        specializations: ["Depresi & Mood"],
+        isActive: true,
+      })
+      expect(invalidPsychologist.success).toBe(false)
+
+      const validPeer = createCounselorAdminSchema.safeParse({
+        fullName: "Dimas Pratama, S.Psi.",
+        title: "Konselor Sebaya",
+        counselorType: "peer",
+        email: "dimas@solulu.id",
+        password: "securePassword123!",
+        bio: "Pendamping sebaya terlatih dengan pengalaman mendampingi adaptasi kampus.",
+        specializations: ["Pengembangan Diri"],
+        isActive: true,
+      })
+      expect(validPeer.success).toBe(true)
     })
 
     it("rejects counselor creation with missing or short fields", () => {
@@ -237,6 +265,8 @@ describe("Spec 0002 & ADR 0004: Admin Counselor Management & Zero-Cost Booking B
           fullName: "Sarah Annisa",
           title: "M.Psi., Psikolog",
           counselorType: "psychologist",
+          strNumber: "1902837482910",
+          education: "S2 Profesi Psikologi UI",
           bio: "Psikolog klinis berlisensi dengan keahlian intervensi CBT dan ACT.",
           specializations: ["Kecemasan", "Depresi"],
           isActive: true,

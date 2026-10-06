@@ -131,12 +131,28 @@ export const counselors = pgTable("counselors", {
   userId: uuid("user_id").notNull().unique(), // Linked to Supabase Auth UID
   fullName: text("full_name").notNull(),
   title: text("title").notNull(), // e.g. "S.Psi", "M.Psi., Psikolog"
+  education: text("education"), // e.g. "S2 Magister Profesi Psikologi Universitas Indonesia"
+  strNumber: text("str_number"), // Surat Tanda Registrasi / Lisensi Praktik
   counselorType: counselorTypeEnum("counselor_type").notNull(),
   bio: text("bio").notNull(),
   specializations: text("specializations").array(),
   avatarR2Url: text("avatar_r2_url"), // Bucket: solulu-public
   isActive: boolean("is_active").default(true).notNull(),
+  isFeatured: boolean("is_featured").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// =============================================================================
+// 4B. SPECIALIZATIONS & FOCUS DIRECTORY (MANAGEABLE IN ADMIN)
+// =============================================================================
+export const specializations = pgTable("specializations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // =============================================================================

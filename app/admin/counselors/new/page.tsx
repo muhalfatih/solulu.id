@@ -17,6 +17,7 @@ import {
   X,
   Plus,
   Loader2,
+  ArrowUpRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -40,6 +41,7 @@ import {
   createCounselorAction,
   getAvatarUploadPresignedUrlAction,
 } from "../actions"
+import { getActiveSpecializationsAction } from "../../specializations/actions"
 
 export default function NewCounselorPage() {
   const router = useRouter()
@@ -51,15 +53,32 @@ export default function NewCounselorPage() {
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [isCopied, setIsCopied] = React.useState(false)
+  const [strNumber, setStrNumber] = React.useState("")
   const [bio, setBio] = React.useState("")
+  const [availableSpecs, setAvailableSpecs] = React.useState<string[]>([...SOLULU_SPECIALIZATION_PRESETS])
   const [selectedSpecs, setSelectedSpecs] = React.useState<string[]>([
     "Kecemasan & Stres",
     "Pengembangan Diri",
   ])
-  const [customTagInput, setCustomTagInput] = React.useState("")
   const [avatarUrl, setAvatarUrl] = React.useState<string>("")
   const [isUploadingAvatar, setIsUploadingAvatar] = React.useState(false)
   const [isActive, setIsActive] = React.useState(true)
+  const [isFeatured, setIsFeatured] = React.useState(false)
+
+  // Load active specializations from database on mount
+  React.useEffect(() => {
+    async function loadSpecs() {
+      try {
+        const res = await getActiveSpecializationsAction()
+        if (res.success && res.data && res.data.length > 0) {
+          setAvailableSpecs(res.data.map((s: any) => s.name))
+        }
+      } catch {
+        // Fallback to presets
+      }
+    }
+    loadSpecs()
+  }, [])
 
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
@@ -89,16 +108,7 @@ export default function NewCounselorPage() {
     )
   }
 
-  const handleAddCustomTag = (e: React.KeyboardEvent | React.MouseEvent) => {
-    if ("key" in e && e.key !== "Enter") return
-    e.preventDefault()
-    const trimmed = customTagInput.trim()
-    if (!trimmed) return
-    if (!selectedSpecs.includes(trimmed)) {
-      setSelectedSpecs((prev) => [...prev, trimmed])
-    }
-    setCustomTagInput("")
-  }
+
 
   const removeSpec = (spec: string) => {
     setSelectedSpecs((prev) => prev.filter((s) => s !== spec))
@@ -155,6 +165,7 @@ export default function NewCounselorPage() {
       fullName,
       title,
       education,
+      strNumber,
       counselorType,
       email,
       password,
@@ -162,6 +173,7 @@ export default function NewCounselorPage() {
       specializations: selectedSpecs,
       avatarR2Url: avatarUrl.startsWith("blob:") ? null : avatarUrl,
       isActive,
+      isFeatured,
     }
 
     try {
@@ -339,17 +351,41 @@ export default function NewCounselorPage() {
 
               <div className="flex flex-col gap-1.5 sm:col-span-2">
                 <label htmlFor="education" className="text-xs font-medium text-foreground">
-                  Riwayat Pendidikan & Izin <span className="text-destructive">*</span>
+                  Riwayat Pendidikan <span className="text-destructive">*</span>
                 </label>
                 <Input
                   id="education"
                   type="text"
-                  placeholder="Contoh: S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi"
+                  placeholder="Contoh: S2 Magister Profesi Psikologi Universitas Indonesia"
                   value={education}
                   onChange={(e) => setEducation(e.target.value)}
                   required
                   className="h-9 text-xs"
                 />
+              </div>
+
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <label htmlFor="strNumber" className="text-xs font-medium text-foreground">
+                  {counselorType === "psychologist" ? (
+                    <>Nomor STR / Izin Praktik Psikolog <span className="text-destructive">*</span></>
+                  ) : (
+                    <>Nomor Sertifikasi / Lisensi Pendampingan (Opsional)</>
+                  )}
+                </label>
+                <Input
+                  id="strNumber"
+                  type="text"
+                  placeholder={counselorType === "psychologist" ? "Contoh: 1902837482910 (Wajib STR Kemenkes/HIMPSI)" : "Contoh: CERT-PC-2024-889"}
+                  value={strNumber}
+                  onChange={(e) => setStrNumber(e.target.value)}
+                  required={counselorType === "psychologist"}
+                  className="h-9 text-xs font-mono"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  {counselorType === "psychologist"
+                    ? "Wajib bagi Psikolog Klinis untuk keperluan legalitas dan akuntabilitas telekonseling."
+                    : "Opsional jika konselor memiliki nomor sertifikasi pelatihan konseling sebaya."}
+                </p>
               </div>
 
               <div className="flex flex-col gap-1.5 sm:col-span-2">
@@ -381,7 +417,14 @@ export default function NewCounselorPage() {
             <div className="flex flex-col gap-0.5">
               <h2 className="text-sm font-semibold text-foreground">Topik Fokus & Spesialisasi</h2>
               <p className="text-xs text-muted-foreground">
-                Pilih topik dari preset Solulu atau ketikkan tag topik kustom.
+                Pilih topik dari database resmi Solulu. Ingin menambah topik baru? Kelola di{" "}
+                <Link
+                  href="/admin/specializations"
+                  target="_blank"
+                  className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
+                >
+                  Database Spesialisasi <ArrowUpRight className="size-3" />
+                </Link>
               </p>
             </div>
             <span className="text-xs font-medium text-primary tabular-nums">
@@ -391,7 +434,7 @@ export default function NewCounselorPage() {
 
           {/* Preset Chips */}
           <div className="flex flex-wrap gap-2">
-            {SOLULU_SPECIALIZATION_PRESETS.map((preset) => {
+            {availableSpecs.map((preset) => {
               const active = selectedSpecs.includes(preset)
               return (
                 <button
@@ -400,7 +443,7 @@ export default function NewCounselorPage() {
                   onClick={() => toggleSpec(preset)}
                   className={`text-xs px-3 py-1.5 rounded-md border transition-all cursor-pointer flex items-center gap-1.5 ${
                     active
-                      ? "bg-primary text-primary-foreground border-primary font-medium"
+                      ? "bg-primary text-primary-foreground border-primary font-medium shadow-2xs"
                       : "bg-background text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"
                   }`}
                 >
@@ -409,28 +452,6 @@ export default function NewCounselorPage() {
                 </button>
               )
             })}
-          </div>
-
-          {/* Custom Tag Input */}
-          <div className="flex items-center gap-2 pt-2">
-            <Input
-              type="text"
-              placeholder="Tambah topik lain (tekan Enter)..."
-              value={customTagInput}
-              onChange={(e) => setCustomTagInput(e.target.value)}
-              onKeyDown={handleAddCustomTag}
-              className="h-8 text-xs max-w-xs"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddCustomTag}
-              className="h-8 px-3 text-xs"
-            >
-              <Plus className="size-3.5 mr-1" />
-              Tambah Tag
-            </Button>
           </div>
 
           {/* Active Chips Pill Display */}
@@ -545,6 +566,29 @@ export default function NewCounselorPage() {
               </p>
             </div>
             <Switch checked={isActive} onCheckedChange={setIsActive} aria-label="Toggle status praktik" />
+          </div>
+
+          {/* Featured on Homepage toggle */}
+          <div className="flex items-center justify-between pt-3 border-t border-border">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Sparkles className="size-3.5 text-amber-500" />
+                <span>Tampilkan di Homepage (Featured Counselor)</span>
+              </span>
+              <p className="text-[11px] text-muted-foreground">
+                Jika diaktifkan, profil konselor ini akan terpilih dan ditampilkan pada kartu &quot;Mitra Konselor Berpengalaman&quot; di halaman utama (homepage).
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span
+                className={`text-xs font-medium ${
+                  isFeatured ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+                }`}
+              >
+                {isFeatured ? "Pilihan Homepage" : "Katalog Biasa"}
+              </span>
+              <Switch checked={isFeatured} onCheckedChange={setIsFeatured} aria-label="Toggle featured di homepage" />
+            </div>
           </div>
         </div>
 

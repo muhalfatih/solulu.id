@@ -22,6 +22,7 @@ import {
   User,
   MessageSquareQuote,
   Sliders,
+  Sparkles,
 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
@@ -82,6 +83,12 @@ const NAV_SECTIONS: NavSection[] = [
         badge: "2 Baru",
         badgeVariant: "destructive",
         description: "Verifikasi berkas dan daftar konselor aktif",
+      },
+      {
+        href: "/admin/specializations",
+        label: "Fokus & Spesialisasi",
+        icon: Sparkles,
+        description: "Daftar bank topik konseling mitra konselor",
       },
       {
         href: "/admin/pricing",

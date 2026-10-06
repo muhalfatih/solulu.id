@@ -250,4 +250,51 @@ export const DEMO_SESSIONS: Record<string, SessionPageData> = {
       status: "PAID",
     },
   },
+
+  // 4. Session with payment pending verification (Waiting Room)
+  "demo-session-pending": {
+    booking: {
+      id: "b-pending",
+      accessToken: "demo-session-pending",
+      patientName: "Ahmad Fauzi",
+      patientEmail: "ahmad.fauzi@example.com",
+      patientPhone: "081234567899",
+      initialNotes: "Kelelahan emosional dan merasa burnout dalam pekerjaan beberapa bulan terakhir.",
+      status: "pending_payment",
+      zoomJoinUrl: null,
+      zoomMeetingId: null,
+      createdAt: new Date().toISOString(),
+    },
+    counselor: {
+      id: "c-1",
+      fullName: "Sarah Annisa, M.Psi., Psikolog",
+      title: "Psikolog Klinis Dewasa • No. STR: 1902837482910",
+      counselorType: "psychologist",
+      counselorTypeDisplay: "Psikolog Klinis",
+      bio: "Praktisi psikologi klinis dengan fokus pada penanganan gangguan kecemasan, depresi, trauma masa lalu, dan manajemen stres kerja (burnout).",
+      specializations: ["Kecemasan & Stres", "Burnout & Kelelahan"],
+      avatarR2Url: null,
+    },
+    schedule: {
+      id: "s-pending",
+      date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      startTime: "19:00:00",
+      endTime: "20:30:00",
+      timeRange: "19:00 – 20:30 WIB",
+      formattedDate: formatIndonesianDate(
+        new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+      ),
+    },
+    transaction: {
+      id: "t-pending",
+      paymentProvider: "manual",
+      paymentMethod: "Bank BCA",
+      referenceNumber: "SOL-MANUAL-98210",
+      grossAmount: 180000,
+      discountAmount: 0,
+      netAmount: 180000,
+      netAmountFormatted: formatRupiah(180000),
+      status: "PENDING",
+    },
+  },
 }

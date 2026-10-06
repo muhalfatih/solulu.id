@@ -36,6 +36,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import {
   Table,
   TableHeader,
@@ -47,6 +48,7 @@ import {
 import {
   getCounselorsAdminAction,
   toggleCounselorActiveAction,
+  toggleFeaturedCounselorAction,
   deleteCounselorAction,
 } from "./actions"
 import {
@@ -85,6 +87,7 @@ export default function DistilledCounselorsPage() {
             activeSlots: row.activeSlotsCount ?? 0,
             avatarR2Url: row.avatarR2Url,
             education: row.education,
+            isFeatured: row.isFeatured ?? false,
           }))
           setActiveCounselors(mapped)
         }
@@ -162,6 +165,26 @@ export default function DistilledCounselorsPage() {
       prev.map((app) => (app.id === id ? { ...app, status: "rejected" as const } : app))
     )
     showToast(`Berkas atas nama ${name} ditolak.`)
+  }
+
+  const handleToggleFeatured = async (counselorId: string, nextState: boolean) => {
+    const previousState = !nextState
+    setActiveCounselors((prev) =>
+      prev.map((c) => (c.id === counselorId ? { ...c, isFeatured: nextState } : c))
+    )
+    try {
+      const res = await toggleFeaturedCounselorAction(counselorId, nextState)
+      if (res.success) {
+        showToast(res.message || "Status featured berhasil diubah.")
+      } else {
+        throw new Error(res.error)
+      }
+    } catch {
+      setActiveCounselors((prev) =>
+        prev.map((c) => (c.id === counselorId ? { ...c, isFeatured: previousState } : c))
+      )
+      showToast("Gagal mengubah status featured konselor.")
+    }
   }
 
   const toggleCounselorStatus = async (id: string) => {
@@ -567,6 +590,7 @@ export default function DistilledCounselorsPage() {
                   <TableHead className="py-3 px-3.5 font-semibold text-foreground">Kontak</TableHead>
                   <TableHead className="py-3 px-3.5 font-semibold text-foreground">Total Sesi</TableHead>
                   <TableHead className="py-3 px-3.5 font-semibold text-foreground">Fokus Layanan</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground text-center">Homepage</TableHead>
                   <TableHead className="py-3 px-3.5 font-semibold text-foreground">Status</TableHead>
                   <TableHead className="py-3 px-3.5 font-semibold text-foreground text-right">Tindakan</TableHead>
                 </TableRow>
@@ -614,6 +638,16 @@ export default function DistilledCounselorsPage() {
                             {spec}
                           </span>
                         ))}
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="py-3.5 px-3.5 text-center">
+                      <div className="flex items-center justify-center">
+                        <Switch
+                          checked={Boolean(c.isFeatured)}
+                          onCheckedChange={(checked) => handleToggleFeatured(c.id, checked)}
+                          aria-label={`Tampilkan ${c.name} di homepage`}
+                        />
                       </div>
                     </TableCell>
 

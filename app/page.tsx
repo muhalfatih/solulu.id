@@ -29,6 +29,7 @@ import { PublicShell } from "@/components/public/public-shell"
 import { FaqAccordion } from "@/components/public/FaqAccordion"
 import { getPlatformPricing } from "@/lib/pricing/platform-pricing"
 import { formatRupiah } from "@/lib/booking/checkout"
+import { getFeaturedCounselorsForHomepageAction } from "@/app/admin/counselors/actions"
 
 export const metadata = {
   title: "Solulu | Ruang Konseling Online & Kesehatan Jiwa",
@@ -208,6 +209,44 @@ const FAQS = [
 
 export default async function HomePage() {
   const pricing = await getPlatformPricing()
+  const featuredRes = await getFeaturedCounselorsForHomepageAction()
+
+  const featuredCounselors =
+    featuredRes.success && featuredRes.data && featuredRes.data.length > 0
+      ? featuredRes.data.map((c) => ({
+          id: c.id,
+          name: c.fullName,
+          role:
+            c.title ||
+            (c.counselorType === "psychologist"
+              ? "Psikolog Klinis Berizin Resmi"
+              : "Konselor Sebaya (Teman Cerita)"),
+          type: c.counselorType as "peer" | "psychologist",
+          education:
+            c.education ||
+            (c.counselorType === "psychologist"
+              ? "S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi"
+              : "Sarjana Psikologi • Konselor Sebaya"),
+          specializations:
+            c.specializations && c.specializations.length > 0
+              ? c.specializations.slice(0, 3)
+              : ["Kecemasan & Stres", "Pengembangan Diri"],
+          avatar:
+            c.avatarR2Url ||
+            (c.counselorType === "psychologist"
+              ? "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=600"
+              : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600"),
+          rating: "4.9",
+          experience: "4+ Tahun",
+          availableSoon: "Tersedia Minggu Ini",
+        }))
+      : FEATURED_COUNSELORS
+
+  const heroCounselorsList = featuredCounselors.slice(0, 4).map((c) => ({
+    name: c.name,
+    src: c.avatar,
+  }))
+
   const peerActivePrice = pricing.peer.isSaleActive ? pricing.peer.promoPrice : pricing.peer.basePrice
   const peerHasDiscount = pricing.peer.isSaleActive && pricing.peer.promoPrice < pricing.peer.basePrice
   const psychologistActivePrice = pricing.psychologist.isSaleActive
@@ -280,7 +319,7 @@ export default async function HomePage() {
             {/* Social Proof Row */}
             <div className="flex items-center justify-center gap-2.5 pt-1 text-xs text-muted-foreground">
               <div className="flex items-center -space-x-2">
-                {HERO_COUNSELORS.map((c, i) => (
+                {heroCounselorsList.map((c, i) => (
                   <Avatar key={i} className="size-7.5 border-2 border-background ring-1 ring-primary/20 shadow-xs hover:scale-110 hover:z-10 transition-transform duration-200">
                     <AvatarImage src={c.src} alt={c.name} />
                     <AvatarFallback className="text-xs font-semibold bg-primary/15 text-primary dark:bg-purple-950 dark:text-purple-300">
@@ -738,7 +777,7 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7 items-stretch">
-            {FEATURED_COUNSELORS.map((c) => {
+            {featuredCounselors.map((c) => {
               const cPriceData = pricing[c.type]
               const cActivePrice = cPriceData.isSaleActive ? cPriceData.promoPrice : cPriceData.basePrice
               const cHasDiscount = cPriceData.isSaleActive && cPriceData.promoPrice < cPriceData.basePrice

@@ -16,6 +16,8 @@ import {
   Loader2,
   Pencil,
   ShieldCheck,
+  ArrowUpRight,
+  Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -41,6 +43,7 @@ import {
   updateCounselorAction,
   getAvatarUploadPresignedUrlAction,
 } from "../../actions"
+import { getActiveSpecializationsAction } from "@/app/admin/specializations/actions"
 
 export default function EditCounselorPage() {
   const params = useParams()
@@ -56,21 +59,32 @@ export default function EditCounselorPage() {
   const [phone, setPhone] = React.useState("")
   const [strNumber, setStrNumber] = React.useState("")
   const [bio, setBio] = React.useState("")
+  const [availableSpecs, setAvailableSpecs] = React.useState<string[]>([...SOLULU_SPECIALIZATION_PRESETS])
   const [selectedSpecs, setSelectedSpecs] = React.useState<string[]>([])
-  const [customTagInput, setCustomTagInput] = React.useState("")
   const [avatarUrl, setAvatarUrl] = React.useState<string>("")
   const [isUploadingAvatar, setIsUploadingAvatar] = React.useState(false)
   const [isActive, setIsActive] = React.useState(true)
+  const [isFeatured, setIsFeatured] = React.useState(false)
 
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null)
 
-  // Load counselor data
+  // Load counselor data & database specializations
   React.useEffect(() => {
     async function loadData() {
       setIsLoading(true)
       try {
+        // Load active specializations from database
+        try {
+          const specsRes = await getActiveSpecializationsAction()
+          if (specsRes.success && specsRes.data && specsRes.data.length > 0) {
+            setAvailableSpecs(specsRes.data.map((s: any) => s.name))
+          }
+        } catch {
+          // Keep preset fallback
+        }
+
         const res = await getCounselorByIdAction(counselorId)
         if (res.success && res.data) {
           const c = res.data
@@ -85,6 +99,7 @@ export default function EditCounselorPage() {
           setSelectedSpecs(c.specializations || [])
           setAvatarUrl(c.avatarR2Url || "")
           setIsActive(c.isActive ?? true)
+          setIsFeatured(c.isFeatured ?? false)
         } else {
           // Attempt graceful fallback to mock active counselors
           const mock = MOCK_ACTIVE_COUNSELORS.find((m: ActiveCounselor) => m.id === counselorId)
@@ -147,16 +162,6 @@ export default function EditCounselorPage() {
     )
   }
 
-  const handleAddCustomTag = (e: React.KeyboardEvent | React.MouseEvent) => {
-    if ("key" in e && e.key !== "Enter") return
-    e.preventDefault()
-    const trimmed = customTagInput.trim()
-    if (!trimmed) return
-    if (!selectedSpecs.includes(trimmed)) {
-      setSelectedSpecs((prev) => [...prev, trimmed])
-    }
-    setCustomTagInput("")
-  }
 
   const removeSpec = (spec: string) => {
     setSelectedSpecs((prev) => prev.filter((s) => s !== spec))
@@ -211,11 +216,13 @@ export default function EditCounselorPage() {
       fullName,
       title,
       education,
+      strNumber,
       counselorType,
       bio,
       specializations: selectedSpecs,
       avatarR2Url: avatarUrl.startsWith("blob:") ? null : avatarUrl,
       isActive,
+      isFeatured,
     }
 
     try {
@@ -461,7 +468,14 @@ export default function EditCounselorPage() {
             <div className="flex flex-col gap-0.5">
               <h2 className="text-sm font-semibold text-foreground">Topik Fokus & Spesialisasi</h2>
               <p className="text-xs text-muted-foreground">
-                Pilih topik dari preset Solulu atau ketikkan tag topik kustom.
+                Pilih topik dari database resmi Solulu. Ingin menambah topik baru? Kelola di{" "}
+                <Link
+                  href="/admin/specializations"
+                  target="_blank"
+                  className="text-primary hover:underline font-medium inline-flex items-center gap-0.5"
+                >
+                  Database Spesialisasi <ArrowUpRight className="size-3" />
+                </Link>
               </p>
             </div>
             <span className="text-xs font-medium text-primary tabular-nums">
@@ -470,7 +484,7 @@ export default function EditCounselorPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {SOLULU_SPECIALIZATION_PRESETS.map((preset) => {
+            {availableSpecs.map((preset) => {
               const active = selectedSpecs.includes(preset)
               return (
                 <button
@@ -479,7 +493,7 @@ export default function EditCounselorPage() {
                   onClick={() => toggleSpec(preset)}
                   className={`text-xs px-3 py-1.5 rounded-md border transition-all cursor-pointer flex items-center gap-1.5 ${
                     active
-                      ? "bg-primary text-primary-foreground border-primary font-medium"
+                      ? "bg-primary text-primary-foreground border-primary font-medium shadow-2xs"
                       : "bg-background text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"
                   }`}
                 >
@@ -488,27 +502,6 @@ export default function EditCounselorPage() {
                 </button>
               )
             })}
-          </div>
-
-          <div className="flex items-center gap-2 pt-2">
-            <Input
-              type="text"
-              placeholder="Tambah topik lain (tekan Enter)..."
-              value={customTagInput}
-              onChange={(e) => setCustomTagInput(e.target.value)}
-              onKeyDown={handleAddCustomTag}
-              className="h-8 text-xs max-w-xs"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddCustomTag}
-              className="h-8 px-3 text-xs"
-            >
-              <Plus className="size-3.5 mr-1" />
-              Tambah Tag
-            </Button>
           </div>
 
           {selectedSpecs.length > 0 && (
@@ -603,6 +596,29 @@ export default function EditCounselorPage() {
                 {isActive ? "Praktik Aktif" : "Ditangguhkan"}
               </span>
               <Switch checked={isActive} onCheckedChange={setIsActive} aria-label="Toggle status praktik" />
+            </div>
+          </div>
+
+          {/* Featured on Homepage toggle */}
+          <div className="flex items-center justify-between pt-3 border-t border-border">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Sparkles className="size-3.5 text-amber-500" />
+                <span>Tampilkan di Homepage (Featured Counselor)</span>
+              </span>
+              <p className="text-xs text-muted-foreground">
+                Jika diaktifkan, profil konselor ini akan terpilih dan ditampilkan pada kartu &quot;Mitra Konselor Berpengalaman&quot; di halaman utama (homepage).
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span
+                className={`text-xs font-medium ${
+                  isFeatured ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+                }`}
+              >
+                {isFeatured ? "Pilihan Homepage" : "Katalog Biasa"}
+              </span>
+              <Switch checked={isFeatured} onCheckedChange={setIsFeatured} aria-label="Toggle featured di homepage" />
             </div>
           </div>
         </div>

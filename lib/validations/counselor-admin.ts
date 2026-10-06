@@ -49,7 +49,16 @@ export const createCounselorAdminSchema = z.object({
     .trim()
     .min(3, "Riwayat pendidikan minimal 3 karakter")
     .max(200, "Riwayat pendidikan maksimal 200 karakter")
-    .optional(),
+    .optional()
+    .nullable()
+    .or(z.literal("")),
+  strNumber: z
+    .string()
+    .trim()
+    .max(100, "Nomor STR/Lisensi maksimal 100 karakter")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
   avatarR2Url: z
     .string()
     .url("URL avatar tidak valid")
@@ -57,6 +66,15 @@ export const createCounselorAdminSchema = z.object({
     .nullable()
     .or(z.literal("")),
   isActive: z.boolean().default(true),
+  isFeatured: z.boolean().optional(),
+}).superRefine((val, ctx) => {
+  if (val.counselorType === "psychologist" && (!val.strNumber || val.strNumber.trim().length === 0)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Nomor STR (Surat Tanda Registrasi) wajib diisi untuk Psikolog Klinis",
+      path: ["strNumber"],
+    })
+  }
 })
 
 export type CreateCounselorAdminInput = z.infer<typeof createCounselorAdminSchema>
@@ -80,7 +98,16 @@ export const updateCounselorAdminSchema = z.object({
     .trim()
     .min(3, "Riwayat pendidikan minimal 3 karakter")
     .max(200, "Riwayat pendidikan maksimal 200 karakter")
-    .optional(),
+    .optional()
+    .nullable()
+    .or(z.literal("")),
+  strNumber: z
+    .string()
+    .trim()
+    .max(100, "Nomor STR/Lisensi maksimal 100 karakter")
+    .optional()
+    .nullable()
+    .or(z.literal("")),
   bio: z
     .string()
     .trim()
@@ -88,7 +115,7 @@ export const updateCounselorAdminSchema = z.object({
     .max(2000, "Bio profil maksimal 2000 karakter"),
   specializations: z
     .array(z.string().trim().min(2, "Spesialisasi minimal 2 karakter"))
-    .min(1, "Pilih atau tambahkan minimal 1 topik spesialisasi"),
+    .min(1, "Pilih minimal 1 topik spesialisasi"),
   avatarR2Url: z
     .string()
     .url("URL avatar tidak valid")
@@ -96,6 +123,15 @@ export const updateCounselorAdminSchema = z.object({
     .nullable()
     .or(z.literal("")),
   isActive: z.boolean(),
+  isFeatured: z.boolean().optional(),
+}).superRefine((val, ctx) => {
+  if (val.counselorType === "psychologist" && (!val.strNumber || val.strNumber.trim().length === 0)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Nomor STR (Surat Tanda Registrasi) wajib diisi untuk Psikolog Klinis",
+      path: ["strNumber"],
+    })
+  }
 })
 
 export type UpdateCounselorAdminInput = z.infer<typeof updateCounselorAdminSchema>

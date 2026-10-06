@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
-import { eq, desc, sql } from "drizzle-orm"
+import { eq, desc, sql, and, not, inArray } from "drizzle-orm"
 import { db } from "@/db"
 import { counselors, schedules, bookings } from "@/db/schema"
 import { generatePresignedPutUrl, generateR2Key, getPublicR2Url, getR2Config } from "@/lib/r2"
@@ -90,11 +90,14 @@ export async function getCounselorsAdminAction(options?: {
         userId: counselors.userId,
         fullName: counselors.fullName,
         title: counselors.title,
+        education: counselors.education,
+        strNumber: counselors.strNumber,
         counselorType: counselors.counselorType,
         bio: counselors.bio,
         specializations: counselors.specializations,
         avatarR2Url: counselors.avatarR2Url,
         isActive: counselors.isActive,
+        isFeatured: counselors.isFeatured,
         createdAt: counselors.createdAt,
       })
       .from(counselors)
@@ -172,6 +175,7 @@ export async function getCounselorsAdminAction(options?: {
       specializations: c.specializations,
       avatarR2Url: c.avatarR2Url,
       isActive: c.isActive,
+      isFeatured: c.isFeatured ?? false,
       email: c.email,
       phone: c.phone,
       activeSlotsCount: (c.slots || []).length,
@@ -429,11 +433,14 @@ export async function createCounselorAction(
       userId: createdAuthUserId,
       fullName: data.fullName,
       title: data.title,
+      education: data.education || null,
+      strNumber: data.strNumber || null,
       counselorType: data.counselorType,
       bio: data.bio,
       specializations: data.specializations,
       avatarR2Url: data.avatarR2Url || null,
       isActive: data.isActive,
+      isFeatured: data.isFeatured ?? false,
     }
 
     let insertedRecord: any = null
@@ -461,6 +468,7 @@ export async function createCounselorAction(
       fullName: data.fullName,
       title: data.title,
       education: data.education || (data.counselorType === "psychologist" ? "S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi" : "Sarjana Psikologi (S.Psi) • Peer Counselor Indonesia"),
+      strNumber: data.strNumber || null,
       counselorType: data.counselorType,
       bio: data.bio,
       specializations: data.specializations,
@@ -468,6 +476,7 @@ export async function createCounselorAction(
       email: data.email,
       phone: "0812-3456-7890",
       isActive: data.isActive,
+      isFeatured: data.isFeatured ?? false,
     })
 
     try {
@@ -537,11 +546,14 @@ export async function updateCounselorAction(
     const updatePayload = {
       fullName: data.fullName,
       title: data.title,
+      education: data.education || null,
+      strNumber: data.strNumber || null,
       counselorType: data.counselorType,
       bio: data.bio,
       specializations: data.specializations,
       avatarR2Url: data.avatarR2Url || null,
       isActive: data.isActive,
+      isFeatured: data.isFeatured ?? false,
     }
 
     let updatedRecord: any = null
@@ -569,12 +581,14 @@ export async function updateCounselorAction(
       id: counselorId,
       fullName: data.fullName,
       title: data.title,
-      education: data.education,
+      education: data.education || undefined,
+      strNumber: data.strNumber || null,
       counselorType: data.counselorType,
       bio: data.bio,
       specializations: data.specializations,
       avatarR2Url: data.avatarR2Url || null,
       isActive: data.isActive,
+      isFeatured: data.isFeatured ?? false,
     })
 
     try {
@@ -649,6 +663,150 @@ export async function toggleCounselorActiveAction(
     return {
       success: false,
       error: err.message || "Gagal mengubah status praktik konselor.",
+    }
+  }
+}
+
+/**
+ * Toggles whether a counselor is featured on the homepage.
+ */
+export async function toggleFeaturedCounselorAction(
+  counselorId: string,
+  newFeaturedState: boolean,
+  options?: {
+    currentUser?: AdminAuthContext | null
+  }
+) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return {
+      success: false,
+      error: "Akses ditolak: Diperlukan role Admin.",
+    }
+  }
+
+  try {
+    const [updated] = await db
+      .update(counselors)
+      .set({ isFeatured: newFeaturedState })
+      .where(eq(counselors.id, counselorId))
+      .returning()
+
+    // Sync in-memory store if present
+    const storeCounselor = getStoreCounselorById(counselorId)
+    if (storeCounselor) {
+      storeCounselor.isFeatured = newFeaturedState
+    }
+
+    try {
+      revalidatePath("/admin/counselors")
+      revalidatePath("/")
+      revalidatePath("/counselors")
+    } catch {
+      // safe fallback
+    }
+
+    return {
+      success: true,
+      message: `Konselor ${newFeaturedState ? "berhasil ditampilkan sebagai Pilihan di Homepage" : "dihapus dari Pilihan Homepage"}.`,
+      data: updated,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal mengubah status featured konselor.",
+    }
+  }
+}
+
+/**
+ * Retrieves featured counselors for displaying on the homepage.
+ */
+export async function getFeaturedCounselorsForHomepageAction() {
+  try {
+    // 1. Fetch featured counselors from database
+    let rows = await db
+      .select({
+        id: counselors.id,
+        fullName: counselors.fullName,
+        title: counselors.title,
+        education: counselors.education,
+        counselorType: counselors.counselorType,
+        bio: counselors.bio,
+        specializations: counselors.specializations,
+        avatarR2Url: counselors.avatarR2Url,
+        isActive: counselors.isActive,
+        isFeatured: counselors.isFeatured,
+      })
+      .from(counselors)
+      .where(and(eq(counselors.isActive, true), eq(counselors.isFeatured, true)))
+      .limit(6)
+
+    // 2. If fewer than 3 are featured, supplement with other active counselors
+    if (rows.length < 3) {
+      const existingIds = rows.map((r) => r.id)
+      const supplements = await db
+        .select({
+          id: counselors.id,
+          fullName: counselors.fullName,
+          title: counselors.title,
+          education: counselors.education,
+          counselorType: counselors.counselorType,
+          bio: counselors.bio,
+          specializations: counselors.specializations,
+          avatarR2Url: counselors.avatarR2Url,
+          isActive: counselors.isActive,
+          isFeatured: counselors.isFeatured,
+        })
+        .from(counselors)
+        .where(
+          and(
+            eq(counselors.isActive, true),
+            existingIds.length > 0 ? not(inArray(counselors.id, existingIds)) : undefined
+          )
+        )
+        .limit(3 - rows.length)
+
+      rows = [...rows, ...supplements]
+    }
+
+    if (rows.length > 0) {
+      return { success: true, data: rows }
+    }
+
+    // Fallback to store
+    const storeCounselors = getAllStoreCounselors().filter((c) => c.isActive)
+    return {
+      success: true,
+      data: storeCounselors.map((c) => ({
+        id: c.id,
+        fullName: c.fullName,
+        title: c.title,
+        education: c.education,
+        counselorType: c.counselorType,
+        bio: c.bio,
+        specializations: c.specializations,
+        avatarR2Url: c.avatarR2Url,
+        isActive: c.isActive,
+        isFeatured: c.isFeatured ?? false,
+      })),
+    }
+  } catch (err: any) {
+    const storeCounselors = getAllStoreCounselors().filter((c) => c.isActive)
+    return {
+      success: true,
+      data: storeCounselors.map((c) => ({
+        id: c.id,
+        fullName: c.fullName,
+        title: c.title,
+        education: c.education,
+        counselorType: c.counselorType,
+        bio: c.bio,
+        specializations: c.specializations,
+        avatarR2Url: c.avatarR2Url,
+        isActive: c.isActive,
+        isFeatured: c.isFeatured ?? false,
+      })),
     }
   }
 }

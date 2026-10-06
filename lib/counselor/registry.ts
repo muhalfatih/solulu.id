@@ -32,6 +32,7 @@ export interface CounselorStoreItem {
   totalSessions: number
   joinedDate: string
   isActive: boolean
+  isFeatured?: boolean
   slots?: CounselorSlot[]
 }
 
