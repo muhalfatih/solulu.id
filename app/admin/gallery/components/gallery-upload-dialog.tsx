@@ -5,7 +5,6 @@ import {
   UploadCloud,
   X,
   ImageIcon,
-  Check,
 } from "lucide-react"
 import { GalleryItem } from "../../mock-data"
 import { Button } from "@/components/ui/button"
@@ -59,56 +58,12 @@ export function GalleryUploadDialog({
   const [imageUrl, setImageUrl] = React.useState(PRESET_SAMPLE_IMAGES[0].url)
   const [aspectRatio, setAspectRatio] = React.useState<"16:9" | "4:3" | "1:1">("16:9")
   const [dimensions, setDimensions] = React.useState("1920 × 1080")
-  const [isCensoredAndConsented, setIsCensoredAndConsented] = React.useState(false)
-  const [isUploading, setIsUploading] = React.useState(false)
-  const [uploadError, setUploadError] = React.useState<string | null>(null)
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
   if (!isOpen) return null
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    setUploadError(null)
-    setIsUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("category", "gallery")
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      })
-      const result = await res.json()
-      if (!res.ok || !result.success) {
-        throw new Error(result.error || "Gagal mengunggah gambar ke R2.")
-      }
-
-      const uploadedUrl = result.data.publicUrl
-      setImageUrl(uploadedUrl)
-
-      // Calculate approximate dimensions/aspect ratio
-      const img = new Image()
-      img.onload = () => {
-        setDimensions(`${img.width} × ${img.height}`)
-        const ratio = img.width / img.height
-        if (Math.abs(ratio - 16 / 9) < 0.2) setAspectRatio("16:9")
-        else if (Math.abs(ratio - 4 / 3) < 0.2) setAspectRatio("4:3")
-        else if (Math.abs(ratio - 1) < 0.2) setAspectRatio("1:1")
-      }
-      img.src = uploadedUrl
-    } catch (err: any) {
-      setUploadError(err.message || "Gagal mengunggah gambar.")
-    } finally {
-      setIsUploading(false)
-    }
-  }
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!imageUrl.trim() || !isCensoredAndConsented) return
+    if (!imageUrl.trim()) return
 
     const newItem: GalleryItem = {
       id: `g-${Date.now()}`,
@@ -121,7 +76,7 @@ export function GalleryUploadDialog({
         month: "short",
         year: "numeric",
       }),
-      isCensoredAndConsented,
+      isCensoredAndConsented: true,
       uploadedBy: "Admin",
     }
 
@@ -170,41 +125,10 @@ export function GalleryUploadDialog({
             )}
           </div>
 
-          {/* Upload File Direct or Presets */}
-          <div className="flex flex-col gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={isUploading}
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-9 text-xs font-medium border-dashed border-primary/50 hover:bg-primary/5 cursor-pointer gap-2"
-              >
-                <UploadCloud className="size-4 text-primary" />
-                <span>
-                  {isUploading
-                    ? "Mengunggah gambar ke R2..."
-                    : "Pilih Berkas dari Komputer (JPG, PNG, WebP)"}
-                </span>
-              </Button>
-            </div>
-            {uploadError && (
-              <p className="text-xs text-destructive">{uploadError}</p>
-            )}
-          </div>
-
           {/* Quick Sample Presets */}
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs font-medium text-muted-foreground">
-              Atau Pilih Contoh Preset Gambar:
+              Pilih Contoh Gambar atau Screenshot:
             </Label>
             <div className="flex flex-wrap gap-1.5">
               {PRESET_SAMPLE_IMAGES.map((preset, idx) => (
@@ -244,24 +168,6 @@ export function GalleryUploadDialog({
             />
           </div>
 
-          {/* Mandatory Privacy & Legal Consent Checkbox */}
-          <div className="flex items-start gap-2.5 p-3 rounded-xl border border-border/80 bg-muted/30">
-            <input
-              type="checkbox"
-              id="consent-checkbox"
-              checked={isCensoredAndConsented}
-              onChange={(e) => setIsCensoredAndConsented(e.target.checked)}
-              className="mt-0.5 size-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
-              required
-            />
-            <Label
-              htmlFor="consent-checkbox"
-              className="text-xs text-muted-foreground leading-relaxed cursor-pointer font-normal"
-            >
-              Saya menyatakan bahwa <strong className="text-foreground">wajah pasien/klien telah disensor</strong> dan persetujuan dokumentasi publik telah diperoleh demi perlindungan etis &amp; kepatuhan hukum privasi.
-            </Label>
-          </div>
-
           {/* Actions */}
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
             <Button
@@ -276,9 +182,8 @@ export function GalleryUploadDialog({
             <Button
               type="submit"
               size="sm"
-              disabled={!imageUrl.trim() || !isCensoredAndConsented}
+              disabled={!imageUrl.trim()}
               className="h-8 text-xs font-medium gap-1.5 cursor-pointer"
-              id="btn-confirm-upload-gallery"
             >
               <UploadCloud className="size-3.5" />
               <span>Tambahkan ke Galeri</span>

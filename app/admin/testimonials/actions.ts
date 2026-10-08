@@ -71,16 +71,16 @@ export async function getFeaturedTestimonialsForHomepageAction() {
 }
 
 export interface TestimonialInput {
-  clientName: string
-  isAnonymous: boolean
-  anonymousDisplay: string
+  clientName: string // Nama (Sebagai Anonim)
+  isAnonymous?: boolean
+  anonymousDisplay?: string
   sessionCode?: string
-  counselorName: string
-  counselorType: string
-  rating: number
-  quoteHighlight: string
-  comment: string
-  topic: string
+  counselorName?: string
+  counselorType?: string
+  rating?: number
+  quoteHighlight: string // Subjek testimoni
+  comment: string // Isi ulasan
+  topic: string // Topik masalah (fokus & spesialisasi)
   isActive: boolean
   isFeatured?: boolean
 }
@@ -131,17 +131,17 @@ export async function createTestimonialAdminAction(
       .insert(testimonials)
       .values({
         clientName: input.clientName,
-        isAnonymous: input.isAnonymous,
-        anonymousDisplay: input.anonymousDisplay,
-        sessionCode: input.sessionCode || `SES-${Math.floor(1000 + Math.random() * 9000)}`,
-        counselorName: input.counselorName,
-        counselorType: input.counselorType,
-        rating: input.rating,
+        isAnonymous: input.isAnonymous ?? true,
+        anonymousDisplay: input.anonymousDisplay || input.clientName,
+        sessionCode: input.sessionCode || null,
+        counselorName: input.counselorName || "Solulu",
+        counselorType: input.counselorType || "Konselor",
+        rating: input.rating ?? 5,
         quoteHighlight: input.quoteHighlight,
         comment: input.comment,
         topic: input.topic,
         isActive: input.isActive,
-        isFeatured: input.isFeatured ?? false,
+        isFeatured: input.isFeatured ?? input.isActive,
       })
       .returning()
 

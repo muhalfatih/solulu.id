@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import type { BookingSession } from "../mock-data"
+import { MOCK_SESSIONS, type BookingSession } from "../mock-data"
 import {
   Clock,
   Copy,
@@ -59,7 +59,7 @@ import {
 } from "@/components/ui/table"
 
 export default function DistilledSessionsPage() {
-  const [sessions, setSessions] = React.useState<BookingSession[]>([])
+  const [sessions, setSessions] = React.useState<BookingSession[]>(MOCK_SESSIONS)
   const [isLoading, setIsLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
@@ -72,6 +72,36 @@ export default function DistilledSessionsPage() {
   const [manualPaymentSession, setManualPaymentSession] = React.useState<BookingSession | null>(null)
   const [isManualBookingModalOpen, setIsManualBookingModalOpen] = React.useState(false)
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
+
+  // Calendar Date Navigation & Monthly Overflow States
+  const [currentDate, setCurrentDate] = React.useState<Date>(() => new Date())
+  const [monthlyOverflowData, setMonthlyOverflowData] = React.useState<{
+    dateStr: string
+    displayDate: string
+    sessions: BookingSession[]
+  } | null>(null)
+
+  // Date formatting helpers
+  const formatDateKey = React.useCallback((d: Date): string => {
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const date = String(d.getDate()).padStart(2, "0")
+    return `${year}-${month}-${date}`
+  }, [])
+
+  const getSessionDateKey = React.useCallback((dateValue: string | Date | undefined): string => {
+    if (!dateValue) return ""
+    if (typeof dateValue === "string") {
+      return dateValue.includes("T") ? dateValue.split("T")[0] : dateValue
+    }
+    return formatDateKey(dateValue)
+  }, [formatDateKey])
+
+  const getSessionStartHour = React.useCallback((timeRange: string): number => {
+    if (!timeRange) return 9
+    const match = timeRange.match(/^(\d{1,2}):/)
+    return match ? parseInt(match[1], 10) : 9
+  }, [])
 
   React.useEffect(() => {
     async function loadSessions() {
@@ -124,13 +154,15 @@ export default function DistilledSessionsPage() {
               amount: t?.netAmount ? Number(t.netAmount) : 150000,
             }
           })
-          setSessions(mapped)
+          const existingIds = new Set(mapped.map((b) => b.id))
+          const preservedMocks = MOCK_SESSIONS.filter((m) => !existingIds.has(m.id))
+          setSessions([...mapped, ...preservedMocks])
         } else {
-          setSessions([])
+          setSessions(MOCK_SESSIONS)
         }
       } catch (err) {
-        console.error("Gagal memuat sesi booking:", err)
-        setSessions([])
+        console.error("Gagal memuat sesi booking, menggunakan data mock:", err)
+        setSessions(MOCK_SESSIONS)
       } finally {
         setIsLoading(false)
       }
@@ -158,14 +190,17 @@ export default function DistilledSessionsPage() {
 
   // Keyboard accessibility (Escape key) and body scroll lock
   React.useEffect(() => {
-    if (!selectedSession) return
+    if (!selectedSession && !monthlyOverflowData) return
 
     const originalOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        // If stacked manual payment modal is open, only close that modal
+        if (monthlyOverflowData) {
+          setMonthlyOverflowData(null)
+          return
+        }
         if (manualPaymentSession) {
           setManualPaymentSession(null)
           return
@@ -179,7 +214,7 @@ export default function DistilledSessionsPage() {
       document.body.style.overflow = originalOverflow
       window.removeEventListener("keydown", handleKeyDown)
     }
-  }, [selectedSession, manualPaymentSession, handleCloseDrawer])
+  }, [selectedSession, monthlyOverflowData, manualPaymentSession, handleCloseDrawer])
 
   const handleConfirmManualPayment = async (
     session: BookingSession,
@@ -259,30 +294,164 @@ export default function DistilledSessionsPage() {
     showToast(`Email konfirmasi jadwal dan tautan sesi berhasil dikirim ulang ke ${patientName}.`)
   }
 
-  // Days for weekly view: Senin 15 Sep - Minggu 21 Sep 2026 (17 Sep is Hari Ini)
-  const WEEK_DAYS = [
-    { dayName: "Senin", dateNum: 15, isToday: false, dateStr: "15 Sep 2026" },
-    { dayName: "Selasa", dateNum: 16, isToday: false, dateStr: "16 Sep 2026" },
-    { dayName: "Rabu", dateNum: 17, isToday: true, dateStr: "17 Sep 2026" },
-    { dayName: "Kamis", dateNum: 18, isToday: false, dateStr: "18 Sep 2026" },
-    { dayName: "Jumat", dateNum: 19, isToday: false, dateStr: "19 Sep 2026" },
-    { dayName: "Sabtu", dateNum: 20, isToday: false, dateStr: "20 Sep 2026" },
-    { dayName: "Minggu", dateNum: 21, isToday: false, dateStr: "21 Sep 2026" },
-  ]
+  // Calendar Navigation Handlers
+  const handlePrevPeriod = () => {
+    setCurrentDate((prev) => {
+      const d = new Date(prev)
+      if (calendarPeriod === "weekly") {
+        d.setDate(d.getDate() - 7)
+      } else {
+        d.setMonth(d.getMonth() - 1)
+      }
+      return d
+    })
+  }
 
+  const handleNextPeriod = () => {
+    setCurrentDate((prev) => {
+      const d = new Date(prev)
+      if (calendarPeriod === "weekly") {
+        d.setDate(d.getDate() + 7)
+      } else {
+        d.setMonth(d.getMonth() + 1)
+      }
+      return d
+    })
+  }
+
+  const handleToday = () => {
+    setCurrentDate(new Date())
+    showToast("Kembali ke jadwal periode hari ini.")
+  }
+
+  // Dynamic 7-day calculation for Weekly View (Monday - Sunday)
+  const weekDays = React.useMemo(() => {
+    const todayKey = formatDateKey(new Date())
+    const curr = new Date(currentDate)
+    const dayOfWeek = curr.getDay() // 0 = Sunday, 1 = Monday ...
+    const diffToMonday = curr.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
+    const monday = new Date(curr.setDate(diffToMonday))
+    monday.setHours(0, 0, 0, 0)
+
+    const dayNames = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
+    const monthNamesShort = [
+      "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+      "Jul", "Ags", "Sep", "Okt", "Nov", "Des",
+    ]
+
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday)
+      d.setDate(monday.getDate() + i)
+      const dateKey = formatDateKey(d)
+      return {
+        dateObj: d,
+        dateKey,
+        dayName: dayNames[i],
+        dateNum: d.getDate(),
+        monthShort: monthNamesShort[d.getMonth()],
+        dateStr: `${d.getDate()} ${monthNamesShort[d.getMonth()]} ${d.getFullYear()}`,
+        isToday: dateKey === todayKey,
+      }
+    })
+  }, [currentDate, formatDateKey])
+
+  // Dynamic label for toolbar period
+  const periodLabel = React.useMemo(() => {
+    const monthNamesLong = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+    ]
+    if (calendarPeriod === "weekly") {
+      const first = weekDays[0]
+      const last = weekDays[6]
+      if (first.dateObj.getMonth() === last.dateObj.getMonth()) {
+        return `${first.dateNum} - ${last.dateNum} ${monthNamesLong[first.dateObj.getMonth()]} ${first.dateObj.getFullYear()}`
+      }
+      return `${first.dateNum} ${monthNamesLong[first.dateObj.getMonth()]} - ${last.dateNum} ${monthNamesLong[last.dateObj.getMonth()]} ${last.dateObj.getFullYear()}`
+    } else {
+      return `${monthNamesLong[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+    }
+  }, [calendarPeriod, weekDays, currentDate])
+
+  // Hourly slots for Weekly View (08:00 - 21:00)
   const TIME_SLOTS = [
+    "08:00",
     "09:00",
+    "10:00",
     "11:00",
+    "12:00",
+    "13:00",
     "14:00",
+    "15:00",
     "16:00",
-    "17:30",
+    "17:00",
+    "18:00",
     "19:00",
-    "19:30",
+    "20:00",
     "21:00",
   ]
 
-  // Monthly dates 1 to 30 for September 2026 (Starts on Tuesday = index 1)
-  const MONTH_DATES = Array.from({ length: 30 }, (_, i) => i + 1)
+  // Dynamic calculation for Monthly View Grid (with leading and trailing days)
+  const monthCalendarGrid = React.useMemo(() => {
+    const year = currentDate.getFullYear()
+    const month = currentDate.getMonth()
+    const todayKey = formatDateKey(new Date())
+
+    const firstDayOfMonth = new Date(year, month, 1)
+    const firstDayIndex = (firstDayOfMonth.getDay() + 6) % 7 // Monday = 0
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const daysInPrevMonth = new Date(year, month, 0).getDate()
+
+    const cells: Array<{
+      dateObj: Date
+      dateKey: string
+      dateNum: number
+      isCurrentMonth: boolean
+      isToday: boolean
+    }> = []
+
+    // Leading days (previous month)
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const d = new Date(year, month - 1, daysInPrevMonth - i)
+      const dateKey = formatDateKey(d)
+      cells.push({
+        dateObj: d,
+        dateKey,
+        dateNum: d.getDate(),
+        isCurrentMonth: false,
+        isToday: dateKey === todayKey,
+      })
+    }
+
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(year, month, day)
+      const dateKey = formatDateKey(d)
+      cells.push({
+        dateObj: d,
+        dateKey,
+        dateNum: day,
+        isCurrentMonth: true,
+        isToday: dateKey === todayKey,
+      })
+    }
+
+    // Trailing days (next month) to complete 7-column rows
+    const remaining = (7 - (cells.length % 7)) % 7
+    for (let day = 1; day <= remaining; day++) {
+      const d = new Date(year, month + 1, day)
+      const dateKey = formatDateKey(d)
+      cells.push({
+        dateObj: d,
+        dateKey,
+        dateNum: day,
+        isCurrentMonth: false,
+        isToday: dateKey === todayKey,
+      })
+    }
+
+    return cells
+  }, [currentDate, formatDateKey])
 
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-16">
@@ -409,20 +578,32 @@ export default function DistilledSessionsPage() {
                 variant="outline"
                 size="xs"
                 className="h-8 text-xs font-medium"
-                onClick={() => showToast("Kembali ke jadwal minggu berjalan (15 - 21 Sep 2026).")}
+                onClick={handleToday}
               >
                 Hari Ini
               </Button>
               <div className="flex items-center h-8 rounded-lg border border-border bg-background p-0.5">
-                <Button variant="ghost" size="icon-xs" className="h-7 w-7" aria-label="Periode sebelumnya">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="h-7 w-7 cursor-pointer"
+                  onClick={handlePrevPeriod}
+                  aria-label="Periode sebelumnya"
+                >
                   <ChevronLeft className="size-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon-xs" className="h-7 w-7" aria-label="Periode berikutnya">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="h-7 w-7 cursor-pointer"
+                  onClick={handleNextPeriod}
+                  aria-label="Periode berikutnya"
+                >
                   <ChevronRight className="size-3.5" />
                 </Button>
               </div>
               <span className="text-xs font-semibold text-foreground ml-1">
-                {calendarPeriod === "weekly" ? "15 - 21 September 2026" : "September 2026"}
+                {periodLabel}
               </span>
             </div>
 
@@ -495,15 +676,15 @@ export default function DistilledSessionsPage() {
                   <div className="p-3 text-center text-muted-foreground font-medium border-r border-border/60">
                     Waktu
                   </div>
-                  {WEEK_DAYS.map((d) => (
+                  {weekDays.map((d) => (
                     <div
-                      key={d.dateNum}
+                      key={d.dateKey}
                       className={`p-3 text-center border-r border-border/60 last:border-r-0 ${
                         d.isToday ? "bg-primary/5 text-primary font-semibold" : "text-foreground"
                       }`}
                     >
                       <div className="text-[11px] text-muted-foreground">{d.dayName}</div>
-                      <div className="text-sm font-bold mt-0.5">{d.dateNum} Sep</div>
+                      <div className="text-sm font-bold mt-0.5">{d.dateNum} {d.monthShort}</div>
                       {d.isToday && (
                         <span className="inline-block mt-1 text-[10px] px-1.5 py-0.2 rounded-full bg-primary/10 text-primary font-medium">
                           Hari Ini
@@ -516,9 +697,7 @@ export default function DistilledSessionsPage() {
                 {/* Time Slots Grid */}
                 <div className="divide-y divide-border/60 text-xs">
                   {TIME_SLOTS.map((time) => {
-                    // Check sessions on Wednesday 17 Sep matching this time slot
-                    const sessionsAtTime = filteredSessions.filter((s) => s.timeRange.startsWith(time))
-                    const isFullyOccupied = time === "19:00" || time === "19:30"
+                    const slotHour = parseInt(time.split(":")[0], 10)
 
                     return (
                       <div key={time} className="grid grid-cols-8 min-h-[76px] items-stretch">
@@ -529,13 +708,17 @@ export default function DistilledSessionsPage() {
                         </div>
 
                         {/* 7 Days Columns */}
-                        {WEEK_DAYS.map((d) => {
-                          const isWednesday = d.dateNum === 17
-                          const daySessions = isWednesday ? sessionsAtTime : []
+                        {weekDays.map((d) => {
+                          const daySessions = filteredSessions.filter((s) => {
+                            const dateMatch = getSessionDateKey(s.date) === d.dateKey
+                            if (!dateMatch) return false
+                            const sHour = getSessionStartHour(s.timeRange)
+                            return sHour === slotHour
+                          })
 
                           return (
                             <div
-                              key={d.dateNum}
+                              key={d.dateKey}
                               className={`p-1.5 border-r border-border/60 last:border-r-0 relative flex flex-col gap-1.5 justify-center ${
                                 d.isToday ? "bg-primary/[0.02]" : ""
                               }`}
@@ -591,13 +774,6 @@ export default function DistilledSessionsPage() {
                                   </button>
                                 )
                               })}
-
-                              {/* Capacity indicator when fully occupied */}
-                              {isWednesday && isFullyOccupied && daySessions.length >= 2 && (
-                                <span className="text-[9px] text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1 py-0.5 rounded text-center font-medium">
-                                  Kapasitas Penuh (2/2)
-                                </span>
-                              )}
                             </div>
                           )
                         })}
@@ -623,34 +799,35 @@ export default function DistilledSessionsPage() {
                 <span>Minggu</span>
               </div>
 
-              {/* 30 Days Grid */}
+              {/* Monthly Calendar Grid */}
               <div className="grid grid-cols-7 divide-x divide-y divide-border/60 text-xs">
-                {/* 1 empty cell for September 2026 offset */}
-                <div className="min-h-[90px] p-2 bg-muted/10 opacity-30" />
-
-                {MONTH_DATES.map((dateNum) => {
-                  const isToday = dateNum === 17
-                  const isTuesday = dateNum === 22
-                  const daySessions = isToday
-                    ? filteredSessions
-                    : isTuesday
-                    ? filteredSessions.filter((s) => s.code === "SL-9285")
-                    : []
+                {monthCalendarGrid.map((cell) => {
+                  const daySessions = filteredSessions.filter(
+                    (s) => getSessionDateKey(s.date) === cell.dateKey
+                  )
 
                   return (
                     <div
-                      key={dateNum}
-                      className={`min-h-[90px] p-2 flex flex-col gap-1 transition-colors ${
-                        isToday ? "bg-primary/[0.04]" : "hover:bg-muted/20"
+                      key={cell.dateKey}
+                      className={`min-h-[96px] p-2 flex flex-col gap-1 transition-colors ${
+                        !cell.isCurrentMonth
+                          ? "bg-muted/15 text-muted-foreground/60 opacity-60"
+                          : cell.isToday
+                          ? "bg-primary/[0.04]"
+                          : "hover:bg-muted/20"
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <span
                           className={`size-6 rounded-full flex items-center justify-center text-xs font-semibold ${
-                            isToday ? "bg-primary text-primary-foreground font-bold" : "text-foreground"
+                            cell.isToday
+                              ? "bg-primary text-primary-foreground font-bold shadow-2xs"
+                              : cell.isCurrentMonth
+                              ? "text-foreground"
+                              : "text-muted-foreground/60"
                           }`}
                         >
-                          {dateNum}
+                          {cell.dateNum}
                         </span>
                         {daySessions.length > 0 && (
                           <span className="text-[10px] text-muted-foreground font-medium">
@@ -659,19 +836,21 @@ export default function DistilledSessionsPage() {
                         )}
                       </div>
 
-                      {/* Mini session pills */}
+                      {/* Mini session pills (Max 2 shown directly) */}
                       <div className="flex flex-col gap-1 mt-1">
                         {daySessions.slice(0, 2).map((ses) => (
                           <button
                             key={ses.id}
                             type="button"
                             onClick={() => handleOpenSession(ses)}
-                            className="text-left px-1.5 py-0.5 rounded text-[10px] font-medium truncate bg-muted/60 hover:bg-muted text-foreground border border-border/60 transition-colors cursor-pointer flex items-center gap-1"
+                            className="text-left px-1.5 py-0.5 rounded text-[10px] font-medium truncate bg-muted/60 hover:bg-muted text-foreground border border-border/60 transition-colors cursor-pointer flex items-center gap-1 group"
                           >
                             <span
                               className={`size-1.5 rounded-full shrink-0 ${
                                 ses.status === "in_session"
                                   ? "bg-emerald-500"
+                                  : ses.status === "pending_payment"
+                                  ? "bg-amber-500"
                                   : ses.hasSuicidalThoughts
                                   ? "bg-destructive"
                                   : "bg-primary"
@@ -682,10 +861,30 @@ export default function DistilledSessionsPage() {
                             </span>
                           </button>
                         ))}
+
+                        {/* Interactive +N Overflow Button */}
                         {daySessions.length > 2 && (
-                          <span className="text-[9px] text-muted-foreground pl-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const dateObj = cell.dateObj
+                              const displayDate = dateObj.toLocaleDateString("id-ID", {
+                                weekday: "long",
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              })
+                              setMonthlyOverflowData({
+                                dateStr: cell.dateKey,
+                                displayDate,
+                                sessions: daySessions,
+                              })
+                            }}
+                            className="text-left text-[10px] font-semibold text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/20 px-1.5 py-0.5 rounded transition-colors cursor-pointer w-fit"
+                          >
                             +{daySessions.length - 2} sesi lainnya
-                          </span>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -694,6 +893,115 @@ export default function DistilledSessionsPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Monthly Overflow Modal / Popover */}
+      {monthlyOverflowData && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs animate-in fade-in"
+          onClick={() => setMonthlyOverflowData(null)}
+        >
+          <div
+            className="w-full max-w-md bg-card border border-border rounded-2xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-150 flex flex-col max-h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30">
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-2">
+                  <Calendar className="size-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {monthlyOverflowData.displayDate}
+                  </h3>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Total {monthlyOverflowData.sessions.length} jadwal sesi konsultasi pada tanggal ini.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => setMonthlyOverflowData(null)}
+                className="size-7 rounded-lg text-muted-foreground hover:text-foreground"
+                aria-label="Tutup daftar sesi"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+
+            {/* Session Items List */}
+            <div className="p-3 overflow-y-auto divide-y divide-border/50 flex flex-col gap-1">
+              {monthlyOverflowData.sessions.map((ses) => (
+                <div
+                  key={ses.id}
+                  onClick={() => {
+                    setMonthlyOverflowData(null)
+                    handleOpenSession(ses)
+                  }}
+                  className="p-3 rounded-xl hover:bg-muted/50 border border-transparent hover:border-border/60 transition-all cursor-pointer flex flex-col gap-2 group"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-semibold text-foreground">
+                        {ses.timeRange}
+                      </span>
+                      <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-muted">
+                        {ses.code}
+                      </span>
+                    </div>
+                    {/* Status Badge */}
+                    <Badge
+                      variant={
+                        ses.status === "in_session"
+                          ? "default"
+                          : ses.status === "pending_payment"
+                          ? "destructive"
+                          : ses.status === "completed"
+                          ? "outline"
+                          : "secondary"
+                      }
+                      className="text-[10px] px-2 py-0.5"
+                    >
+                      {ses.status === "in_session"
+                        ? "Sedang Berjalan"
+                        : ses.status === "pending_payment"
+                        ? "Menunggu Bayar"
+                        : ses.status === "completed"
+                        ? "Selesai"
+                        : "Menunggu Sesi"}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                        {ses.patientName}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {ses.counselorName} • {ses.counselorType}
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground bg-muted/60 px-2 py-1 rounded-md shrink-0">
+                      {ses.zoomRoom}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 border-t border-border bg-muted/20 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMonthlyOverflowData(null)}
+                className="text-xs h-8"
+              >
+                Tutup
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

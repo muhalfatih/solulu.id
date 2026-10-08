@@ -601,12 +601,12 @@ export interface TestimonialItem {
   anonymousDisplay: string
   avatarBg?: string
   sessionCode?: string
-  counselorName: string
-  counselorType?: "Psikolog Klinis" | "Konselor Sebaya"
-  rating: number
-  quoteHighlight: string
-  comment: string
-  topic: "Kecemasan & Overthinking" | "Karier & Burnout" | "Relasi & Keluarga" | "Depresi Ringan" | "Pengembangan Diri"
+  counselorName?: string
+  counselorType?: "Psikolog Klinis" | "Konselor Sebaya" | string
+  rating?: number
+  quoteHighlight: string // Subjek / judul ulasan
+  comment: string // Isi ulasan / pengalaman
+  topic: string // Topik masalah dari direktori fokus & spesialisasi
   submittedAt: string
   isActive: boolean
   status?: "pending" | "approved" | "archived"

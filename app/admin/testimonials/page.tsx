@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
-import type { TestimonialItem } from "../mock-data"
+import { MOCK_TESTIMONIALS, type TestimonialItem } from "../mock-data"
 import { TestimonialVariantA } from "./components/testimonial-variant-a"
 import { Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { getActiveSpecializationsAction } from "@/app/admin/specializations/actions"
 import {
   getTestimonialsAdminAction,
   createTestimonialAdminAction,
@@ -14,7 +15,8 @@ import {
 } from "./actions"
 
 export default function TestimonialsAdminPage() {
-  const [items, setItems] = React.useState<TestimonialItem[]>([])
+  const [items, setItems] = React.useState<TestimonialItem[]>(MOCK_TESTIMONIALS)
+  const [specializationTopics, setSpecializationTopics] = React.useState<string[]>([])
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
 
@@ -23,44 +25,57 @@ export default function TestimonialsAdminPage() {
     setTimeout(() => setToastMessage(null), 3200)
   }
 
-  // Fetch real testimonials from database on mount
+  // Fetch real testimonials and active specializations directory from database on mount
   React.useEffect(() => {
-    async function loadTestimonials() {
+    async function loadData() {
       try {
-        const res = await getTestimonialsAdminAction()
-        if (res.success && res.data && res.data.length > 0) {
-          const mapped: TestimonialItem[] = res.data.map((r: any) => ({
+        const [testimonialsRes, specializationsRes] = await Promise.all([
+          getTestimonialsAdminAction(),
+          getActiveSpecializationsAction(),
+        ])
+
+        if (specializationsRes.success && specializationsRes.data) {
+          const names = specializationsRes.data.map((s: any) => s.name).filter(Boolean)
+          if (names.length > 0) {
+            setSpecializationTopics(names)
+          }
+        }
+
+        if (testimonialsRes.success && testimonialsRes.data && testimonialsRes.data.length > 0) {
+          const mapped: TestimonialItem[] = testimonialsRes.data.map((r: any) => ({
             id: r.id,
             clientName: r.clientName,
-            isAnonymous: r.isAnonymous,
-            anonymousDisplay: r.anonymousDisplay,
-            sessionCode: r.sessionCode || "",
-            counselorName: r.counselorName,
-            counselorType: r.counselorType || "Psikolog Klinis",
-            rating: r.rating,
+            isAnonymous: r.isAnonymous ?? true,
+            anonymousDisplay: r.anonymousDisplay || r.clientName || "Klien Anonim",
             quoteHighlight: r.quoteHighlight,
             comment: r.comment,
             topic: r.topic,
-            submittedAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
-            date: new Date(r.createdAt).toLocaleDateString("id-ID", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            }),
+            submittedAt: r.createdAt
+              ? new Date(r.createdAt).toLocaleDateString("id-ID", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "Baru saja",
             isActive: r.isActive,
-            isFeatured: r.isFeatured ?? true,
+            isFeatured: r.isFeatured ?? r.isActive,
+            rating: r.rating || 5,
           }))
-          setItems(mapped)
+
+          const existingIds = new Set(mapped.map((m) => m.id))
+          const preservedMocks = MOCK_TESTIMONIALS.filter((m) => !existingIds.has(m.id))
+          setItems([...mapped, ...preservedMocks])
         } else {
-          setItems([])
+          setItems(MOCK_TESTIMONIALS)
         }
       } catch (err) {
-        console.error("Failed to load real testimonials:", err)
+        console.error("Failed to load real testimonials, keeping mock view:", err)
+        setItems(MOCK_TESTIMONIALS)
       } finally {
         setIsLoading(false)
       }
     }
-    loadTestimonials()
+    loadData()
   }, [])
 
   // Handle Add New Post
@@ -69,17 +84,13 @@ export default function TestimonialsAdminPage() {
     try {
       await createTestimonialAdminAction({
         clientName: newPost.clientName,
-        isAnonymous: newPost.isAnonymous,
-        anonymousDisplay: newPost.anonymousDisplay,
-        sessionCode: newPost.sessionCode,
-        counselorName: newPost.counselorName,
-        counselorType: newPost.counselorType || "Psikolog Klinis",
-        rating: newPost.rating,
-        quoteHighlight: newPost.quoteHighlight,
-        comment: newPost.comment,
-        topic: newPost.topic,
+        isAnonymous: true,
+        anonymousDisplay: newPost.anonymousDisplay || newPost.clientName,
+        quoteHighlight: newPost.quoteHighlight, // Subjek
+        comment: newPost.comment, // Isi
+        topic: newPost.topic, // Topik Masalah
         isActive: newPost.isActive,
-        isFeatured: newPost.isFeatured ?? true,
+        isFeatured: newPost.isFeatured ?? newPost.isActive,
       })
     } catch (err) {
       console.error("Failed to persist testimonial to DB:", err)
@@ -87,8 +98,8 @@ export default function TestimonialsAdminPage() {
 
     showToast(
       newPost.isActive
-        ? `Ulasan ${newPost.anonymousDisplay} berhasil disimpan ke database dan berstatus Aktif.`
-        : `Ulasan ${newPost.anonymousDisplay} berhasil disimpan ke database (Tidak Aktif).`
+        ? `Ulasan "${newPost.quoteHighlight}" berhasil disimpan dan berstatus Aktif di homepage.`
+        : `Ulasan "${newPost.quoteHighlight}" berhasil disimpan (Tidak Aktif).`
     )
   }
 
@@ -98,7 +109,15 @@ export default function TestimonialsAdminPage() {
       prev.map((item) => (item.id === id ? { ...item, ...updated } : item))
     )
     try {
-      await updateTestimonialAdminAction(id, updated as any)
+      await updateTestimonialAdminAction(id, {
+        clientName: updated.clientName,
+        anonymousDisplay: updated.anonymousDisplay || updated.clientName,
+        quoteHighlight: updated.quoteHighlight,
+        comment: updated.comment,
+        topic: updated.topic,
+        isActive: updated.isActive,
+        isFeatured: updated.isActive,
+      })
     } catch (err) {
       console.error("Failed to update testimonial in DB:", err)
     }
@@ -138,7 +157,7 @@ export default function TestimonialsAdminPage() {
     } catch (err) {
       console.error("Failed to delete testimonial in DB:", err)
     }
-    showToast("Testimoni telah dihapus dari database.")
+    showToast("Ulasan berhasil dihapus.")
   }
 
   const activeCount = items.filter((i) => i.isActive).length
@@ -151,17 +170,17 @@ export default function TestimonialsAdminPage() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/30 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md"
+          className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md"
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <Check className="size-4 text-primary shrink-0" />
-            <span className="leading-snug">{toastMessage}</span>
+            <span>{toastMessage}</span>
           </div>
           <Button
             variant="ghost"
             size="icon-xs"
             onClick={() => setToastMessage(null)}
-            className="size-6 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+            className="size-6 text-muted-foreground hover:text-foreground cursor-pointer"
             aria-label="Tutup notifikasi"
           >
             <X className="size-3.5" />
@@ -169,14 +188,16 @@ export default function TestimonialsAdminPage() {
         </div>
       )}
 
-      {/* Main Page Header */}
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
+      {/* Header */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Testimoni Klien
-          </h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
+              Manajemen Testimoni Publik
+            </h1>
+          </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Tulis ulasan klien dari evaluasi sesi dan kelola testimoni yang tampil di halaman website Solulu.
+            Format mandiri sesuai homepage: Subjek, Isi, Nama Anonim, dan Topik Masalah (dari fokus &amp; spesialisasi).
           </p>
         </div>
 
@@ -203,10 +224,11 @@ export default function TestimonialsAdminPage() {
         </div>
       </header>
 
-      {/* Main Content Area: Opsi 1 (Komposer Langsung & Linimasa Ulasan) */}
+      {/* Main Content Area */}
       <main className="w-full">
         <TestimonialVariantA
           items={items}
+          availableTopics={specializationTopics}
           onAddPost={handleAddPost}
           onUpdatePost={handleUpdatePost}
           onToggleActive={handleToggleActive}

@@ -131,7 +131,7 @@ export function TestimonialVariantA({
     setEditingId(item.id)
     setEditComment(item.comment)
     setEditQuote(item.quoteHighlight || "")
-    setEditRating(item.rating)
+    setEditRating(item.rating ?? 5)
     setEditIsActive(item.isActive)
   }
 
@@ -152,7 +152,7 @@ export function TestimonialVariantA({
         searchQuery.trim() === "" ||
         item.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.anonymousDisplay.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.counselorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.counselorName && item.counselorName.toLowerCase().includes(searchQuery.toLowerCase())) ||
         item.comment.toLowerCase().includes(searchQuery.toLowerCase())
 
       const matchStatus =

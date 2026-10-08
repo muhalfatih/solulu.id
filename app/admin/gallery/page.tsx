@@ -43,10 +43,15 @@ export default function GalleryAdminPage() {
             isCensoredAndConsented: true,
             uploadedBy: "Admin",
           }))
-          setItems(mapped)
+          const existingIds = new Set(mapped.map((m) => m.id))
+          const preservedMocks = MOCK_GALLERY_ITEMS.filter((m) => !existingIds.has(m.id))
+          setItems([...mapped, ...preservedMocks])
+        } else {
+          setItems(MOCK_GALLERY_ITEMS)
         }
       } catch (err) {
-        console.error("Failed to load real gallery:", err)
+        console.error("Failed to load real gallery, keeping mock items:", err)
+        setItems(MOCK_GALLERY_ITEMS)
       }
     }
     loadGallery()

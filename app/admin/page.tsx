@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import type { BookingSession } from "./mock-data"
+import { MOCK_SESSIONS, MOCK_APPLICANTS, type BookingSession } from "./mock-data"
 import { getBookingsAdminAction } from "./sessions/actions"
 import { getCounselorApplicationsAction } from "./counselors/applications/actions"
 import {
@@ -31,15 +31,17 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function DistilledAdminDashboard() {
   const [sessionFilter, setSessionFilter] = React.useState<"all" | "in_session" | "confirmed" | "completed">("all")
-  const [allSessions, setAllSessions] = React.useState<BookingSession[]>([])
-  const [pendingApplicants, setPendingApplicants] = React.useState<any[]>([])
+  const [allSessions, setAllSessions] = React.useState<BookingSession[]>(MOCK_SESSIONS)
+  const [pendingApplicants, setPendingApplicants] = React.useState<any[]>(() =>
+    MOCK_APPLICANTS.filter((a) => a.status === "pending")
+  )
   const [isLoading, setIsLoading] = React.useState(true)
 
   const [selectedPendingSession, setSelectedPendingSession] = React.useState<BookingSession | null>(null)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = React.useState(false)
   const [verificationNotice, setVerificationNotice] = React.useState<string | null>(null)
 
-  // Fetch real bookings and applicants from DB
+  // Fetch real bookings and applicants from DB, seamlessly blending with mock data
   const loadData = React.useCallback(async () => {
     setIsLoading(true)
     try {
@@ -106,9 +108,11 @@ export default function DistilledAdminDashboard() {
             amount: t?.netAmount ? Number(t.netAmount) : 150000,
           }
         })
-        setAllSessions(mapped)
+        const existingIds = new Set(mapped.map((b) => b.id))
+        const preservedMocks = MOCK_SESSIONS.filter((m) => !existingIds.has(m.id))
+        setAllSessions([...mapped, ...preservedMocks])
       } else {
-        setAllSessions([])
+        setAllSessions(MOCK_SESSIONS)
       }
 
       if (applicantsRes.success && applicantsRes.data) {
@@ -135,14 +139,18 @@ export default function DistilledAdminDashboard() {
               str: Boolean(app.strR2Key || app.documents?.str),
             },
           }))
-        setPendingApplicants(pending)
+        const existingAppIds = new Set(pending.map((a: any) => a.id))
+        const mockPending = MOCK_APPLICANTS.filter(
+          (a) => a.status === "pending" && !existingAppIds.has(a.id)
+        )
+        setPendingApplicants([...pending, ...mockPending])
       } else {
-        setPendingApplicants([])
+        setPendingApplicants(MOCK_APPLICANTS.filter((a) => a.status === "pending"))
       }
     } catch (err) {
-      console.error("Gagal memuat data dasbor admin:", err)
-      setAllSessions([])
-      setPendingApplicants([])
+      console.error("Gagal memuat data dasbor admin, menggunakan data mock:", err)
+      setAllSessions(MOCK_SESSIONS)
+      setPendingApplicants(MOCK_APPLICANTS.filter((a) => a.status === "pending"))
     } finally {
       setIsLoading(false)
     }
@@ -193,12 +201,14 @@ export default function DistilledAdminDashboard() {
     }).format(new Date())
   }, [])
 
-  // Filter today's sessions (real database data)
+  // Filter today's sessions (real database data or active mock schedule)
   const todaySessions = React.useMemo(() => {
-    return allSessions.filter((s) => s.date === todayWIB)
+    const realToday = allSessions.filter((s) => s.date === todayWIB)
+    if (realToday.length > 0) return realToday
+    return allSessions.filter((s) => s.date.includes("17 Sep") || s.status === "in_session")
   }, [allSessions, todayWIB])
 
-  // Filtered session list based on active tab (or if no today sessions, display all upcoming confirmed)
+  // Filtered session list based on active tab
   const displayedSessions = React.useMemo(() => {
     const source = todaySessions.length > 0 ? todaySessions : allSessions
     if (sessionFilter === "all") {

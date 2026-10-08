@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import {
-  Star,
   Search,
   Trash2,
   Edit2,
@@ -12,6 +11,7 @@ import {
   EyeOff,
   Quote,
   Filter,
+  Sparkles,
 } from "lucide-react"
 import { TestimonialItem } from "../../mock-data"
 import { Button } from "@/components/ui/button"
@@ -28,22 +28,20 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const COUNSELOR_OPTIONS = [
-  { name: "Siti Rahmawati, M.Psi., Psikolog", type: "Psikolog Klinis" as const },
-  { name: "Budi Santoso, S.Psi.", type: "Konselor Sebaya" as const },
-  { name: "Dr. Dian Pratama, Sp.KJ", type: "Psikolog Klinis" as const },
-]
-
-const TOPIC_OPTIONS = [
+export const DEFAULT_SPECIALIZATION_TOPICS = [
   "Kecemasan & Overthinking",
   "Karier & Burnout",
   "Relasi & Keluarga",
   "Depresi Ringan",
   "Pengembangan Diri",
-] as const
+  "Quarter-Life Crisis",
+  "Stres Akademik & Kerja",
+  "Insecurity & Penerimaan Diri",
+]
 
 interface TestimonialVariantAProps {
   items: TestimonialItem[]
+  availableTopics?: string[]
   onAddPost: (post: TestimonialItem) => void
   onUpdatePost: (id: string, updated: Partial<TestimonialItem>) => void
   onToggleActive: (id: string) => void
@@ -52,110 +50,99 @@ interface TestimonialVariantAProps {
 
 export function TestimonialVariantA({
   items,
+  availableTopics = [],
   onAddPost,
   onUpdatePost,
   onToggleActive,
   onDeletePost,
 }: TestimonialVariantAProps) {
-  // Composer State
-  const [clientName, setClientName] = React.useState("")
-  const [quoteHighlight, setQuoteHighlight] = React.useState("")
-  const [anonymousDisplay, setAnonymousDisplay] = React.useState("")
-  const [isAnonymous, setIsAnonymous] = React.useState(true)
-  const [counselorIndex, setCounselorIndex] = React.useState(0)
-  const [topic, setTopic] = React.useState<typeof TOPIC_OPTIONS[number]>("Kecemasan & Overthinking")
-  const [rating, setRating] = React.useState(5)
+  // Combine database specializations with default list to ensure rich options
+  const topicList = React.useMemo(() => {
+    const set = new Set<string>()
+    availableTopics.forEach((t) => t && set.add(t.trim()))
+    DEFAULT_SPECIALIZATION_TOPICS.forEach((t) => set.add(t))
+    items.forEach((i) => {
+      if (i.topic) set.add(i.topic)
+    })
+    return Array.from(set)
+  }, [availableTopics, items])
+
+  // Composer Form State (Subjek, Isi, Nama Anonim, Topik Masalah)
+  const [subject, setSubject] = React.useState("")
   const [comment, setComment] = React.useState("")
+  const [clientName, setClientName] = React.useState("")
+  const [topic, setTopic] = React.useState<string>(topicList[0] || "Kecemasan & Overthinking")
   const [isActive, setIsActive] = React.useState(true)
-  const [isFeatured, setIsFeatured] = React.useState(true)
-  const [showLivePreview, setShowLivePreview] = React.useState(false)
+
+  // Sync default topic if topicList updates
+  React.useEffect(() => {
+    if (topicList.length > 0 && !topicList.includes(topic)) {
+      setTopic(topicList[0])
+    }
+  }, [topicList, topic])
 
   // Inline Editing State
   const [editingId, setEditingId] = React.useState<string | null>(null)
+  const [editSubject, setEditSubject] = React.useState("")
   const [editComment, setEditComment] = React.useState("")
-  const [editQuote, setEditQuote] = React.useState("")
-  const [editAnonymousDisplay, setEditAnonymousDisplay] = React.useState("")
-  const [editRating, setEditRating] = React.useState(5)
+  const [editClientName, setEditClientName] = React.useState("")
+  const [editTopic, setEditTopic] = React.useState("")
   const [editIsActive, setEditIsActive] = React.useState(true)
-  const [editIsFeatured, setEditIsFeatured] = React.useState(true)
 
   // Filter & Search State
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "inactive">("all")
   const [topicFilter, setTopicFilter] = React.useState<string>("all")
 
-  // Generate anonymous pseudonym from client name (e.g. "Rian Adiputra" -> "R.A.")
-  const getAnonymousDisplay = (name: string, anonymous: boolean) => {
-    if (!anonymous) return name.trim() || "Nama Klien"
-    if (!name.trim()) return "Klien Anonim"
-    const parts = name.trim().split(/\s+/)
-    return parts.map((p) => p[0].toUpperCase() + ".").join("")
-  }
-
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!clientName.trim() || !comment.trim()) return
-
-    const selectedCounselor = COUNSELOR_OPTIONS[counselorIndex]
-    const defaultAnon = getAnonymousDisplay(clientName, isAnonymous)
-    const finalAnonDisplay = anonymousDisplay.trim() || defaultAnon
-
-    // First sentence as highlight quote fallback
-    const firstSentence = comment.split(/[.!?]/)[0] || comment
-    const finalQuoteHighlight = quoteHighlight.trim() ||
-      (firstSentence.length > 70 ? firstSentence.slice(0, 70) + "..." : firstSentence)
+    if (!subject.trim() || !comment.trim() || !clientName.trim()) return
 
     const newPost: TestimonialItem = {
-      id: `post-${Date.now()}`,
+      id: `t-${Date.now()}`,
       clientName: clientName.trim(),
-      isAnonymous,
-      anonymousDisplay: finalAnonDisplay,
-      avatarBg: "bg-primary/10 text-primary",
-      sessionCode: `SL-POST-${Math.floor(100 + Math.random() * 900)}`,
-      counselorName: selectedCounselor.name,
-      counselorType: selectedCounselor.type,
-      rating,
-      quoteHighlight: finalQuoteHighlight,
+      isAnonymous: true,
+      anonymousDisplay: clientName.trim(),
+      quoteHighlight: subject.trim(),
       comment: comment.trim(),
-      topic,
+      topic: topic.trim(),
       submittedAt: "Baru saja",
       isActive,
-      isFeatured,
+      status: "approved",
+      isFeatured: isActive,
       consentGiven: true,
-      hasSensitiveDetails: false,
-      platformRating: 5,
+      rating: 5,
     }
 
     onAddPost(newPost)
 
     // Reset composer form
-    setClientName("")
-    setQuoteHighlight("")
-    setAnonymousDisplay("")
+    setSubject("")
     setComment("")
+    setClientName("")
     setIsActive(true)
-    setIsFeatured(true)
-    setRating(5)
   }
 
   const startEdit = (item: TestimonialItem) => {
     setEditingId(item.id)
-    setEditComment(item.comment)
-    setEditQuote(item.quoteHighlight || "")
-    setEditAnonymousDisplay(item.anonymousDisplay || "")
-    setEditRating(item.rating)
+    setEditSubject(item.quoteHighlight || "")
+    setEditComment(item.comment || "")
+    setEditClientName(item.anonymousDisplay || item.clientName || "")
+    setEditTopic(item.topic || topicList[0] || "Kecemasan & Overthinking")
     setEditIsActive(item.isActive)
-    setEditIsFeatured(item.isFeatured ?? true)
   }
 
   const saveEdit = (id: string) => {
+    if (!editSubject.trim() || !editComment.trim() || !editClientName.trim()) return
+
     onUpdatePost(id, {
+      quoteHighlight: editSubject.trim(),
       comment: editComment.trim(),
-      quoteHighlight: editQuote.trim(),
-      anonymousDisplay: editAnonymousDisplay.trim(),
-      rating: editRating,
+      clientName: editClientName.trim(),
+      anonymousDisplay: editClientName.trim(),
+      topic: editTopic.trim(),
       isActive: editIsActive,
-      isFeatured: editIsFeatured,
+      isFeatured: editIsActive,
     })
     setEditingId(null)
   }
@@ -163,12 +150,14 @@ export function TestimonialVariantA({
   // Filtered post feed
   const filteredPosts = React.useMemo(() => {
     return items.filter((item) => {
+      const q = searchQuery.toLowerCase().trim()
       const matchSearch =
-        searchQuery.trim() === "" ||
-        item.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.anonymousDisplay.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.counselorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.comment.toLowerCase().includes(searchQuery.toLowerCase())
+        q === "" ||
+        (item.quoteHighlight && item.quoteHighlight.toLowerCase().includes(q)) ||
+        (item.comment && item.comment.toLowerCase().includes(q)) ||
+        (item.anonymousDisplay && item.anonymousDisplay.toLowerCase().includes(q)) ||
+        (item.clientName && item.clientName.toLowerCase().includes(q)) ||
+        (item.topic && item.topic.toLowerCase().includes(q))
 
       const matchStatus =
         statusFilter === "all"
@@ -188,9 +177,9 @@ export function TestimonialVariantA({
 
   return (
     <div className="flex flex-col gap-6 w-full">
-      {/* 1. DIRECT COMPOSER BOX (Tulis Postingan Testimoni Baru) */}
+      {/* 1. DIRECT COMPOSER BOX: Subjek, Isi, Nama Anonim, Topik Masalah */}
       <section
-        aria-label="Formulir tulis ulasan testimoni baru"
+        aria-label="Formulir tulis testimoni baru"
         className="rounded-2xl border border-border bg-card p-5 shadow-2xs flex flex-col gap-4"
       >
         <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-border">
@@ -200,31 +189,32 @@ export function TestimonialVariantA({
               Tulis Testimoni Baru
             </h2>
           </div>
-          <span className="text-xs text-muted-foreground">
-            Catat hasil evaluasi konseling untuk ditampilkan pada website Solulu.
+          <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Sparkles className="size-3 text-primary" />
+            Format mandiri sesuai homepage (Subjek, Isi, Nama Anonim, Topik Spesialisasi)
           </span>
         </div>
 
         <form onSubmit={handleCreatePost} className="flex flex-col gap-4">
-          {/* Judul / Headline Ulasan (Quote Highlight) */}
+          {/* Row 1: Subjek Testimoni */}
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="post-quote" className="text-xs font-medium text-foreground flex items-center justify-between">
-              <span>Judul / Sorotan Ulasan (Heading Kartu di Web)</span>
-              <span className="text-[11px] text-muted-foreground font-normal">Contoh: Tidak merasa sendirian lagi</span>
+            <Label htmlFor="post-subject" className="text-xs font-medium text-foreground">
+              Subjek / Judul Testimoni <span className="text-destructive">*</span>
             </Label>
             <Input
-              id="post-quote"
-              value={quoteHighlight}
-              onChange={(e) => setQuoteHighlight(e.target.value)}
-              placeholder="Misal: 'Tidak merasa sendirian lagi' atau 'Punya arah keluar dari masalah'"
-              className="h-8 w-full text-xs bg-background"
+              id="post-subject"
+              required
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Contoh: Tidak merasa sendirian lagi / Punya arah keluar dari masalah"
+              className="h-9 w-full text-xs bg-background"
             />
           </div>
 
-          {/* Main Textarea */}
+          {/* Row 2: Isi Ulasan / Pengalaman */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="post-comment" className="text-xs font-medium text-foreground">
-              Isi Ulasan / Pengalaman Klien <span className="text-destructive">*</span>
+              Isi Ulasan <span className="text-destructive">*</span>
             </Label>
             <textarea
               id="post-comment"
@@ -233,100 +223,39 @@ export function TestimonialVariantA({
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Tuliskan pengalaman atau kutipan ulasan klien di sini... Contoh: 'Awalnya sempat ragu mau cerita karena takut dinilai lebay. Tapi konselornya sangat menenangkan sejak menit awal, dan durasi 90 menit beneran bikin lega tanpa rasa diburu-buru.'"
-              className="w-full rounded-xl border border-input bg-background p-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring leading-relaxed resize-y min-h-[72px]"
+              className="w-full rounded-xl border border-input bg-background p-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring leading-relaxed resize-y min-h-[76px]"
             />
           </div>
 
-          {/* Row Inputs: Nama Klien, Label Publik, Konselor, Topik */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 items-start">
-            {/* Nama Klien & Toggle Inisial Anonim */}
+          {/* Row 3: Nama (Sebagai Anonim) & Topik Masalah */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
+            {/* Nama (Sebagai Anonim) */}
             <div className="flex flex-col gap-1.5">
-              <div className="h-5 flex items-center justify-between">
-                <Label htmlFor="client-name" className="text-xs font-medium text-foreground">
-                  Nama Klien <span className="text-destructive">*</span>
-                </Label>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="checkbox"
-                    id="anon-check"
-                    checked={isAnonymous}
-                    onChange={(e) => setIsAnonymous(e.target.checked)}
-                    className="rounded border-input text-primary focus:ring-primary size-3 cursor-pointer"
-                  />
-                  <label htmlFor="anon-check" className="text-[11px] text-muted-foreground cursor-pointer select-none">
-                    Inisial
-                  </label>
-                </div>
-              </div>
+              <Label htmlFor="client-name" className="text-xs font-medium text-foreground">
+                Nama (Sebagai Anonim) <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="client-name"
                 required
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
-                placeholder="Misal: Rian Adiputra"
-                className="h-8 w-full text-xs bg-background"
+                placeholder="Contoh: Mahasiswa, 21 tahun / Karyawan Swasta, 26 tahun / Klien Anonim"
+                className="h-9 w-full text-xs bg-background"
               />
             </div>
 
-            {/* Label Tampilan Publik (misal: "Mahasiswa, 21 tahun") */}
+            {/* Topik Masalah (dari database spesialisasi & fokus) */}
             <div className="flex flex-col gap-1.5">
-              <div className="h-5 flex items-center">
-                <Label htmlFor="anon-display" className="text-xs font-medium text-foreground">
-                  Label Tampilan Publik
-                </Label>
-              </div>
-              <Input
-                id="anon-display"
-                value={anonymousDisplay}
-                onChange={(e) => setAnonymousDisplay(e.target.value)}
-                placeholder="Misal: Mahasiswa, 21 tahun"
-                className="h-8 w-full text-xs bg-background"
-              />
-            </div>
-
-            {/* Konselor Pendamping */}
-            <div className="flex flex-col gap-1.5">
-              <div className="h-5 flex items-center">
-                <Label className="text-xs font-medium text-foreground">
-                  Konselor Pendamping
-                </Label>
-              </div>
-              <Select
-                value={String(counselorIndex)}
-                onValueChange={(val) => setCounselorIndex(Number(val))}
-              >
-                <SelectTrigger size="sm" className="h-8 w-full text-xs bg-background">
-                  <SelectValue placeholder="Pilih konselor..." />
+              <Label className="text-xs font-medium text-foreground">
+                Topik Masalah (Fokus &amp; Spesialisasi) <span className="text-destructive">*</span>
+              </Label>
+              <Select value={topic} onValueChange={setTopic}>
+                <SelectTrigger size="sm" className="h-9 w-full text-xs bg-background">
+                  <SelectValue placeholder="Pilih topik masalah..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {COUNSELOR_OPTIONS.map((c, idx) => (
-                      <SelectItem key={idx} value={String(idx)} className="text-xs">
-                        {c.name} ({c.type})
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Topik Masalah */}
-            <div className="flex flex-col gap-1.5">
-              <div className="h-5 flex items-center">
-                <Label className="text-xs font-medium text-foreground">
-                  Topik Masalah
-                </Label>
-              </div>
-              <Select
-                value={topic}
-                onValueChange={(val) => setTopic(val as typeof TOPIC_OPTIONS[number])}
-              >
-                <SelectTrigger size="sm" className="h-8 w-full text-xs bg-background">
-                  <SelectValue placeholder="Pilih topik..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {TOPIC_OPTIONS.map((t) => (
+                    {topicList.map((t) => (
                       <SelectItem key={t} value={t} className="text-xs">
                         {t}
                       </SelectItem>
@@ -337,119 +266,41 @@ export function TestimonialVariantA({
             </div>
           </div>
 
-          {/* Bottom Row: Rating, Status Aktif Toggle, Tampil di Homepage, Live Preview Button, Submit Button */}
+          {/* Bottom Row: Status Aktif Toggle & Submit Button */}
           <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-border">
-            <div className="flex flex-wrap items-center gap-5">
-              {/* Rating Bintang */}
-              <div className="flex items-center gap-2 h-8">
-                <span className="text-xs text-muted-foreground">Rating:</span>
-                <div className="flex items-center gap-0.5">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setRating(star)}
-                      className="text-amber-400 p-0.5 focus:outline-none cursor-pointer"
-                      aria-label={`Pilih rating ${star} bintang`}
-                    >
-                      <Star
-                        className={`size-3.5 ${
-                          star <= rating ? "fill-amber-400" : "text-muted-foreground/30 fill-none"
-                        }`}
-                      />
-                    </button>
-                  ))}
-                  <span className="text-[11px] font-mono text-muted-foreground ml-1.5">
-                    {rating}.0
-                  </span>
-                </div>
-              </div>
-
-              {/* Status Aktif / Tidak Aktif Switch */}
-              <div className="flex items-center gap-2 h-8">
-                <Switch
-                  id="active-toggle"
-                  checked={isActive}
-                  onCheckedChange={setIsActive}
-                />
-                <Label htmlFor="active-toggle" className="text-xs font-medium text-foreground cursor-pointer flex items-center gap-1.5 select-none">
-                  <span>Status:</span>
-                  <span className={isActive ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-muted-foreground"}>
-                    {isActive ? "Aktif" : "Tidak Aktif"}
-                  </span>
-                </Label>
-              </div>
-
-              {/* Tampilkan di Homepage Switch */}
-              <div className="flex items-center gap-2 h-8">
-                <Switch
-                  id="featured-toggle"
-                  checked={isFeatured}
-                  onCheckedChange={setIsFeatured}
-                />
-                <Label htmlFor="featured-toggle" className="text-xs font-medium text-foreground cursor-pointer flex items-center gap-1.5 select-none">
-                  <span>Homepage:</span>
-                  <span className={isFeatured ? "text-primary font-semibold" : "text-muted-foreground"}>
-                    {isFeatured ? "Tampil" : "Sembunyi"}
-                  </span>
-                </Label>
-              </div>
+            {/* Status Aktif / Tidak Aktif Switch */}
+            <div className="flex items-center gap-2 h-8">
+              <Switch
+                id="active-toggle"
+                checked={isActive}
+                onCheckedChange={setIsActive}
+              />
+              <Label
+                htmlFor="active-toggle"
+                className="text-xs font-medium text-foreground cursor-pointer flex items-center gap-1.5 select-none"
+              >
+                <span>Status Publikasi:</span>
+                <span
+                  className={
+                    isActive
+                      ? "text-emerald-600 dark:text-emerald-400 font-semibold"
+                      : "text-muted-foreground"
+                  }
+                >
+                  {isActive ? "Aktif (Tampil di Website)" : "Tidak Aktif"}
+                </span>
+              </Label>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setShowLivePreview(!showLivePreview)}
-                className="h-8 text-xs font-medium cursor-pointer"
-              >
-                <Eye className="size-3.5" data-icon="inline-start" />
-                <span>{showLivePreview ? "Tutup Pratinjau" : "Pratinjau Homepage"}</span>
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                className="h-8 text-xs font-medium gap-1.5 cursor-pointer"
-              >
-                <Send className="size-3.5" data-icon="inline-start" />
-                <span>Simpan Testimoni</span>
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              size="sm"
+              className="h-8 text-xs font-medium gap-1.5 cursor-pointer"
+            >
+              <Send className="size-3.5" data-icon="inline-start" />
+              <span>Simpan Testimoni</span>
+            </Button>
           </div>
-
-          {/* Live Preview Card matching DESIGN.md */}
-          {showLivePreview && (
-            <div className="p-4 rounded-xl border border-dashed border-primary/40 bg-primary/5 flex flex-col gap-2.5 mt-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-primary uppercase tracking-wider">
-                  Pratinjau Tampilan Front-End (Pedoman DESIGN.md)
-                </span>
-                <span className="text-[11px] text-muted-foreground">
-                  Persis seperti yang dilihat pengunjung di beranda Solulu.id
-                </span>
-              </div>
-              <div className="p-7 rounded-2xl bg-card border border-border/80 flex flex-col justify-between gap-4 shadow-2xs max-w-lg">
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-heading font-semibold text-base sm:text-lg text-foreground leading-snug">
-                    {quoteHighlight.trim() || (comment.split(/[.!?]/)[0] || "Judul Ulasan")}
-                  </h3>
-                  <Quote className="size-5 text-primary/30 shrink-0 mt-0.5" aria-hidden="true" />
-                </div>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
-                  &ldquo;{comment.trim() || "Isi cerita ulasan pengalaman klien di Solulu..."}&rdquo;
-                </p>
-                <div className="pt-3.5 border-t border-border/60 flex items-center justify-between gap-2 flex-wrap">
-                  <span className="font-heading font-semibold text-xs sm:text-sm text-foreground">
-                    {anonymousDisplay.trim() || getAnonymousDisplay(clientName, isAnonymous)}
-                  </span>
-                  <span className="px-3.5 py-1.5 rounded-full bg-secondary/80 border border-border/60 text-xs font-medium text-foreground/90">
-                    {topic}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
         </form>
       </section>
 
@@ -465,7 +316,7 @@ export function TestimonialVariantA({
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari nama, konselor, isi ulasan..."
+              placeholder="Cari subjek, nama anonim, isi..."
               className="pl-8 h-8 text-xs bg-background"
             />
           </div>
@@ -473,7 +324,7 @@ export function TestimonialVariantA({
           {/* Topic Filter */}
           <div className="flex items-center gap-1.5">
             <Select value={topicFilter} onValueChange={setTopicFilter}>
-              <SelectTrigger size="sm" className="w-[170px] h-8 text-xs bg-background">
+              <SelectTrigger size="sm" className="w-[190px] h-8 text-xs bg-background">
                 <div className="flex items-center gap-1.5 truncate">
                   <Filter className="size-3.5 text-muted-foreground shrink-0" />
                   <SelectValue placeholder="Semua Topik" />
@@ -482,7 +333,7 @@ export function TestimonialVariantA({
               <SelectContent>
                 <SelectGroup>
                   <SelectItem value="all">Semua Topik</SelectItem>
-                  {TOPIC_OPTIONS.map((t) => (
+                  {topicList.map((t) => (
                     <SelectItem key={t} value={t} className="text-xs">
                       {t}
                     </SelectItem>
@@ -493,7 +344,7 @@ export function TestimonialVariantA({
           </div>
         </div>
 
-        {/* Status Filter Tabs: Hanya Semua, Aktif, Tidak Aktif */}
+        {/* Status Filter Tabs */}
         <div className="flex items-center h-8 rounded-lg border border-border p-0.5 bg-muted/40 text-xs">
           {[
             { id: "all", label: `Semua (${items.length})` },
@@ -516,7 +367,7 @@ export function TestimonialVariantA({
         </div>
       </section>
 
-      {/* 3. TESTIMONIAL FEED LIST */}
+      {/* 3. TESTIMONIAL FEED LIST (Format Visual Kartu Front End Homepage) */}
       <div className="flex flex-col gap-4">
         {filteredPosts.length === 0 ? (
           <div className="py-16 text-center text-xs text-muted-foreground rounded-2xl border border-dashed border-border bg-card">
@@ -529,134 +380,74 @@ export function TestimonialVariantA({
             return (
               <article
                 key={post.id}
-                className="p-5 rounded-2xl border border-border bg-card shadow-2xs flex flex-col gap-3.5 hover:border-border/80 transition-colors"
+                className="p-5 sm:p-6 rounded-2xl border border-border bg-card shadow-2xs flex flex-col justify-between gap-4 hover:border-border/80 transition-colors"
               >
-                {/* Header: Author info, status badge, date */}
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className={`size-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                        post.avatarBg || "bg-primary/10 text-primary"
-                      }`}
-                    >
-                      {post.anonymousDisplay[0]}
-                    </div>
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-foreground">
-                          {post.anonymousDisplay}
-                        </span>
-                        {post.isAnonymous && post.clientName !== post.anonymousDisplay && (
-                          <span className="text-[10px] text-muted-foreground">
-                            (Asli: {post.clientName})
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[11px] text-muted-foreground font-mono">
-                        {post.submittedAt}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Status Badge: Aktif vs Tidak Aktif & Homepage */}
-                  <div className="flex items-center gap-1.5">
-                    {post.isFeatured && (
-                      <Badge
-                        variant="outline"
-                        className="bg-primary/10 text-primary border-primary/30 text-[10px] font-medium py-0.5 px-2"
-                      >
-                        Homepage
-                      </Badge>
-                    )}
-                    {post.isActive ? (
-                      <Badge
-                        variant="outline"
-                        className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[11px] font-medium py-0.5 px-2.5 gap-1.5"
-                      >
-                        <span className="size-1.5 rounded-full bg-emerald-500" />
-                        <span>Aktif</span>
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="secondary"
-                        className="text-muted-foreground text-[11px] font-medium py-0.5 px-2.5"
-                      >
-                        Tidak Aktif
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                {/* Content: Highlight quote & full review */}
                 {isEditing ? (
-                  <div className="flex flex-col gap-2.5 p-3 rounded-xl bg-muted/20 border border-border">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div className="flex flex-col gap-1">
-                        <Label className="text-xs font-medium text-foreground">Judul / Sorotan Ulasan</Label>
+                  /* Form Edit Mode */
+                  <div className="flex flex-col gap-3 p-4 rounded-xl bg-muted/20 border border-border">
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs font-medium text-foreground">Subjek Testimoni</Label>
+                      <Input
+                        value={editSubject}
+                        onChange={(e) => setEditSubject(e.target.value)}
+                        placeholder="Subjek testimoni..."
+                        className="h-8 text-xs bg-background"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs font-medium text-foreground">Isi Ulasan</Label>
+                      <textarea
+                        rows={3}
+                        value={editComment}
+                        onChange={(e) => setEditComment(e.target.value)}
+                        className="w-full rounded-md border border-input bg-background p-2.5 text-xs text-foreground leading-relaxed resize-y"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs font-medium text-foreground">Nama (Sebagai Anonim)</Label>
                         <Input
-                          value={editQuote}
-                          onChange={(e) => setEditQuote(e.target.value)}
-                          placeholder="Judul ulasan di heading kartu..."
-                          className="h-8 text-xs bg-background"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <Label className="text-xs font-medium text-foreground">Label Klien Publik</Label>
-                        <Input
-                          value={editAnonymousDisplay}
-                          onChange={(e) => setEditAnonymousDisplay(e.target.value)}
+                          value={editClientName}
+                          onChange={(e) => setEditClientName(e.target.value)}
                           placeholder="Misal: Mahasiswa, 21 tahun"
                           className="h-8 text-xs bg-background"
                         />
                       </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs font-medium text-foreground">Topik Masalah</Label>
+                        <Select value={editTopic} onValueChange={setEditTopic}>
+                          <SelectTrigger size="sm" className="h-8 text-xs bg-background">
+                            <SelectValue placeholder="Pilih topik..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              {topicList.map((t) => (
+                                <SelectItem key={t} value={t} className="text-xs">
+                                  {t}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <Label className="text-xs font-medium text-foreground mt-1">Ulasan Lengkap</Label>
-                    <textarea
-                      rows={3}
-                      value={editComment}
-                      onChange={(e) => setEditComment(e.target.value)}
-                      className="w-full rounded-md border border-input bg-background p-2.5 text-xs text-foreground leading-relaxed resize-y"
-                    />
-                    {/* Inline edit rating & active switch & featured switch */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                      <div className="flex flex-wrap items-center gap-4">
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              type="button"
-                              onClick={() => setEditRating(star)}
-                              className="text-amber-400 p-0.5 focus:outline-none cursor-pointer"
-                              aria-label={`Ubah rating menjadi ${star}`}
-                            >
-                              <Star
-                                className={`size-3.5 ${
-                                  star <= editRating ? "fill-amber-400" : "text-muted-foreground/30 fill-none"
-                                }`}
-                              />
-                            </button>
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            id={`edit-active-${post.id}`}
-                            checked={editIsActive}
-                            onCheckedChange={setEditIsActive}
-                          />
-                          <Label htmlFor={`edit-active-${post.id}`} className="text-xs text-foreground cursor-pointer">
-                            {editIsActive ? "Status Aktif" : "Tidak Aktif"}
-                          </Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            id={`edit-featured-${post.id}`}
-                            checked={editIsFeatured}
-                            onCheckedChange={setEditIsFeatured}
-                          />
-                          <Label htmlFor={`edit-featured-${post.id}`} className="text-xs text-foreground cursor-pointer">
-                            {editIsFeatured ? "Homepage: Ya" : "Homepage: Tidak"}
-                          </Label>
-                        </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/60">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id={`edit-active-${post.id}`}
+                          checked={editIsActive}
+                          onCheckedChange={setEditIsActive}
+                        />
+                        <Label
+                          htmlFor={`edit-active-${post.id}`}
+                          className="text-xs text-foreground cursor-pointer"
+                        >
+                          {editIsActive ? "Status: Aktif" : "Status: Tidak Aktif"}
+                        </Label>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -674,91 +465,118 @@ export function TestimonialVariantA({
                           className="h-8 text-xs font-medium gap-1 cursor-pointer"
                         >
                           <Check className="size-3.5" data-icon="inline-start" />
-                          <span>Simpan</span>
+                          <span>Simpan Perubahan</span>
                         </Button>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-1.5">
-                    {post.quoteHighlight && (
-                      <blockquote className="text-sm font-semibold text-foreground italic leading-snug">
-                        &ldquo;{post.quoteHighlight}&rdquo;
-                      </blockquote>
-                    )}
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {post.comment}
-                    </p>
-                  </div>
-                )}
+                  /* View Mode: Format Identik dengan Homepage Public */
+                  <>
+                    {/* Header: Subjek Testimoni & Quote Icon & Status Badge */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col gap-1">
+                        <h3 className="font-heading font-semibold text-base sm:text-lg text-foreground leading-snug">
+                          {post.quoteHighlight || "Pengalaman Berharga di Solulu"}
+                        </h3>
+                        <span className="text-[11px] text-muted-foreground font-mono">
+                          {post.submittedAt}
+                        </span>
+                      </div>
 
-                {/* Footer Metadata & Action Toolbar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="font-medium text-foreground text-xs">
-                      {post.counselorName}
-                    </span>
-                    <span className="text-muted-foreground/60">•</span>
-                    <Badge variant="secondary" className="text-[10px] py-0 px-2 font-normal">
-                      {post.topic}
-                    </Badge>
-                    <span className="text-muted-foreground/60">•</span>
-                    <div className="flex items-center gap-1 text-amber-500 font-medium text-xs">
-                      <Star className="size-3 fill-amber-400 text-amber-400" />
-                      <span className="font-mono text-[11px]">{post.rating}.0</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {post.isActive ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[11px] font-medium py-0.5 px-2.5 gap-1.5"
+                          >
+                            <span className="size-1.5 rounded-full bg-emerald-500" />
+                            <span>Aktif</span>
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="secondary"
+                            className="text-muted-foreground text-[11px] font-medium py-0.5 px-2.5"
+                          >
+                            Tidak Aktif
+                          </Badge>
+                        )}
+                        <Quote className="size-5 text-primary/30 shrink-0 mt-0.5" aria-hidden="true" />
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Action Toolbar: Toggle Aktif, Edit, Hapus */}
-                  <div className="flex items-center gap-1.5">
-                    {/* Toggle Status Aktif / Tidak Aktif */}
-                    <Button
-                      variant={post.isActive ? "ghost" : "outline"}
-                      size="sm"
-                      onClick={() => onToggleActive(post.id)}
-                      className="h-8 px-2.5 text-xs gap-1.5 cursor-pointer"
-                      title={post.isActive ? "Nonaktifkan ulasan dari website" : "Aktifkan ulasan di website"}
-                    >
-                      {post.isActive ? (
-                        <>
-                          <EyeOff className="size-3.5 text-muted-foreground" data-icon="inline-start" />
-                          <span className="text-muted-foreground">Nonaktifkan</span>
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="size-3.5 text-emerald-600 dark:text-emerald-400" data-icon="inline-start" />
-                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">Aktifkan</span>
-                        </>
-                      )}
-                    </Button>
+                    {/* Isi Ulasan / Kutipan Murni */}
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty flex-1 italic">
+                      &ldquo;{post.comment}&rdquo;
+                    </p>
 
-                    {/* Edit Inline */}
-                    {!isEditing && (
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => startEdit(post)}
-                        className="size-8 text-muted-foreground hover:text-foreground cursor-pointer"
-                        title="Edit ulasan"
-                        aria-label="Edit ulasan"
-                      >
-                        <Edit2 className="size-3.5" />
-                      </Button>
-                    )}
+                    {/* Footer: Nama Anonim + Pill Topik Masalah + Action Toolbar */}
+                    <div className="pt-3.5 border-t border-border/60 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="font-heading font-semibold text-xs sm:text-sm text-foreground">
+                          {post.anonymousDisplay || post.clientName}
+                        </span>
+                        <span className="px-3 py-1 rounded-full bg-secondary/80 border border-border/60 text-xs font-medium text-foreground/90">
+                          {post.topic}
+                        </span>
+                      </div>
 
-                    {/* Delete */}
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => onDeletePost(post.id)}
-                      className="size-8 text-muted-foreground hover:text-destructive cursor-pointer"
-                      title="Hapus testimoni"
-                      aria-label="Hapus testimoni"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
-                </div>
+                      {/* Toolbar Aksi (Toggle Aktif, Edit, Hapus) */}
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          variant={post.isActive ? "ghost" : "outline"}
+                          size="sm"
+                          onClick={() => onToggleActive(post.id)}
+                          className="h-8 px-2.5 text-xs gap-1.5 cursor-pointer"
+                          title={
+                            post.isActive
+                              ? "Nonaktifkan ulasan dari website"
+                              : "Aktifkan ulasan di website"
+                          }
+                        >
+                          {post.isActive ? (
+                            <>
+                              <EyeOff className="size-3.5 text-muted-foreground" data-icon="inline-start" />
+                              <span className="text-muted-foreground">Nonaktifkan</span>
+                            </>
+                          ) : (
+                            <>
+                              <Eye
+                                className="size-3.5 text-emerald-600 dark:text-emerald-400"
+                                data-icon="inline-start"
+                              />
+                              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                Aktifkan
+                              </span>
+                            </>
+                          )}
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => startEdit(post)}
+                          className="size-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                          title="Edit ulasan"
+                          aria-label="Edit ulasan"
+                        >
+                          <Edit2 className="size-3.5" />
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => onDeletePost(post.id)}
+                          className="size-8 text-muted-foreground hover:text-destructive cursor-pointer"
+                          title="Hapus testimoni"
+                          aria-label="Hapus testimoni"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </article>
             )
           })
