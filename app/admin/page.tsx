@@ -2,16 +2,16 @@
 
 import * as React from "react"
 import Link from "next/link"
-import {
-  MOCK_APPLICANTS,
-  MOCK_SESSIONS,
-  BookingSession,
-} from "./mock-data"
+import type { BookingSession } from "./mock-data"
+import { getBookingsAdminAction } from "./sessions/actions"
+import { getCounselorApplicationsAction } from "./counselors/applications/actions"
 import {
   ExternalLink,
   ArrowRight,
   CheckCircle2,
   X,
+  Loader2,
+  Calendar,
 } from "lucide-react"
 import {
   ManualPaymentModal,
@@ -31,17 +31,130 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function DistilledAdminDashboard() {
   const [sessionFilter, setSessionFilter] = React.useState<"all" | "in_session" | "confirmed" | "completed">("all")
+  const [allSessions, setAllSessions] = React.useState<BookingSession[]>([])
+  const [pendingApplicants, setPendingApplicants] = React.useState<any[]>([])
+  const [isLoading, setIsLoading] = React.useState(true)
 
-  // Filter pending applicants for today's review
-  const pendingApplicants = MOCK_APPLICANTS.filter((a) => a.status === "pending")
-
-  // Pending payment sessions state for manual verification queue
-  const [pendingSessions, setPendingSessions] = React.useState<BookingSession[]>(() => {
-    return MOCK_SESSIONS.filter((s) => s.status === "pending_payment")
-  })
   const [selectedPendingSession, setSelectedPendingSession] = React.useState<BookingSession | null>(null)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = React.useState(false)
   const [verificationNotice, setVerificationNotice] = React.useState<string | null>(null)
+
+  // Fetch real bookings and applicants from DB
+  const loadData = React.useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const [bookingsRes, applicantsRes] = await Promise.all([
+        getBookingsAdminAction(),
+        getCounselorApplicationsAction(),
+      ])
+
+      if (bookingsRes.success && bookingsRes.data) {
+        const mapped: BookingSession[] = bookingsRes.data.map((row: any) => {
+          const b = row.booking
+          const c = row.counselor
+          const s = row.schedule
+          const t = row.transaction
+          const counselorType =
+            c?.counselorType === "psychologist"
+              ? "Psikolog Klinis"
+              : "Konselor Sebaya"
+          const dateStr = s?.date ? String(s.date) : ""
+          const timeRange = s
+            ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)} WIB`
+            : "09:00 - 10:30 WIB"
+
+          let hoursUntilSession = 0
+          if (s?.date && s?.startTime) {
+            try {
+              const sessionDate = new Date(`${s.date}T${s.startTime}`)
+              hoursUntilSession = Math.round(
+                (sessionDate.getTime() - Date.now()) / (1000 * 60 * 60)
+              )
+            } catch {}
+          }
+
+          const status = (
+            ["in_session", "confirmed", "completed", "cancelled", "pending_payment"].includes(b.status)
+              ? b.status
+              : "pending_payment"
+          ) as BookingSession["status"]
+
+          return {
+            id: b.id,
+            code: `SOL-${b.id.slice(0, 4).toUpperCase()}`,
+            patientName: b.patientName,
+            patientContact: b.patientPhone || b.patientEmail,
+            counselorName: c?.fullName
+              ? `${c.fullName}, ${c.title || ""}`.trim()
+              : "Konselor",
+            counselorType,
+            date: dateStr,
+            timeRange,
+            hoursUntilSession,
+            status,
+            zoomRoom: b.zoomMeetingId
+              ? `Ruang #${b.zoomMeetingId.slice(-3)}`
+              : "Belum Dijadwalkan",
+            zoomJoinUrl: b.zoomJoinUrl || "#",
+            srqScore: 0,
+            hasSuicidalThoughts: false,
+            waiverSigned: !!b.waiverAcceptedAt,
+            paymentMethod: t?.paymentMethod || "Transfer Bank Manual",
+            paymentProvider: (t?.paymentProvider as any) || "manual",
+            referenceNumber: t?.referenceNumber || undefined,
+            adminNotes: t?.adminNotes || undefined,
+            amount: t?.netAmount ? Number(t.netAmount) : 150000,
+          }
+        })
+        setAllSessions(mapped)
+      } else {
+        setAllSessions([])
+      }
+
+      if (applicantsRes.success && applicantsRes.data) {
+        const pending = applicantsRes.data
+          .filter((a: any) => a.status === "pending")
+          .map((app: any) => ({
+            id: app.id,
+            name: app.fullName || app.name || "Pelamar",
+            email: app.email,
+            phone: app.phone || "-",
+            type:
+              app.counselorType === "psychologist"
+                ? "Psikolog Klinis"
+                : "Konselor Sebaya",
+            education:
+              app.counselorType === "psychologist"
+                ? "S2 Profesi Psikologi"
+                : "S1 Psikologi",
+            bio: app.bio || "",
+            documents: {
+              ktp: Boolean(app.ktpR2Key || app.documents?.ktp),
+              cv: Boolean(app.cvR2Key || app.documents?.cv),
+              diploma: Boolean(app.diplomaR2Key || app.documents?.diploma),
+              str: Boolean(app.strR2Key || app.documents?.str),
+            },
+          }))
+        setPendingApplicants(pending)
+      } else {
+        setPendingApplicants([])
+      }
+    } catch (err) {
+      console.error("Gagal memuat data dasbor admin:", err)
+      setAllSessions([])
+      setPendingApplicants([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  const pendingSessions = React.useMemo(() => {
+    return allSessions.filter((s) => s.status === "pending_payment")
+  }, [allSessions])
 
   const handleOpenVerifyModal = (session: BookingSession) => {
     setSelectedPendingSession(session)
@@ -49,7 +162,9 @@ export default function DistilledAdminDashboard() {
   }
 
   const handleConfirmPayment = (session: BookingSession, details: ManualPaymentDetails) => {
-    setPendingSessions((prev) => prev.filter((s) => s.id !== session.id))
+    setAllSessions((prev) =>
+      prev.map((s) => (s.id === session.id ? { ...s, status: "confirmed" } : s))
+    )
     setVerificationNotice(
       `Pembayaran sesi ${session.code} (${session.patientName}) senilai Rp ${session.amount.toLocaleString("id-ID")} berhasil diverifikasi via ${details.paymentMethod}.`
     )
@@ -58,26 +173,46 @@ export default function DistilledAdminDashboard() {
     }, 6000)
   }
 
-  // Filter today's sessions (17 Sep 2026)
-  const todaySessions = React.useMemo(() => {
-    return MOCK_SESSIONS.filter((s) => s.date.includes("17 Sep"))
+  // Today WIB
+  const todayWIB = React.useMemo(() => {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Jakarta",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date())
   }, [])
 
-  // Filtered session list based on active tab
+  const todayFormatted = React.useMemo(() => {
+    return new Intl.DateTimeFormat("id-ID", {
+      timeZone: "Asia/Jakarta",
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }).format(new Date())
+  }, [])
+
+  // Filter today's sessions (real database data)
+  const todaySessions = React.useMemo(() => {
+    return allSessions.filter((s) => s.date === todayWIB)
+  }, [allSessions, todayWIB])
+
+  // Filtered session list based on active tab (or if no today sessions, display all upcoming confirmed)
   const displayedSessions = React.useMemo(() => {
+    const source = todaySessions.length > 0 ? todaySessions : allSessions
     if (sessionFilter === "all") {
-      // Sort: in_session first, then confirmed, then completed
-      return [...todaySessions].sort((a, b) => {
-        const order: Record<string, number> = { in_session: 0, confirmed: 1, completed: 2 }
-        return (order[a.status] ?? 3) - (order[b.status] ?? 3)
+      return [...source].sort((a, b) => {
+        const order: Record<string, number> = { in_session: 0, confirmed: 1, completed: 2, pending_payment: 3, cancelled: 4 }
+        return (order[a.status] ?? 5) - (order[b.status] ?? 5)
       })
     }
-    return todaySessions.filter((s) => s.status === sessionFilter)
-  }, [todaySessions, sessionFilter])
+    return source.filter((s) => s.status === sessionFilter)
+  }, [todaySessions, allSessions, sessionFilter])
 
-  const inSessionCount = todaySessions.filter((s) => s.status === "in_session").length
-  const confirmedCount = todaySessions.filter((s) => s.status === "confirmed").length
-  const completedCount = todaySessions.filter((s) => s.status === "completed").length
+  const inSessionCount = displayedSessions.filter((s) => s.status === "in_session").length
+  const confirmedCount = displayedSessions.filter((s) => s.status === "confirmed").length
+  const completedCount = displayedSessions.filter((s) => s.status === "completed").length
 
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-12">
@@ -97,7 +232,7 @@ export default function DistilledAdminDashboard() {
             </Badge>
           </div>
           <p className="text-xs font-medium text-muted-foreground">
-            Kamis, 17 September 2026
+            {todayFormatted}
           </p>
         </div>
       </header>
@@ -488,7 +623,7 @@ export default function DistilledAdminDashboard() {
                       {applicant.name}
                     </span>
                     <span className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded shrink-0">
-                      {applicant.documents.str ? "Izin Praktik" : "Ijazah S1"}
+                      {applicant.documents?.str ? "Izin Praktik" : "Ijazah S1"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground font-medium">

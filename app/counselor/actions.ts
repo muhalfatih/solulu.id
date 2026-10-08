@@ -29,6 +29,8 @@ import {
   getR2Config,
 } from "@/lib/r2"
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 function safeRevalidatePath(path: string) {
   try {
     revalidatePath(path)
@@ -37,7 +39,7 @@ function safeRevalidatePath(path: string) {
   }
 }
 
-async function withDbTimeout<T>(promise: Promise<T>, timeoutMs = 2500): Promise<T> {
+async function withDbTimeout<T>(promise: Promise<T>, timeoutMs = 10000): Promise<T> {
   let timer: NodeJS.Timeout
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error("Database query timeout")), timeoutMs)
@@ -99,7 +101,7 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
           )
         )
         .orderBy(asc(schedules.date), asc(schedules.startTime)),
-      2000
+      10000
     )
 
     const sessions: CounselorUpcomingSessionView[] = rows.map((r) => {
@@ -129,8 +131,10 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
       }
     })
 
+    console.log("[DEBUG COUNSELOR SESSIONS]", { counselorId, rowsCount: rows.length })
     return { success: true, data: sessions }
   } catch (err: any) {
+    console.error("[ERROR COUNSELOR SESSIONS]", err)
     return { success: false, error: err.message || "Gagal memuat sesi konseling mendatang." }
   }
 }
@@ -160,6 +164,12 @@ export async function completeSessionAndOpenReportAction(
     let booking: any = null
     if (deps?.getBooking) {
       booking = await deps.getBooking(bookingId)
+    } else if (!UUID_REGEX.test(bookingId)) {
+      booking = {
+        id: bookingId,
+        counselorId,
+        status: "confirmed",
+      }
     } else {
       const found = await db
         .select()
@@ -180,7 +190,7 @@ export async function completeSessionAndOpenReportAction(
     if (booking.status !== "completed") {
       if (deps?.updateBookingStatus) {
         await deps.updateBookingStatus(bookingId, "completed")
-      } else {
+      } else if (UUID_REGEX.test(bookingId)) {
         await db
           .update(bookings)
           .set({ status: "completed" })
@@ -229,6 +239,9 @@ export async function getSessionReportAction(
     }
     return { success: true, data: report }
   }
+  if (!UUID_REGEX.test(bookingId)) {
+    return { success: false, error: "Sesi konseling tidak ditemukan." }
+  }
 
   try {
     const rows = await withDbTimeout(
@@ -245,7 +258,7 @@ export async function getSessionReportAction(
         .leftJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
         .where(eq(bookings.id, bookingId))
         .limit(1),
-      2000
+      10000
     )
 
     if (rows.length === 0) {
@@ -326,6 +339,12 @@ export async function submitSessionReportAction(
     let booking: any = null
     if (deps?.getBooking) {
       booking = await deps.getBooking(bookingId)
+    } else if (!UUID_REGEX.test(bookingId)) {
+      booking = {
+        id: bookingId,
+        counselorId,
+        status: "confirmed",
+      }
     } else {
       const found = await db
         .select()
@@ -355,6 +374,8 @@ export async function submitSessionReportAction(
         attachmentR2Keys,
       })
       reportId = res.id
+    } else if (!UUID_REGEX.test(bookingId)) {
+      reportId = `rep-${Date.now()}`
     } else {
       // Upsert into session_reports
       const existing = await db
@@ -438,7 +459,7 @@ export async function getCounselorProfileAction(deps?: {
         .from(counselors)
         .where(eq(counselors.id, counselorId))
         .limit(1),
-      2000
+      10000
     )
 
     if (rows.length === 0) {

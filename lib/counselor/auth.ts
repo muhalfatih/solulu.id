@@ -1,9 +1,11 @@
 import { cookies } from "next/headers"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { db } from "@/db"
 import { counselors } from "@/db/schema"
 import { createClient } from "@/lib/supabase/server"
 import type { CounselorAuthContext } from "./types"
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /**
  * Resolves the authenticated counselor user from Supabase Auth or demo cookie.
@@ -26,7 +28,7 @@ export async function getAuthenticatedCounselor(
     if (demoRole === "counselor") {
       return {
         id: "demo-counselor-id",
-        counselorId: "c-1", // Default demo counselor (Sarah Annisa)
+        counselorId: "e28eb17e-b7cd-43bc-8a30-d67a221342f3", // Sarah Annisa (DB UUID)
         app_metadata: { role: "counselor" },
         user_metadata: { role: "counselor", full_name: "Sarah Annisa, M.Psi., Psikolog" },
       }
@@ -62,31 +64,58 @@ export async function getAuthenticatedCounselor(
 
 /**
  * Resolves the database counselor record ID for the authenticated user.
+ * Ensures returned ID is a valid database UUID to prevent syntax errors in PostgreSQL.
  */
 export async function resolveCounselorId(auth: CounselorAuthContext): Promise<string | null> {
-  if (auth.counselorId) {
+  // If already a valid UUID, use it directly
+  if (auth.counselorId && UUID_REGEX.test(auth.counselorId)) {
     return auth.counselorId
   }
 
   try {
-    const found = await db
-      .select({ id: counselors.id })
-      .from(counselors)
-      .where(eq(counselors.userId, auth.id))
-      .limit(1)
+    // 1. Try finding by Supabase Auth UID if valid UUID
+    if (auth.id && UUID_REGEX.test(auth.id)) {
+      const found = await db
+        .select({ id: counselors.id })
+        .from(counselors)
+        .where(eq(counselors.userId, auth.id))
+        .limit(1)
 
-    if (found.length > 0) {
-      return found[0].id
+      if (found.length > 0) {
+        return found[0].id
+      }
     }
 
-    // Fallback if counselor profile exists in DB
-    const anyCounselor = await db
+    // 2. Try finding Sarah Annisa specifically
+    const sarah = await db
+      .select({ id: counselors.id })
+      .from(counselors)
+      .where(sql`${counselors.fullName} ILIKE '%Sarah Annisa%'`)
+      .limit(1)
+
+    if (sarah.length > 0) {
+      return sarah[0].id
+    }
+
+    // 3. Fallback to first active counselor in DB
+    const anyActive = await db
+      .select({ id: counselors.id })
+      .from(counselors)
+      .where(eq(counselors.isActive, true))
+      .limit(1)
+
+    if (anyActive.length > 0) {
+      return anyActive[0].id
+    }
+
+    // 4. Any counselor in DB
+    const any = await db
       .select({ id: counselors.id })
       .from(counselors)
       .limit(1)
 
-    return anyCounselor.length > 0 ? anyCounselor[0].id : "c-1"
+    return any.length > 0 ? any[0].id : (auth.counselorId || "c-1")
   } catch {
-    return "c-1"
+    return auth.counselorId || "c-1"
   }
 }

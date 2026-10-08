@@ -60,7 +60,7 @@ export default function CounselorPortalLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/20 selection:text-primary">
+    <div className="theme-admin min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/20 selection:text-primary">
       {/* Top Navbar */}
       <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/95 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
@@ -123,12 +123,12 @@ export default function CounselorPortalLayout({
             </Button>
 
             {/* Active Counselor Indicator Pill */}
-            <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-medium">Sarah Annisa, M.Psi.</span>
-              <Badge variant="outline" className="text-[10px] py-0 px-1 border-emerald-500/30">
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-800 dark:text-emerald-300 text-xs">
+              <span className="size-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="font-medium text-foreground">Sarah Annisa, M.Psi.</span>
+              <span className="text-xs px-1.5 py-0.5 rounded-md bg-emerald-500/15 font-medium text-emerald-800 dark:text-emerald-300">
                 Psikolog
-              </Badge>
+              </span>
             </div>
 
             <ThemeToggle />
@@ -157,7 +157,7 @@ export default function CounselorPortalLayout({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors",
+                  "flex items-center gap-2 px-3 py-2 min-h-[40px] rounded-lg text-xs font-medium whitespace-nowrap transition-colors",
                   isActive
                     ? "bg-primary/10 text-primary font-semibold"
                     : "text-muted-foreground hover:text-foreground"
@@ -180,7 +180,7 @@ export default function CounselorPortalLayout({
       <footer className="border-t border-border/60 py-4 text-center text-xs text-muted-foreground">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>Solulu Telekonseling © 2026 — Sesi Standar 90 Menit</span>
-          <span className="text-[11px] text-muted-foreground/80">
+          <span className="text-xs text-muted-foreground/80">
             Kerahasiaan data rekam konseling dijamin sesuai standar HIMPSI & RLS Supabase
           </span>
         </div>

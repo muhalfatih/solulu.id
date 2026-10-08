@@ -116,34 +116,11 @@ export function AdminManualBookingModal({
             setSelectedCounselorId(res.data[0].id)
           }
         } else {
-          // Mock counselors fallback
-          const fallback = [
-            {
-              id: "c-1",
-              fullName: "Sarah Annisa, M.Psi., Psikolog",
-              title: "Psikolog Klinis Dewasa",
-              counselorType: "psychologist",
-            },
-            {
-              id: "c-2",
-              fullName: "Rian Hidayat, S.Psi",
-              title: "Konselor Sebaya Senior",
-              counselorType: "peer",
-            },
-            {
-              id: "c-3",
-              fullName: "Nadia Utami, S.Psi",
-              title: "Konselor Sebaya",
-              counselorType: "peer",
-            },
-          ]
-          setCounselorsList(fallback)
-          if (!selectedCounselorId) {
-            setSelectedCounselorId(fallback[0].id)
-          }
+          setCounselorsList([])
         }
       } catch (err) {
-        console.warn("Failed to load counselors, using fallback:", err)
+        console.error("Failed to load counselors:", err)
+        setCounselorsList([])
       }
     }
     loadCounselors()

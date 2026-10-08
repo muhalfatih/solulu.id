@@ -1,11 +1,7 @@
 "use client"
 
 import * as React from "react"
-import {
-  MOCK_APPLICANTS,
-  MOCK_ACTIVE_COUNSELORS,
-  CounselorApplicant,
-} from "../mock-data"
+import type { CounselorApplicant } from "../mock-data"
 import Link from "next/link"
 import {
   CheckCircle2,
@@ -20,13 +16,19 @@ import {
   GraduationCap,
   Award,
   Clock,
+  Calendar,
   ExternalLink,
   Filter,
   X,
   Plus,
   Pencil,
   Trash2,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  Download,
 } from "lucide-react"
+import { CounselorSchedulesModal } from "./components/counselor-schedules-modal"
 import {
   Tabs,
   TabsList,
@@ -54,78 +56,164 @@ import {
 import {
   getCounselorApplicationsAction,
   reviewCounselorApplicationAction,
+  getApplicationDocumentUrlAction,
 } from "./applications/actions"
 
+function getDocButtonLabel(docKey: string | null | undefined, fallback: string) {
+  if (!docKey) return `${fallback}.pdf`
+  const clean = docKey.split("?")[0]
+  const ext = clean.split(".").pop()?.toUpperCase()
+  return ext ? `${fallback} (${ext})` : `${fallback}.pdf`
+}
+
 export default function DistilledCounselorsPage() {
-  const [applicants, setApplicants] = React.useState<CounselorApplicant[]>(MOCK_APPLICANTS)
-  const [activeCounselors, setActiveCounselors] = React.useState<any[]>(MOCK_ACTIVE_COUNSELORS)
-  const [previewDoc, setPreviewDoc] = React.useState<{ name: string; type: string; applicantName: string } | null>(null)
+  const [applicants, setApplicants] = React.useState<CounselorApplicant[]>([])
+  const [activeCounselors, setActiveCounselors] = React.useState<any[]>([])
+  const [previewDoc, setPreviewDoc] = React.useState<{
+    name: string
+    type: "cv" | "ktp" | "diploma" | "str"
+    applicantName: string
+    applicationId: string
+    url?: string | null
+    fileName?: string | null
+    loading?: boolean
+    error?: string | null
+  } | null>(null)
+  const [scheduleModalCounselor, setScheduleModalCounselor] = React.useState<{ id: string; name: string; title?: string; type?: string } | null>(null)
+
+  const handleOpenPreviewDoc = async (
+    applicationId: string,
+    applicantName: string,
+    docType: "cv" | "ktp" | "diploma" | "str",
+    docTitle: string
+  ) => {
+    setPreviewDoc({
+      name: docTitle,
+      type: docType,
+      applicantName,
+      applicationId,
+      url: null,
+      loading: true,
+      error: null,
+    })
+
+    try {
+      const res = await getApplicationDocumentUrlAction({
+        applicationId,
+        documentType: docType,
+      })
+
+      if (res.success && res.data?.url) {
+        setPreviewDoc((prev) =>
+          prev && prev.applicationId === applicationId && prev.type === docType
+            ? {
+                ...prev,
+                loading: false,
+                url: res.data.url,
+                fileName: res.data.fileName,
+              }
+            : prev
+        )
+      } else {
+        setPreviewDoc((prev) =>
+          prev && prev.applicationId === applicationId && prev.type === docType
+            ? {
+                ...prev,
+                loading: false,
+                error: res.error || "Gagal memuat berkas dokumen dari Cloudflare R2.",
+              }
+            : prev
+        )
+      }
+    } catch (err: any) {
+      setPreviewDoc((prev) =>
+        prev && prev.applicationId === applicationId && prev.type === docType
+          ? {
+              ...prev,
+              loading: false,
+              error: err.message || "Terjadi kesalahan saat memuat berkas dokumen.",
+            }
+          : prev
+      )
+    }
+  }
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "suspended">("all")
 
   // Fetch real counselors and applications from database on mount, keeping resilient fallback
-  React.useEffect(() => {
-    async function loadData() {
-      try {
-        const [counselorsRes, appsRes] = await Promise.all([
-          getCounselorsAdminAction(),
-          getCounselorApplicationsAction(),
-        ])
+  const loadData = React.useCallback(async () => {
+    try {
+      const [counselorsRes, appsRes] = await Promise.all([
+        getCounselorsAdminAction(),
+        getCounselorApplicationsAction(),
+      ])
 
-        if (counselorsRes.success && counselorsRes.data && counselorsRes.data.length > 0) {
-          const mapped = counselorsRes.data.map((row: any) => ({
-            id: row.id,
-            name: row.fullName,
-            title: row.title,
-            type: row.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya",
-            email: row.email || "counselor@solulu.id",
-            phone: row.phone || "-",
-            specializations: row.specializations || [],
-            isActive: row.isActive,
-            totalSessions: row.completedSessionsCount ?? 0,
-            activeSlots: row.activeSlotsCount ?? 0,
-            avatarR2Url: row.avatarR2Url,
-            education: row.education,
-            isFeatured: row.isFeatured ?? false,
-          }))
-          setActiveCounselors(mapped)
-        }
-
-        if (appsRes.success && appsRes.data) {
-          if (appsRes.data.length > 0) {
-            const mappedApps: CounselorApplicant[] = appsRes.data.map((app: any) => ({
-              id: app.id,
-              name: app.fullName,
-              email: app.email,
-              phone: app.phone || "-",
-              type: app.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya",
-              appliedAt: new Date(app.createdAt).toLocaleDateString("id-ID", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              }),
-              status: app.status as any,
-              education: app.counselorType === "psychologist" ? "S2 Profesi Psikologi" : "S1 Psikologi",
-              bio: app.bio || "",
-              documents: {
-                ktp: Boolean(app.ktpR2Key),
-                cv: Boolean(app.cvR2Key),
-                diploma: Boolean(app.diplomaR2Key),
-                str: Boolean(app.strR2Key),
-              },
-            }))
-            setApplicants(mappedApps)
-          } else {
-            setApplicants([])
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to fetch counselors or applications from db:", err)
+      if (counselorsRes.success && counselorsRes.data && counselorsRes.data.length > 0) {
+        const mapped = counselorsRes.data.map((row: any) => ({
+          id: row.id,
+          name: row.fullName,
+          title: row.title,
+          counselorType: row.counselorType,
+          type: row.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya",
+          email: row.email || "counselor@solulu.id",
+          phone: row.phone || "-",
+          specializations: row.specializations || [],
+          isActive: row.isActive,
+          totalSessions: row.completedSessionsCount ?? 0,
+          activeSlots: row.activeSlotsCount ?? 0,
+          avatarR2Url: row.avatarR2Url,
+          education: row.education,
+          strNumber: row.strNumber,
+          isFeatured: row.isFeatured ?? false,
+        }))
+        setActiveCounselors(mapped)
+      } else {
+        setActiveCounselors([])
       }
+
+      if (appsRes.success && appsRes.data) {
+        if (appsRes.data.length > 0) {
+          const mappedApps: CounselorApplicant[] = appsRes.data.map((app: any) => ({
+            id: app.id,
+            name: app.fullName,
+            email: app.email,
+            phone: app.phone || "-",
+            type: app.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya",
+            appliedAt: new Date(app.createdAt).toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }),
+            status: app.status as any,
+            education: app.counselorType === "psychologist" ? "S2 Profesi Psikologi" : "S1 Psikologi",
+            bio: app.bio || "",
+            documents: {
+              ktp: Boolean(app.ktpR2Key),
+              cv: Boolean(app.cvR2Key),
+              diploma: Boolean(app.diplomaR2Key),
+              str: Boolean(app.strR2Key),
+            },
+            docKeys: {
+              ktp: app.ktpR2Key || null,
+              cv: app.cvR2Key || null,
+              diploma: app.diplomaR2Key || null,
+              str: app.strR2Key || null,
+            },
+          }))
+          setApplicants(mappedApps)
+        } else {
+          setApplicants([])
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch counselors or applications from db:", err)
     }
-    loadData()
   }, [])
+
+  React.useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -232,14 +320,35 @@ export default function DistilledCounselorsPage() {
     }
   }
 
+  const [roleFilter, setRoleFilter] = React.useState<"all" | "psychologist" | "peer">("all")
+
   const pendingApplicants = applicants.filter((a) => a.status === "pending")
+  const totalPsychologists = activeCounselors.filter(
+    (c) => c.counselorType === "psychologist" || c.type === "Psikolog Klinis"
+  ).length
+  const totalPeers = activeCounselors.filter(
+    (c) => c.counselorType === "peer" || c.type === "Konselor Sebaya"
+  ).length
+  const totalActiveSlots = activeCounselors.reduce(
+    (acc, c) => acc + (c.activeSlots || 0),
+    0
+  )
+
   const filteredCounselors = activeCounselors.filter((c) => {
     const matchesSearch =
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.strNumber && c.strNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (c.education && c.education.toLowerCase().includes(searchQuery.toLowerCase())) ||
       c.specializations?.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase()))
     const matchesStatus =
       statusFilter === "all" ? true : statusFilter === "active" ? c.isActive : !c.isActive
-    return matchesSearch && matchesStatus
+    const matchesRole =
+      roleFilter === "all"
+        ? true
+        : roleFilter === "psychologist"
+        ? c.counselorType === "psychologist" || c.type === "Psikolog Klinis"
+        : c.counselorType === "peer" || c.type === "Konselor Sebaya"
+    return matchesSearch && matchesStatus && matchesRole
   })
 
   return (
@@ -263,8 +372,55 @@ export default function DistilledCounselorsPage() {
         </div>
       )}
 
+      {/* KPI Telemetry Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+        <div className="p-4 rounded-2xl border border-border bg-card flex flex-col gap-1.5 shadow-2xs">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs font-medium">Psikolog Klinis</span>
+            <GraduationCap className="size-4 text-purple-600 dark:text-purple-400" />
+          </div>
+          <div className="text-2xl font-bold tracking-tight text-foreground font-heading">
+            {totalPsychologists}
+          </div>
+          <span className="text-[11px] text-muted-foreground">Berizin STR Kemenkes</span>
+        </div>
+
+        <div className="p-4 rounded-2xl border border-border bg-card flex flex-col gap-1.5 shadow-2xs">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs font-medium">Konselor Sebaya</span>
+            <UserCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="text-2xl font-bold tracking-tight text-foreground font-heading">
+            {totalPeers}
+          </div>
+          <span className="text-[11px] text-muted-foreground">Partner Cerita Terlatih</span>
+        </div>
+
+        <div className="p-4 rounded-2xl border border-border bg-card flex flex-col gap-1.5 shadow-2xs">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs font-medium">Slot Jadwal Aktif</span>
+            <Calendar className="size-4 text-primary" />
+          </div>
+          <div className="text-2xl font-bold tracking-tight text-foreground font-heading">
+            {totalActiveSlots}
+          </div>
+          <span className="text-[11px] text-muted-foreground">Sesi 90 menit tersedia</span>
+        </div>
+
+        <div className="p-4 rounded-2xl border border-border bg-card flex flex-col gap-1.5 shadow-2xs">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs font-medium">Pendaftar Baru</span>
+            <ShieldCheck className="size-4 text-amber-500" />
+          </div>
+          <div className="text-2xl font-bold tracking-tight text-foreground font-heading">
+            {pendingApplicants.length}
+          </div>
+          <span className="text-[11px] text-muted-foreground">Menunggu verifikasi berkas</span>
+        </div>
+      </div>
+
       {/* Page Header & Tab Controls */}
-      <Tabs defaultValue="applicants" className="flex flex-col gap-6">
+      <Tabs defaultValue="active" className="flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -401,18 +557,20 @@ export default function DistilledCounselorsPage() {
                       <Button
                         variant="outline"
                         size="xs"
+                        disabled={!app.documents.ktp}
                         onClick={() =>
-                          setPreviewDoc({
-                            name: "KTP Elektronik (WNI)",
-                            type: "ktp",
-                            applicantName: app.name,
-                          })
+                          handleOpenPreviewDoc(
+                            app.id,
+                            app.name,
+                            "ktp",
+                            "KTP Elektronik (WNI)"
+                          )
                         }
-                        className="h-8 justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5"
+                        className="h-8 justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5 cursor-pointer"
                       >
                         <span className="flex items-center gap-2 truncate">
                           <FileText className="size-3.5 text-primary shrink-0" />
-                          <span className="truncate">KTP.pdf</span>
+                          <span className="truncate">{getDocButtonLabel(app.docKeys?.ktp, "KTP")}</span>
                         </span>
                         <Eye className="size-3 text-muted-foreground shrink-0" />
                       </Button>
@@ -420,18 +578,20 @@ export default function DistilledCounselorsPage() {
                       <Button
                         variant="outline"
                         size="xs"
+                        disabled={!app.documents.diploma}
                         onClick={() =>
-                          setPreviewDoc({
-                            name: "Ijazah Profesi / Akademik",
-                            type: "diploma",
-                            applicantName: app.name,
-                          })
+                          handleOpenPreviewDoc(
+                            app.id,
+                            app.name,
+                            "diploma",
+                            "Ijazah Profesi / Akademik"
+                          )
                         }
-                        className="h-8 justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5"
+                        className="h-8 justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5 cursor-pointer"
                       >
                         <span className="flex items-center gap-2 truncate">
                           <FileText className="size-3.5 text-primary shrink-0" />
-                          <span className="truncate">Ijazah.pdf</span>
+                          <span className="truncate">{getDocButtonLabel(app.docKeys?.diploma, "Ijazah")}</span>
                         </span>
                         <Eye className="size-3 text-muted-foreground shrink-0" />
                       </Button>
@@ -439,18 +599,20 @@ export default function DistilledCounselorsPage() {
                       <Button
                         variant="outline"
                         size="xs"
+                        disabled={!app.documents.cv}
                         onClick={() =>
-                          setPreviewDoc({
-                            name: "Curriculum Vitae",
-                            type: "cv",
-                            applicantName: app.name,
-                          })
+                          handleOpenPreviewDoc(
+                            app.id,
+                            app.name,
+                            "cv",
+                            "Curriculum Vitae"
+                          )
                         }
-                        className="h-8 justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5"
+                        className="h-8 justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5 cursor-pointer"
                       >
                         <span className="flex items-center gap-2 truncate">
                           <FileText className="size-3.5 text-primary shrink-0" />
-                          <span className="truncate">CV.pdf</span>
+                          <span className="truncate">{getDocButtonLabel(app.docKeys?.cv, "CV")}</span>
                         </span>
                         <Eye className="size-3 text-muted-foreground shrink-0" />
                       </Button>
@@ -461,17 +623,18 @@ export default function DistilledCounselorsPage() {
                         disabled={!app.documents.str}
                         onClick={() =>
                           app.documents.str &&
-                          setPreviewDoc({
-                            name: "Surat Izin Praktik Konselor (STR/SIP)",
-                            type: "str",
-                            applicantName: app.name,
-                          })
+                          handleOpenPreviewDoc(
+                            app.id,
+                            app.name,
+                            "str",
+                            "Surat Izin Praktik Konselor (STR/SIP)"
+                          )
                         }
-                        className="h-8 justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5"
+                        className="h-8 justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5 cursor-pointer"
                       >
                         <span className="flex items-center gap-2 truncate">
                           <Award className="size-3.5 text-primary shrink-0" />
-                          <span className="truncate">Izin-Praktik.pdf</span>
+                          <span className="truncate">{getDocButtonLabel(app.docKeys?.str, "Izin-Praktik")}</span>
                         </span>
                         {app.documents.str ? (
                           <Eye className="size-3 text-muted-foreground shrink-0" />
@@ -538,7 +701,51 @@ export default function DistilledCounselorsPage() {
                 />
               </div>
 
-              <div className="flex items-center gap-2 self-end sm:self-auto">
+              <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+                {/* Role Filter Button Group */}
+                <div className="flex items-center h-8 rounded-lg border border-border p-0.5 bg-background text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setRoleFilter("all")}
+                    className={`h-7 px-2.5 flex items-center rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                      roleFilter === "all"
+                        ? "bg-primary text-primary-foreground font-medium"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Semua Profesi
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRoleFilter("psychologist")}
+                    className={`h-7 px-2.5 flex items-center gap-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                      roleFilter === "psychologist"
+                        ? "bg-primary text-primary-foreground font-medium"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span>Psikolog Klinis</span>
+                    <span className="text-[10px] tabular-nums font-mono px-1 py-0.2 rounded-full bg-muted-foreground/20">
+                      {totalPsychologists}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRoleFilter("peer")}
+                    className={`h-7 px-2.5 flex items-center gap-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                      roleFilter === "peer"
+                        ? "bg-primary text-primary-foreground font-medium"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span>Konselor Sebaya</span>
+                    <span className="text-[10px] tabular-nums font-mono px-1 py-0.2 rounded-full bg-muted-foreground/20">
+                      {totalPeers}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Status Filter Button Group */}
                 <div className="flex items-center h-8 rounded-lg border border-border p-0.5 bg-background text-xs">
                   <button
                     type="button"
@@ -589,6 +796,7 @@ export default function DistilledCounselorsPage() {
                   <TableHead className="py-3 px-3.5 font-semibold text-foreground">Kualifikasi</TableHead>
                   <TableHead className="py-3 px-3.5 font-semibold text-foreground">Kontak</TableHead>
                   <TableHead className="py-3 px-3.5 font-semibold text-foreground">Total Sesi</TableHead>
+                  <TableHead className="py-3 px-3.5 font-semibold text-foreground text-center">Slot Jadwal</TableHead>
                   <TableHead className="py-3 px-3.5 font-semibold text-foreground">Fokus Layanan</TableHead>
                   <TableHead className="py-3 px-3.5 font-semibold text-foreground text-center">Homepage</TableHead>
                   <TableHead className="py-3 px-3.5 font-semibold text-foreground">Status</TableHead>
@@ -626,6 +834,19 @@ export default function DistilledCounselorsPage() {
 
                     <TableCell className="py-3.5 px-3.5 tabular-nums font-semibold text-foreground">
                       {c.totalSessions} sesi
+                    </TableCell>
+
+                    <TableCell className="py-3.5 px-3.5 text-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setScheduleModalCounselor({ id: c.id, name: c.name, title: c.title, type: c.type })}
+                        className="h-7 px-2.5 text-xs gap-1.5 font-medium cursor-pointer hover:border-primary/50 shadow-2xs"
+                        title={`Kelola slot jadwal untuk ${c.name}`}
+                      >
+                        <Calendar className="size-3 text-primary" />
+                        <span className="tabular-nums font-mono">{c.activeSlots} Slot</span>
+                      </Button>
                     </TableCell>
 
                     <TableCell className="py-3.5 px-3.5">
@@ -671,6 +892,16 @@ export default function DistilledCounselorsPage() {
                     <TableCell className="py-3.5 px-3.5 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setScheduleModalCounselor({ id: c.id, name: c.name, title: c.title, type: c.type })}
+                          className="h-8 px-2.5 text-xs font-normal gap-1 cursor-pointer"
+                          title={`Atur jadwal sesi untuk ${c.name}`}
+                        >
+                          <Clock className="size-3 text-muted-foreground" />
+                          <span>Jadwal</span>
+                        </Button>
+                        <Button
                           asChild
                           variant="outline"
                           size="sm"
@@ -708,62 +939,158 @@ export default function DistilledCounselorsPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Document Preview Modal: Realistic Document Viewer Layout */}
+      {/* Real Document Preview Modal: Cloudflare R2 Presigned Viewer */}
       {previewDoc && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-5 flex flex-col gap-4 shadow-2xl">
+          <div className="bg-card border border-border rounded-2xl max-w-2xl w-full p-5 flex flex-col gap-4 shadow-2xl max-h-[90vh]">
+            {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-border pb-3">
               <div>
                 <h2 className="font-semibold text-foreground text-sm flex items-center gap-2">
                   <FileText className="size-4 text-primary" />
                   <span>{previewDoc.name}</span>
                 </h2>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Pemilik berkas: <span className="text-foreground font-medium">{previewDoc.applicantName}</span>
-                </p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                  <span>
+                    Pelamar: <strong className="text-foreground font-medium">{previewDoc.applicantName}</strong>
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-mono text-[11px]">
+                    <Clock className="size-3" />
+                    <span>Tautan kedaluwarsa dalam 15 menit</span>
+                  </span>
+                </div>
               </div>
               <Button
                 variant="ghost"
                 size="icon-xs"
                 onClick={() => setPreviewDoc(null)}
                 aria-label="Tutup pratinjau dokumen"
-                className="size-6 text-muted-foreground hover:text-foreground"
+                className="size-6 text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <X className="size-3.5" />
               </Button>
             </div>
 
-            {/* Simulated Document Canvas */}
-            <div className="p-6 bg-muted/20 rounded-xl border border-border flex flex-col items-center justify-center text-center gap-3">
-              <div className="p-3 rounded-full bg-primary/10 text-primary">
-                <FileText className="size-8" />
-              </div>
-              <div>
-                <div className="text-xs font-semibold text-foreground">
-                  Pratinjau Dokumen PDF Aman
+            {/* Document Content Canvas */}
+            <div className="flex-1 overflow-y-auto">
+              {previewDoc.loading && (
+                <div className="py-20 bg-muted/20 rounded-xl border border-border flex flex-col items-center justify-center text-center gap-3">
+                  <Loader2 className="size-8 text-primary animate-spin" />
+                  <div>
+                    <div className="text-xs font-semibold text-foreground">
+                      Mengambil Berkas Dokumen dari Cloudflare R2...
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      Menghasilkan tautan bertanda tangan aman (presigned GET)
+                    </div>
+                  </div>
                 </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  Tervalidasi via tautan sementara Cloudflare R2
-                </div>
-              </div>
+              )}
 
-              <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-background px-3 py-1 rounded-full border border-border">
-                <Clock className="size-3 text-amber-500" />
-                <span>Tautan kedaluwarsa dalam 14:52 menit</span>
-              </div>
+              {previewDoc.error && (
+                <div className="p-8 bg-destructive/5 rounded-xl border border-destructive/20 flex flex-col items-center justify-center text-center gap-3">
+                  <AlertCircle className="size-8 text-destructive" />
+                  <div>
+                    <div className="text-xs font-semibold text-destructive">
+                      Gagal Memuat Berkas Dokumen
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-1 max-w-sm">
+                      {previewDoc.error}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      handleOpenPreviewDoc(
+                        previewDoc.applicationId,
+                        previewDoc.applicantName,
+                        previewDoc.type,
+                        previewDoc.name
+                      )
+                    }
+                    className="h-8 text-xs gap-1.5 mt-1 cursor-pointer"
+                  >
+                    <RefreshCw className="size-3" />
+                    <span>Coba Lagi</span>
+                  </Button>
+                </div>
+              )}
+
+              {!previewDoc.loading && !previewDoc.error && previewDoc.url && (
+                <div className="flex flex-col gap-3">
+                  {previewDoc.url.match(/\.(jpeg|jpg|png|webp|gif)($|\?)/i) ||
+                  previewDoc.fileName?.match(/\.(jpeg|jpg|png|webp|gif)$/i) ? (
+                    <div className="relative rounded-xl border border-border bg-muted/20 p-2 flex items-center justify-center min-h-[340px] max-h-[520px] overflow-auto">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={previewDoc.url}
+                        alt={previewDoc.name}
+                        className="max-h-[500px] w-auto max-w-full rounded-lg object-contain shadow-xs border border-border/60 bg-background"
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative rounded-xl border border-border bg-card overflow-hidden h-[480px]">
+                      <iframe
+                        src={previewDoc.url}
+                        className="w-full h-full border-0"
+                        title={previewDoc.name}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-muted-foreground font-mono">
-                SHA-256: Verified
-              </span>
-              <Button size="sm" onClick={() => setPreviewDoc(null)} className="h-8 text-xs">
-                Tutup
-              </Button>
+            {/* Modal Footer & Actions */}
+            <div className="flex items-center justify-between border-t border-border pt-3">
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
+                <ShieldCheck className="size-3.5 text-primary shrink-0" />
+                <span>R2 Encrypted: Verified</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {previewDoc.url && (
+                  <>
+                    <Button asChild size="sm" variant="outline" className="h-8 text-xs gap-1.5 cursor-pointer">
+                      <a
+                        href={previewDoc.url}
+                        download={previewDoc.fileName || `${previewDoc.type}.pdf`}
+                        className="flex items-center gap-1.5"
+                      >
+                        <Download className="size-3.5" />
+                        <span>Unduh Berkas</span>
+                      </a>
+                    </Button>
+                    <Button asChild size="sm" className="h-8 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
+                      <a
+                        href={previewDoc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5"
+                      >
+                        <ExternalLink className="size-3.5" />
+                        <span>Buka di Tab Baru</span>
+                      </a>
+                    </Button>
+                  </>
+                )}
+                <Button size="sm" variant="ghost" onClick={() => setPreviewDoc(null)} className="h-8 text-xs cursor-pointer">
+                  Tutup
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       )}
+      {/* Counselor Schedules Management Modal */}
+      <CounselorSchedulesModal
+        counselor={scheduleModalCounselor}
+        isOpen={Boolean(scheduleModalCounselor)}
+        onClose={() => setScheduleModalCounselor(null)}
+        onSlotsUpdated={loadData}
+      />
     </div>
   )
 }

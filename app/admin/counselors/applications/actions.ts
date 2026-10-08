@@ -8,11 +8,9 @@ import { counselorApplications, counselors } from "@/db/schema"
 import { generatePresignedGetUrl } from "@/lib/r2"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
-import {
-  reviewApplicationInputSchema,
-  type ReviewApplicationInput,
-} from "@/lib/validations/counselor-application"
+import { reviewApplicationInputSchema, type ReviewApplicationInput } from "@/lib/validations/counselor-application"
 import { upsertStoreCounselor } from "@/lib/counselor/registry"
+import { MOCK_APPLICANTS } from "@/app/admin/mock-data"
 
 export interface AdminAuthContext {
   id: string
@@ -127,7 +125,23 @@ export async function getApplicationDocumentUrlAction(
         return rows[0] || null
       })
 
-    const application = await fetchApplication(input.applicationId)
+    let application = await fetchApplication(input.applicationId)
+    if (!application && input.applicationId.startsWith("app-")) {
+      const mock = MOCK_APPLICANTS.find((m) => m.id === input.applicationId)
+      if (mock) {
+        application = {
+          id: mock.id,
+          fullName: mock.name,
+          email: mock.email,
+          counselorType: mock.type === "Psikolog Klinis" ? "psychologist" : "peer",
+          cvR2Key: "counselor-applications/cv/mock-cv.pdf",
+          ktpR2Key: "counselor-applications/ktp/mock-ktp.jpg",
+          diplomaR2Key: "counselor-applications/diploma/mock-ijazah.pdf",
+          strR2Key: mock.documents.str ? "counselor-applications/str/mock-str.pdf" : null,
+        }
+      }
+    }
+
     if (!application) {
       return {
         success: false,
@@ -164,6 +178,8 @@ export async function getApplicationDocumentUrlAction(
       expiresIn: 900, // 15 minutes as per Solulu PRD spec
     })
 
+    const fileName = r2Key.split("/").pop() || `${input.documentType}.pdf`
+
     return {
       success: true,
       data: {
@@ -171,6 +187,8 @@ export async function getApplicationDocumentUrlAction(
         expiresInSeconds: 900,
         documentType: input.documentType,
         applicantName: application.fullName,
+        r2Key,
+        fileName,
       },
     }
   } catch (err: any) {

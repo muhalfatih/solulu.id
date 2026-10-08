@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Info,
   ShieldCheck,
+  Video,
   X,
   Lock,
   ChevronRight,
@@ -257,25 +258,41 @@ export default function CounselorSchedulesClient({
       </div>
 
       {/* Policy Guidance Alert Card */}
-      <Card className="border border-primary/20 bg-primary/5 shadow-none">
-        <CardContent className="p-4 flex items-start gap-3.5">
-          <Info className="size-5 text-primary shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-1 text-xs leading-relaxed text-muted-foreground">
-            <span className="font-semibold text-foreground text-sm">
-              Pedoman Alokasi Sesi 90 Menit & Proteksi Kapasitas Ruang
+      <div className="p-4 rounded-xl border border-border/80 bg-muted/20 shadow-2xs flex flex-col gap-3">
+        <div className="flex items-center gap-2 text-foreground font-semibold text-xs tracking-tight">
+          <Info className="size-4 text-primary shrink-0" />
+          <span>Pedoman Alokasi Sesi 90 Menit &amp; Proteksi Kapasitas Ruang Praktik</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="flex flex-col gap-1 p-2.5 rounded-lg bg-background border border-border/70">
+            <span className="font-semibold text-foreground flex items-center gap-1.5">
+              <Clock className="size-3.5 text-primary" />
+              Durasi Pasti 90 Menit
             </span>
-            <p>
-              1. <strong>Durasi Pasti</strong>: Setiap slot berdurasi penuh 90 menit (misal: 19:00 – 20:30 WIB). Sistem menolak slot yang bertabrakan pada tanggal yang sama.
-            </p>
-            <p>
-              2. <strong>Proteksi Pembatalan</strong>: Slot yang berstatus <span className="font-medium text-amber-700 dark:text-amber-400">Hold Reservasi</span> (pasien sedang proses bayar 17 menit) dan <span className="font-medium text-blue-700 dark:text-blue-400">Dipesan</span> (terkonfirmasi) dilindungi demi kenyamanan pasien dan tidak dapat dibatalkan sepihak.
-            </p>
-            <p>
-              3. <strong>Proteksi Zoom Platform</strong>: Katalog publik akan menyembunyikan slot secara dinamis jika pada rentang waktu yang sama sudah ada 2 sesi aktif di platform.
+            <p className="text-muted-foreground leading-relaxed">
+              Setiap sesi berdurasi penuh 90 menit. Sistem otomatis mencegah slot yang bertabrakan pada tanggal yang sama.
             </p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex flex-col gap-1 p-2.5 rounded-lg bg-background border border-border/70">
+            <span className="font-semibold text-foreground flex items-center gap-1.5">
+              <ShieldCheck className="size-3.5 text-primary" />
+              Proteksi Reservasi Klien
+            </span>
+            <p className="text-muted-foreground leading-relaxed">
+              Slot berstatus <span className="font-medium text-amber-700 dark:text-amber-400">Hold</span> (17m) dan <span className="font-medium text-blue-700 dark:text-blue-400">Dipesan</span> dilindungi demi kepastian pasien.
+            </p>
+          </div>
+          <div className="flex flex-col gap-1 p-2.5 rounded-lg bg-background border border-border/70">
+            <span className="font-semibold text-foreground flex items-center gap-1.5">
+              <Video className="size-3.5 text-primary" />
+              Kapasitas Zoom Terpadu
+            </span>
+            <p className="text-muted-foreground leading-relaxed">
+              Katalog publik menyembunyikan slot secara dinamis jika pada rentang waktu yang sama kapasitas platform telah penuh.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Schedules List Section */}
       <Card className="border border-border/80 shadow-xs">
@@ -293,7 +310,7 @@ export default function CounselorSchedulesClient({
             <select
               value={viewDateFilter}
               onChange={(e) => setViewDateFilter(e.target.value)}
-              className="text-xs h-8 px-2.5 rounded-lg border border-border bg-background focus:ring-1 focus:ring-primary"
+              className="text-xs h-8 px-2.5 rounded-lg border border-border/80 bg-background focus:ring-1 focus:ring-primary text-foreground font-medium cursor-pointer shadow-2xs"
             >
               <option value="all">Semua Tanggal</option>
               {distinctDates.map((d) => (
@@ -347,10 +364,8 @@ export default function CounselorSchedulesClient({
                           {slot.timeRange}
                         </TableCell>
 
-                        <TableCell>
-                          <Badge variant="outline" className="text-[11px] font-normal py-0">
-                            90 Menit
-                          </Badge>
+                        <TableCell className="text-xs text-muted-foreground font-medium tabular-nums">
+                          90 Menit
                         </TableCell>
 
                         <TableCell>
@@ -451,7 +466,7 @@ export default function CounselorSchedulesClient({
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="text-sm h-10"
               />
-              <FieldDescription className="text-[11px]">
+              <FieldDescription className="text-xs">
                 Slot dibuka untuk tanggal yang dipilih.
               </FieldDescription>
             </Field>
@@ -467,6 +482,7 @@ export default function CounselorSchedulesClient({
                     <button
                       key={timeStr}
                       type="button"
+                      aria-pressed={isChecked}
                       onClick={() => togglePresetTime(timeStr)}
                       className={`flex flex-col items-center justify-center p-2.5 rounded-lg border text-xs transition-colors cursor-pointer text-center ${
                         isChecked
@@ -475,7 +491,7 @@ export default function CounselorSchedulesClient({
                       }`}
                     >
                       <span className="font-bold text-sm tabular-nums">{timeStr}</span>
-                      <span className={`text-[10px] ${isChecked ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                      <span className={`text-xs ${isChecked ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                         s/d {endStr} WIB
                       </span>
                     </button>

@@ -22,8 +22,12 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Separator } from "@/components/ui/separator"
 import { completeSessionAndOpenReportAction } from "@/app/counselor/actions"
 import type { CounselorUpcomingSessionView } from "@/lib/counselor/types"
+
+import { cn } from "@/lib/utils"
 
 interface CounselorDashboardClientProps {
   initialSessions: CounselorUpcomingSessionView[]
@@ -104,51 +108,82 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
 
       {/* Grid Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border border-border/80 shadow-xs">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Sesi Terkonfirmasi</CardDescription>
-            <CardTitle className="text-2xl font-bold">{confirmedCount} Sesi</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="p-4 rounded-xl border border-border/80 bg-card shadow-xs flex flex-col justify-between gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Sesi Terkonfirmasi
+            </span>
+            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+              <CheckCircle2 className="size-4" />
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+              {confirmedCount} Sesi
+            </span>
             <span className="text-xs text-muted-foreground">Siap dilaksanakan via Zoom S2S</span>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="border border-border/80 shadow-xs">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Selesai / Laporan</CardDescription>
-            <CardTitle className="text-2xl font-bold">{completedCount} Sesi</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="p-4 rounded-xl border border-border/80 bg-card shadow-xs flex flex-col justify-between gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Selesai / Laporan
+            </span>
+            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+              <ClipboardList className="size-4" />
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+              {completedCount} Sesi
+            </span>
             <span className="text-xs text-muted-foreground">Catatan klinis terarsip privat</span>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="border border-border/80 shadow-xs">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Perhatian Klinis (SRQ-20)</CardDescription>
-            <CardTitle className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+        <div
+          className={cn(
+            "p-4 rounded-xl border shadow-xs flex flex-col justify-between gap-3 transition-colors",
+            highRiskCount > 0
+              ? "border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10"
+              : "border-border/80 bg-card"
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+              Perhatian Klinis (SRQ)
+            </span>
+            <div className="size-8 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center">
+              <ShieldAlert className="size-4" />
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-2xl font-bold tracking-tight text-amber-700 dark:text-amber-400 tabular-nums">
               {highRiskCount} Pasien
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <span className="text-xs text-amber-700/80 dark:text-amber-400/80 font-medium">
-              Indikasi ide bunuh diri / skor tinggi
             </span>
-          </CardContent>
-        </Card>
+            <span className="text-xs text-amber-700/80 dark:text-amber-400/80">
+              {highRiskCount > 0 ? "Indikasi ide bunuh diri / skor tinggi" : "Tidak ada pasien risiko tinggi"}
+            </span>
+          </div>
+        </div>
 
-        <Card className="border border-border/80 shadow-xs">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-xs">Standar Durasi</CardDescription>
-            <CardTitle className="text-2xl font-bold">90 Menit</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-              Jeda istirahat & proteksi jadwal
+        <div className="p-4 rounded-xl border border-border/80 bg-card shadow-xs flex flex-col justify-between gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Standar Durasi
             </span>
-          </CardContent>
-        </Card>
+            <div className="size-8 rounded-lg bg-blue-500/10 text-blue-700 dark:text-blue-400 flex items-center justify-center">
+              <Clock className="size-4" />
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+              90 Menit
+            </span>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Jeda istirahat & proteksi jadwal</span>
+          </div>
+        </div>
       </div>
 
       {/* Filter Tabs & Session List */}
@@ -156,36 +191,19 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <h2 className="text-base font-semibold tracking-tight">Daftar Klien Terjadwal</h2>
 
-          <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-lg border border-border/50 text-xs">
-            <button
-              onClick={() => setFilter("all")}
-              className={`px-3 py-1 rounded-md font-medium transition-all ${
-                filter === "all" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Semua ({sessions.length})
-            </button>
-            <button
-              onClick={() => setFilter("confirmed")}
-              className={`px-3 py-1 rounded-md font-medium transition-all ${
-                filter === "confirmed"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Terkonfirmasi ({confirmedCount})
-            </button>
-            <button
-              onClick={() => setFilter("completed")}
-              className={`px-3 py-1 rounded-md font-medium transition-all ${
-                filter === "completed"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Selesai ({completedCount})
-            </button>
-          </div>
+          <Tabs value={filter} onValueChange={(val) => setFilter(val as "all" | "confirmed" | "completed")}>
+            <TabsList className="h-8">
+              <TabsTrigger value="all" className="text-xs px-2.5">
+                Semua ({sessions.length})
+              </TabsTrigger>
+              <TabsTrigger value="confirmed" className="text-xs px-2.5">
+                Terkonfirmasi ({confirmedCount})
+              </TabsTrigger>
+              <TabsTrigger value="completed" className="text-xs px-2.5">
+                Selesai ({completedCount})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {filteredSessions.length === 0 ? (
@@ -215,13 +233,13 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                 <Card
                   key={session.id}
                   id={`session-card-${session.id}`}
-                  className="border border-border/80 shadow-xs hover:border-border transition-colors"
+                  className="border border-border/80 shadow-xs hover:border-foreground/20 hover:shadow-xs transition-all"
                 >
-                  <CardContent className="p-5 flex flex-col gap-4">
+                  <CardContent className="p-5 sm:p-6 flex flex-col gap-4">
                     {/* Header Row: Patient & Badges */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
                       <div className="flex items-center gap-3 flex-wrap">
-                        <div className="size-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                        <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 border border-primary/20">
                           {session.patientName.charAt(0)}
                         </div>
                         <div className="flex flex-col">
@@ -229,11 +247,11 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                             {session.patientName}
                           </span>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 font-mono">
                               <Phone className="size-3 text-muted-foreground" />
                               {session.patientPhone}
                             </span>
-                            <span>•</span>
+                            <Separator orientation="vertical" className="h-3 mx-0.5" />
                             <span className="flex items-center gap-1">
                               <Mail className="size-3 text-muted-foreground" />
                               {session.patientEmail}
@@ -246,32 +264,32 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                         {isConfirmed && (
                           <Badge
                             variant="outline"
-                            className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 gap-1"
+                            className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 gap-1.5 py-1 px-2.5 font-medium"
                           >
-                            <CheckCircle2 className="size-3" />
+                            <CheckCircle2 className="size-3.5" />
                             Terkonfirmasi
                           </Badge>
                         )}
                         {isCompleted && (
                           <Badge
                             variant="outline"
-                            className="text-xs bg-muted text-muted-foreground border-border gap-1"
+                            className="text-xs bg-muted text-muted-foreground border-border gap-1.5 py-1 px-2.5 font-medium"
                           >
-                            <ClipboardList className="size-3" />
+                            <ClipboardList className="size-3.5" />
                             Selesai
                           </Badge>
                         )}
                         {session.hasReport ? (
                           <Badge
                             variant="outline"
-                            className="text-xs bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20"
+                            className="text-xs bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20 py-1 px-2.5 font-medium"
                           >
                             Catatan Sesi Tersimpan
                           </Badge>
                         ) : isCompleted ? (
                           <Badge
                             variant="outline"
-                            className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+                            className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 py-1 px-2.5 font-medium"
                           >
                             Laporan Belum Diisi
                           </Badge>
@@ -282,61 +300,60 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                     {/* Clinical Alert & Triage Badges */}
                     <div className="flex items-center gap-2 flex-wrap text-xs">
                       {session.srqScore !== null && (
-                        <span className="px-2.5 py-1 rounded-md bg-muted/60 border border-border/60 text-muted-foreground font-medium">
-                          Skor SRQ-20: <strong className="text-foreground">{session.srqScore}/20</strong>
+                        <span className="px-2.5 py-1 rounded-lg bg-muted/60 border border-border/70 text-muted-foreground font-medium">
+                          Skor SRQ-20: <strong className="text-foreground font-semibold">{session.srqScore}/20</strong>
                         </span>
                       )}
 
                       {session.hasSuicidalThoughts && (
-                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-destructive/10 border border-destructive/30 text-destructive font-semibold">
-                          <ShieldAlert className="size-3.5" />
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive font-semibold">
+                          <ShieldAlert className="size-3.5 shrink-0" />
                           <span>Peringatan Klinis: Indikasi Ide Bunuh Diri (Q-17 Ya)</span>
                         </span>
                       )}
 
                       {session.bypassedRecommendation && (
-                        <span className="px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 font-medium">
+                        <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 font-medium">
                           Pilihan Mandiri Klien (Bypass Rekomendasi)
                         </span>
                       )}
                     </div>
 
                     {/* Schedule Time & Patient Notes */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs bg-muted/30 p-3 rounded-xl border border-border/60">
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center gap-1.5 font-semibold text-foreground">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 text-xs pt-1">
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 border border-border/70 font-semibold text-foreground">
                           <Clock className="size-3.5 text-primary" />
                           {session.timeRange}
                         </span>
-                        <span className="text-muted-foreground">•</span>
-                        <span className="flex items-center gap-1.5 text-muted-foreground">
-                          <Calendar className="size-3.5" />
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/80 border border-border/70 text-muted-foreground font-medium">
+                          <Calendar className="size-3.5 text-muted-foreground" />
                           {session.date}
                         </span>
                       </div>
 
                       {session.initialNotes && (
-                        <div className="text-xs text-muted-foreground max-w-xl truncate">
-                          <span className="font-semibold text-foreground">Keluhan: </span>
-                          <span>{session.initialNotes}</span>
+                        <div className="text-xs text-muted-foreground leading-relaxed flex-1 sm:text-right">
+                          <span className="font-semibold text-foreground">Keluhan Awal: </span>
+                          <span className="italic">&ldquo;{session.initialNotes}&rdquo;</span>
                         </div>
                       )}
                     </div>
 
                     {/* Actions Row */}
-                    <div className="flex items-center justify-between gap-3 pt-1 border-t border-border/40 flex-wrap">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/60 flex-wrap">
+                      <div>
                         {session.zoomStartUrl && isConfirmed && (
                           <Button
                             asChild
                             variant="default"
                             size="sm"
-                            className="gap-2 text-xs h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                            className="gap-2 text-xs h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
                             id={`btn-zoom-${session.id}`}
                           >
                             <a href={session.zoomStartUrl} target="_blank" rel="noopener noreferrer">
                               <Video className="size-3.5" />
-                              <span>Mulai Zoom</span>
+                              <span>Mulai Sesi Zoom</span>
                               <ExternalLink className="size-3 opacity-80" />
                             </a>
                           </Button>
@@ -348,7 +365,7 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                           <Button
                             variant="outline"
                             size="sm"
-                            className="gap-2 text-xs h-9 border-primary/30 text-primary hover:bg-primary/10"
+                            className="gap-2 text-xs h-9 border-border hover:bg-muted font-medium"
                             disabled={completingId === session.id}
                             onClick={() => handleCompleteAndReport(session.id)}
                             id={`btn-complete-${session.id}`}
@@ -360,7 +377,7 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                               </>
                             ) : (
                               <>
-                                <CheckCircle2 className="size-3.5" />
+                                <CheckCircle2 className="size-3.5 text-primary" />
                                 <span>Tandai Selesai & Buat Catatan</span>
                               </>
                             )}
@@ -372,7 +389,7 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                             asChild
                             variant="outline"
                             size="sm"
-                            className="gap-2 text-xs h-9"
+                            className="gap-2 text-xs h-9 font-medium"
                             id={`btn-report-${session.id}`}
                           >
                             <Link href={`/counselor/reports/${session.id}`}>

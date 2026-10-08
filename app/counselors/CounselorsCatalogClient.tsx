@@ -299,9 +299,10 @@ export default function CounselorsCatalogClient({
         const matchTitle = c.title ? c.title.toLowerCase().includes(q) : false
         const matchBio = c.bio ? c.bio.toLowerCase().includes(q) : false
         const matchEducation = c.education ? c.education.toLowerCase().includes(q) : false
+        const matchStr = c.strNumber ? c.strNumber.toLowerCase().includes(q) : false
         const matchSpec = c.specializations.some((s) => s.toLowerCase().includes(q))
 
-        if (!matchName && !matchRole && !matchTitle && !matchBio && !matchEducation && !matchSpec) {
+        if (!matchName && !matchRole && !matchTitle && !matchBio && !matchEducation && !matchStr && !matchSpec) {
           return false
         }
       }
@@ -357,7 +358,7 @@ export default function CounselorsCatalogClient({
       </section>
 
       {/* 2. Main Catalog Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 flex flex-col gap-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 pb-28 sm:pb-36 flex flex-col gap-6">
         {/* Connected Screening Banner (if client previously completed screening) */}
         {initialScreeningId && (
           <div className="p-4 sm:p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-foreground">
@@ -829,9 +830,14 @@ export default function CounselorsCatalogClient({
                       <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 line-clamp-1">
                         {counselor.role || (isPsychologist ? "Psikolog Klinis Berizin Resmi" : "Konselor Sebaya (Teman Cerita)")}
                       </p>
-                      <p className="text-xs text-muted-foreground line-clamp-1">
-                        {counselor.education || counselor.title}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground line-clamp-1">
+                        <span className="truncate">{counselor.education || counselor.title}</span>
+                        {counselor.strNumber && (
+                          <span className="inline-flex items-center text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/80 shrink-0">
+                            STR: {counselor.strNumber}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Specializations / Focus Topic Pills */}
@@ -887,11 +893,13 @@ export default function CounselorsCatalogClient({
                       </div>
 
                       {!hasSlots ? (
-                        <div className="p-3 rounded-xl bg-muted/30 border border-dashed border-border/70 text-center text-xs text-muted-foreground min-h-[92px] flex items-center justify-center">
-                          Belum ada jadwal di tanggal ini
+                        <div className="p-3 rounded-xl bg-muted/40 border border-border/70 text-center text-xs text-muted-foreground min-h-[96px] flex flex-col items-center justify-center gap-1 select-none">
+                          <Clock className="size-4 text-muted-foreground/60 mb-0.5" />
+                          <span className="font-semibold text-foreground/80">Jadwal Sedang Penuh</span>
+                          <span className="text-[11px] text-muted-foreground">Silakan cek berkala atau lihat profil untuk info lengkap</span>
                         </div>
                       ) : (
-                        <div className="flex flex-col gap-2 min-h-[92px]">
+                        <div className="flex flex-col gap-2 min-h-[96px]">
                           {sortedSlots.slice(0, 2).map((slot) => (
                             <button
                               key={slot.id}

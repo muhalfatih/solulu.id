@@ -42,6 +42,12 @@ export interface CounselorApplicant {
     diploma: boolean
     str?: boolean
   }
+  docKeys?: {
+    ktp?: string | null
+    cv?: string | null
+    diploma?: string | null
+    str?: string | null
+  }
 }
 
 export interface BookingSession {
@@ -613,16 +619,16 @@ export interface TestimonialItem {
 export const MOCK_TESTIMONIALS: TestimonialItem[] = [
   {
     id: "t-1",
-    clientName: "Rian Adiputra",
+    clientName: "Mahasiswa, 21 tahun",
     isAnonymous: true,
-    anonymousDisplay: "R.A.",
+    anonymousDisplay: "Mahasiswa, 21 tahun",
     avatarBg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
     sessionCode: "SL-202609-0412",
-    counselorName: "Siti Rahmawati, M.Psi., Psikolog",
+    counselorName: "Sarah Annisa, M.Psi., Psikolog",
     counselorType: "Psikolog Klinis",
     rating: 5,
-    quoteHighlight: "Pertama kali merasa didengar tanpa dihakimi sama sekali.",
-    comment: "Awalnya ragu konseling online karena takut canggung. Ternyata Kak Siti sangat hangat dan membimbing saya mengurai benang kusut overthinking pekerjaan. Latihan grounding yang diajarkan langsung terasa efeknya saat panik melanda.",
+    quoteHighlight: "Tidak merasa sendirian lagi",
+    comment: "Awalnya sempat ragu mau cerita karena takut dinilai lebay. Tapi konselornya sangat menenangkan sejak menit awal, dan durasi 90 menit beneran bikin lega tanpa rasa diburu-buru.",
     topic: "Kecemasan & Overthinking",
     submittedAt: "18 Sep 2026, 14:30 WIB",
     isActive: true,
@@ -634,16 +640,16 @@ export const MOCK_TESTIMONIALS: TestimonialItem[] = [
   },
   {
     id: "t-2",
-    clientName: "Nadia Salsabila",
-    isAnonymous: false,
-    anonymousDisplay: "Nadia S.",
+    clientName: "Karyawan Swasta, 26 tahun",
+    isAnonymous: true,
+    anonymousDisplay: "Karyawan Swasta, 26 tahun",
     avatarBg: "bg-teal-500/15 text-teal-600 dark:text-teal-400",
     sessionCode: "SL-202609-0388",
-    counselorName: "Budi Santoso, S.Psi.",
+    counselorName: "Rian Hidayat, S.Psi",
     counselorType: "Konselor Sebaya",
     rating: 5,
-    quoteHighlight: "Rasanya seperti ngobrol dengan sahabat yang paham betul beban burnout kerja.",
-    comment: "Sesi konseling sebaya dengan Mas Budi membuka mata saya tentang pentingnya batasan waktu kerja. Tidak ada istilah teknis rumit, semua saran sangat praktis dan bisa langsung saya terapkan minggu ini juga.",
+    quoteHighlight: "Punya arah keluar dari masalah",
+    comment: "Tekanan kerja sempat bikin kepala buntu banget. Lewat sesi ini, beban pikiran pelan-pelan diurai jadi langkah nyata yang masuk akal buat langsung saya jalanin.",
     topic: "Karier & Burnout",
     submittedAt: "18 Sep 2026, 11:15 WIB",
     isActive: true,
@@ -655,6 +661,27 @@ export const MOCK_TESTIMONIALS: TestimonialItem[] = [
   },
   {
     id: "t-3",
+    clientName: "Lulusan Baru Kuliah, 23 tahun",
+    isAnonymous: true,
+    anonymousDisplay: "Lulusan Baru Kuliah, 23 tahun",
+    avatarBg: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+    sessionCode: "SL-202609-0429",
+    counselorName: "Dr. Nadia Larasati, M.Psi",
+    counselorType: "Psikolog Klinis",
+    rating: 5,
+    quoteHighlight: "Punya cara tenang saat cemas datang",
+    comment: "Konselingnya terarah dan bikin adem. Kami latihan cara menenangkan diri yang langsung ngebantu waktu rasa cemas tiba-tiba muncul di malam hari.",
+    topic: "Kecemasan & Overthinking",
+    submittedAt: "17 Sep 2026, 19:40 WIB",
+    isActive: true,
+    status: "approved",
+    isFeatured: true,
+    consentGiven: true,
+    hasSensitiveDetails: false,
+    platformRating: 5,
+  },
+  {
+    id: "t-4",
     clientName: "Dimas Prasetyo",
     isAnonymous: true,
     anonymousDisplay: "Klien Anonim",

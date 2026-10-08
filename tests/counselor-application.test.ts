@@ -263,11 +263,33 @@ describe("Issue #4: Counselor Application & Admin Approval Pipeline", () => {
 
       expect(res.success).toBe(true)
       expect(res.data?.url).toContain("nurul-cv.pdf")
+      expect(res.data?.fileName).toBe("nurul-cv.pdf")
+      expect(res.data?.r2Key).toBe("counselor-applications/cv/nurul-cv.pdf")
       expect(res.data?.expiresInSeconds).toBe(900)
       expect(mockPresigner).toHaveBeenCalledWith({
         key: "counselor-applications/cv/nurul-cv.pdf",
         expiresIn: 900,
       })
+    })
+
+    it("handles mock applicant IDs with fallback mock records in demo mode", async () => {
+      const mockPresigner = vi.fn().mockResolvedValue("https://r2.storage/solulu-private/mock-ktp.jpg?signed=1")
+
+      const res = await getApplicationDocumentUrlAction(
+        {
+          applicationId: "app-1",
+          documentType: "ktp",
+        },
+        {
+          currentUser: adminUser,
+          fetchApplicationFn: vi.fn().mockResolvedValue(null),
+          presigner: mockPresigner,
+        }
+      )
+
+      expect(res.success).toBe(true)
+      expect(res.data?.fileName).toBe("mock-ktp.jpg")
+      expect(res.data?.applicantName).toBe("Sarah Annisa, M.Psi., Psikolog")
     })
 
     it("handles rejection by recording optional rejection reason and updating status", async () => {

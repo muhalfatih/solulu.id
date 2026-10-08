@@ -85,6 +85,7 @@ export function ApplicationsClient({
     documentType: string
     applicantName: string
     expiresInSeconds: number
+    fileName?: string
   } | null>(null)
 
   // Review modal state
@@ -135,6 +136,7 @@ export function ApplicationsClient({
         documentType: res.data.documentType,
         applicantName: res.data.applicantName,
         expiresInSeconds: res.data.expiresInSeconds,
+        fileName: res.data.fileName,
       })
     } catch (err: any) {
       setFeedback({
@@ -615,37 +617,58 @@ export function ApplicationsClient({
               </AlertDescription>
             </Alert>
 
-            <div className="flex items-center justify-center p-8 rounded-xl border border-dashed border-border bg-card">
-              <div className="text-center flex flex-col items-center gap-3">
-                <FileText className="size-12 text-primary/70" />
-                <span className="text-sm font-medium text-foreground">
-                  Berkas siap ditinjau
-                </span>
-                <div className="flex gap-2">
-                  <Button asChild size="sm">
-                    <a
-                      href={activeDoc?.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5"
-                    >
-                      <ExternalLink className="size-3.5" />
-                      Buka Dokumen di Tab Baru
-                    </a>
-                  </Button>
-                  <Button asChild variant="outline" size="sm">
-                    <a
-                      href={activeDoc?.url}
-                      download
-                      className="flex items-center gap-1.5"
-                    >
-                      <FileDown className="size-3.5" />
-                      Unduh Berkas
-                    </a>
-                  </Button>
+            {activeDoc && (
+              <div className="flex flex-col gap-3">
+                {activeDoc.url.match(/\.(jpeg|jpg|png|webp|gif)($|\?)/i) ||
+                activeDoc.fileName?.match(/\.(jpeg|jpg|png|webp|gif)$/i) ? (
+                  <div className="relative rounded-xl border border-border bg-muted/20 p-2 flex items-center justify-center min-h-[300px] max-h-[500px] overflow-auto">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={activeDoc.url}
+                      alt={`Dokumen ${activeDoc.documentType}`}
+                      className="max-h-[480px] w-auto max-w-full rounded-lg object-contain shadow-xs border border-border/60 bg-background"
+                    />
+                  </div>
+                ) : (
+                  <div className="relative rounded-xl border border-border bg-card overflow-hidden h-[460px]">
+                    <iframe
+                      src={activeDoc.url}
+                      className="w-full h-full border-0"
+                      title={`Dokumen ${activeDoc.documentType}`}
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs text-muted-foreground font-mono">
+                    {activeDoc.fileName || `${activeDoc.documentType}.pdf`}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button asChild size="sm">
+                      <a
+                        href={activeDoc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5"
+                      >
+                        <ExternalLink className="size-3.5" />
+                        Buka Dokumen di Tab Baru
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                      <a
+                        href={activeDoc.url}
+                        download={activeDoc.fileName || `${activeDoc.documentType}.pdf`}
+                        className="flex items-center gap-1.5"
+                      >
+                        <FileDown className="size-3.5" />
+                        Unduh Berkas
+                      </a>
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           <DialogFooter>

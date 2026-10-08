@@ -43,6 +43,8 @@ function safeRevalidatePath(path: string) {
   }
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function getAuthenticatedCounselor(
   customUser?: AuthContext | null
 ): Promise<AuthContext | null> {
@@ -58,7 +60,7 @@ export async function getAuthenticatedCounselor(
     if (demoRole === "counselor") {
       return {
         id: "demo-counselor-id",
-        counselorId: "c-1", // Sarah Annisa
+        counselorId: "e28eb17e-b7cd-43bc-8a30-d67a221342f3", // Sarah Annisa (DB UUID)
         app_metadata: { role: "counselor" },
         user_metadata: { role: "counselor" },
       }
@@ -87,30 +89,53 @@ export async function getAuthenticatedCounselor(
  * Resolves the database counselor record ID for the authenticated user.
  */
 async function resolveCounselorId(auth: AuthContext): Promise<string | null> {
-  if (auth.counselorId) {
+  if (auth.counselorId && UUID_REGEX.test(auth.counselorId)) {
     return auth.counselorId
   }
 
   try {
-    const found = await db
+    if (auth.id && UUID_REGEX.test(auth.id)) {
+      const found = await db
+        .select({ id: counselors.id })
+        .from(counselors)
+        .where(eq(counselors.userId, auth.id))
+        .limit(1)
+
+      if (found.length > 0) {
+        return found[0].id
+      }
+    }
+
+    // Try finding Sarah Annisa specifically
+    const sarah = await db
       .select({ id: counselors.id })
       .from(counselors)
-      .where(eq(counselors.userId, auth.id))
+      .where(sql`${counselors.fullName} ILIKE '%Sarah Annisa%'`)
       .limit(1)
 
-    if (found.length > 0) {
-      return found[0].id
+    if (sarah.length > 0) {
+      return sarah[0].id
     }
 
     // Fallback for demo counselor
     const anyCounselor = await db
       .select({ id: counselors.id })
       .from(counselors)
+      .where(eq(counselors.isActive, true))
       .limit(1)
 
-    return anyCounselor.length > 0 ? anyCounselor[0].id : "c-1"
+    if (anyCounselor.length > 0) {
+      return anyCounselor[0].id
+    }
+
+    const any = await db
+      .select({ id: counselors.id })
+      .from(counselors)
+      .limit(1)
+
+    return any.length > 0 ? any[0].id : (auth.counselorId || "c-1")
   } catch {
-    return "c-1"
+    return auth.counselorId || "c-1"
   }
 }
 

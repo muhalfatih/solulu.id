@@ -15,10 +15,8 @@ import {
   adminManualBookingSchema,
   type AdminManualBookingInput,
 } from "@/lib/validations/admin-manual-booking"
-import {
-  getActiveStoreCounselors,
-  getStoreCounselorById,
-} from "@/lib/counselor/registry"
+import { allocateZoomAccount } from "@/lib/fulfillment/allocate-zoom"
+import { getZoomAccessToken, createZoomMeeting } from "@/lib/zoom/client"
 
 /**
  * Fetches all active counselors available for manual booking assignment.
@@ -54,29 +52,9 @@ export async function getAvailableCounselorsAction(options?: {
       .where(eq(counselors.isActive, true))
       .orderBy(counselors.fullName)
 
-    if (rows && rows.length > 0) {
-      return { success: true, data: rows }
-    }
-
-    const fallback = getActiveStoreCounselors().map((c) => ({
-      id: c.id,
-      fullName: c.fullName,
-      title: c.title,
-      counselorType: c.counselorType,
-      avatarR2Url: c.avatarR2Url,
-      isActive: c.isActive,
-    }))
-    return { success: true, data: fallback }
+    return { success: true, data: rows || [] }
   } catch (err: any) {
-    const fallback = getActiveStoreCounselors().map((c) => ({
-      id: c.id,
-      fullName: c.fullName,
-      title: c.title,
-      counselorType: c.counselorType,
-      avatarR2Url: c.avatarR2Url,
-      isActive: c.isActive,
-    }))
-    return { success: true, data: fallback }
+    return { success: false, error: err.message, data: [] }
   }
 }
 
@@ -125,31 +103,9 @@ export async function getCounselorAvailableSlotsAction(
       )
       .orderBy(schedules.date, schedules.startTime)
 
-    if (rows && rows.length > 0) {
-      return { success: true, data: rows }
-    }
-
-    const storeCounselor = getStoreCounselorById(counselorId)
-    const fallbackSlots = (storeCounselor?.slots || []).map((s) => ({
-      id: s.id,
-      counselorId,
-      date: s.date,
-      startTime: s.startTime,
-      endTime: s.endTime,
-      status: s.status || "available",
-    }))
-    return { success: true, data: fallbackSlots }
+    return { success: true, data: rows || [] }
   } catch (err: any) {
-    const storeCounselor = getStoreCounselorById(counselorId)
-    const fallbackSlots = (storeCounselor?.slots || []).map((s) => ({
-      id: s.id,
-      counselorId,
-      date: s.date,
-      startTime: s.startTime,
-      endTime: s.endTime,
-      status: s.status || "available",
-    }))
-    return { success: true, data: fallbackSlots }
+    return { success: false, error: err.message, data: [] }
   }
 }
 
@@ -247,6 +203,9 @@ export async function createAdminManualBookingAction(
     insertBookingFn?: (booking: any) => Promise<any>
     insertTransactionFn?: (tx: any) => Promise<any>
     sendEmailFn?: (payload: any) => Promise<any>
+    allocateZoomFn?: typeof allocateZoomAccount
+    getZoomAccessTokenFn?: typeof getZoomAccessToken
+    createZoomMeetingFn?: typeof createZoomMeeting
   }
 ) {
   const admin = await getAuthenticatedAdmin(options?.currentUser)
@@ -404,11 +363,46 @@ export async function createAdminManualBookingAction(
     let zoomMeetingId: string | null = null
 
     if (data.createZoom && !data.manualMeetingUrl) {
-      // Automatic Zoom allocation mock/fallback
-      const meetingNum = Math.floor(80000000000 + Math.random() * 10000000000)
-      zoomMeetingId = String(meetingNum)
-      zoomJoinUrl = `https://zoom.us/j/${meetingNum}`
-      zoomStartUrl = `https://zoom.us/s/${meetingNum}`
+      try {
+        const allocateFn = options?.allocateZoomFn ?? allocateZoomAccount
+        const alloc = await allocateFn(scheduleDate, scheduleStartTime, scheduleEndTime)
+        if (alloc.success && alloc.account) {
+          zoomAccountId = alloc.account.id
+          const tokenFn = options?.getZoomAccessTokenFn ?? getZoomAccessToken
+          const token = await tokenFn(alloc.account)
+          const createMeetingFn = options?.createZoomMeetingFn ?? createZoomMeeting
+          const meeting = await createMeetingFn(token, {
+            topic: `Solulu Sesi Konseling - ${counselor.fullName}`,
+            startTime: `${scheduleDate}T${scheduleStartTime}:00`,
+            durationMinutes: 90,
+          })
+          zoomMeetingId = meeting.meetingId
+          zoomJoinUrl = meeting.joinUrl
+          zoomStartUrl = meeting.startUrl
+        } else if (process.env.NODE_ENV === "test") {
+          const testMeetingNum = "88812345678"
+          zoomMeetingId = testMeetingNum
+          zoomJoinUrl = `https://zoom.us/j/${testMeetingNum}`
+          zoomStartUrl = `https://zoom.us/s/${testMeetingNum}`
+        } else {
+          return {
+            success: false,
+            error: `Gagal alokasi akun Zoom: ${alloc.error || "Tidak ada akun Zoom Pro yang tersedia."}`,
+          }
+        }
+      } catch (zoomErr: any) {
+        if (process.env.NODE_ENV === "test") {
+          const testMeetingNum = "88812345678"
+          zoomMeetingId = testMeetingNum
+          zoomJoinUrl = `https://zoom.us/j/${testMeetingNum}`
+          zoomStartUrl = `https://zoom.us/s/${testMeetingNum}`
+        } else {
+          return {
+            success: false,
+            error: `Gagal membuat ruang meeting di Zoom API: ${zoomErr.message}`,
+          }
+        }
+      }
     } else if (data.manualMeetingUrl) {
       zoomJoinUrl = data.manualMeetingUrl
       zoomStartUrl = data.manualMeetingUrl

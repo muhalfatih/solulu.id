@@ -37,7 +37,6 @@ import {
   SOLULU_SPECIALIZATION_PRESETS,
   type UpdateCounselorAdminInput,
 } from "@/lib/validations/counselor-admin"
-import { MOCK_ACTIVE_COUNSELORS, type ActiveCounselor } from "@/app/admin/mock-data"
 import {
   getCounselorByIdAction,
   updateCounselorAction,
@@ -100,55 +99,10 @@ export default function EditCounselorPage() {
           setAvatarUrl(c.avatarR2Url || "")
           setIsActive(c.isActive ?? true)
           setIsFeatured(c.isFeatured ?? false)
-        } else {
-          // Attempt graceful fallback to mock active counselors
-          const mock = MOCK_ACTIVE_COUNSELORS.find((m: ActiveCounselor) => m.id === counselorId)
-          if (mock) {
-            setFullName(mock.name)
-            setTitle(mock.title)
-            setEducation(
-              mock.education ||
-                (mock.type === "Psikolog Klinis"
-                  ? "S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi"
-                  : "Sarjana Psikologi (S.Psi) • Peer Counselor Indonesia")
-            )
-            setCounselorType(mock.type === "Psikolog Klinis" ? "psychologist" : "peer")
-            setEmail(mock.email || "")
-            setPhone(mock.phone || "")
-            setStrNumber(mock.strNumber || "")
-            const bioMap: Record<string, string> = {
-              "c-1": "Psikolog klinis berlisensi dengan pengalaman lebih dari 5 tahun menangani kecemasan, depresi, dan pemulihan trauma menggunakan pendekatan CBT dan ACT.",
-              "c-2": "Konselor sebaya senior yang mendampingi mahasiswa dan profesional muda dalam menghadapi stres akademik, burnout, serta krisis identitas quarter-life.",
-              "c-3": "Pendekatan berbasis bukti ilmiah untuk penanganan depresi ringan hingga sedang, pemulihan luka masa kecil, serta peningkatan self-esteem dan penerimaan diri.",
-              "c-4": "Konselor sebaya dengan fokus pada regulasi emosi, relasi keluarga, dan pendampingan kesehatan mental remaja secara empatik dan solutif.",
-            }
-            setBio(bioMap[mock.id] || "Konselor berpengalaman dalam pendampingan klinis dan konseling sebaya.")
-            setSelectedSpecs(mock.specializations || [])
-            setIsActive(mock.isActive ?? true)
-          } else {
-            setErrorMessage("Data profil mitra konselor tidak ditemukan.")
-          }
+          setErrorMessage(res.error || "Data profil mitra konselor tidak ditemukan.")
         }
       } catch (err: any) {
-        const mock = MOCK_ACTIVE_COUNSELORS.find((m: ActiveCounselor) => m.id === counselorId)
-        if (mock) {
-          setFullName(mock.name)
-          setTitle(mock.title)
-          setEducation(
-            mock.education ||
-              (mock.type === "Psikolog Klinis"
-                ? "S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi"
-                : "Sarjana Psikologi (S.Psi) • Peer Counselor Indonesia")
-          )
-          setCounselorType(mock.type === "Psikolog Klinis" ? "psychologist" : "peer")
-          setEmail(mock.email || "")
-          setPhone(mock.phone || "")
-          setStrNumber(mock.strNumber || "")
-          setSelectedSpecs(mock.specializations || [])
-          setIsActive(mock.isActive ?? true)
-        } else {
-          setErrorMessage(err.message || "Gagal memuat profil konselor.")
-        }
+        setErrorMessage(err.message || "Gagal memuat profil konselor.")
       } finally {
         setIsLoading(false)
       }

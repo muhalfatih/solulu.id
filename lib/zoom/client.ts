@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm"
-import { db } from "../../db"
-import { zoomAccounts } from "../../db/schema"
-import { decrypt } from "../encryption"
+import { db } from "@/db"
+import { zoomAccounts } from "@/db/schema"
+import { decrypt } from "@/lib/encryption"
 
 export interface ZoomAccountRecord {
   id: string
@@ -60,8 +60,17 @@ export async function fetchZoomOAuthToken(
     let errorDetail = response.statusText
     try {
       const errJson = await response.json()
-      errorDetail =
-        errJson.message || errJson.error || errJson.reason || JSON.stringify(errJson)
+      const reason = errJson.reason || ""
+      const errorMsg = errJson.error || errJson.message || ""
+      if (reason.toLowerCase().includes("disabled") || errorMsg.toLowerCase().includes("disabled")) {
+        errorDetail = `Aplikasi S2S OAuth belum diaktifkan di Zoom Marketplace (Status: The app has been disabled by the developer). Silakan buka marketplace.zoom.us, buka aplikasi S2S OAuth Anda, buka tab "Activation" di menu sebelah kiri, lalu klik tombol "Activate your app".`
+      } else if (errorMsg === "invalid_client" && !reason) {
+        errorDetail = `Client ID atau Client Secret tidak valid (invalid_client). Periksa kembali kredensial di Zoom App Marketplace.`
+      } else if (reason) {
+        errorDetail = `${reason} (${errorMsg || response.statusText})`
+      } else {
+        errorDetail = errorMsg || JSON.stringify(errJson)
+      }
     } catch {
       // Fallback to statusText
     }

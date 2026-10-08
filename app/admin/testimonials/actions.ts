@@ -1,10 +1,74 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { eq, desc } from "drizzle-orm"
+import { eq, desc, and } from "drizzle-orm"
 import { db } from "@/db"
 import { testimonials } from "@/db/schema"
 import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
+
+/**
+ * Public action to retrieve featured active testimonials for the public homepage.
+ * Gracefully falls back to active testimonials if fewer than 3 are explicitly marked as featured.
+ */
+export async function getFeaturedTestimonialsForHomepageAction() {
+  try {
+    let rows = await db
+      .select({
+        id: testimonials.id,
+        clientName: testimonials.clientName,
+        isAnonymous: testimonials.isAnonymous,
+        anonymousDisplay: testimonials.anonymousDisplay,
+        sessionCode: testimonials.sessionCode,
+        counselorName: testimonials.counselorName,
+        counselorType: testimonials.counselorType,
+        rating: testimonials.rating,
+        quoteHighlight: testimonials.quoteHighlight,
+        comment: testimonials.comment,
+        topic: testimonials.topic,
+        isActive: testimonials.isActive,
+        isFeatured: testimonials.isFeatured,
+      })
+      .from(testimonials)
+      .where(and(eq(testimonials.isActive, true), eq(testimonials.isFeatured, true)))
+      .orderBy(desc(testimonials.createdAt))
+      .limit(6)
+
+    if (!rows || rows.length === 0) {
+      rows = await db
+        .select({
+          id: testimonials.id,
+          clientName: testimonials.clientName,
+          isAnonymous: testimonials.isAnonymous,
+          anonymousDisplay: testimonials.anonymousDisplay,
+          sessionCode: testimonials.sessionCode,
+          counselorName: testimonials.counselorName,
+          counselorType: testimonials.counselorType,
+          rating: testimonials.rating,
+          quoteHighlight: testimonials.quoteHighlight,
+          comment: testimonials.comment,
+          topic: testimonials.topic,
+          isActive: testimonials.isActive,
+          isFeatured: testimonials.isFeatured,
+        })
+        .from(testimonials)
+        .where(eq(testimonials.isActive, true))
+        .orderBy(desc(testimonials.createdAt))
+        .limit(6)
+    }
+
+    return {
+      success: true,
+      data: rows,
+    }
+  } catch (err: any) {
+    console.error("Failed to fetch featured testimonials for homepage:", err)
+    return {
+      success: false,
+      error: err.message || "Gagal mengambil data ulasan testimoni.",
+      data: [],
+    }
+  }
+}
 
 export interface TestimonialInput {
   clientName: string

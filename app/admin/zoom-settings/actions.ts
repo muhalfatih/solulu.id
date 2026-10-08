@@ -142,8 +142,21 @@ export async function handleSaveZoomAccount(
     return { success: true, data: result }
   }
 
-  const [inserted] = await db.insert(zoomAccounts).values(payload).returning()
-  return { success: true, data: inserted }
+  try {
+    const [inserted] = await db.insert(zoomAccounts).values(payload).returning()
+    return { success: true, data: inserted }
+  } catch (err: any) {
+    if (err?.code === "23505" || err?.message?.includes("unique")) {
+      return {
+        success: false,
+        error: `Email "${email}" sudah terdaftar pada akun Zoom lain. Gunakan email berbeda atau perbarui akun yang sudah ada.`,
+      }
+    }
+    return {
+      success: false,
+      error: `Gagal menyimpan akun Zoom: ${err?.message || "Kesalahan database"}`,
+    }
+  }
 }
 
 export interface UpdateOptions {
@@ -205,13 +218,26 @@ export async function handleUpdateZoomAccount(
     return { success: true, data: result }
   }
 
-  const [updated] = await db
-    .update(zoomAccounts)
-    .set(dataToUpdate)
-    .where(eq(zoomAccounts.id, id))
-    .returning()
+  try {
+    const [updated] = await db
+      .update(zoomAccounts)
+      .set(dataToUpdate)
+      .where(eq(zoomAccounts.id, id))
+      .returning()
 
-  return { success: true, data: updated }
+    return { success: true, data: updated }
+  } catch (err: any) {
+    if (err?.code === "23505" || err?.message?.includes("unique")) {
+      return {
+        success: false,
+        error: "Email sudah terdaftar pada akun Zoom lain.",
+      }
+    }
+    return {
+      success: false,
+      error: `Gagal memperbarui akun Zoom: ${err?.message || "Kesalahan database"}`,
+    }
+  }
 }
 
 export interface DeleteOptions {

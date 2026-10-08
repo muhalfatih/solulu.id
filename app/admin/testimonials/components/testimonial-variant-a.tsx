@@ -59,19 +59,25 @@ export function TestimonialVariantA({
 }: TestimonialVariantAProps) {
   // Composer State
   const [clientName, setClientName] = React.useState("")
+  const [quoteHighlight, setQuoteHighlight] = React.useState("")
+  const [anonymousDisplay, setAnonymousDisplay] = React.useState("")
   const [isAnonymous, setIsAnonymous] = React.useState(true)
   const [counselorIndex, setCounselorIndex] = React.useState(0)
   const [topic, setTopic] = React.useState<typeof TOPIC_OPTIONS[number]>("Kecemasan & Overthinking")
   const [rating, setRating] = React.useState(5)
   const [comment, setComment] = React.useState("")
   const [isActive, setIsActive] = React.useState(true)
+  const [isFeatured, setIsFeatured] = React.useState(true)
+  const [showLivePreview, setShowLivePreview] = React.useState(false)
 
   // Inline Editing State
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [editComment, setEditComment] = React.useState("")
   const [editQuote, setEditQuote] = React.useState("")
+  const [editAnonymousDisplay, setEditAnonymousDisplay] = React.useState("")
   const [editRating, setEditRating] = React.useState(5)
   const [editIsActive, setEditIsActive] = React.useState(true)
+  const [editIsFeatured, setEditIsFeatured] = React.useState(true)
 
   // Filter & Search State
   const [searchQuery, setSearchQuery] = React.useState("")
@@ -91,28 +97,30 @@ export function TestimonialVariantA({
     if (!clientName.trim() || !comment.trim()) return
 
     const selectedCounselor = COUNSELOR_OPTIONS[counselorIndex]
-    const anonDisplay = getAnonymousDisplay(clientName, isAnonymous)
+    const defaultAnon = getAnonymousDisplay(clientName, isAnonymous)
+    const finalAnonDisplay = anonymousDisplay.trim() || defaultAnon
 
-    // First sentence as highlight quote
+    // First sentence as highlight quote fallback
     const firstSentence = comment.split(/[.!?]/)[0] || comment
-    const quoteHighlight =
-      firstSentence.length > 70 ? firstSentence.slice(0, 70) + "..." : firstSentence
+    const finalQuoteHighlight = quoteHighlight.trim() ||
+      (firstSentence.length > 70 ? firstSentence.slice(0, 70) + "..." : firstSentence)
 
     const newPost: TestimonialItem = {
       id: `post-${Date.now()}`,
       clientName: clientName.trim(),
       isAnonymous,
-      anonymousDisplay: anonDisplay,
+      anonymousDisplay: finalAnonDisplay,
       avatarBg: "bg-primary/10 text-primary",
       sessionCode: `SL-POST-${Math.floor(100 + Math.random() * 900)}`,
       counselorName: selectedCounselor.name,
       counselorType: selectedCounselor.type,
       rating,
-      quoteHighlight,
+      quoteHighlight: finalQuoteHighlight,
       comment: comment.trim(),
       topic,
       submittedAt: "Baru saja",
       isActive,
+      isFeatured,
       consentGiven: true,
       hasSensitiveDetails: false,
       platformRating: 5,
@@ -122,8 +130,11 @@ export function TestimonialVariantA({
 
     // Reset composer form
     setClientName("")
+    setQuoteHighlight("")
+    setAnonymousDisplay("")
     setComment("")
     setIsActive(true)
+    setIsFeatured(true)
     setRating(5)
   }
 
@@ -131,16 +142,20 @@ export function TestimonialVariantA({
     setEditingId(item.id)
     setEditComment(item.comment)
     setEditQuote(item.quoteHighlight || "")
+    setEditAnonymousDisplay(item.anonymousDisplay || "")
     setEditRating(item.rating)
     setEditIsActive(item.isActive)
+    setEditIsFeatured(item.isFeatured ?? true)
   }
 
   const saveEdit = (id: string) => {
     onUpdatePost(id, {
       comment: editComment.trim(),
       quoteHighlight: editQuote.trim(),
+      anonymousDisplay: editAnonymousDisplay.trim(),
       rating: editRating,
       isActive: editIsActive,
+      isFeatured: editIsFeatured,
     })
     setEditingId(null)
   }
@@ -191,6 +206,21 @@ export function TestimonialVariantA({
         </div>
 
         <form onSubmit={handleCreatePost} className="flex flex-col gap-4">
+          {/* Judul / Headline Ulasan (Quote Highlight) */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="post-quote" className="text-xs font-medium text-foreground flex items-center justify-between">
+              <span>Judul / Sorotan Ulasan (Heading Kartu di Web)</span>
+              <span className="text-[11px] text-muted-foreground font-normal">Contoh: Tidak merasa sendirian lagi</span>
+            </Label>
+            <Input
+              id="post-quote"
+              value={quoteHighlight}
+              onChange={(e) => setQuoteHighlight(e.target.value)}
+              placeholder="Misal: 'Tidak merasa sendirian lagi' atau 'Punya arah keluar dari masalah'"
+              className="h-8 w-full text-xs bg-background"
+            />
+          </div>
+
           {/* Main Textarea */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="post-comment" className="text-xs font-medium text-foreground">
@@ -202,13 +232,13 @@ export function TestimonialVariantA({
               required
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Tuliskan pengalaman atau kutipan ulasan klien di sini... Contoh: 'Sesi bersama Kak Siti sangat menenangkan, latihan grounding-nya langsung terasa efeknya saat panik melanda.'"
+              placeholder="Tuliskan pengalaman atau kutipan ulasan klien di sini... Contoh: 'Awalnya sempat ragu mau cerita karena takut dinilai lebay. Tapi konselornya sangat menenangkan sejak menit awal, dan durasi 90 menit beneran bikin lega tanpa rasa diburu-buru.'"
               className="w-full rounded-xl border border-input bg-background p-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring leading-relaxed resize-y min-h-[72px]"
             />
           </div>
 
-          {/* Row Inputs: Nama Klien, Konselor, Topik */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 items-start">
+          {/* Row Inputs: Nama Klien, Label Publik, Konselor, Topik */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 items-start">
             {/* Nama Klien & Toggle Inisial Anonim */}
             <div className="flex flex-col gap-1.5">
               <div className="h-5 flex items-center justify-between">
@@ -224,7 +254,7 @@ export function TestimonialVariantA({
                     className="rounded border-input text-primary focus:ring-primary size-3 cursor-pointer"
                   />
                   <label htmlFor="anon-check" className="text-[11px] text-muted-foreground cursor-pointer select-none">
-                    Inisial Anonim
+                    Inisial
                   </label>
                 </div>
               </div>
@@ -234,6 +264,22 @@ export function TestimonialVariantA({
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
                 placeholder="Misal: Rian Adiputra"
+                className="h-8 w-full text-xs bg-background"
+              />
+            </div>
+
+            {/* Label Tampilan Publik (misal: "Mahasiswa, 21 tahun") */}
+            <div className="flex flex-col gap-1.5">
+              <div className="h-5 flex items-center">
+                <Label htmlFor="anon-display" className="text-xs font-medium text-foreground">
+                  Label Tampilan Publik
+                </Label>
+              </div>
+              <Input
+                id="anon-display"
+                value={anonymousDisplay}
+                onChange={(e) => setAnonymousDisplay(e.target.value)}
+                placeholder="Misal: Mahasiswa, 21 tahun"
                 className="h-8 w-full text-xs bg-background"
               />
             </div>
@@ -291,9 +337,9 @@ export function TestimonialVariantA({
             </div>
           </div>
 
-          {/* Bottom Row: Rating, Status Aktif Toggle, Submit Button */}
+          {/* Bottom Row: Rating, Status Aktif Toggle, Tampil di Homepage, Live Preview Button, Submit Button */}
           <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-border">
-            <div className="flex items-center gap-5 h-8">
+            <div className="flex flex-wrap items-center gap-5">
               {/* Rating Bintang */}
               <div className="flex items-center gap-2 h-8">
                 <span className="text-xs text-muted-foreground">Rating:</span>
@@ -333,17 +379,77 @@ export function TestimonialVariantA({
                   </span>
                 </Label>
               </div>
+
+              {/* Tampilkan di Homepage Switch */}
+              <div className="flex items-center gap-2 h-8">
+                <Switch
+                  id="featured-toggle"
+                  checked={isFeatured}
+                  onCheckedChange={setIsFeatured}
+                />
+                <Label htmlFor="featured-toggle" className="text-xs font-medium text-foreground cursor-pointer flex items-center gap-1.5 select-none">
+                  <span>Homepage:</span>
+                  <span className={isFeatured ? "text-primary font-semibold" : "text-muted-foreground"}>
+                    {isFeatured ? "Tampil" : "Sembunyi"}
+                  </span>
+                </Label>
+              </div>
             </div>
 
-            <Button
-              type="submit"
-              size="sm"
-              className="h-8 text-xs font-medium gap-1.5 cursor-pointer"
-            >
-              <Send className="size-3.5" data-icon="inline-start" />
-              <span>Simpan Testimoni</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowLivePreview(!showLivePreview)}
+                className="h-8 text-xs font-medium cursor-pointer"
+              >
+                <Eye className="size-3.5" data-icon="inline-start" />
+                <span>{showLivePreview ? "Tutup Pratinjau" : "Pratinjau Homepage"}</span>
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="h-8 text-xs font-medium gap-1.5 cursor-pointer"
+              >
+                <Send className="size-3.5" data-icon="inline-start" />
+                <span>Simpan Testimoni</span>
+              </Button>
+            </div>
           </div>
+
+          {/* Live Preview Card matching DESIGN.md */}
+          {showLivePreview && (
+            <div className="p-4 rounded-xl border border-dashed border-primary/40 bg-primary/5 flex flex-col gap-2.5 mt-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-primary uppercase tracking-wider">
+                  Pratinjau Tampilan Front-End (Pedoman DESIGN.md)
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  Persis seperti yang dilihat pengunjung di beranda Solulu.id
+                </span>
+              </div>
+              <div className="p-7 rounded-2xl bg-card border border-border/80 flex flex-col justify-between gap-4 shadow-2xs max-w-lg">
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="font-heading font-semibold text-base sm:text-lg text-foreground leading-snug">
+                    {quoteHighlight.trim() || (comment.split(/[.!?]/)[0] || "Judul Ulasan")}
+                  </h3>
+                  <Quote className="size-5 text-primary/30 shrink-0 mt-0.5" aria-hidden="true" />
+                </div>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty">
+                  &ldquo;{comment.trim() || "Isi cerita ulasan pengalaman klien di Solulu..."}&rdquo;
+                </p>
+                <div className="pt-3.5 border-t border-border/60 flex items-center justify-between gap-2 flex-wrap">
+                  <span className="font-heading font-semibold text-xs sm:text-sm text-foreground">
+                    {anonymousDisplay.trim() || getAnonymousDisplay(clientName, isAnonymous)}
+                  </span>
+                  <span className="px-3.5 py-1.5 rounded-full bg-secondary/80 border border-border/60 text-xs font-medium text-foreground/90">
+                    {topic}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </form>
       </section>
 
@@ -452,8 +558,16 @@ export function TestimonialVariantA({
                     </div>
                   </div>
 
-                  {/* Status Badge: Aktif vs Tidak Aktif */}
-                  <div>
+                  {/* Status Badge: Aktif vs Tidak Aktif & Homepage */}
+                  <div className="flex items-center gap-1.5">
+                    {post.isFeatured && (
+                      <Badge
+                        variant="outline"
+                        className="bg-primary/10 text-primary border-primary/30 text-[10px] font-medium py-0.5 px-2"
+                      >
+                        Homepage
+                      </Badge>
+                    )}
                     {post.isActive ? (
                       <Badge
                         variant="outline"
@@ -476,13 +590,26 @@ export function TestimonialVariantA({
                 {/* Content: Highlight quote & full review */}
                 {isEditing ? (
                   <div className="flex flex-col gap-2.5 p-3 rounded-xl bg-muted/20 border border-border">
-                    <Label className="text-xs font-medium text-foreground">Kutipan Sorotan</Label>
-                    <Input
-                      value={editQuote}
-                      onChange={(e) => setEditQuote(e.target.value)}
-                      placeholder="Kutipan utama..."
-                      className="h-8 text-xs bg-background"
-                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs font-medium text-foreground">Judul / Sorotan Ulasan</Label>
+                        <Input
+                          value={editQuote}
+                          onChange={(e) => setEditQuote(e.target.value)}
+                          placeholder="Judul ulasan di heading kartu..."
+                          className="h-8 text-xs bg-background"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs font-medium text-foreground">Label Klien Publik</Label>
+                        <Input
+                          value={editAnonymousDisplay}
+                          onChange={(e) => setEditAnonymousDisplay(e.target.value)}
+                          placeholder="Misal: Mahasiswa, 21 tahun"
+                          className="h-8 text-xs bg-background"
+                        />
+                      </div>
+                    </div>
                     <Label className="text-xs font-medium text-foreground mt-1">Ulasan Lengkap</Label>
                     <textarea
                       rows={3}
@@ -490,9 +617,9 @@ export function TestimonialVariantA({
                       onChange={(e) => setEditComment(e.target.value)}
                       className="w-full rounded-md border border-input bg-background p-2.5 text-xs text-foreground leading-relaxed resize-y"
                     />
-                    {/* Inline edit rating & active switch */}
+                    {/* Inline edit rating & active switch & featured switch */}
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-wrap items-center gap-4">
                         <div className="flex items-center gap-1">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <button
@@ -518,6 +645,16 @@ export function TestimonialVariantA({
                           />
                           <Label htmlFor={`edit-active-${post.id}`} className="text-xs text-foreground cursor-pointer">
                             {editIsActive ? "Status Aktif" : "Tidak Aktif"}
+                          </Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id={`edit-featured-${post.id}`}
+                            checked={editIsFeatured}
+                            onCheckedChange={setEditIsFeatured}
+                          />
+                          <Label htmlFor={`edit-featured-${post.id}`} className="text-xs text-foreground cursor-pointer">
+                            {editIsFeatured ? "Homepage: Ya" : "Homepage: Tidak"}
                           </Label>
                         </div>
                       </div>

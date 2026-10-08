@@ -14,10 +14,15 @@ const globalForDb = globalThis as unknown as {
   conn: postgres.Sql | undefined;
 };
 
+const isLocal =
+  connectionString.includes("localhost") ||
+  connectionString.includes("127.0.0.1");
+
 const conn =
   globalForDb.conn ??
   postgres(connectionString, {
     prepare: false, // Mandatory for Supavisor Transaction Pooler (port 6543)
+    ssl: isLocal ? false : "require", // SSL is strictly required for Supabase Transaction Pooler
     max: 10,
     idle_timeout: 20,
     connect_timeout: 10,

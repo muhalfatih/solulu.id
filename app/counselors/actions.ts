@@ -39,6 +39,8 @@ export interface CatalogCounselorView {
   title: string
   role?: string
   education?: string
+  strNumber?: string | null
+  isFeatured?: boolean
   counselorType: "peer" | "psychologist"
   counselorTypeDisplay: string
   bio: string
@@ -244,7 +246,9 @@ export async function getCounselorsCatalogAction(
         fullName: c.fullName,
         title: c.title,
         role: isPsychologist ? "Psikolog Klinis Berizin Resmi" : "Konselor Sebaya (Partner Cerita)",
-        education: c.title || (isPsychologist ? "S2 Psikologi Klinis • STR Terverifikasi" : "Sarjana Psikologi • Tersertifikasi"),
+        education: c.education || (isPsychologist ? "S2 Profesi Psikologi • STR Terverifikasi" : "Sarjana Psikologi • Tersertifikasi"),
+        strNumber: c.strNumber || null,
+        isFeatured: Boolean(c.isFeatured),
         counselorType: c.counselorType,
         counselorTypeDisplay: isPsychologist ? "Psikolog Klinis" : "Konselor Sebaya",
         bio: c.bio,

@@ -22,6 +22,13 @@ import {
   toggleStoreCounselorActive,
   removeStoreCounselor,
 } from "@/lib/counselor/registry"
+import {
+  computeEndTime,
+  formatTimeRange,
+  checkSelfOverlap,
+  isTimeRangeOverlapping,
+} from "@/lib/schedules/concurrency"
+import { DEMO_SCHEDULES } from "@/lib/booking/checkout"
 
 export interface AdminAuthContext {
   id: string
@@ -850,6 +857,327 @@ export async function deleteCounselorAction(
     return {
       success: false,
       error: err.message || "Gagal menghapus data konselor.",
+    }
+  }
+}
+
+// =============================================================================
+// ADMIN COUNSELOR SCHEDULE SLOT MANAGEMENT ACTIONS
+// =============================================================================
+
+export interface AdminCounselorSlotView {
+  id: string
+  counselorId: string
+  date: string
+  startTime: string
+  endTime: string
+  timeRange: string
+  status: "available" | "reserved" | "booked" | "cancelled"
+  canDelete: boolean
+  deleteRestrictionReason?: string
+}
+
+/**
+ * Retrieves all schedule slots for a specific counselor, with optional date filtering.
+ */
+export async function getCounselorSlotsAdminAction(
+  counselorId: string,
+  dateFilter?: string,
+  options?: { currentUser?: AdminAuthContext | null }
+) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return { success: false, error: "Akses ditolak: Diperlukan role Admin.", data: [] }
+  }
+
+  try {
+    let rows: any[] = []
+    try {
+      const conditions = [eq(schedules.counselorId, counselorId)]
+      if (dateFilter && dateFilter !== "all") {
+        conditions.push(eq(schedules.date, dateFilter))
+      }
+      rows = await db
+        .select()
+        .from(schedules)
+        .where(and(...conditions))
+        .orderBy(desc(schedules.date), schedules.startTime)
+    } catch {
+      rows = Object.values(DEMO_SCHEDULES).filter(
+        (s: any) =>
+          s.counselorId === counselorId &&
+          (!dateFilter || dateFilter === "all" || s.date === dateFilter)
+      )
+    }
+
+    if (rows.length === 0) {
+      const demoMatches = Object.values(DEMO_SCHEDULES).filter(
+        (s: any) =>
+          s.counselorId === counselorId &&
+          (!dateFilter || dateFilter === "all" || s.date === dateFilter)
+      )
+      if (demoMatches.length > 0) {
+        rows = demoMatches
+      }
+    }
+
+    const slots: AdminCounselorSlotView[] = rows.map((r: any) => {
+      const canDelete = r.status === "available"
+      let deleteRestrictionReason: string | undefined
+      if (r.status === "reserved") {
+        deleteRestrictionReason = "Slot sedang dalam hold pembayaran pasien (17 menit)."
+      } else if (r.status === "booked") {
+        deleteRestrictionReason = "Slot sudah dipesan pasien. Kelola pembatalan di modul Sesi."
+      } else if (r.status === "cancelled") {
+        deleteRestrictionReason = "Slot sudah berstatus dibatalkan."
+      }
+
+      return {
+        id: r.id,
+        counselorId: r.counselorId,
+        date: r.date,
+        startTime: r.startTime,
+        endTime: r.endTime || computeEndTime(r.startTime),
+        timeRange: formatTimeRange(r.startTime, r.endTime || computeEndTime(r.startTime)),
+        status: r.status,
+        canDelete,
+        deleteRestrictionReason,
+      }
+    })
+
+    return {
+      success: true,
+      data: slots,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal memuat slot jadwal konselor.",
+      data: [],
+    }
+  }
+}
+
+/**
+ * Allows Admin to create 90-minute schedule slots on behalf of a counselor.
+ * Automatically computes endTime (+90 mins) and prevents self-overlapping slots.
+ */
+export async function createCounselorSlotsAdminAction(
+  input: { counselorId: string; date: string; startTimes: string[] },
+  options?: { currentUser?: AdminAuthContext | null }
+) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return { success: false, error: "Akses ditolak: Diperlukan role Admin." }
+  }
+
+  const { counselorId, date, startTimes } = input
+  if (!counselorId || !date || !Array.isArray(startTimes) || startTimes.length === 0) {
+    return { success: false, error: "Data slot jadwal tidak lengkap." }
+  }
+
+  // Validate date format YYYY-MM-DD
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return { success: false, error: "Format tanggal tidak valid (harus YYYY-MM-DD)." }
+  }
+
+  // 1. Prepare proposed slots with auto-computed 90-minute end time
+  const proposed: Array<{ startTime: string; endTime: string }> = []
+  for (const st of startTimes) {
+    if (!/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(st)) {
+      return { success: false, error: `Format jam mulai tidak valid: ${st}` }
+    }
+    const cleanSt = st.slice(0, 5)
+    const et = computeEndTime(cleanSt)
+    proposed.push({ startTime: cleanSt, endTime: et })
+  }
+
+  // 2. Validate internal overlap among proposed slots
+  for (let i = 0; i < proposed.length; i++) {
+    for (let j = i + 1; j < proposed.length; j++) {
+      if (
+        isTimeRangeOverlapping(
+          proposed[i].startTime,
+          proposed[i].endTime,
+          proposed[j].startTime,
+          proposed[j].endTime
+        )
+      ) {
+        return {
+          success: false,
+          error: `Slot bentrok internal: ${proposed[i].startTime} dan ${proposed[j].startTime} bertumpukan untuk durasi sesi 90 menit.`,
+        }
+      }
+    }
+  }
+
+  try {
+    // 3. Fetch existing slots for self-overlap validation
+    let existingSlots: any[] = []
+    try {
+      existingSlots = await db
+        .select({
+          startTime: schedules.startTime,
+          endTime: schedules.endTime,
+          status: schedules.status,
+        })
+        .from(schedules)
+        .where(and(eq(schedules.counselorId, counselorId), eq(schedules.date, date)))
+    } catch {
+      existingSlots = Object.values(DEMO_SCHEDULES).filter(
+        (s: any) => s.counselorId === counselorId && s.date === date
+      )
+    }
+
+    const demoExisting = Object.values(DEMO_SCHEDULES).filter(
+      (s: any) => s.counselorId === counselorId && s.date === date
+    )
+    const allExisting = [...existingSlots, ...demoExisting]
+
+    for (const p of proposed) {
+      if (checkSelfOverlap(allExisting, p.startTime, p.endTime)) {
+        return {
+          success: false,
+          error: `Jadwal bentrok: Konselor sudah memiliki jadwal aktif yang tumpang tindih pada jam ${p.startTime} – ${p.endTime} WIB.`,
+        }
+      }
+    }
+
+    // 4. Insert into database (with demo fallback)
+    const createdSlots: AdminCounselorSlotView[] = []
+    for (const p of proposed) {
+      const slotId = `s-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`
+      try {
+        const [inserted] = await db
+          .insert(schedules)
+          .values({
+            counselorId,
+            date,
+            startTime: p.startTime,
+            endTime: p.endTime,
+            status: "available",
+          })
+          .returning()
+
+        createdSlots.push({
+          id: inserted.id,
+          counselorId: inserted.counselorId,
+          date: inserted.date,
+          startTime: inserted.startTime,
+          endTime: inserted.endTime,
+          timeRange: formatTimeRange(inserted.startTime, inserted.endTime),
+          status: inserted.status,
+          canDelete: true,
+        })
+      } catch {
+        DEMO_SCHEDULES[slotId] = {
+          id: slotId,
+          counselorId,
+          date,
+          startTime: p.startTime,
+          endTime: p.endTime,
+          status: "available",
+        }
+        createdSlots.push({
+          id: slotId,
+          counselorId,
+          date,
+          startTime: p.startTime,
+          endTime: p.endTime,
+          timeRange: formatTimeRange(p.startTime, p.endTime),
+          status: "available",
+          canDelete: true,
+        })
+      }
+    }
+
+    try {
+      revalidatePath("/admin/counselors")
+      revalidatePath("/counselors")
+      revalidatePath("/")
+    } catch {}
+
+    return {
+      success: true,
+      count: createdSlots.length,
+      slots: createdSlots,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal menambahkan slot jadwal konselor.",
+    }
+  }
+}
+
+/**
+ * Allows Admin to delete an available schedule slot.
+ * Rejects deletion if slot is already reserved or booked.
+ */
+export async function deleteCounselorSlotAdminAction(
+  slotId: string,
+  options?: { currentUser?: AdminAuthContext | null }
+) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return { success: false, error: "Akses ditolak: Diperlukan role Admin." }
+  }
+
+  try {
+    // 1. Verify slot record
+    let slotRecord: any = null
+    try {
+      const found = await db
+        .select()
+        .from(schedules)
+        .where(eq(schedules.id, slotId))
+        .limit(1)
+      if (found.length > 0) {
+        slotRecord = found[0]
+      }
+    } catch {}
+
+    if (!slotRecord && DEMO_SCHEDULES[slotId]) {
+      slotRecord = DEMO_SCHEDULES[slotId]
+    }
+
+    if (!slotRecord) {
+      return { success: false, error: "Slot jadwal tidak ditemukan." }
+    }
+
+    if (slotRecord.status !== "available") {
+      return {
+        success: false,
+        error:
+          slotRecord.status === "booked"
+            ? "Slot tidak dapat dihapus karena sudah dikonfirmasi dan dipesan oleh pasien. Buka modul Sesi untuk pembatalan klinis."
+            : "Slot tidak dapat dihapus karena sedang dalam proses pembayaran/reservasi aktif pasien.",
+      }
+    }
+
+    // 2. Delete slot
+    try {
+      await db.delete(schedules).where(eq(schedules.id, slotId))
+    } catch {}
+
+    if (DEMO_SCHEDULES[slotId]) {
+      delete DEMO_SCHEDULES[slotId]
+    }
+
+    try {
+      revalidatePath("/admin/counselors")
+      revalidatePath("/counselors")
+      revalidatePath("/")
+    } catch {}
+
+    return {
+      success: true,
+      message: "Slot jadwal berhasil dihapus.",
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal menghapus slot jadwal.",
     }
   }
 }

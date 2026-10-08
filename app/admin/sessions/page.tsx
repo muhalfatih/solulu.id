@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { MOCK_SESSIONS, BookingSession } from "../mock-data"
+import type { BookingSession } from "../mock-data"
 import {
   Clock,
   Copy,
@@ -126,12 +126,11 @@ export default function DistilledSessionsPage() {
           })
           setSessions(mapped)
         } else {
-          // If no bookings in DB yet, fallback to empty list (or MOCK_SESSIONS if DB is untouched)
-          setSessions(res.success && res.data ? [] : MOCK_SESSIONS)
+          setSessions([])
         }
       } catch (err) {
         console.error("Gagal memuat sesi booking:", err)
-        setSessions(MOCK_SESSIONS)
+        setSessions([])
       } finally {
         setIsLoading(false)
       }

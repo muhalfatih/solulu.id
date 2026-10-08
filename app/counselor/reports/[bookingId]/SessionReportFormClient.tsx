@@ -24,7 +24,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
+import { FieldGroup, Field, FieldLabel, FieldDescription, FieldError } from "@/components/ui/field"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   submitSessionReportAction,
   getPresignedUploadUrlAction,
@@ -278,112 +279,122 @@ export function SessionReportFormClient({ initialData }: SessionReportFormClient
             </div>
           </CardHeader>
 
-          <CardContent className="pt-6 flex flex-col gap-6">
-            {statusMessage && (
-              <div
-                role="alert"
-                className={`p-4 rounded-xl border text-xs font-medium flex items-center gap-2.5 ${
-                  statusMessage.type === "success"
-                    ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
-                    : "bg-destructive/10 border-destructive/20 text-destructive"
-                }`}
-              >
-                {statusMessage.type === "success" ? (
-                  <CheckCircle2 className="size-4 shrink-0" />
+          <CardContent className="pt-6">
+            <FieldGroup className="flex flex-col gap-6">
+              {statusMessage && (
+                <Alert
+                  variant={statusMessage.type === "success" ? "default" : "destructive"}
+                  className={statusMessage.type === "success" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300" : ""}
+                >
+                  {statusMessage.type === "success" ? (
+                    <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+                  ) : (
+                    <AlertCircle className="size-4" />
+                  )}
+                  <AlertTitle className="text-xs font-semibold">
+                    {statusMessage.type === "success" ? "Berhasil Disimpan" : "Gagal Menyimpan"}
+                  </AlertTitle>
+                  <AlertDescription className="text-xs">
+                    {statusMessage.text}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Field 1: Ringkasan Sesi */}
+              <Field data-invalid={!!fieldErrors.summary}>
+                <div className="flex items-center justify-between">
+                  <FieldLabel htmlFor="report-summary" className="text-sm font-semibold">
+                    Ringkasan Sesi Konseling <span className="text-destructive">*</span>
+                  </FieldLabel>
+                  <span
+                    className={`text-xs ${
+                      isSummaryValid
+                        ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {summaryChars} / 20 karakter min {isSummaryValid && "✓"}
+                  </span>
+                </div>
+                <Textarea
+                  id="report-summary"
+                  rows={5}
+                  placeholder="Tuliskan dinamika konseling, eksplorasi masalah utama, kondisi afek pasien, dan tema yang dibahas..."
+                  value={summary}
+                  onChange={(e) => setSummary(e.target.value)}
+                  className="resize-y text-sm"
+                  aria-invalid={!!fieldErrors.summary}
+                  required
+                />
+                {fieldErrors.summary ? (
+                  <FieldError className="text-xs">{fieldErrors.summary[0]}</FieldError>
                 ) : (
-                  <AlertCircle className="size-4 shrink-0" />
+                  <FieldDescription className="text-xs">
+                    Uraikan dinamika psikologis, tema pembahasan, dan kondisi afek klien selama sesi 90 menit.
+                  </FieldDescription>
                 )}
-                <span>{statusMessage.text}</span>
-              </div>
-            )}
+              </Field>
 
-            {/* Field 1: Ringkasan Sesi */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="report-summary" className="text-sm font-semibold">
-                  Ringkasan Sesi Konseling <span className="text-destructive">*</span>
-                </Label>
-                <span
-                  className={`text-xs ${
-                    isSummaryValid
-                      ? "text-emerald-600 dark:text-emerald-400 font-medium"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {summaryChars} / 20 karakter min {isSummaryValid && "✓"}
-                </span>
-              </div>
-              <Textarea
-                id="report-summary"
-                rows={5}
-                placeholder="Tuliskan dinamika konseling, eksplorasi masalah utama, kondisi afek pasien, dan tema yang dibahas..."
-                value={summary}
-                onChange={(e) => setSummary(e.target.value)}
-                className={`resize-y text-sm ${fieldErrors.summary ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                required
-              />
-              {fieldErrors.summary && (
-                <p className="text-xs text-destructive">{fieldErrors.summary[0]}</p>
-              )}
-            </div>
+              {/* Field 2: Rencana Tindak Lanjut / Action Plan */}
+              <Field data-invalid={!!fieldErrors.actionPlan}>
+                <div className="flex items-center justify-between">
+                  <FieldLabel htmlFor="report-action-plan" className="text-sm font-semibold">
+                    Rencana Intervensi & Tindak Lanjut Pasien <span className="text-destructive">*</span>
+                  </FieldLabel>
+                  <span
+                    className={`text-xs ${
+                      isActionPlanValid
+                        ? "text-emerald-600 dark:text-emerald-400 font-medium"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {actionPlanChars} / 20 karakter min {isActionPlanValid && "✓"}
+                  </span>
+                </div>
+                <Textarea
+                  id="report-action-plan"
+                  rows={4}
+                  placeholder="Rencana aksi mandiri pasien, tugas rumah (journaling, pernapasan, relaksasi), atau langkah penanganan krisis..."
+                  value={actionPlan}
+                  onChange={(e) => setActionPlan(e.target.value)}
+                  className="resize-y text-sm"
+                  aria-invalid={!!fieldErrors.actionPlan}
+                  required
+                />
+                {fieldErrors.actionPlan ? (
+                  <FieldError className="text-xs">{fieldErrors.actionPlan[0]}</FieldError>
+                ) : (
+                  <FieldDescription className="text-xs">
+                    Langkah nyata atau latihan psikologis yang disepakati untuk dipraktikkan pasien.
+                  </FieldDescription>
+                )}
+              </Field>
 
-            {/* Field 2: Rencana Tindak Lanjut / Action Plan */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="report-action-plan" className="text-sm font-semibold">
-                  Rencana Intervensi & Tindak Lanjut Pasien <span className="text-destructive">*</span>
-                </Label>
-                <span
-                  className={`text-xs ${
-                    isActionPlanValid
-                      ? "text-emerald-600 dark:text-emerald-400 font-medium"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {actionPlanChars} / 20 karakter min {isActionPlanValid && "✓"}
-                </span>
-              </div>
-              <Textarea
-                id="report-action-plan"
-                rows={4}
-                placeholder="Rencana aksi mandiri pasien, tugas rumah (journaling, pernapasan, relaksasi), atau langkah penanganan krisis..."
-                value={actionPlan}
-                onChange={(e) => setActionPlan(e.target.value)}
-                className={`resize-y text-sm ${fieldErrors.actionPlan ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                required
-              />
-              {fieldErrors.actionPlan && (
-                <p className="text-xs text-destructive">{fieldErrors.actionPlan[0]}</p>
-              )}
-            </div>
+              {/* Field 3: Rekomendasi Rujukan / Jadwal Sesi Berikutnya */}
+              <Field>
+                <FieldLabel htmlFor="report-recommendation" className="text-sm font-semibold">
+                  Rekomendasi Rujukan / Jadwal Berikutnya (Opsional)
+                </FieldLabel>
+                <Input
+                  id="report-recommendation"
+                  placeholder="Contoh: Disarankan sesi lanjutan 1 minggu lagi, atau rujukan psikiatri untuk evaluasi medikasi."
+                  value={followUpRecommendation}
+                  onChange={(e) => setFollowUpRecommendation(e.target.value)}
+                  className="text-sm"
+                />
+                <FieldDescription className="text-xs">
+                  Dapat berupa saran frekuensi pertemuan selanjutnya atau arahan rujukan medis bila diperlukan.
+                </FieldDescription>
+              </Field>
 
-            {/* Field 3: Rekomendasi Rujukan / Jadwal Sesi Berikutnya */}
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="report-recommendation" className="text-sm font-semibold">
-                Rekomendasi Rujukan / Jadwal Berikutnya (Opsional)
-              </Label>
-              <Input
-                id="report-recommendation"
-                placeholder="Contoh: Disarankan sesi lanjutan 1 minggu lagi, atau rujukan psikiatri untuk evaluasi medikasi."
-                value={followUpRecommendation}
-                onChange={(e) => setFollowUpRecommendation(e.target.value)}
-                className="text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                Dapat berupa saran frekuensi pertemuan selanjutnya atau arahan rujukan medis bila diperlukan.
-              </p>
-            </div>
-
-            {/* Field 4: Lampiran Dokumen Medis Privat */}
-            <div className="flex flex-col gap-3 pt-2 border-t border-border/60">
-              <div className="flex flex-col gap-1">
-                <Label className="text-sm font-semibold">
+              {/* Field 4: Lampiran Dokumen Medis Privat */}
+              <Field className="pt-2 border-t border-border/60">
+                <FieldLabel className="text-sm font-semibold">
                   Lampiran Dokumen Klinis Rahasia (Opsional)
-                </Label>
-                <p className="text-xs text-muted-foreground">
+                </FieldLabel>
+                <FieldDescription className="text-xs">
                   Unggah catatan tulisan tangan, asesmen PDF, atau lembar kerja. File disimpan di Cloudflare R2 bucket privat (<code className="text-xs bg-muted px-1 py-0.5 rounded">solulu-private</code>) dan dienkripsi.
-                </p>
-              </div>
+                </FieldDescription>
 
               {/* Upload Drop/Button */}
               <div className="flex items-center gap-3">
@@ -467,8 +478,9 @@ export function SessionReportFormClient({ initialData }: SessionReportFormClient
                   </div>
                 </div>
               )}
-            </div>
-          </CardContent>
+            </Field>
+          </FieldGroup>
+        </CardContent>
 
           <CardFooter className="flex items-center justify-between gap-3 pt-6 border-t border-border/60">
             <Button asChild variant="outline" size="sm" className="text-xs">

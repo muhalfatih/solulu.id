@@ -52,9 +52,47 @@ export async function getSessionByTokenAction(
 
     // 2. Demo fallback
     if (DEMO_SESSIONS[cleanToken]) {
+      const demo = DEMO_SESSIONS[cleanToken]
+      if (cleanToken === "demo-session-ready") {
+        const now = new Date()
+        const start = new Date(now.getTime() + 5 * 60 * 1000)
+        const end = new Date(now.getTime() + 95 * 60 * 1000)
+        const fmtDate = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Jakarta",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        })
+        const fmtTime = new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Asia/Jakarta",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        })
+        const dateStr = fmtDate.format(start)
+        const startTime = fmtTime.format(start)
+        const endTime = fmtTime.format(end)
+
+        return {
+          success: true,
+          data: {
+            ...demo,
+            schedule: {
+              ...demo.schedule,
+              date: dateStr,
+              startTime,
+              endTime,
+              timeRange: `${startTime.slice(0, 5)} – ${endTime.slice(0, 5)} WIB`,
+              formattedDate: formatIndonesianDate(dateStr),
+            },
+          },
+        }
+      }
+
       return {
         success: true,
-        data: DEMO_SESSIONS[cleanToken],
+        data: demo,
       }
     }
 

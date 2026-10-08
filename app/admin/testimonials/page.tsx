@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { MOCK_TESTIMONIALS, TestimonialItem } from "../mock-data"
+import type { TestimonialItem } from "../mock-data"
 import { TestimonialVariantA } from "./components/testimonial-variant-a"
 import { Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -14,7 +14,7 @@ import {
 } from "./actions"
 
 export default function TestimonialsAdminPage() {
-  const [items, setItems] = React.useState<TestimonialItem[]>(MOCK_TESTIMONIALS)
+  const [items, setItems] = React.useState<TestimonialItem[]>([])
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
 
@@ -48,8 +48,11 @@ export default function TestimonialsAdminPage() {
               year: "numeric",
             }),
             isActive: r.isActive,
+            isFeatured: r.isFeatured ?? true,
           }))
           setItems(mapped)
+        } else {
+          setItems([])
         }
       } catch (err) {
         console.error("Failed to load real testimonials:", err)
@@ -76,6 +79,7 @@ export default function TestimonialsAdminPage() {
         comment: newPost.comment,
         topic: newPost.topic,
         isActive: newPost.isActive,
+        isFeatured: newPost.isFeatured ?? true,
       })
     } catch (err) {
       console.error("Failed to persist testimonial to DB:", err)

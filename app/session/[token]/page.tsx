@@ -4,6 +4,8 @@ import { getSessionByTokenAction } from "@/lib/session/actions"
 import SessionClient from "./SessionClient"
 import { SessionInvalidView } from "./SessionInvalidView"
 
+export const dynamic = "force-dynamic"
+
 interface SessionPageProps {
   params: Promise<{
     token: string

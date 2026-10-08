@@ -30,6 +30,7 @@ import { FaqAccordion } from "@/components/public/FaqAccordion"
 import { getPlatformPricing } from "@/lib/pricing/platform-pricing"
 import { formatRupiah } from "@/lib/booking/checkout"
 import { getFeaturedCounselorsForHomepageAction } from "@/app/admin/counselors/actions"
+import { getFeaturedTestimonialsForHomepageAction } from "@/app/admin/testimonials/actions"
 
 export const metadata = {
   title: "Solulu | Ruang Konseling Online & Kesehatan Jiwa",
@@ -210,6 +211,17 @@ const FAQS = [
 export default async function HomePage() {
   const pricing = await getPlatformPricing()
   const featuredRes = await getFeaturedCounselorsForHomepageAction()
+  const testimonialsRes = await getFeaturedTestimonialsForHomepageAction()
+
+  const displayTestimonials =
+    testimonialsRes.success && testimonialsRes.data && testimonialsRes.data.length > 0
+      ? testimonialsRes.data.map((t) => ({
+          title: t.quoteHighlight,
+          author: t.anonymousDisplay || t.clientName || "Klien Solulu",
+          topic: t.topic,
+          quote: t.comment,
+        }))
+      : TESTIMONIALS
 
   const featuredCounselors =
     featuredRes.success && featuredRes.data && featuredRes.data.length > 0
@@ -907,7 +919,7 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 items-stretch">
-            {TESTIMONIALS.map((t, idx) => (
+            {displayTestimonials.map((t, idx) => (
               <div
                 key={idx}
                 className="p-7 rounded-2xl bg-card border border-border/80 flex flex-col justify-between gap-4 shadow-2xs hover:border-primary/35 hover:-translate-y-1 hover:shadow-sm transition-all duration-200"
