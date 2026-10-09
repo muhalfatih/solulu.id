@@ -46,7 +46,7 @@ interface UploadedFileItem {
 export function SessionReportFormClient({ initialData }: SessionReportFormClientProps) {
   const router = useRouter()
   const { booking } = initialData
-
+  const [attendanceStatus, setAttendanceStatus] = React.useState<"attended" | "no_show">("attended")
   const [summary, setSummary] = React.useState(initialData.summary || "")
   const [actionPlan, setActionPlan] = React.useState(initialData.actionPlan || "")
   const [followUpRecommendation, setFollowUpRecommendation] = React.useState(
@@ -147,6 +147,7 @@ export function SessionReportFormClient({ initialData }: SessionReportFormClient
     try {
       const res = await submitSessionReportAction({
         bookingId: booking.id,
+        attendanceStatus,
         summary,
         actionPlan,
         followUpRecommendation: followUpRecommendation || null,
@@ -299,6 +300,61 @@ export function SessionReportFormClient({ initialData }: SessionReportFormClient
                   </AlertDescription>
                 </Alert>
               )}
+
+              {/* Field 0: Status Kehadiran Sesi (Attendance Status) */}
+              <div className="flex flex-col gap-2.5 p-4 rounded-xl border border-border/80 bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-foreground">
+                    Status Kehadiran Pasien:
+                  </span>
+                  <Badge variant={attendanceStatus === "attended" ? "outline" : "secondary"} className="text-[11px]">
+                    {attendanceStatus === "attended" ? "Sesi Terlaksana" : "Klien Tidak Hadir (No-Show)"}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttendanceStatus("attended")
+                    }}
+                    className={`p-3 rounded-lg border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                      attendanceStatus === "attended"
+                        ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
+                        : "border-border bg-card text-muted-foreground hover:bg-muted/40"
+                    }`}
+                  >
+                    <CheckCircle2 className={`size-4 mt-0.5 shrink-0 ${attendanceStatus === "attended" ? "text-primary" : "text-muted-foreground/40"}`} />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-foreground">Hadir Penuh</span>
+                      <span className="text-[11px] text-muted-foreground">Klien hadir dan sesi telekonseling 90 menit berjalan lancar.</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttendanceStatus("no_show")
+                      if (!summary.trim() || summary.includes("Klien tidak hadir")) {
+                        setSummary("Klien tidak hadir dalam panggilan Zoom selama durasi sesi 90 menit (No-Show). Konselor telah bersiaga penuh di ruang tunggu.")
+                      }
+                      if (!actionPlan.trim() || actionPlan.includes("Status sesi dicatat")) {
+                        setActionPlan("Status sesi dicatat sebagai No-Show. Hak honor kesiagaan konselor terlindungi. Menunggu konfirmasi admin / koordinasi reschedule bila ada alasan darurat.")
+                      }
+                    }}
+                    className={`p-3 rounded-lg border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                      attendanceStatus === "no_show"
+                        ? "border-amber-500 bg-amber-500/10 text-foreground ring-1 ring-amber-500/30"
+                        : "border-border bg-card text-muted-foreground hover:bg-muted/40"
+                    }`}
+                  >
+                    <AlertCircle className={`size-4 mt-0.5 shrink-0 ${attendanceStatus === "no_show" ? "text-amber-600" : "text-muted-foreground/40"}`} />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-foreground">Klien Tidak Hadir (No-Show)</span>
+                      <span className="text-[11px] text-muted-foreground">Konselor bersiaga namun klien tidak memasuki Zoom sampai jam berakhir.</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
 
               {/* Field 1: Ringkasan Sesi */}
               <Field data-invalid={!!fieldErrors.summary}>

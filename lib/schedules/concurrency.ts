@@ -11,6 +11,9 @@
 
 export const SESSION_DURATION_MINUTES = 90
 export const MAX_PLATFORM_CONCURRENCY = 2
+export const MIN_BOOKING_LEAD_TIME_MINUTES = 120 // 2 Jam buffer minimum sebelum sesi dimulai
+export const MAX_BOOKING_HORIZON_DAYS = 14 // Jendela pemesanan maksimal 14 hari ke depan
+export const MAX_COUNSELOR_DAILY_SESSIONS = 4 // Batas beban kerja maksimal 4 sesi 90 menit per hari per konselor
 
 /**
  * Parses time strings in "HH:mm" or "HH:mm:ss" format into total minutes since midnight.
@@ -149,15 +152,162 @@ export function filterSlotsByConcurrencyGuard<T extends SlotInterval>(
 export type SlotCancellationStatus = "available" | "reserved" | "booked" | "cancelled"
 
 /**
+ * Returns current Date adjusted to Asia/Jakarta (WIB) time components.
+ */
+export function getNowWIB(d: Date = new Date()): {
+  year: number
+  month: number
+  day: number
+  hours: number
+  minutes: number
+  dateStr: string
+  timeMinutes: number
+} {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+
+  const parts = formatter.formatToParts(d)
+  const partMap: Record<string, string> = {}
+  for (const part of parts) {
+    partMap[part.type] = part.value
+  }
+
+  const year = parseInt(partMap.year || "2026", 10)
+  const month = parseInt(partMap.month || "1", 10)
+  const day = parseInt(partMap.day || "1", 10)
+  const hours = parseInt(partMap.hour || "0", 10)
+  const minutes = parseInt(partMap.minute || "0", 10)
+
+  const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+  const timeMinutes = hours * 60 + minutes
+
+  return { year, month, day, hours, minutes, dateStr, timeMinutes }
+}
+
+/**
+ * Returns YYYY-MM-DD date string in WIB timezone.
+ */
+export function getWIBDateString(d: Date = new Date()): string {
+  return getNowWIB(d).dateStr
+}
+
+/**
+ * Returns max bookable date string (WIB) based on horizon days.
+ */
+export function getMaxBookableDateString(
+  d: Date = new Date(),
+  horizonDays: number = MAX_BOOKING_HORIZON_DAYS
+): string {
+  const target = new Date(d.getTime() + horizonDays * 24 * 60 * 60 * 1000)
+  return getWIBDateString(target)
+}
+
+/**
+ * Checks whether a slot has already started or ended in the past (WIB).
+ */
+export function isSlotInPast(
+  date: string,
+  time: string,
+  now: Date = new Date()
+): boolean {
+  const wib = getNowWIB(now)
+  if (date < wib.dateStr) {
+    return true
+  }
+  if (date > wib.dateStr) {
+    return false
+  }
+  const slotMinutes = parseTimeToMinutes(time)
+  return slotMinutes <= wib.timeMinutes
+}
+
+/**
+ * Determines whether a slot can be booked by a patient in the public flow.
+ * Rules:
+ * 1. Slot date must not be in the past.
+ * 2. Slot date must not exceed max horizon days (14 days).
+ * 3. Slot startTime must have at least leadTimeMinutes (120 mins / 2 hours) from current time.
+ */
+export function isSlotBookable(
+  date: string,
+  startTime: string,
+  now: Date = new Date(),
+  leadTimeMinutes: number = MIN_BOOKING_LEAD_TIME_MINUTES,
+  maxHorizonDays: number = MAX_BOOKING_HORIZON_DAYS
+): { bookable: boolean; reason?: string } {
+  const wib = getNowWIB(now)
+  const maxDate = getMaxBookableDateString(now, maxHorizonDays)
+
+  if (date < wib.dateStr) {
+    return { bookable: false, reason: "Tanggal slot sudah terlewat." }
+  }
+
+  if (date > maxDate) {
+    return {
+      bookable: false,
+      reason: `Slot hanya dapat dipesan maksimal ${maxHorizonDays} hari ke depan.`,
+    }
+  }
+
+  const slotMinutes = parseTimeToMinutes(startTime)
+
+  if (date === wib.dateStr) {
+    // Same day: check lead time buffer
+    if (slotMinutes <= wib.timeMinutes) {
+      return { bookable: false, reason: "Waktu slot sesi telah terlewat." }
+    }
+    if (slotMinutes - wib.timeMinutes < leadTimeMinutes) {
+      return {
+        bookable: false,
+        reason: `Pemesanan sesi membutuhkan jeda minimal ${Math.round(
+          leadTimeMinutes / 60
+        )} jam sebelum waktu praktik dimulai.`,
+      }
+    }
+  }
+
+  return { bookable: true }
+}
+
+/**
+ * Filters a list of slots keeping only those that are bookable.
+ */
+export function filterBookableSlots<T extends { date: string; startTime: string }>(
+  slots: T[],
+  now: Date = new Date(),
+  leadTimeMinutes: number = MIN_BOOKING_LEAD_TIME_MINUTES,
+  maxHorizonDays: number = MAX_BOOKING_HORIZON_DAYS
+): T[] {
+  return slots.filter(
+    (slot) => isSlotBookable(slot.date, slot.startTime, now, leadTimeMinutes, maxHorizonDays).bookable
+  )
+}
+
+/**
  * Determines whether a counselor can cancel a schedule slot.
- * - 'available': Allowed.
+ * - 'available': Allowed if not already in the past.
  * - 'reserved': Rejected (protected during the 17-minute payment hold window).
  * - 'booked': Rejected (confirmed session with patient).
  * - 'cancelled': Rejected (already cancelled).
  */
 export function canCancelSlot(
-  status: SlotCancellationStatus | string
+  status: SlotCancellationStatus | string,
+  isPast: boolean = false
 ): { allowed: boolean; reason?: string } {
+  if (isPast) {
+    return {
+      allowed: false,
+      reason: "Slot sudah terlewat / kedaluwarsa sehingga tidak dapat dibatalkan.",
+    }
+  }
+
   if (status === "available") {
     return { allowed: true }
   }
@@ -190,3 +340,4 @@ export function canCancelSlot(
     reason: `Status slot tidak valid untuk dibatalkan (${status}).`,
   }
 }
+

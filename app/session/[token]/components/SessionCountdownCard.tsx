@@ -85,6 +85,9 @@ export function SessionCountdownCard({
   const waPendingUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(
     `Halo Tim Solulu, saya sedang menunggu tautan Zoom di ruang sesi dengan token: ${booking.accessToken}`
   )}`
+  const waCounselorMissingUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(
+    `Halo Admin Solulu, saya sedang berada di ruang sesi dengan token ${booking.accessToken} (Klien: ${patientName}), namun konselor belum bergabung atau ada kendala di ruang Zoom. Mohon bantuannya.`
+  )}`
 
   return (
     <Card className="rounded-2xl border border-border/80 shadow-xs bg-card hover:shadow-sm transition-all relative overflow-hidden gap-0">
@@ -264,6 +267,24 @@ export function SessionCountdownCard({
               Sesi konseling berdurasi 90 menit telah selesai. Terima kasih telah mempercayakan
               ruang bercerita dan proses pemulihan Anda bersama Solulu.
             </p>
+
+            {/* In case session had disruption / Counselor No-Show */}
+            <div className="mt-3 pt-3 border-t border-border/50 w-full flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span>Sesi terganggu atau konselor tidak hadir?</span>
+              <a
+                href={waCounselorMissingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-primary hover:text-primary underline-offset-4 hover:underline"
+                >
+                  Klaim Reschedule / Refund 100%
+                </Button>
+              </a>
+            </div>
           </div>
         )}
 
@@ -307,6 +328,30 @@ export function SessionCountdownCard({
                 ? `Bergabunglah menggunakan nama profil sesuai pemesanan: "${patientName}".`
                 : `Tombol aktif otomatis pada pukul ${unlockTimeString} WIB. Tidak perlu me-refresh halaman manual.`}
             </p>
+
+            {/* Counselor Assistance Notice (Case 2A: Counselor Delay / No-Show) */}
+            {(state === "IN_PROGRESS" || state === "ROOM_OPEN_PREPARING") && (
+              <div className="mt-2 rounded-xl border border-amber-500/25 bg-amber-500/5 p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 text-xs">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span className="size-2 rounded-full bg-amber-500 shrink-0" />
+                  <span>Konselor belum hadir atau kendala mikrofon/Zoom?</span>
+                </div>
+                <a
+                  href={waCounselorMissingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0"
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs font-medium border-amber-500/30 hover:bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                  >
+                    Lapor Bantuan CS
+                  </Button>
+                </a>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

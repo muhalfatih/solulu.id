@@ -47,6 +47,7 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   getCounselorsAdminAction,
   toggleCounselorActiveAction,
@@ -67,6 +68,7 @@ function getDocButtonLabel(docKey: string | null | undefined, fallback: string) 
 }
 
 export default function DistilledCounselorsPage() {
+  const [isLoading, setIsLoading] = React.useState(true)
   const [applicants, setApplicants] = React.useState<CounselorApplicant[]>([])
   const [activeCounselors, setActiveCounselors] = React.useState<any[]>([])
   const [previewDoc, setPreviewDoc] = React.useState<{
@@ -143,6 +145,7 @@ export default function DistilledCounselorsPage() {
 
   // Fetch real counselors and applications from database on mount, keeping resilient fallback
   const loadData = React.useCallback(async () => {
+    setIsLoading(true)
     try {
       const [counselorsRes, appsRes] = await Promise.all([
         getCounselorsAdminAction(),
@@ -208,6 +211,8 @@ export default function DistilledCounselorsPage() {
       }
     } catch (err) {
       console.warn("Failed to fetch counselors or applications from db:", err)
+    } finally {
+      setIsLoading(false)
     }
   }, [])
 
@@ -380,7 +385,7 @@ export default function DistilledCounselorsPage() {
             <GraduationCap className="size-4 text-purple-600 dark:text-purple-400" />
           </div>
           <div className="text-2xl font-bold tracking-tight text-foreground font-heading">
-            {totalPsychologists}
+            {isLoading ? <Skeleton className="h-7 w-12 my-0.5" /> : totalPsychologists}
           </div>
           <span className="text-[11px] text-muted-foreground">Berizin STR Kemenkes</span>
         </div>
@@ -391,7 +396,7 @@ export default function DistilledCounselorsPage() {
             <UserCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div className="text-2xl font-bold tracking-tight text-foreground font-heading">
-            {totalPeers}
+            {isLoading ? <Skeleton className="h-7 w-12 my-0.5" /> : totalPeers}
           </div>
           <span className="text-[11px] text-muted-foreground">Partner Cerita Terlatih</span>
         </div>
@@ -402,7 +407,7 @@ export default function DistilledCounselorsPage() {
             <Calendar className="size-4 text-primary" />
           </div>
           <div className="text-2xl font-bold tracking-tight text-foreground font-heading">
-            {totalActiveSlots}
+            {isLoading ? <Skeleton className="h-7 w-12 my-0.5" /> : totalActiveSlots}
           </div>
           <span className="text-[11px] text-muted-foreground">Sesi 90 menit tersedia</span>
         </div>
@@ -413,7 +418,7 @@ export default function DistilledCounselorsPage() {
             <ShieldCheck className="size-4 text-amber-500" />
           </div>
           <div className="text-2xl font-bold tracking-tight text-foreground font-heading">
-            {pendingApplicants.length}
+            {isLoading ? <Skeleton className="h-7 w-12 my-0.5" /> : pendingApplicants.length}
           </div>
           <span className="text-[11px] text-muted-foreground">Menunggu verifikasi berkas</span>
         </div>
@@ -447,7 +452,9 @@ export default function DistilledCounselorsPage() {
             <TabsList className="bg-muted p-1 rounded-xl shrink-0 h-9">
               <TabsTrigger value="applicants" className="flex items-center gap-2 text-xs px-3">
                 <span>Pendaftar Baru</span>
-                {pendingApplicants.length > 0 && (
+                {isLoading ? (
+                  <Skeleton className="h-4 w-5 rounded-full" />
+                ) : pendingApplicants.length > 0 && (
                   <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">
                     {pendingApplicants.length}
                   </span>
@@ -455,9 +462,13 @@ export default function DistilledCounselorsPage() {
               </TabsTrigger>
               <TabsTrigger value="active" className="flex items-center gap-2 text-xs px-3">
                 <span>Konselor Aktif</span>
-                <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-muted-foreground/20 text-muted-foreground">
-                  {activeCounselors.length}
-                </span>
+                {isLoading ? (
+                  <Skeleton className="h-4 w-5 rounded-full" />
+                ) : (
+                  <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-muted-foreground/20 text-muted-foreground">
+                    {activeCounselors.length}
+                  </span>
+                )}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -480,7 +491,48 @@ export default function DistilledCounselorsPage() {
 
           {/* Cards Grid: Balanced rhythm and clear visual grouping without stacked borders */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-            {applicants.map((app) => (
+            {isLoading ? (
+              Array.from({ length: 2 }).map((_, i) => (
+                <div
+                  key={`applicant-skeleton-${i}`}
+                  className="rounded-2xl border border-border bg-card p-6 flex flex-col justify-between gap-6 shadow-xs animate-pulse"
+                >
+                  <div className="flex flex-col gap-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-5 w-36" />
+                          <Skeleton className="h-5 w-24 rounded-full" />
+                        </div>
+                        <Skeleton className="h-3.5 w-44" />
+                      </div>
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                    </div>
+                    <div className="space-y-2">
+                      <Skeleton className="h-3.5 w-full" />
+                      <Skeleton className="h-3.5 w-4/5" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
+                      <Skeleton className="h-8 rounded-lg" />
+                      <Skeleton className="h-8 rounded-lg" />
+                      <Skeleton className="h-8 rounded-lg" />
+                      <Skeleton className="h-8 rounded-lg" />
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-border mt-2 flex gap-2.5">
+                    <Skeleton className="h-8 flex-1 rounded-lg" />
+                    <Skeleton className="h-8 w-24 rounded-lg" />
+                  </div>
+                </div>
+              ))
+            ) : applicants.length === 0 ? (
+              <div className="col-span-full py-12 text-center border border-dashed border-border rounded-2xl bg-muted/10">
+                <ShieldCheck className="size-8 mx-auto text-muted-foreground mb-2 opacity-50" />
+                <p className="text-sm font-medium text-foreground">Belum ada berkas pendaftar baru</p>
+                <p className="text-xs text-muted-foreground">Semua aplikasi yang masuk telah ditinjau.</p>
+              </div>
+            ) : (
+              applicants.map((app) => (
               <div
                 key={app.id}
                 className={`rounded-2xl border bg-card p-6 flex flex-col justify-between gap-6 transition-all ${
@@ -680,7 +732,8 @@ export default function DistilledCounselorsPage() {
                   )}
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </TabsContent>
 
@@ -804,7 +857,61 @@ export default function DistilledCounselorsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCounselors.map((c) => (
+                {isLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <TableRow key={`counselor-skeleton-${i}`} className="border-border/60">
+                      <TableCell className="py-3.5 px-3.5">
+                        <Skeleton className="h-4 w-32 mb-1.5" />
+                        <Skeleton className="h-3 w-24 mb-1" />
+                        <Skeleton className="h-2.5 w-20" />
+                      </TableCell>
+                      <TableCell className="py-3.5 px-3.5">
+                        <Skeleton className="h-4 w-24 mb-1 rounded-full" />
+                        <Skeleton className="h-2.5 w-28" />
+                      </TableCell>
+                      <TableCell className="py-3.5 px-3.5">
+                        <Skeleton className="h-3.5 w-36 mb-1" />
+                        <Skeleton className="h-3 w-28" />
+                      </TableCell>
+                      <TableCell className="py-3.5 px-3.5">
+                        <Skeleton className="h-4 w-12" />
+                      </TableCell>
+                      <TableCell className="py-3.5 px-3.5 text-center">
+                        <Skeleton className="h-7 w-20 mx-auto rounded-lg" />
+                      </TableCell>
+                      <TableCell className="py-3.5 px-3.5">
+                        <div className="flex flex-wrap gap-1">
+                          <Skeleton className="h-4 w-12 rounded" />
+                          <Skeleton className="h-4 w-14 rounded" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3.5 px-3.5 text-center">
+                        <Skeleton className="h-5 w-9 mx-auto rounded-full" />
+                      </TableCell>
+                      <TableCell className="py-3.5 px-3.5">
+                        <div className="flex items-center gap-1.5">
+                          <Skeleton className="size-2 rounded-full" />
+                          <Skeleton className="h-3.5 w-16" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3.5 px-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Skeleton className="h-8 w-16 rounded-md" />
+                          <Skeleton className="h-8 w-12 rounded-md" />
+                          <Skeleton className="h-8 w-16 rounded-md" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : filteredCounselors.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="py-12 text-center text-muted-foreground">
+                      <p className="text-sm font-medium">Tidak ada data konselor yang cocok</p>
+                      <p className="text-xs text-muted-foreground mt-1">Coba sesuaikan kata kunci pencarian atau filter status.</p>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredCounselors.map((c) => (
                   <TableRow key={c.id} className="hover:bg-muted/30 transition-colors border-border/60">
                     <TableCell className="py-3.5 px-3.5">
                       <div className="font-semibold text-foreground">{c.name}</div>
@@ -932,7 +1039,8 @@ export default function DistilledCounselorsPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ))
+                )}
               </TableBody>
             </Table>
           </div>

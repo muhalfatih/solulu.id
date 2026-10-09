@@ -56,6 +56,10 @@ export function CounselorProfileClient({
   )
   const [avatarUrl, setAvatarUrl] = React.useState(profile.avatarR2Url || "")
 
+  const [isLoadingSpecs, setIsLoadingSpecs] = React.useState(
+    !availableSpecializations || availableSpecializations.length === 0
+  )
+
   // Sync active specializations from database on mount
   React.useEffect(() => {
     async function loadSpecs() {
@@ -66,6 +70,8 @@ export function CounselorProfileClient({
         }
       } catch {
         // Fallback to initial
+      } finally {
+        setIsLoadingSpecs(false)
       }
     }
     loadSpecs()
@@ -376,28 +382,39 @@ export function CounselorProfileClient({
                 </div>
 
                 {/* Specialization Selection Chips from Database */}
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {availableSpecs.map((spec) => {
-                    const isSelected = specializations.includes(spec)
-                    return (
-                      <button
-                        type="button"
-                        key={spec}
-                        aria-pressed={isSelected}
-                        onClick={() => toggleSpec(spec)}
-                        className={`text-xs px-3 py-1.5 rounded-md border transition-all cursor-pointer flex items-center gap-1.5 select-none ${
-                          isSelected
-                            ? "bg-primary text-primary-foreground border-primary font-medium shadow-2xs"
-                            : "bg-background text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"
-                        }`}
-                        id={`spec-chip-${spec.replace(/\s+/g, "-").toLowerCase()}`}
-                      >
-                        {isSelected ? <Check className="size-3" /> : <Tag className="size-3 opacity-60" />}
-                        <span>{spec}</span>
-                      </button>
-                    )
-                  })}
-                </div>
+                {isLoadingSpecs ? (
+                  <div className="flex flex-wrap gap-2 pt-1" id="loading-specs-skeleton">
+                    {Array.from({ length: 8 }).map((_, idx) => (
+                      <div
+                        key={idx}
+                        className="h-7 w-28 bg-muted/70 animate-pulse rounded-md"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {availableSpecs.map((spec) => {
+                      const isSelected = specializations.includes(spec)
+                      return (
+                        <button
+                          type="button"
+                          key={spec}
+                          aria-pressed={isSelected}
+                          onClick={() => toggleSpec(spec)}
+                          className={`text-xs px-3 py-1.5 rounded-md border transition-all cursor-pointer flex items-center gap-1.5 select-none ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground border-primary font-medium shadow-2xs"
+                              : "bg-background text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"
+                          }`}
+                          id={`spec-chip-${spec.replace(/\s+/g, "-").toLowerCase()}`}
+                        >
+                          {isSelected ? <Check className="size-3" /> : <Tag className="size-3 opacity-60" />}
+                          <span>{spec}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
 
                 {/* Active Chips / Terpasang di Profil */}
                 {specializations.length > 0 ? (

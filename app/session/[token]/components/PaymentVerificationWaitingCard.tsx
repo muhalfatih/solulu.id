@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import {
   Clock,
   CheckCircle2,
@@ -12,6 +13,7 @@ import {
   Building2,
   ShieldCheck,
   AlertCircle,
+  AlertTriangle,
   Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -50,6 +52,37 @@ export function PaymentVerificationWaitingCard({
 
   const referenceNumber = transaction?.referenceNumber || `SOL-${booking.accessToken.slice(0, 8).toUpperCase()}`
   const amountFormatted = transaction?.netAmountFormatted || "Rp 0"
+
+  // 17-minute manual transfer countdown
+  const createdTime = React.useMemo(() => {
+    const t = new Date(booking.createdAt).getTime()
+    return isNaN(t) ? Date.now() : t
+  }, [booking.createdAt])
+
+  const [timeLeftSeconds, setTimeLeftSeconds] = React.useState<number>(() => {
+    const t = new Date(booking.createdAt).getTime()
+    const validCreated = isNaN(t) ? Date.now() : t
+    const elapsed = Math.floor((Date.now() - validCreated) / 1000)
+    return Math.max(0, 17 * 60 - elapsed)
+  })
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - createdTime) / 1000)
+      const remaining = Math.max(0, 17 * 60 - elapsed)
+      setTimeLeftSeconds(remaining)
+      if (remaining <= 0) {
+        clearInterval(timer)
+      }
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [createdTime])
+
+  const minutesLeft = Math.floor(timeLeftSeconds / 60)
+  const secondsLeft = timeLeftSeconds % 60
+  const formattedCountdown = `${String(minutesLeft).padStart(2, "0")}:${String(secondsLeft).padStart(2, "0")}`
+  const isTimeExpiring = timeLeftSeconds > 0 && timeLeftSeconds <= 5 * 60
+  const isExpired = timeLeftSeconds === 0
 
   const handleCopy = (text: string, type: "account" | "amount" | "ref", accountId?: string) => {
     navigator.clipboard.writeText(text)
@@ -120,6 +153,59 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
       </CardHeader>
 
       <CardContent className="p-6 sm:p-7 flex flex-col gap-6">
+        {/* Live Countdown Banner (17 Minutes Window) */}
+        <div
+          className={`rounded-xl border p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition-colors ${
+            isExpired
+              ? "border-rose-500/30 bg-rose-500/10 text-rose-950 dark:text-rose-200"
+              : isTimeExpiring
+              ? "border-orange-500/40 bg-orange-500/10 text-orange-950 dark:text-orange-200"
+              : "border-amber-500/30 bg-amber-500/10 text-amber-950 dark:text-amber-200"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={`size-10 rounded-full flex items-center justify-center shrink-0 ${
+                isExpired
+                  ? "bg-rose-500/20 text-rose-600 dark:text-rose-400"
+                  : isTimeExpiring
+                  ? "bg-orange-500/20 text-orange-600 dark:text-orange-400 animate-pulse"
+                  : "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+              }`}
+            >
+              {isExpired ? <AlertTriangle className="size-5" /> : <Clock className="size-5" />}
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-bold uppercase tracking-wider">
+                {isExpired
+                  ? "Batas Waktu Pembayaran Telah Berakhir"
+                  : isTimeExpiring
+                  ? "Perhatian: Waktu Pembayaran Segera Berakhir"
+                  : "Batas Waktu Transfer & Verifikasi"}
+              </span>
+              <p className="text-xs text-muted-foreground">
+                {isExpired
+                  ? "Batas waktu transfer 17 menit telah habis. Jika Anda sudah transfer, mohon segera kirim bukti ke WhatsApp Admin agar diverifikasi manual."
+                  : "Slot jadwal ini diamankan sementara untuk Anda selama 17 menit. Mohon selesaikan transfer sebelum waktu habis."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+            <div
+              className={`px-3 py-1.5 rounded-lg font-mono font-bold text-sm sm:text-base border shadow-2xs ${
+                isExpired
+                  ? "border-rose-500/40 bg-rose-500/20 text-rose-700 dark:text-rose-300"
+                  : isTimeExpiring
+                  ? "border-orange-500/40 bg-orange-500/20 text-orange-700 dark:text-orange-300 animate-pulse"
+                  : "border-amber-500/40 bg-amber-500/20 text-amber-700 dark:text-amber-300"
+              }`}
+            >
+              {isExpired ? "00:00 (Kedaluwarsa)" : formattedCountdown}
+            </div>
+          </div>
+        </div>
+
         {/* Verification Stepper Progress */}
         <div className="rounded-xl border border-border bg-muted/20 p-5 sm:p-6 flex flex-col gap-5">
           <div className="flex items-center justify-between">
@@ -264,7 +350,19 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
           <span>Halaman ini otomatis mengecek status verifikasi secara berkala.</span>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+          {isExpired && (
+            <Button
+              asChild
+              variant="outline"
+              className="w-full sm:w-auto text-xs h-9 px-4 font-semibold border-rose-500/30 text-rose-700 dark:text-rose-400 hover:bg-rose-500/10"
+            >
+              <Link href="/counselors">
+                <span>Pesan Ulang Jadwal Baru</span>
+              </Link>
+            </Button>
+          )}
+
           <a
             href={whatsappUrl}
             target="_blank"
@@ -275,7 +373,7 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
               className="w-full sm:w-auto text-xs h-9 px-4 font-semibold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
             >
               <MessageCircle className="size-3.5" />
-              <span>Konfirmasi via WhatsApp Admin</span>
+              <span>{isExpired ? "Bantuan CS via WhatsApp" : "Konfirmasi via WhatsApp Admin"}</span>
             </Button>
           </a>
         </div>

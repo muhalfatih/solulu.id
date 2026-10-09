@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { MOCK_SESSIONS, MOCK_APPLICANTS, type BookingSession } from "./mock-data"
+import type { BookingSession } from "./mock-data"
 import { getBookingsAdminAction } from "./sessions/actions"
 import { getCounselorApplicationsAction } from "./counselors/applications/actions"
+import { getAdminDashboardMetricsAction, type AdminDashboardMetrics } from "./actions"
 import {
   ExternalLink,
   ArrowRight,
@@ -12,11 +13,15 @@ import {
   X,
   Loader2,
   Calendar,
+  Clock,
+  CreditCard,
+  UserCheck,
 } from "lucide-react"
 import {
   ManualPaymentModal,
   type ManualPaymentDetails,
 } from "./sessions/components/manual-payment-modal"
+import { confirmManualPaymentAction, rejectManualPaymentAction } from "./sessions/actions"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,27 +33,32 @@ import {
   TableCell,
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function DistilledAdminDashboard() {
-  const [sessionFilter, setSessionFilter] = React.useState<"all" | "in_session" | "confirmed" | "completed">("all")
-  const [allSessions, setAllSessions] = React.useState<BookingSession[]>(MOCK_SESSIONS)
-  const [pendingApplicants, setPendingApplicants] = React.useState<any[]>(() =>
-    MOCK_APPLICANTS.filter((a) => a.status === "pending")
-  )
+  const [sessionFilter, setSessionFilter] = React.useState<"all" | "pending_payment" | "in_session" | "confirmed" | "completed">("all")
+  const [allSessions, setAllSessions] = React.useState<BookingSession[]>([])
+  const [pendingApplicants, setPendingApplicants] = React.useState<any[]>([])
+  const [metrics, setMetrics] = React.useState<AdminDashboardMetrics | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
 
   const [selectedPendingSession, setSelectedPendingSession] = React.useState<BookingSession | null>(null)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = React.useState(false)
   const [verificationNotice, setVerificationNotice] = React.useState<string | null>(null)
 
-  // Fetch real bookings and applicants from DB, seamlessly blending with mock data
+  // Fetch 100% real bookings, applicants, and metrics directly from the database
   const loadData = React.useCallback(async () => {
     setIsLoading(true)
     try {
-      const [bookingsRes, applicantsRes] = await Promise.all([
+      const [bookingsRes, applicantsRes, metricsRes] = await Promise.all([
         getBookingsAdminAction(),
         getCounselorApplicationsAction(),
+        getAdminDashboardMetricsAction(),
       ])
+
+      if (metricsRes.success && metricsRes.data) {
+        setMetrics(metricsRes.data)
+      }
 
       if (bookingsRes.success && bookingsRes.data) {
         const mapped: BookingSession[] = bookingsRes.data.map((row: any) => {
@@ -108,11 +118,9 @@ export default function DistilledAdminDashboard() {
             amount: t?.netAmount ? Number(t.netAmount) : 150000,
           }
         })
-        const existingIds = new Set(mapped.map((b) => b.id))
-        const preservedMocks = MOCK_SESSIONS.filter((m) => !existingIds.has(m.id))
-        setAllSessions([...mapped, ...preservedMocks])
+        setAllSessions(mapped)
       } else {
-        setAllSessions(MOCK_SESSIONS)
+        setAllSessions([])
       }
 
       if (applicantsRes.success && applicantsRes.data) {
@@ -139,18 +147,14 @@ export default function DistilledAdminDashboard() {
               str: Boolean(app.strR2Key || app.documents?.str),
             },
           }))
-        const existingAppIds = new Set(pending.map((a: any) => a.id))
-        const mockPending = MOCK_APPLICANTS.filter(
-          (a) => a.status === "pending" && !existingAppIds.has(a.id)
-        )
-        setPendingApplicants([...pending, ...mockPending])
+        setPendingApplicants(pending)
       } else {
-        setPendingApplicants(MOCK_APPLICANTS.filter((a) => a.status === "pending"))
+        setPendingApplicants([])
       }
     } catch (err) {
-      console.error("Gagal memuat data dasbor admin, menggunakan data mock:", err)
-      setAllSessions(MOCK_SESSIONS)
-      setPendingApplicants(MOCK_APPLICANTS.filter((a) => a.status === "pending"))
+      console.error("Gagal memuat data dasbor admin:", err)
+      setAllSessions([])
+      setPendingApplicants([])
     } finally {
       setIsLoading(false)
     }
@@ -169,13 +173,64 @@ export default function DistilledAdminDashboard() {
     setIsPaymentModalOpen(true)
   }
 
-  const handleConfirmPayment = (session: BookingSession, details: ManualPaymentDetails) => {
+  const handleConfirmPayment = async (session: BookingSession, details: ManualPaymentDetails) => {
+    if (session.id && !session.id.startsWith("ses-")) {
+      try {
+        await confirmManualPaymentAction({
+          bookingId: session.id,
+          paymentMethod: details.paymentMethod,
+          referenceNumber: details.referenceNumber,
+          adminNotes: details.adminNotes,
+        })
+      } catch (err) {
+        console.error("Failed to execute confirmManualPaymentAction:", err)
+      }
+    }
+
     setAllSessions((prev) =>
-      prev.map((s) => (s.id === session.id ? { ...s, status: "confirmed" } : s))
+      prev.map((s) => {
+        if (s.id !== session.id) return s
+        return {
+          ...s,
+          status: "confirmed",
+          zoomRoom: "Zoom Pro 1",
+          zoomJoinUrl: `https://zoom.us/j/88${Math.floor(10000000 + Math.random() * 90000000)}`,
+          paymentMethod: details.paymentMethod,
+          paymentProvider: "manual",
+          referenceNumber: details.referenceNumber,
+          adminNotes: details.adminNotes,
+        }
+      })
     )
     setVerificationNotice(
-      `Pembayaran sesi ${session.code} (${session.patientName}) senilai Rp ${session.amount.toLocaleString("id-ID")} berhasil diverifikasi via ${details.paymentMethod}.`
+      `Pembayaran sesi ${session.code} (${session.patientName}) senilai Rp ${session.amount.toLocaleString("id-ID")} berhasil diverifikasi via ${details.paymentMethod}. Ruang Zoom telah dialokasikan.`
     )
+    loadData()
+    setTimeout(() => {
+      setVerificationNotice((cur) => (cur?.includes(session.code) ? null : cur))
+    }, 6000)
+  }
+
+  const handleRejectPayment = async (session: BookingSession, reason: string, adminNotes?: string) => {
+    if (session.id && !session.id.startsWith("ses-")) {
+      try {
+        await rejectManualPaymentAction({
+          bookingId: session.id,
+          reason,
+          adminNotes,
+        })
+      } catch (err) {
+        console.error("Failed to execute rejectManualPaymentAction:", err)
+      }
+    }
+
+    setAllSessions((prev) =>
+      prev.map((s) => (s.id === session.id ? { ...s, status: "cancelled" } : s))
+    )
+    setVerificationNotice(
+      `Pembayaran sesi ${session.code} (${session.patientName}) ditolak (${reason}). Slot jadwal telah dibebaskan.`
+    )
+    loadData()
     setTimeout(() => {
       setVerificationNotice((cur) => (cur?.includes(session.code) ? null : cur))
     }, 6000)
@@ -201,28 +256,37 @@ export default function DistilledAdminDashboard() {
     }).format(new Date())
   }, [])
 
-  // Filter today's sessions (real database data or active mock schedule)
+  // Filter today's sessions (real database data)
   const todaySessions = React.useMemo(() => {
-    const realToday = allSessions.filter((s) => s.date === todayWIB)
-    if (realToday.length > 0) return realToday
-    return allSessions.filter((s) => s.date.includes("17 Sep") || s.status === "in_session")
+    return allSessions.filter((s) => s.date === todayWIB)
   }, [allSessions, todayWIB])
 
   // Filtered session list based on active tab
   const displayedSessions = React.useMemo(() => {
-    const source = todaySessions.length > 0 ? todaySessions : allSessions
-    if (sessionFilter === "all") {
-      return [...source].sort((a, b) => {
-        const order: Record<string, number> = { in_session: 0, confirmed: 1, completed: 2, pending_payment: 3, cancelled: 4 }
-        return (order[a.status] ?? 5) - (order[b.status] ?? 5)
-      })
+    if (sessionFilter === "pending_payment") {
+      return allSessions.filter((s) => s.status === "pending_payment")
     }
-    return source.filter((s) => s.status === sessionFilter)
+    if (sessionFilter === "in_session") {
+      return allSessions.filter((s) => s.status === "in_session")
+    }
+    if (sessionFilter === "confirmed") {
+      return allSessions.filter((s) => s.status === "confirmed")
+    }
+    if (sessionFilter === "completed") {
+      return allSessions.filter((s) => s.status === "completed")
+    }
+    // "all": show today's sessions if any, otherwise all sessions
+    const source = todaySessions.length > 0 ? todaySessions : allSessions
+    return [...source].sort((a, b) => {
+      const order: Record<string, number> = { in_session: 0, pending_payment: 1, confirmed: 2, completed: 3, cancelled: 4 }
+      return (order[a.status] ?? 5) - (order[b.status] ?? 5)
+    })
   }, [todaySessions, allSessions, sessionFilter])
 
-  const inSessionCount = displayedSessions.filter((s) => s.status === "in_session").length
-  const confirmedCount = displayedSessions.filter((s) => s.status === "confirmed").length
-  const completedCount = displayedSessions.filter((s) => s.status === "completed").length
+  const pendingPaymentCount = allSessions.filter((s) => s.status === "pending_payment").length
+  const inSessionCount = allSessions.filter((s) => s.status === "in_session").length
+  const confirmedCount = todaySessions.filter((s) => s.status === "confirmed").length
+  const completedCount = todaySessions.filter((s) => s.status === "completed").length
 
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-12">
@@ -237,7 +301,7 @@ export default function DistilledAdminDashboard() {
               variant="outline"
               className="text-xs py-1 px-2.5 font-medium border-border bg-muted/50 text-foreground inline-flex items-center gap-2"
             >
-              <span className="size-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20" />
+              <span className={`size-2 rounded-full ${inSessionCount > 0 ? "bg-emerald-500 ring-2 ring-emerald-500/20" : "bg-muted-foreground/40"}`} />
               <span className="tabular-nums font-semibold">{inSessionCount} Sesi Berjalan</span>
             </Badge>
           </div>
@@ -247,70 +311,91 @@ export default function DistilledAdminDashboard() {
         </div>
       </header>
 
-      {/* 2. Operational Metrics: Distilled High-Density Essence */}
+      {/* 2. Operational Metrics: 100% Real Database Metrics */}
       <section aria-label="Metrik Operasional Harian" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1 */}
-        <div className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between gap-3 transition-colors hover:border-foreground/20">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Jadwal Hari Ini
-          </span>
-          <div className="flex flex-col gap-1">
-            <span className="text-3xl font-bold tracking-tight tabular-nums text-foreground">
-              {todaySessions.length}
-            </span>
-            <span className="text-xs text-muted-foreground truncate tabular-nums font-medium">
-              <strong className="text-foreground font-semibold">{inSessionCount}</strong> aktif • <strong className="text-foreground font-semibold">{confirmedCount}</strong> mendatang • <strong className="text-foreground font-semibold">{completedCount}</strong> selesai
-            </span>
-          </div>
-        </div>
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={`metric-skel-${i}`}
+              className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between gap-3 shadow-2xs"
+            >
+              <Skeleton className="h-3 w-24 bg-muted/80" />
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-8 w-20 bg-muted/80" />
+                <Skeleton className="h-3 w-36 bg-muted/60" />
+              </div>
+            </div>
+          ))
+        ) : (
+          <>
+            {/* Metric 1: Jadwal Hari Ini */}
+            <div className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between gap-3 transition-colors hover:border-foreground/20">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Jadwal Hari Ini
+              </span>
+              <div className="flex flex-col gap-1">
+                <span className="text-3xl font-bold tracking-tight tabular-nums text-foreground">
+                  {todaySessions.length}
+                </span>
+                <span className="text-xs text-muted-foreground truncate tabular-nums font-medium">
+                  <strong className="text-foreground font-semibold">{inSessionCount}</strong> aktif • <strong className="text-foreground font-semibold">{confirmedCount}</strong> mendatang • <strong className="text-foreground font-semibold">{completedCount}</strong> selesai
+                </span>
+              </div>
+            </div>
 
-        {/* Metric 2 */}
-        <div className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between gap-3 transition-colors hover:border-foreground/20">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Mitra Konselor
-          </span>
-          <div className="flex flex-col gap-1">
-            <span className="text-3xl font-bold tracking-tight tabular-nums text-foreground">
-              12
-            </span>
-            <span className="text-xs text-muted-foreground truncate font-medium">
-              8 Psikolog Klinis • 4 Konselor Sebaya
-            </span>
-          </div>
-        </div>
+            {/* Metric 2: Mitra Konselor */}
+            <div className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between gap-3 transition-colors hover:border-foreground/20">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Mitra Konselor
+              </span>
+              <div className="flex flex-col gap-1">
+                <span className="text-3xl font-bold tracking-tight tabular-nums text-foreground">
+                  {metrics?.totalCounselors ?? 0}
+                </span>
+                <span className="text-xs text-muted-foreground truncate font-medium">
+                  {metrics ? `${metrics.psychologistCount} Psikolog Klinis • ${metrics.peerCount} Konselor Sebaya` : "Memuat data konselor..."}
+                </span>
+              </div>
+            </div>
 
-        {/* Metric 3 */}
-        <div className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between gap-3 transition-colors hover:border-amber-500/30">
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Rekam Medis Tertunda
-            </span>
-            <span className="size-2 rounded-full bg-amber-500 ring-2 ring-amber-500/20" title="Perlu pengisian catatan klinis" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-3xl font-bold tracking-tight tabular-nums text-amber-600 dark:text-amber-400">
-              1
-            </span>
-            <span className="text-xs font-medium text-amber-700 dark:text-amber-300 truncate">
-              Menunggu catatan: <span className="font-mono font-semibold">SL-9279</span>
-            </span>
-          </div>
-        </div>
+            {/* Metric 3: Rekam Medis Tertunda */}
+            <div className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between gap-3 transition-colors hover:border-amber-500/30">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Rekam Medis Tertunda
+                </span>
+                {(metrics?.pendingMedicalRecordsCount ?? 0) > 0 && (
+                  <span className="size-2 rounded-full bg-amber-500 ring-2 ring-amber-500/20" title="Perlu pengisian catatan klinis" />
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-3xl font-bold tracking-tight tabular-nums text-amber-600 dark:text-amber-400">
+                  {metrics?.pendingMedicalRecordsCount ?? 0}
+                </span>
+                <span className="text-xs font-medium text-amber-700 dark:text-amber-300 truncate">
+                  {metrics?.firstPendingMedicalRecordCode
+                    ? `Menunggu catatan: ${metrics.firstPendingMedicalRecordCode}`
+                    : "Semua rekam medis lengkap"}
+                </span>
+              </div>
+            </div>
 
-        {/* Metric 4 */}
-        <div className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between gap-3 transition-colors hover:border-foreground/20">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Pendapatan Bulan Ini
-          </span>
-          <div className="flex flex-col gap-1">
-            <span className="text-3xl font-bold tracking-tight tabular-nums text-foreground">
-              Rp 4.850.000
-            </span>
-            <span className="text-xs text-muted-foreground truncate font-medium">
-              Dari <strong className="text-foreground font-semibold">46 sesi</strong> (Sep 2026)
-            </span>
-          </div>
-        </div>
+            {/* Metric 4: Pendapatan Terbayar */}
+            <div className="rounded-xl border border-border bg-card p-5 flex flex-col justify-between gap-3 transition-colors hover:border-foreground/20">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Pendapatan
+              </span>
+              <div className="flex flex-col gap-1">
+                <span className="text-3xl font-bold tracking-tight tabular-nums text-foreground">
+                  Rp {(metrics?.totalRevenue ?? 0).toLocaleString("id-ID")}
+                </span>
+                <span className="text-xs text-muted-foreground truncate font-medium">
+                  Dari <strong className="text-foreground font-semibold">{metrics?.paidSessionsCount ?? 0} sesi</strong> ({metrics?.revenuePeriod ?? "Bulan Ini"})
+                </span>
+              </div>
+            </div>
+          </>
+        )}
       </section>
 
       {/* 3. Main Operational Layout: Dedicated Table on Left, Distilled Utilities on Right */}
@@ -333,8 +418,13 @@ export default function DistilledAdminDashboard() {
                 <div className="overflow-x-auto pb-0.5">
                   <TabsList className="h-8 p-1 bg-muted/70 text-xs w-full sm:w-auto flex justify-start sm:justify-center border border-border/50">
                     <TabsTrigger value="all" className="text-xs px-3 py-1 font-medium data-[state=active]:font-semibold data-[state=active]:text-foreground whitespace-nowrap">
-                      Semua ({todaySessions.length})
+                      Semua ({sessionFilter === "pending_payment" ? allSessions.length : todaySessions.length})
                     </TabsTrigger>
+                    {pendingPaymentCount > 0 && (
+                      <TabsTrigger value="pending_payment" className="text-xs px-3 py-1 font-medium text-amber-700 dark:text-amber-400 data-[state=active]:font-bold data-[state=active]:text-amber-800 dark:data-[state=active]:text-amber-300 data-[state=active]:bg-amber-500/15 whitespace-nowrap">
+                        Menunggu Bayar ({pendingPaymentCount})
+                      </TabsTrigger>
+                    )}
                     <TabsTrigger value="in_session" className="text-xs px-3 py-1 font-medium data-[state=active]:font-semibold data-[state=active]:text-foreground whitespace-nowrap">
                       Berjalan ({inSessionCount})
                     </TabsTrigger>
@@ -350,18 +440,45 @@ export default function DistilledAdminDashboard() {
             </div>
 
             {/* Session Table: High Density, Scannable, Balanced Column Layout */}
-            <Table className="w-full min-w-[620px] text-xs">
-              <TableHeader className="bg-muted/50 border-b border-border">
-                <TableRow className="border-border/60">
-                  <TableHead className="w-[30%] py-3 pl-4 pr-2 font-semibold text-foreground">Pasien</TableHead>
-                  <TableHead className="w-[24%] py-3 px-2 font-semibold text-foreground">Konselor</TableHead>
-                  <TableHead className="w-[18%] py-3 px-2 font-semibold text-foreground">Jadwal (WIB)</TableHead>
-                  <TableHead className="w-[18%] py-3 px-2 font-semibold text-foreground">Ruang & Status</TableHead>
-                  <TableHead className="w-[10%] min-w-[80px] py-3 pl-2 pr-4 font-semibold text-foreground text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="overflow-x-auto">
+              <Table className="w-full min-w-[580px] text-xs">
+                <TableHeader className="bg-muted/50 border-b border-border">
+                  <TableRow className="border-border/60">
+                    <TableHead className="py-3 pl-4 pr-2 font-semibold text-foreground">Pasien</TableHead>
+                    <TableHead className="py-3 px-2 font-semibold text-foreground">Konselor</TableHead>
+                    <TableHead className="py-3 px-2 font-semibold text-foreground">Jadwal (WIB)</TableHead>
+                    <TableHead className="py-3 px-2 font-semibold text-foreground">Ruang & Status</TableHead>
+                    <TableHead className="py-3 pl-2 pr-4 font-semibold text-foreground text-right sticky right-0 bg-muted/95 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
-                {displayedSessions.length === 0 ? (
+                {isLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <TableRow key={`session-skel-${i}`} className="border-border/60">
+                      <TableCell className="py-3 pl-4 pr-2">
+                        <div className="flex flex-col gap-1.5">
+                          <Skeleton className="h-4 w-28 bg-muted/80" />
+                          <Skeleton className="h-3 w-16 bg-muted/60" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3 px-2">
+                        <div className="flex flex-col gap-1.5">
+                          <Skeleton className="h-4 w-32 bg-muted/80" />
+                          <Skeleton className="h-3 w-20 bg-muted/60" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3 px-2">
+                        <Skeleton className="h-4 w-24 bg-muted/80" />
+                      </TableCell>
+                      <TableCell className="py-3 px-2">
+                        <Skeleton className="h-6 w-32 rounded-full bg-muted/70" />
+                      </TableCell>
+                      <TableCell className="py-3 pl-2 pr-4 text-right sticky right-0 bg-card/95">
+                        <Skeleton className="h-7 w-20 ml-auto rounded-md bg-muted/80" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : displayedSessions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                       <div className="flex flex-col items-center justify-center gap-1">
@@ -388,7 +505,7 @@ export default function DistilledAdminDashboard() {
                             : "hover:bg-muted/30"
                         }`}
                       >
-                        {/* Patient & Code + Contextual Clinical Indicator */}
+                        {/* Patient & Code */}
                         <TableCell className="py-2.5 pl-4 pr-2 align-middle">
                           <div className="text-foreground font-bold">
                             {ses.patientName}
@@ -401,9 +518,8 @@ export default function DistilledAdminDashboard() {
                               <Badge
                                 variant="outline"
                                 className="text-xs py-0 px-1.5 font-semibold border-rose-500/50 bg-rose-500/15 text-rose-700 dark:text-rose-300 shadow-2xs"
-                                title="Skor skrining mandiri SRQ-20: 12 (Indikasi Risiko Tinggi). Siapkan koordinasi rujukan darurat Hotline 119 ext. 8 jika diperlukan."
                               >
-                                SRQ-20: 12 (Risiko Tinggi)
+                                Risiko Tinggi
                               </Badge>
                             )}
                           </div>
@@ -426,36 +542,57 @@ export default function DistilledAdminDashboard() {
                           </span>
                         </TableCell>
 
-                        {/* Unified Room & Operational Status - Single Consolidated Badge */}
+                        {/* Unified Room & Operational Status */}
                         <TableCell className="py-2.5 px-2 align-middle whitespace-nowrap">
-                          <Badge
-                            variant="outline"
-                            className={`text-xs py-0.5 px-2.5 inline-flex items-center gap-1.5 font-semibold shadow-2xs ${
-                              isInSession
-                                ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border-emerald-500/35"
-                                : isCompleted
-                                ? "text-muted-foreground/70 border-border/50 bg-muted/20"
-                                : "text-foreground border-border/80 bg-background"
-                            }`}
-                          >
-                            <span
-                              className={`size-2 rounded-full ${
+                          {ses.status === "pending_payment" ? (
+                            <Badge
+                              variant="outline"
+                              className="text-xs py-0.5 px-2.5 inline-flex items-center gap-1.5 font-semibold shadow-2xs bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/35"
+                            >
+                              <Clock className="size-3 text-amber-600 dark:text-amber-400" />
+                              <span>Menunggu Pembayaran</span>
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className={`text-xs py-0.5 px-2.5 inline-flex items-center gap-1.5 font-semibold shadow-2xs ${
                                 isInSession
-                                  ? "bg-emerald-500 ring-2 ring-emerald-500/20"
+                                  ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border-emerald-500/35"
                                   : isCompleted
-                                  ? "bg-muted-foreground/40"
-                                  : "bg-primary/70"
+                                  ? "text-muted-foreground/70 border-border/50 bg-muted/20"
+                                  : "text-foreground border-border/80 bg-background"
                               }`}
-                            />
-                            <span>
-                              {ses.zoomRoom.replace("Zoom Pro ", "Ruang ")} • {isInSession ? "Berlangsung" : isCompleted ? "Selesai" : "Terkonfirmasi"}
-                            </span>
-                          </Badge>
+                            >
+                              <span
+                                className={`size-2 rounded-full ${
+                                  isInSession
+                                    ? "bg-emerald-500 ring-2 ring-emerald-500/20"
+                                    : isCompleted
+                                    ? "bg-muted-foreground/40"
+                                    : "bg-primary/70"
+                                }`}
+                              />
+                              <span>
+                                {ses.zoomRoom.replace("Zoom Pro ", "Ruang ")} • {isInSession ? "Berlangsung" : isCompleted ? "Selesai" : "Terkonfirmasi"}
+                              </span>
+                            </Badge>
+                          )}
                         </TableCell>
 
                         {/* Actions */}
-                        <TableCell className="py-2.5 pl-2 pr-4 text-right align-middle whitespace-nowrap">
-                          {isInSession && ses.zoomJoinUrl ? (
+                        <TableCell className="py-2.5 pl-2 pr-4 text-right align-middle whitespace-nowrap sticky right-0 bg-card/95 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">
+                          {ses.status === "pending_payment" ? (
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              onClick={() => handleOpenVerifyModal(ses)}
+                              className="h-7 text-xs font-semibold px-2.5 border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15 hover:border-amber-500/60 gap-1.5 transition-colors cursor-pointer"
+                              title={`Verifikasi pembayaran manual untuk ${ses.patientName}`}
+                            >
+                              <CreditCard className="size-3 text-amber-600 dark:text-amber-400" />
+                              <span>Verifikasi</span>
+                            </Button>
+                          ) : isInSession && ses.zoomJoinUrl ? (
                             <Button
                               size="xs"
                               asChild
@@ -510,6 +647,7 @@ export default function DistilledAdminDashboard() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
         </section>
 
@@ -557,7 +695,22 @@ export default function DistilledAdminDashboard() {
             )}
 
             {/* Ultra-compact Item List (Max 3-4 items) */}
-            {pendingSessions.length > 0 ? (
+            {isLoading ? (
+              <div className="flex flex-col divide-y divide-border/40 text-xs">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={`pending-skel-${i}`} className="py-2.5 first:pt-0 last:pb-0 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-3.5 w-24 bg-muted/80" />
+                      <Skeleton className="h-3.5 w-16 bg-muted/80" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-3 w-28 bg-muted/60" />
+                      <Skeleton className="h-6 w-16 rounded-md bg-muted/70" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : pendingSessions.length > 0 ? (
               <div className="flex flex-col divide-y divide-border/40 text-xs">
                 {pendingSessions.slice(0, 4).map((session) => (
                   <div
@@ -581,7 +734,7 @@ export default function DistilledAdminDashboard() {
                         size="xs"
                         variant="outline"
                         onClick={() => handleOpenVerifyModal(session)}
-                        className="h-6 px-2.5 text-xs font-semibold border-border hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors shrink-0"
+                        className="h-6 px-2.5 text-xs font-semibold border-border hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors shrink-0 cursor-pointer"
                       >
                         Verifikasi
                       </Button>
@@ -625,24 +778,58 @@ export default function DistilledAdminDashboard() {
               </Badge>
             </div>
 
-            <div className="flex flex-col divide-y divide-border/40 text-xs">
-              {pendingApplicants.map((applicant) => (
-                <div key={applicant.id} className="py-2.5 first:pt-0 last:pb-0 flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-foreground text-xs truncate">
-                      {applicant.name}
-                    </span>
-                    <span className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded shrink-0">
-                      {applicant.documents?.str ? "Izin Praktik" : "Ijazah S1"}
-                    </span>
+            {isLoading ? (
+              <div className="flex flex-col divide-y divide-border/40 text-xs">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={`applicant-skel-${i}`} className="py-2.5 first:pt-0 last:pb-0 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-3.5 w-24 bg-muted/80" />
+                      <Skeleton className="h-4 w-16 rounded bg-muted/70" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-3 w-24 bg-muted/60" />
+                      <Skeleton className="h-5 w-14 rounded bg-muted/60" />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground font-medium">
-                    <span className="truncate">{applicant.education}</span>
-                    <span className="text-muted-foreground shrink-0">{applicant.type}</span>
+                ))}
+              </div>
+            ) : pendingApplicants.length > 0 ? (
+              <div className="flex flex-col divide-y divide-border/40 text-xs">
+                {pendingApplicants.map((applicant) => (
+                  <div key={applicant.id} className="py-2.5 first:pt-0 last:pb-0 flex flex-col gap-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-foreground text-xs truncate">
+                        {applicant.name}
+                      </span>
+                      <span className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded shrink-0">
+                        {applicant.documents?.str ? "Izin Praktik" : "Ijazah S1"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground font-medium">
+                      <span className="truncate">{applicant.education}</span>
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        asChild
+                        className="h-6 px-2 text-xs font-medium text-muted-foreground hover:text-foreground shrink-0"
+                      >
+                        <Link href="/admin/counselors/applications">Review</Link>
+                      </Button>
+                    </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-6 flex flex-col items-center justify-center text-center gap-2 text-muted-foreground">
+                <div className="size-8 rounded-full bg-muted/60 text-muted-foreground flex items-center justify-center border border-border/60">
+                  <CheckCircle2 className="size-4" />
                 </div>
-              ))}
-            </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-semibold text-foreground">Semua Berkas Terverifikasi</span>
+                  <span className="text-xs text-muted-foreground">Tidak ada pendaftar konselor baru yang pending</span>
+                </div>
+              </div>
+            )}
 
             <Button
               variant="outline"
@@ -650,7 +837,7 @@ export default function DistilledAdminDashboard() {
               asChild
               className="w-full text-xs h-8 font-semibold border-border hover:bg-muted/80"
             >
-              <Link href="/admin/counselors">
+              <Link href="/admin/counselors/applications">
                 <span>Semua Pendaftar ({pendingApplicants.length})</span>
                 <ArrowRight className="size-3.5 ml-1.5" />
               </Link>
@@ -667,6 +854,7 @@ export default function DistilledAdminDashboard() {
           setSelectedPendingSession(null)
         }}
         onConfirm={handleConfirmPayment}
+        onReject={handleRejectPayment}
       />
     </div>
   )

@@ -12,6 +12,12 @@ import {
   checkSelfOverlap,
   canCancelSlot,
   isTimeRangeOverlapping,
+  isSlotInPast,
+  getNowWIB,
+  getWIBDateString,
+  getMaxBookableDateString,
+  parseTimeToMinutes,
+  MAX_COUNSELOR_DAILY_SESSIONS,
   type SlotInterval,
 } from "@/lib/schedules/concurrency"
 import {
@@ -149,6 +155,7 @@ export interface ScheduleItemView {
   status: "available" | "reserved" | "booked" | "cancelled"
   canCancel: boolean
   cancelRestrictionReason?: string
+  isPast: boolean
 }
 
 /**
@@ -195,8 +202,10 @@ export async function getCounselorSchedulesAction(
         .orderBy(desc(schedules.date), schedules.startTime)
     }
 
+    const now = new Date()
     const items: ScheduleItemView[] = rows.map((r) => {
-      const cancelCheck = canCancelSlot(r.status)
+      const isPast = isSlotInPast(r.date, r.endTime, now)
+      const cancelCheck = canCancelSlot(r.status, isPast)
       return {
         id: r.id,
         counselorId: r.counselorId,
@@ -207,6 +216,7 @@ export async function getCounselorSchedulesAction(
         status: r.status,
         canCancel: cancelCheck.allowed,
         cancelRestrictionReason: cancelCheck.reason,
+        isPast,
       }
     })
 
@@ -262,6 +272,36 @@ export async function createScheduleSlotsAction(
       }
     }
 
+    const now = new Date()
+    const todayWIB = getWIBDateString(now)
+    const maxDateWIB = getMaxBookableDateString(now)
+
+    if (date < todayWIB) {
+      return {
+        success: false,
+        error: "Tidak dapat membuka slot praktik untuk tanggal yang sudah terlewat.",
+      }
+    }
+
+    if (date > maxDateWIB) {
+      return {
+        success: false,
+        error: `Slot praktik hanya dapat dibuka maksimal 14 hari ke depan (${maxDateWIB}).`,
+      }
+    }
+
+    if (date === todayWIB) {
+      const nowMinutes = getNowWIB(now).timeMinutes
+      for (const st of startTimes) {
+        if (parseTimeToMinutes(st) <= nowMinutes) {
+          return {
+            success: false,
+            error: `Jam mulai ${st} WIB sudah terlewat untuk hari ini. Silakan pilih jam praktik yang akan datang.`,
+          }
+        }
+      }
+    }
+
     // 1. Prepare candidate slots with auto-computed endTime (+90 min)
     const proposedSlots: Array<{ startTime: string; endTime: string }> = []
     for (const st of startTimes) {
@@ -307,6 +347,15 @@ export async function createScheduleSlotsAction(
       existingSlots = existingRows
     }
 
+    // Check daily workload limit (max 4 active slots per counselor per day)
+    const activeExistingCount = existingSlots.filter((s) => s.status !== "cancelled").length
+    if (activeExistingCount + proposedSlots.length > MAX_COUNSELOR_DAILY_SESSIONS) {
+      return {
+        success: false,
+        error: `Batas maksimal jadwal praktik adalah ${MAX_COUNSELOR_DAILY_SESSIONS} sesi per hari. Anda sudah memiliki ${activeExistingCount} sesi aktif pada tanggal ${date}.`,
+      }
+    }
+
     // 4. Check for self-overlap against existing slots
     for (const slot of proposedSlots) {
       const hasOverlap = checkSelfOverlap(existingSlots, slot.startTime, slot.endTime)
@@ -343,6 +392,7 @@ export async function createScheduleSlotsAction(
       endTime: r.endTime,
       timeRange: formatTimeRange(r.startTime, r.endTime),
       status: r.status,
+      isPast: false,
       canCancel: true,
     }))
 

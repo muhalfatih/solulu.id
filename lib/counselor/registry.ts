@@ -36,14 +36,16 @@ export interface CounselorStoreItem {
   slots?: CounselorSlot[]
 }
 
+import { getWIBDateString } from "@/lib/schedules/concurrency"
+
 function getDynamicDates() {
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
-  const tomorrowStr = tomorrow.toISOString().split("T")[0]
+  const tomorrowStr = getWIBDateString(tomorrow)
 
   const dayAfter = new Date()
   dayAfter.setDate(dayAfter.getDate() + 2)
-  const dayAfterStr = dayAfter.toISOString().split("T")[0]
+  const dayAfterStr = getWIBDateString(dayAfter)
 
   return { tomorrowStr, dayAfterStr }
 }

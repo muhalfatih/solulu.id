@@ -65,3 +65,160 @@ export async function updateRolePricingAction(
     }
   }
 }
+
+import { db } from "@/db"
+import { vouchers } from "@/db/schema"
+import { eq, desc } from "drizzle-orm"
+import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
+
+export interface VoucherInput {
+  code: string
+  discountType: "fixed" | "percentage"
+  discountValue: number
+  quota: number
+  expiresAt?: string | Date | null
+  isActive?: boolean
+}
+
+export async function getVouchersAdminAction(options?: {
+  currentUser?: AdminAuthContext | null
+}) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return {
+      success: false,
+      error: "Akses ditolak: Diperlukan role Admin.",
+      data: [],
+    }
+  }
+
+  try {
+    const rows = await db
+      .select()
+      .from(vouchers)
+      .orderBy(desc(vouchers.createdAt))
+
+    return {
+      success: true,
+      data: rows,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal mengambil daftar voucher dari database.",
+      data: [],
+    }
+  }
+}
+
+export async function createVoucherAdminAction(
+  input: VoucherInput,
+  options?: { currentUser?: AdminAuthContext | null }
+) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return {
+      success: false,
+      error: "Akses ditolak: Diperlukan role Admin.",
+    }
+  }
+
+  try {
+    const [inserted] = await db
+      .insert(vouchers)
+      .values({
+        code: input.code.toUpperCase().trim(),
+        discountType: input.discountType,
+        discountValue: String(input.discountValue),
+        quota: input.quota,
+        usedCount: 0,
+        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+        isActive: input.isActive ?? true,
+      })
+      .returning()
+
+    try {
+      revalidatePath("/admin/pricing")
+      revalidatePath("/booking")
+    } catch {}
+
+    return {
+      success: true,
+      data: inserted,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal menambahkan voucher baru ke database.",
+    }
+  }
+}
+
+export async function toggleVoucherStatusAction(
+  id: string,
+  isActive: boolean,
+  options?: { currentUser?: AdminAuthContext | null }
+) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return {
+      success: false,
+      error: "Akses ditolak: Diperlukan role Admin.",
+    }
+  }
+
+  try {
+    const [updated] = await db
+      .update(vouchers)
+      .set({ isActive })
+      .where(eq(vouchers.id, id))
+      .returning()
+
+    try {
+      revalidatePath("/admin/pricing")
+      revalidatePath("/booking")
+    } catch {}
+
+    return {
+      success: true,
+      data: updated,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal memperbarui status voucher.",
+    }
+  }
+}
+
+export async function deleteVoucherAdminAction(
+  id: string,
+  options?: { currentUser?: AdminAuthContext | null }
+) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return {
+      success: false,
+      error: "Akses ditolak: Diperlukan role Admin.",
+    }
+  }
+
+  try {
+    await db.delete(vouchers).where(eq(vouchers.id, id))
+
+    try {
+      revalidatePath("/admin/pricing")
+      revalidatePath("/booking")
+    } catch {}
+
+    return {
+      success: true,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal menghapus voucher dari database.",
+    }
+  }
+}
+

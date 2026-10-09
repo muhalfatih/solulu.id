@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { MOCK_TESTIMONIALS, type TestimonialItem } from "../mock-data"
+import type { TestimonialItem } from "../mock-data"
+import { Skeleton } from "@/components/ui/skeleton"
 import { TestimonialVariantA } from "./components/testimonial-variant-a"
 import { Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,7 +16,7 @@ import {
 } from "./actions"
 
 export default function TestimonialsAdminPage() {
-  const [items, setItems] = React.useState<TestimonialItem[]>(MOCK_TESTIMONIALS)
+  const [items, setItems] = React.useState<TestimonialItem[]>([])
   const [specializationTopics, setSpecializationTopics] = React.useState<string[]>([])
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -62,15 +63,13 @@ export default function TestimonialsAdminPage() {
             rating: r.rating || 5,
           }))
 
-          const existingIds = new Set(mapped.map((m) => m.id))
-          const preservedMocks = MOCK_TESTIMONIALS.filter((m) => !existingIds.has(m.id))
-          setItems([...mapped, ...preservedMocks])
+          setItems(mapped)
         } else {
-          setItems(MOCK_TESTIMONIALS)
+          setItems([])
         }
       } catch (err) {
-        console.error("Failed to load real testimonials, keeping mock view:", err)
-        setItems(MOCK_TESTIMONIALS)
+        console.error("Failed to load real testimonials from database:", err)
+        setItems([])
       } finally {
         setIsLoading(false)
       }
@@ -206,18 +205,30 @@ export default function TestimonialsAdminPage() {
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card">
             <div className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-emerald-500" />
-              <span className="font-semibold text-foreground tabular-nums">{activeCount}</span>
+              {isLoading ? (
+                <Skeleton className="h-4 w-4 rounded" />
+              ) : (
+                <span className="font-semibold text-foreground tabular-nums">{activeCount}</span>
+              )}
               <span>aktif</span>
             </div>
             <span className="text-muted-foreground/50">•</span>
             <div className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-muted-foreground/40" />
-              <span className="font-semibold text-foreground tabular-nums">{inactiveCount}</span>
+              {isLoading ? (
+                <Skeleton className="h-4 w-4 rounded" />
+              ) : (
+                <span className="font-semibold text-foreground tabular-nums">{inactiveCount}</span>
+              )}
               <span>tidak aktif</span>
             </div>
             <span className="text-muted-foreground/50">•</span>
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-foreground tabular-nums">{items.length}</span>
+              {isLoading ? (
+                <Skeleton className="h-4 w-4 rounded" />
+              ) : (
+                <span className="font-semibold text-foreground tabular-nums">{items.length}</span>
+              )}
               <span>total</span>
             </div>
           </div>
@@ -229,6 +240,7 @@ export default function TestimonialsAdminPage() {
         <TestimonialVariantA
           items={items}
           availableTopics={specializationTopics}
+          isLoading={isLoading}
           onAddPost={handleAddPost}
           onUpdatePost={handleUpdatePost}
           onToggleActive={handleToggleActive}

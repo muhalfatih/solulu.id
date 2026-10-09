@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 
 interface GalleryGridProps {
   items: GalleryItem[]
+  isLoading?: boolean
   onUploadClick: () => void
   onDelete: (id: string, title?: string) => void
   onCopyCDN: (id: string) => void
@@ -25,6 +26,7 @@ interface GalleryGridProps {
 
 export function GalleryGrid({
   items,
+  isLoading = false,
   onUploadClick,
   onDelete,
   onCopyCDN,
@@ -114,7 +116,20 @@ export function GalleryGrid({
             : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
         }`}
       >
-        {items.map((item, index) => (
+        {isLoading ? (
+          Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={`gallery-skel-${i}`}
+              className="rounded-xl overflow-hidden bg-muted/70 border border-border/80 shadow-xs aspect-video animate-pulse"
+            />
+          ))
+        ) : items.length === 0 ? (
+          <div className="col-span-full py-16 text-center border border-dashed border-border rounded-2xl bg-muted/10">
+            <p className="text-sm font-medium text-foreground">Belum ada foto di galeri</p>
+            <p className="text-xs text-muted-foreground mt-1">Klik tombol &apos;Unggah Foto&apos; untuk menambahkan dokumentasi baru.</p>
+          </div>
+        ) : (
+          items.map((item, index) => (
           <div
             key={item.id}
             className="group relative rounded-xl overflow-hidden bg-muted border border-border/80 shadow-xs hover:shadow-md transition-all aspect-video cursor-pointer"
@@ -185,7 +200,8 @@ export function GalleryGrid({
               </div>
             </div>
           </div>
-        ))}
+        ))
+        )}
       </div>
 
       {/* Pure Theatrical Fullscreen Lightbox (Zero Text Overlays) */}

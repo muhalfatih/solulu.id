@@ -30,9 +30,13 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   getPlatformPricingAction,
   updateRolePricingAction,
+  getVouchersAdminAction,
+  createVoucherAdminAction,
+  toggleVoucherStatusAction,
 } from "./actions"
 
 interface RolePricingState {
@@ -48,8 +52,11 @@ interface RolePricingState {
 }
 
 interface VoucherItem {
+  id?: string
   code: string
   discount: string
+  discountType?: "fixed" | "percentage"
+  discountValue?: number
   usedQuota: number
   totalQuota: number
   status: "active" | "exhausted" | "expired"
@@ -110,7 +117,8 @@ const INITIAL_VOUCHERS: VoucherItem[] = [
 
 export default function PricingAdminPage() {
   const [roles, setRoles] = React.useState<RolePricingState[]>(INITIAL_ROLES)
-  const [vouchers, setVouchers] = React.useState<VoucherItem[]>(INITIAL_VOUCHERS)
+  const [vouchers, setVouchers] = React.useState<VoucherItem[]>([])
+  const [isLoading, setIsLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "exhausted">("all")
   const [isModalOpen, setIsModalOpen] = React.useState(false)
@@ -121,30 +129,92 @@ export default function PricingAdminPage() {
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
   const [isSaving, setIsSaving] = React.useState(false)
 
-  React.useEffect(() => {
-    let isMounted = true
-    getPlatformPricingAction().then((res) => {
-      if (isMounted && res.success && res.data) {
-        setRoles((prev) =>
-          prev.map((r) => {
-            const type = r.id === "sebaya" ? "peer" : "psychologist"
-            const dbData = res.data[type]
-            if (!dbData) return r
-            return {
-              ...r,
-              regularPrice: dbData.basePrice,
-              salePrice: dbData.promoPrice,
-              isSaleActive: dbData.isSaleActive,
-              allowVoucher: dbData.allowVoucher,
-            }
-          })
-        )
+  const loadData = React.useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const [pricingRes, vouchersRes] = await Promise.all([
+        getPlatformPricingAction(),
+        getVouchersAdminAction(),
+      ])
+
+      if (pricingRes.success && pricingRes.data) {
+        setRoles([
+          {
+            id: "sebaya",
+            title: "Konselor Sebaya",
+            subtitle: "Pendampingan emosional dan stres ringan hingga sedang.",
+            badge: "Non-Klinis",
+            duration: "90 Menit",
+            regularPrice: pricingRes.data.peer.basePrice,
+            isSaleActive: pricingRes.data.peer.isSaleActive,
+            salePrice: pricingRes.data.peer.promoPrice,
+            allowVoucher: pricingRes.data.peer.allowVoucher,
+          },
+          {
+            id: "psikolog",
+            title: "Psikolog Klinis",
+            subtitle: "Intervensi klinis psikoterapeutik dan rujukan SRQ-20.",
+            badge: "Izin Praktik Aktif",
+            duration: "90 Menit",
+            regularPrice: pricingRes.data.psychologist.basePrice,
+            isSaleActive: pricingRes.data.psychologist.isSaleActive,
+            salePrice: pricingRes.data.psychologist.promoPrice,
+            allowVoucher: pricingRes.data.psychologist.allowVoucher,
+          },
+        ])
       }
-    })
-    return () => {
-      isMounted = false
+
+      if (vouchersRes.success && vouchersRes.data) {
+        const mappedVouchers: VoucherItem[] = vouchersRes.data.map((v: any) => {
+          const valNum = Number(v.discountValue)
+          const discountStr =
+            v.discountType === "percentage"
+              ? `Diskon ${valNum}%`
+              : `Potongan Rp ${valNum.toLocaleString("id-ID")}`
+          const isExpired = v.expiresAt
+            ? new Date(v.expiresAt).getTime() < Date.now()
+            : false
+          const isExhausted = v.quota > 0 && v.usedCount >= v.quota
+          const status =
+            !v.isActive || isExhausted
+              ? "exhausted"
+              : isExpired
+              ? "expired"
+              : "active"
+          const expiryDate = v.expiresAt
+            ? new Date(v.expiresAt).toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })
+            : "Tanpa Batas"
+
+          return {
+            id: v.id,
+            code: v.code,
+            discount: discountStr,
+            discountType: v.discountType,
+            discountValue: valNum,
+            usedQuota: v.usedCount ?? 0,
+            totalQuota: v.quota,
+            status,
+            expiryDate,
+          }
+        })
+        setVouchers(mappedVouchers)
+      } else {
+        setVouchers([])
+      }
+    } catch (err) {
+      console.error("Failed to load pricing and vouchers:", err)
+    } finally {
+      setIsLoading(false)
     }
   }, [])
+
+  React.useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -174,11 +244,23 @@ export default function PricingAdminPage() {
     }
   }
 
-  const handleToggleVoucherStatus = (code: string) => {
+  const handleToggleVoucherStatus = async (code: string) => {
+    const target = vouchers.find((v) => v.code === code)
+    if (!target) return
+    const nextActive = target.status !== "active"
+
+    if (target.id) {
+      try {
+        await toggleVoucherStatusAction(target.id, nextActive)
+      } catch (err) {
+        console.error("Failed to toggle voucher status in DB:", err)
+      }
+    }
+
     setVouchers((prev) =>
       prev.map((v) => {
         if (v.code === code) {
-          const nextStatus = v.status === "active" ? "exhausted" : "active"
+          const nextStatus = nextActive ? "active" : "exhausted"
           showToast(`Voucher ${code} sekarang ${nextStatus === "active" ? "aktif" : "nonaktif"}.`)
           return { ...v, status: nextStatus }
         }
@@ -201,25 +283,38 @@ export default function PricingAdminPage() {
     )
   }
 
-  const handleCreateVoucher = (e: React.FormEvent) => {
+  const handleCreateVoucher = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newCode.trim()) return
 
-    const created: VoucherItem = {
-      code: newCode.trim().toUpperCase(),
-      discount: newDiscount.trim() || "Potongan Rp 25.000",
-      usedQuota: 0,
-      totalQuota: Number(newQuota) || 50,
-      status: "active",
-      expiryDate: newExpiry,
+    const isPercentage = newDiscount.includes("%")
+    const cleanNum = Number(newDiscount.replace(/[^0-9]/g, "")) || 25000
+    const quotaNum = Number(newQuota) || 50
+
+    try {
+      const res = await createVoucherAdminAction({
+        code: newCode.trim().toUpperCase(),
+        discountType: isPercentage ? "percentage" : "fixed",
+        discountValue: cleanNum,
+        quota: quotaNum,
+        expiresAt: new Date("2026-12-31T23:59:59+07:00"),
+        isActive: true,
+      })
+
+      if (res.success && res.data) {
+        loadData()
+        showToast(`Voucher ${newCode.toUpperCase()} berhasil disimpan ke database.`)
+      } else {
+        showToast(res.error || "Gagal membuat voucher.")
+      }
+    } catch {
+      showToast("Terjadi kesalahan saat membuat voucher.")
     }
 
-    setVouchers([created, ...vouchers])
     setIsModalOpen(false)
     setNewCode("")
     setNewDiscount("")
     setNewQuota("50")
-    showToast(`Voucher ${created.code} berhasil ditambahkan.`)
   }
 
   const filteredVouchers = vouchers.filter((v) => {
@@ -319,7 +414,36 @@ export default function PricingAdminPage() {
 
         {/* 2-Column Grid: Role 1 (Konselor Sebaya) & Role 2 (Psikolog Klinis) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-          {roles.map((role) => {
+          {isLoading ? (
+            Array.from({ length: 2 }).map((_, i) => (
+              <div
+                key={`pricing-skel-${i}`}
+                className="bg-card border border-border rounded-2xl p-6 flex flex-col justify-between gap-5 shadow-xs animate-pulse"
+              >
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3.5">
+                    <Skeleton className="h-5 w-36 rounded" />
+                    <Skeleton className="h-5 w-24 rounded" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 items-end">
+                    <div className="flex flex-col gap-1.5">
+                      <Skeleton className="h-4 w-20 rounded" />
+                      <Skeleton className="h-9 w-full rounded-md" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Skeleton className="h-4 w-20 rounded" />
+                      <Skeleton className="h-9 w-full rounded-md" />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 pt-2">
+                    <Skeleton className="h-6 w-48 rounded" />
+                    <Skeleton className="h-6 w-56 rounded" />
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            roles.map((role) => {
             const discountNominal = Math.max(0, role.regularPrice - role.salePrice)
             const discountPercent =
               role.regularPrice > 0 ? Math.round((discountNominal / role.regularPrice) * 100) : 0
@@ -469,7 +593,8 @@ export default function PricingAdminPage() {
                 </div>
               </div>
             )
-          })}
+          })
+          )}
         </div>
       </div>
 
@@ -589,7 +714,31 @@ export default function PricingAdminPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredVouchers.length > 0 ? (
+              {isLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <TableRow key={`voucher-skel-${i}`} className="border-border/60">
+                    <TableCell className="py-3.5 px-3.5">
+                      <Skeleton className="h-4 w-24 rounded" />
+                    </TableCell>
+                    <TableCell className="py-3.5 px-3.5">
+                      <Skeleton className="h-4 w-28 rounded" />
+                    </TableCell>
+                    <TableCell className="py-3.5 px-3.5">
+                      <Skeleton className="h-3.5 w-32 rounded mb-1" />
+                      <Skeleton className="h-1.5 w-32 rounded-full" />
+                    </TableCell>
+                    <TableCell className="py-3.5 px-3.5">
+                      <Skeleton className="h-3.5 w-20 rounded" />
+                    </TableCell>
+                    <TableCell className="py-3.5 px-3.5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Skeleton className="h-5 w-14 rounded-full" />
+                        <Skeleton className="h-8 w-20 rounded-md" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : filteredVouchers.length > 0 ? (
                 filteredVouchers.map((v) => {
                   const percent = Math.round((v.usedQuota / v.totalQuota) * 100)
                   const isActive = v.status === "active"

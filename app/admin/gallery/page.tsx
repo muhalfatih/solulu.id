@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { MOCK_GALLERY_ITEMS, GalleryItem } from "../mock-data"
+import type { GalleryItem } from "../mock-data"
+import { Skeleton } from "@/components/ui/skeleton"
 import { GalleryGrid } from "./components/gallery-grid"
 import { GalleryUploadDialog } from "./components/gallery-upload-dialog"
 import { Button } from "@/components/ui/button"
@@ -14,7 +15,8 @@ import {
 } from "./actions"
 
 export default function GalleryAdminPage() {
-  const [items, setItems] = React.useState<GalleryItem[]>(MOCK_GALLERY_ITEMS)
+  const [items, setItems] = React.useState<GalleryItem[]>([])
+  const [isLoading, setIsLoading] = React.useState(true)
   const [isUploadOpen, setIsUploadOpen] = React.useState(false)
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
 
@@ -26,12 +28,13 @@ export default function GalleryAdminPage() {
   // Fetch real gallery items from database on mount
   React.useEffect(() => {
     async function loadGallery() {
+      setIsLoading(true)
       try {
         const res = await getGalleryAdminAction()
         if (res.success && res.data && res.data.length > 0) {
           const mapped: GalleryItem[] = res.data.map((r: any) => ({
             id: r.id,
-            imageUrl: r.r2Url,
+            imageUrl: r.imageUrl || r.r2Url,
             aspectRatio: "16:9",
             dimensions: "1920 × 1080",
             fileSize: "920 KB",
@@ -43,15 +46,15 @@ export default function GalleryAdminPage() {
             isCensoredAndConsented: true,
             uploadedBy: "Admin",
           }))
-          const existingIds = new Set(mapped.map((m) => m.id))
-          const preservedMocks = MOCK_GALLERY_ITEMS.filter((m) => !existingIds.has(m.id))
-          setItems([...mapped, ...preservedMocks])
+          setItems(mapped)
         } else {
-          setItems(MOCK_GALLERY_ITEMS)
+          setItems([])
         }
       } catch (err) {
-        console.error("Failed to load real gallery, keeping mock items:", err)
-        setItems(MOCK_GALLERY_ITEMS)
+        console.error("Failed to load real gallery from database:", err)
+        setItems([])
+      } finally {
+        setIsLoading(false)
       }
     }
     loadGallery()
@@ -120,9 +123,13 @@ export default function GalleryAdminPage() {
           <h1 className="text-xl font-bold tracking-tight text-foreground">
             Galeri Foto
           </h1>
-          <Badge variant="secondary" className="font-mono text-xs py-0.5">
-            {items.length} Foto
-          </Badge>
+          {isLoading ? (
+            <Skeleton className="h-5 w-16 rounded-full" />
+          ) : (
+            <Badge variant="secondary" className="font-mono text-xs py-0.5">
+              {items.length} Foto
+            </Badge>
+          )}
         </div>
 
         {/* Quick Upload Action */}
@@ -140,6 +147,7 @@ export default function GalleryAdminPage() {
       <main className="w-full">
         <GalleryGrid
           items={items}
+          isLoading={isLoading}
           onUploadClick={() => setIsUploadOpen(true)}
           onDelete={handleDelete}
           onCopyCDN={handleCopyCDN}

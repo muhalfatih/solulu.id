@@ -8,6 +8,9 @@ import {
   computeEndTime,
   isTimeRangeOverlapping,
   MAX_PLATFORM_CONCURRENCY,
+  getWIBDateString,
+  getNowWIB,
+  parseTimeToMinutes,
 } from "@/lib/schedules/concurrency"
 import { generateSessionAccessToken } from "@/lib/booking/hold"
 import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counselors/actions"
@@ -82,7 +85,9 @@ export async function getCounselorAvailableSlotsAction(
       return { success: true, data }
     }
 
-    const todayStr = new Date().toISOString().split("T")[0]
+    const now = new Date()
+    const todayWIB = getWIBDateString(now)
+    const nowWIBMinutes = getNowWIB(now).timeMinutes
 
     const rows = await db
       .select({
@@ -98,12 +103,21 @@ export async function getCounselorAvailableSlotsAction(
         and(
           eq(schedules.counselorId, counselorId),
           eq(schedules.status, "available"),
-          gte(schedules.date, todayStr)
+          gte(schedules.date, todayWIB)
         )
       )
       .orderBy(schedules.date, schedules.startTime)
 
-    return { success: true, data: rows || [] }
+    // Filter out slots where date is today but startTime has already passed
+    const validRows = rows.filter((r) => {
+      if (r.date > todayWIB) return true
+      if (r.date === todayWIB) {
+        return parseTimeToMinutes(r.startTime) > nowWIBMinutes
+      }
+      return false
+    })
+
+    return { success: true, data: validRows || [] }
   } catch (err: any) {
     return { success: false, error: err.message, data: [] }
   }

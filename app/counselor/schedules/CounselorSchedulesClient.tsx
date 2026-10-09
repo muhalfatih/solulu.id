@@ -47,7 +47,14 @@ import {
   cancelScheduleSlotAction,
   type ScheduleItemView,
 } from "./actions"
-import { computeEndTime, formatTimeRange } from "@/lib/schedules/concurrency"
+import {
+  computeEndTime,
+  formatTimeRange,
+  getNowWIB,
+  getWIBDateString,
+  getMaxBookableDateString,
+  parseTimeToMinutes,
+} from "@/lib/schedules/concurrency"
 
 interface CounselorSchedulesClientProps {
   initialSlots: ScheduleItemView[]
@@ -70,11 +77,15 @@ export default function CounselorSchedulesClient({
   const [isCancelModalOpen, setIsCancelModalOpen] = React.useState(false)
   const [slotToCancel, setSlotToCancel] = React.useState<ScheduleItemView | null>(null)
 
-  // Creation form state
+  // Creation form date bounds (WIB)
+  const nowWIB = React.useMemo(() => getNowWIB(), [])
+  const todayWIB = nowWIB.dateStr
+  const maxDateWIB = React.useMemo(() => getMaxBookableDateString(), [])
+
   const tomorrowStr = React.useMemo(() => {
     const d = new Date()
     d.setDate(d.getDate() + 1)
-    return d.toISOString().split("T")[0]
+    return getWIBDateString(d)
   }, [])
 
   const [selectedDate, setSelectedDate] = React.useState<string>(tomorrowStr)
@@ -85,8 +96,8 @@ export default function CounselorSchedulesClient({
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [isCancelling, setIsCancelling] = React.useState(false)
 
-  // Date filter for table view
-  const [viewDateFilter, setViewDateFilter] = React.useState<string>("all")
+  // Date filter for table view: default to upcoming slots
+  const [viewDateFilter, setViewDateFilter] = React.useState<string>("upcoming")
 
   const showToast = (type: "success" | "error", text: string) => {
     setToastMessage({ type, text })
@@ -194,7 +205,15 @@ export default function CounselorSchedulesClient({
 
   // Filter slots for table
   const displayedSlots = React.useMemo(() => {
-    if (viewDateFilter === "all") return slots
+    if (viewDateFilter === "upcoming") {
+      return slots.filter((s) => !s.isPast)
+    }
+    if (viewDateFilter === "past") {
+      return slots.filter((s) => s.isPast)
+    }
+    if (viewDateFilter === "all") {
+      return slots
+    }
     return slots.filter((s) => s.date === viewDateFilter)
   }, [slots, viewDateFilter])
 
@@ -306,18 +325,24 @@ export default function CounselorSchedulesClient({
 
           {/* Date Filter Dropdown */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Filter Tanggal:</span>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Filter Jadwal:</span>
             <select
               value={viewDateFilter}
               onChange={(e) => setViewDateFilter(e.target.value)}
               className="text-xs h-8 px-2.5 rounded-lg border border-border/80 bg-background focus:ring-1 focus:ring-primary text-foreground font-medium cursor-pointer shadow-2xs"
             >
-              <option value="all">Semua Tanggal</option>
-              {distinctDates.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
+              <option value="upcoming">Slot Mendatang &amp; Hari Ini (Aktif)</option>
+              <option value="all">Semua Slot (Termasuk Riwayat)</option>
+              <option value="past">Riwayat Jadwal Lampau</option>
+              {distinctDates.length > 0 && (
+                <optgroup label="Berdasarkan Tanggal">
+                  {distinctDates.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </div>
         </CardHeader>
@@ -340,12 +365,16 @@ export default function CounselorSchedulesClient({
                     <TableCell colSpan={5} className="h-32 text-center text-xs text-muted-foreground">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Clock className="size-6 text-muted-foreground/50" />
-                        <span>Belum ada slot praktik pada tanggal ini.</span>
+                        <span>
+                          {viewDateFilter === "upcoming"
+                            ? "Belum ada slot praktik mendatang. Buka slot baru untuk pasien."
+                            : "Tidak ada data slot pada filter ini."}
+                        </span>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setIsAddModalOpen(true)}
-                          className="mt-1 text-xs h-7"
+                          className="mt-1 text-xs h-7 cursor-pointer"
                         >
                           Buka Slot Sekarang
                         </Button>
@@ -369,39 +398,67 @@ export default function CounselorSchedulesClient({
                         </TableCell>
 
                         <TableCell>
-                          {slot.status === "available" && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
-                            >
-                              Tersedia
-                            </Badge>
-                          )}
-                          {slot.status === "reserved" && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
-                            >
-                              Hold Reservasi (17m)
-                            </Badge>
-                          )}
-                          {slot.status === "booked" && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30"
-                            >
-                              Dipesan Pasien
-                            </Badge>
-                          )}
-                          {slot.status === "cancelled" && (
-                            <Badge variant="outline" className="text-xs text-muted-foreground border-border/80">
-                              Dibatalkan
-                            </Badge>
+                          {slot.isPast ? (
+                            slot.status === "booked" ? (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/30"
+                              >
+                                Selesai
+                              </Badge>
+                            ) : slot.status === "cancelled" ? (
+                              <Badge variant="outline" className="text-xs text-muted-foreground border-border/80">
+                                Dibatalkan
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-muted/60 text-muted-foreground border-border/80"
+                              >
+                                Terlewat / Kedaluwarsa
+                              </Badge>
+                            )
+                          ) : (
+                            <>
+                              {slot.status === "available" && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                                >
+                                  Tersedia
+                                </Badge>
+                              )}
+                              {slot.status === "reserved" && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                                >
+                                  Hold Reservasi (17m)
+                                </Badge>
+                              )}
+                              {slot.status === "booked" && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30"
+                                >
+                                  Dipesan Pasien
+                                </Badge>
+                              )}
+                              {slot.status === "cancelled" && (
+                                <Badge variant="outline" className="text-xs text-muted-foreground border-border/80">
+                                  Dibatalkan
+                                </Badge>
+                              )}
+                            </>
                           )}
                         </TableCell>
 
                         <TableCell className="text-right">
-                          {slot.status === "available" ? (
+                          {slot.isPast ? (
+                            <span className="text-xs text-muted-foreground/70 italic select-none">
+                              {slot.status === "booked" ? "Sesi Selesai" : "Waktu Terlewat"}
+                            </span>
+                          ) : slot.status === "available" ? (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -461,13 +518,14 @@ export default function CounselorSchedulesClient({
               <Input
                 id="schedule-date"
                 type="date"
-                min={new Date().toISOString().split("T")[0]}
+                min={todayWIB}
+                max={maxDateWIB}
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="text-sm h-10"
               />
               <FieldDescription className="text-xs">
-                Slot dibuka untuk tanggal yang dipilih.
+                Maksimal 14 hari ke depan ({maxDateWIB}). Sesi tanggal lampau tidak dapat dibuka.
               </FieldDescription>
             </Field>
 
@@ -478,21 +536,35 @@ export default function CounselorSchedulesClient({
                 {PRESET_START_TIMES.map((timeStr) => {
                   const isChecked = selectedTimes.includes(timeStr)
                   const endStr = computeEndTime(timeStr)
+                  const isTimePassedToday =
+                    selectedDate === todayWIB && parseTimeToMinutes(timeStr) <= nowWIB.timeMinutes
+
                   return (
                     <button
                       key={timeStr}
                       type="button"
+                      disabled={isTimePassedToday}
                       aria-pressed={isChecked}
-                      onClick={() => togglePresetTime(timeStr)}
-                      className={`flex flex-col items-center justify-center p-2.5 rounded-lg border text-xs transition-colors cursor-pointer text-center ${
-                        isChecked
-                          ? "bg-primary text-primary-foreground border-primary font-semibold shadow-xs"
-                          : "bg-card hover:bg-muted text-foreground border-border"
+                      onClick={() => !isTimePassedToday && togglePresetTime(timeStr)}
+                      className={`flex flex-col items-center justify-center p-2.5 rounded-lg border text-xs transition-colors text-center ${
+                        isTimePassedToday
+                          ? "bg-muted/40 text-muted-foreground/50 border-border/40 cursor-not-allowed line-through"
+                          : isChecked
+                          ? "bg-primary text-primary-foreground border-primary font-semibold shadow-xs cursor-pointer"
+                          : "bg-card hover:bg-muted text-foreground border-border cursor-pointer"
                       }`}
                     >
                       <span className="font-bold text-sm tabular-nums">{timeStr}</span>
-                      <span className={`text-xs ${isChecked ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-                        s/d {endStr} WIB
+                      <span
+                        className={`text-xs ${
+                          isTimePassedToday
+                            ? "text-muted-foreground/40"
+                            : isChecked
+                            ? "text-primary-foreground/80"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {isTimePassedToday ? "Sudah Terlewat" : `s/d ${endStr} WIB`}
                       </span>
                     </button>
                   )

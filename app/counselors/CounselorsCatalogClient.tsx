@@ -47,6 +47,7 @@ import {
   type CatalogCounselorView,
   type CatalogSlot,
 } from "./actions"
+import { getWIBDateString } from "@/lib/schedules/concurrency"
 
 interface CounselorsCatalogClientProps {
   initialCounselors: CatalogCounselorView[]
@@ -185,31 +186,21 @@ export default function CounselorsCatalogClient({
   // Counselor type comparison info modal
   const [showTypeInfoModal, setShowTypeInfoModal] = React.useState(false)
 
-  // Today, Tomorrow & Day after ISO date strings (local calendar date YYYY-MM-DD)
+  // Today, Tomorrow & Day after ISO date strings (WIB timezone date YYYY-MM-DD)
   const todayStr = React.useMemo(() => {
-    const d = new Date()
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, "0")
-    const day = String(d.getDate()).padStart(2, "0")
-    return `${year}-${month}-${day}`
+    return getWIBDateString()
   }, [])
 
   const tomorrowStr = React.useMemo(() => {
     const d = new Date()
     d.setDate(d.getDate() + 1)
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, "0")
-    const day = String(d.getDate()).padStart(2, "0")
-    return `${year}-${month}-${day}`
+    return getWIBDateString(d)
   }, [])
 
   const dayAfterStr = React.useMemo(() => {
     const d = new Date()
     d.setDate(d.getDate() + 2)
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, "0")
-    const day = String(d.getDate()).padStart(2, "0")
-    return `${year}-${month}-${day}`
+    return getWIBDateString(d)
   }, [])
 
   // Dynamic server synchronization (updates master list without breaking current client view on error)
@@ -910,7 +901,7 @@ export default function CounselorsCatalogClient({
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <span className="shrink-0 px-2 py-0.5 rounded-md text-xs font-semibold bg-background border border-border/60 text-foreground/90 shadow-2xs">
-                                  {formatSlotChipDate(slot.date, tomorrowStr, dayAfterStr)}
+                                  {formatSlotChipDate(slot.date, tomorrowStr, dayAfterStr, todayStr)}
                                 </span>
                                 <span className="text-xs sm:text-sm font-semibold text-foreground tabular-nums group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                                   {slot.timeRange}

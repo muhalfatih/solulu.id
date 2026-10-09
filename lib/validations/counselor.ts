@@ -2,6 +2,7 @@ import { z } from "zod"
 
 export const sessionReportSchema = z.object({
   bookingId: z.string().uuid("ID booking tidak valid"),
+  attendanceStatus: z.enum(["attended", "no_show"]).optional(),
   summary: z
     .string()
     .trim()

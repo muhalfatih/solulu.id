@@ -27,15 +27,22 @@ export function makeCatalogPricing(
   }
 }
 
+import { filterBookableSlots, getWIBDateString } from "@/lib/schedules/concurrency"
+
 export function getFallbackCounselors(
   typeFilter?: "all" | "peer" | "psychologist",
   dateFilter?: string,
   pricingData: PlatformPricingData = DEFAULT_PLATFORM_PRICING
 ): CatalogCounselorView[] {
   const storeCounselors = getActiveStoreCounselors(typeFilter)
+  const now = new Date()
+  const todayWIB = getWIBDateString(now)
+  const tomorrowDate = new Date(now)
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+  const tomorrowWIB = getWIBDateString(tomorrowDate)
 
   let all: CatalogCounselorView[] = storeCounselors.map((c) => {
-    const slots = (c.slots || []).map((s) => ({
+    const rawSlots = (c.slots || []).map((s) => ({
       id: s.id,
       date: s.date,
       startTime: s.startTime,
@@ -43,10 +50,23 @@ export function getFallbackCounselors(
       timeRange: s.timeRange,
     }))
 
+    const slots = filterBookableSlots(rawSlots, now)
+
     const defaultAvatar =
       c.counselorType === "psychologist"
         ? "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=600"
         : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600"
+
+    const hasSlotsToday = slots.some((s) => s.date === todayWIB)
+    const hasSlotsTomorrow = slots.some((s) => s.date === tomorrowWIB)
+    const availableSoon =
+      slots.length === 0
+        ? "Jadwal Penuh"
+        : hasSlotsToday
+        ? "Tersedia Hari Ini"
+        : hasSlotsTomorrow
+        ? "Tersedia Besok"
+        : "Tersedia Pekan Ini"
 
     return {
       id: c.id,
@@ -61,7 +81,7 @@ export function getFallbackCounselors(
       avatarR2Url: c.avatarR2Url || defaultAvatar,
       rating: c.rating,
       experience: c.experience,
-      availableSoon: slots.length > 0 ? "Tersedia Besok" : "Jadwal Penuh",
+      availableSoon,
       pricing: makeCatalogPricing(c.counselorType, pricingData),
       availableSlots: slots,
       totalAvailableSlotsCount: slots.length,
@@ -87,7 +107,7 @@ export function getFallbackCounselorById(
 
   const storeItem = getStoreCounselorById(id)
   if (storeItem) {
-    const slots = (storeItem.slots || []).map((s) => ({
+    const rawSlots = (storeItem.slots || []).map((s) => ({
       id: s.id,
       date: s.date,
       startTime: s.startTime,
@@ -95,10 +115,29 @@ export function getFallbackCounselorById(
       timeRange: s.timeRange,
     }))
 
+    const slots = filterBookableSlots(rawSlots)
+
     const defaultAvatar =
       storeItem.counselorType === "psychologist"
         ? "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=600"
         : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600"
+
+    const now = new Date()
+    const todayWIB = getWIBDateString(now)
+    const tomorrowDate = new Date(now)
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+    const tomorrowWIB = getWIBDateString(tomorrowDate)
+
+    const hasSlotsToday = slots.some((s) => s.date === todayWIB)
+    const hasSlotsTomorrow = slots.some((s) => s.date === tomorrowWIB)
+    const availableSoon =
+      slots.length === 0
+        ? "Jadwal Penuh"
+        : hasSlotsToday
+        ? "Tersedia Hari Ini"
+        : hasSlotsTomorrow
+        ? "Tersedia Besok"
+        : "Tersedia Pekan Ini"
 
     return {
       id: storeItem.id,
@@ -113,7 +152,7 @@ export function getFallbackCounselorById(
       avatarR2Url: storeItem.avatarR2Url || defaultAvatar,
       rating: storeItem.rating,
       experience: storeItem.experience,
-      availableSoon: slots.length > 0 ? "Tersedia Besok" : "Jadwal Penuh",
+      availableSoon,
       pricing: makeCatalogPricing(storeItem.counselorType, pricingData),
       availableSlots: slots,
       totalAvailableSlotsCount: slots.length,

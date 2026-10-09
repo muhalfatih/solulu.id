@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { PublicShell } from "@/components/public/public-shell"
 import { SessionCountdownCard } from "./components/SessionCountdownCard"
 import { PaymentVerificationWaitingCard } from "./components/PaymentVerificationWaitingCard"
+import { CancelledBookingNoticeCard } from "./components/CancelledBookingNoticeCard"
 import { CounselorDetailsCard } from "./components/CounselorDetailsCard"
 import { PreparationTipsCard } from "./components/PreparationTipsCard"
 import { SupportHotlineCard } from "./components/SupportHotlineCard"
@@ -80,6 +81,11 @@ export default function SessionClient({ initialData }: SessionClientProps) {
               <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
               <span>Menunggu Verifikasi Pembayaran • Sesi Telah Dipesan</span>
             </div>
+          ) : data.booking.status === "cancelled" ? (
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-700 dark:text-rose-400 text-xs font-semibold shadow-2xs w-fit">
+              <span className="size-2 rounded-full bg-rose-500" />
+              <span>Pemesanan Dibatalkan / Kedaluwarsa</span>
+            </div>
           ) : (
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary dark:text-purple-300 text-xs font-semibold shadow-2xs w-fit">
               <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -87,12 +93,18 @@ export default function SessionClient({ initialData }: SessionClientProps) {
             </div>
           )}
           <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground leading-[1.2]">
-            Ruang Sesi Bersama {data.counselor.fullName}
+            {data.booking.status === "cancelled"
+              ? "Pemesanan Sesi Dibatalkan"
+              : `Ruang Sesi Bersama ${data.counselor.fullName}`}
           </h1>
           <p className="text-xs sm:text-sm md:text-base text-muted-foreground leading-relaxed max-w-2xl font-normal text-pretty">
             {data.booking.status === "pending_payment" ? (
               <>
                 Halo, <strong className="font-semibold text-foreground">{data.booking.patientName}</strong>. Jadwal sesi Anda telah berhasil dipesan dan sedang menunggu verifikasi pembayaran oleh tim admin Solulu.
+              </>
+            ) : data.booking.status === "cancelled" ? (
+              <>
+                Halo, <strong className="font-semibold text-foreground">{data.booking.patientName}</strong>. Pemesanan sesi konseling ini telah dibatalkan karena batas waktu pembayaran habis atau bukti pembayaran belum sesuai.
               </>
             ) : (
               <>
@@ -115,6 +127,12 @@ export default function SessionClient({ initialData }: SessionClientProps) {
                 patientName={data.booking.patientName}
                 onRefresh={handleRefresh}
                 isRefreshing={isRefreshing}
+              />
+            ) : data.booking.status === "cancelled" ? (
+              <CancelledBookingNoticeCard
+                booking={data.booking}
+                schedule={data.schedule}
+                counselor={data.counselor}
               />
             ) : (
               <SessionCountdownCard

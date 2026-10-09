@@ -1,7 +1,9 @@
 import { Geist, Poppins, Inter } from "next/font/google"
 
 import "./globals.css"
+import { Suspense } from "react"
 import { ThemeProvider } from "@/components/theme-provider"
+import { NavigationProgress } from "@/components/navigation-progress"
 import { cn } from "@/lib/utils"
 
 import type { Metadata } from "next"
@@ -79,7 +81,12 @@ export default function RootLayout({
       )}
     >
       <body suppressHydrationWarning>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <Suspense fallback={null}>
+            <NavigationProgress />
+          </Suspense>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )

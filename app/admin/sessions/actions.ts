@@ -62,3 +62,72 @@ export async function getBookingsAdminAction(options?: {
     }
   }
 }
+
+export interface RejectManualPaymentInput {
+  bookingId: string
+  reason: string
+  adminNotes?: string
+}
+
+/**
+ * Admin Server Action to reject manual bank transfer payments.
+ * Atomically marks booking as cancelled, transaction as FAILED with audit reason,
+ * and releases the schedule slot back to available.
+ */
+export async function rejectManualPaymentAction(
+  input: RejectManualPaymentInput,
+  options?: { currentUser?: AdminAuthContext | null }
+) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return {
+      success: false,
+      error: "Akses ditolak: Diperlukan role Admin.",
+    }
+  }
+
+  try {
+    const [booking] = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.id, input.bookingId))
+      .limit(1)
+
+    if (!booking) {
+      return { success: false, error: "Data pesanan booking tidak ditemukan." }
+    }
+
+    await db.transaction(async (tx) => {
+      // 1. Cancel booking
+      await tx
+        .update(bookings)
+        .set({ status: "cancelled" })
+        .where(eq(bookings.id, input.bookingId))
+
+      // 2. Release schedule slot back to available
+      await tx
+        .update(schedules)
+        .set({ status: "available", reservedUntil: null })
+        .where(eq(schedules.id, booking.scheduleId))
+
+      // 3. Mark transaction as FAILED with rejection reason
+      await tx
+        .update(transactions)
+        .set({
+          status: "FAILED",
+          adminNotes: `Ditolak Admin: ${input.reason}. ${input.adminNotes || ""}`.trim(),
+        })
+        .where(eq(transactions.bookingId, input.bookingId))
+    })
+
+    return {
+      success: true,
+      message: `Pembayaran sesi berhasil ditolak (${input.reason}). Slot jadwal telah dikembalikan ke kalender publik.`,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal menolak pembayaran manual.",
+    }
+  }
+}

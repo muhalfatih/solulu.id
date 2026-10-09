@@ -6,6 +6,9 @@ import { counselors, schedules, platformPricing } from "@/db/schema"
 import {
   formatTimeRange,
   filterSlotsByConcurrencyGuard,
+  getWIBDateString,
+  getMaxBookableDateString,
+  isSlotBookable,
   type SlotInterval,
 } from "@/lib/schedules/concurrency"
 import {
@@ -160,7 +163,10 @@ export async function getCounselorsCatalogAction(
       }
     }
 
-    // 3. Fetch candidate available slots
+    // 3. Fetch candidate available slots within valid booking window (today until +14 days)
+    const todayWIB = getWIBDateString()
+    const maxDateWIB = getMaxBookableDateString()
+
     let slotRows: any[] = []
     if (options?.getSlots) {
       slotRows = await options.getSlots(counselorIds, dateFilter)
@@ -168,6 +174,8 @@ export async function getCounselorsCatalogAction(
       const conditions = [
         inArray(schedules.counselorId, counselorIds),
         eq(schedules.status, "available"),
+        gte(schedules.date, todayWIB),
+        lte(schedules.date, maxDateWIB),
       ]
 
       if (dateFilter) {
@@ -208,13 +216,20 @@ export async function getCounselorsCatalogAction(
       }
     }
 
-    // 5. Apply Concurrency Guard to candidate slots
+    // 5. Apply Concurrency Guard AND 2-hour Lead Time Buffer to candidate slots
     const visibleSlotsByCounselor: Record<string, CatalogSlot[]> = {}
     for (const counselorId of counselorIds) {
       visibleSlotsByCounselor[counselorId] = []
     }
 
+    const now = new Date()
     for (const slot of slotRows) {
+      // Must be bookable (not in the past, >= 2h buffer if today, <= 14 days)
+      const bookableCheck = isSlotBookable(slot.date, slot.startTime, now)
+      if (!bookableCheck.bookable) {
+        continue
+      }
+
       const activeOnDate = activeSessionsByDate[slot.date] || []
       const [filtered] = filterSlotsByConcurrencyGuard([slot], activeOnDate)
 
@@ -241,6 +256,21 @@ export async function getCounselorsCatalogAction(
         ? "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=600"
         : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600"
 
+      const hasSlotsToday = slots.some((s) => s.date === todayWIB)
+      const tomorrowDate = new Date(now)
+      tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+      const tomorrowWIB = getWIBDateString(tomorrowDate)
+      const hasSlotsTomorrow = slots.some((s) => s.date === tomorrowWIB)
+
+      const availableSoon =
+        slots.length === 0
+          ? "Jadwal Penuh"
+          : hasSlotsToday
+          ? "Tersedia Hari Ini"
+          : hasSlotsTomorrow
+          ? "Tersedia Besok"
+          : "Tersedia Pekan Ini"
+
       return {
         id: c.id,
         fullName: c.fullName,
@@ -256,7 +286,7 @@ export async function getCounselorsCatalogAction(
         avatarR2Url: c.avatarR2Url || defaultAvatar,
         rating: isPsychologist ? "4.9" : "4.8",
         experience: isPsychologist ? "4+ Tahun" : "3+ Tahun",
-        availableSoon: slots.length > 0 ? "Tersedia Hari Ini" : "Jadwal Penuh",
+        availableSoon,
         pricing,
         availableSlots: slots,
         totalAvailableSlotsCount: slots.length,

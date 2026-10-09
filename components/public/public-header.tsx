@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { ArrowRight, Menu, X, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -16,6 +16,7 @@ export const PUBLIC_NAV_ITEMS = [
 ] as const
 
 export function PublicHeader() {
+  const router = useRouter()
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
@@ -24,12 +25,24 @@ export function PublicHeader() {
     setMobileMenuOpen(false)
   }, [pathname])
 
+  const handlePrefetch = React.useCallback(
+    (href: string) => {
+      if (href && href.startsWith("/")) {
+        router.prefetch(href)
+      }
+    },
+    [router]
+  )
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/80 bg-background/95 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <Link
           href="/"
+          prefetch={true}
+          onMouseEnter={() => handlePrefetch("/")}
+          onTouchStart={() => handlePrefetch("/")}
           className="flex items-center gap-2.5 transition-opacity hover:opacity-90 shrink-0"
           id="link-header-logo"
         >
@@ -62,6 +75,9 @@ export function PublicHeader() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={true}
+                onMouseEnter={() => handlePrefetch(item.href)}
+                onTouchStart={() => handlePrefetch(item.href)}
                 className={cn(
                   "px-3 py-1.5 rounded-full transition-colors",
                   isActive
@@ -86,7 +102,12 @@ export function PublicHeader() {
             className="hidden sm:inline-flex active:scale-[0.98]"
             id="btn-header-cta"
           >
-            <Link href="/counselors">
+            <Link
+              href="/counselors"
+              prefetch={true}
+              onMouseEnter={() => handlePrefetch("/counselors")}
+              onTouchStart={() => handlePrefetch("/counselors")}
+            >
               <span>Pilih Konselor</span>
               <ArrowRight className="size-3.5" data-icon="inline-end" />
             </Link>
@@ -127,6 +148,8 @@ export function PublicHeader() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={true}
+                onTouchStart={() => handlePrefetch(item.href)}
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
                   "px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-between",
@@ -153,6 +176,7 @@ export function PublicHeader() {
             >
               <Link
                 href="/counselors"
+                prefetch={true}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <span>Pilih Konselor Sekarang</span>

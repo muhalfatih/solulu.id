@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Dialog,
   DialogContent,
@@ -228,25 +229,25 @@ export default function SpecializationsAdminPage() {
           <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
             Total Topik
           </span>
-          <span className="text-2xl font-bold text-foreground tabular-nums">
-            {items.length}
-          </span>
+          <div className="text-2xl font-bold text-foreground tabular-nums">
+            {isLoading ? <Skeleton className="h-7 w-12 my-0.5 rounded" /> : items.length}
+          </div>
         </div>
         <div className="p-4 rounded-xl border border-border bg-card shadow-xs flex flex-col gap-1">
           <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
             Topik Aktif (Muncul di Form & Filter)
           </span>
-          <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-            {activeCount}
-          </span>
+          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+            {isLoading ? <Skeleton className="h-7 w-12 my-0.5 rounded" /> : activeCount}
+          </div>
         </div>
         <div className="p-4 rounded-xl border border-border bg-card shadow-xs flex flex-col gap-1">
           <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
             Topik Nonaktif
           </span>
-          <span className="text-2xl font-bold text-muted-foreground tabular-nums">
-            {items.length - activeCount}
-          </span>
+          <div className="text-2xl font-bold text-muted-foreground tabular-nums">
+            {isLoading ? <Skeleton className="h-7 w-12 my-0.5 rounded" /> : items.length - activeCount}
+          </div>
         </div>
       </div>
 
@@ -268,35 +269,57 @@ export default function SpecializationsAdminPage() {
 
       {/* Main Table */}
       <div className="rounded-xl border border-border bg-card overflow-hidden shadow-xs">
-        {isLoading ? (
-          <div className="py-20 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
-            <Loader2 className="size-6 animate-spin text-primary" />
-            <span>Memuat database spesialisasi...</span>
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div className="py-16 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground text-center px-4">
-            <Tag className="size-8 text-muted-foreground/40 mb-1" />
-            <p className="font-medium text-foreground">Belum ada topik spesialisasi</p>
-            <p className="max-w-sm">
-              {searchQuery
-                ? `Tidak ada topik yang cocok dengan pencarian "${searchQuery}".`
-                : "Klik tombol 'Tambah Topik Baru' untuk menambahkan topik konseling pertama."}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-border bg-muted/40 text-muted-foreground font-medium">
-                  <th className="py-3 px-4 w-14 text-center">Urutan</th>
-                  <th className="py-3 px-4">Nama Topik Spesialisasi</th>
-                  <th className="py-3 px-4">Deskripsi / Ruang Lingkup</th>
-                  <th className="py-3 px-4 w-28 text-center">Status Aktif</th>
-                  <th className="py-3 px-4 w-24 text-right">Aksi</th>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-border bg-muted/40 text-muted-foreground font-medium">
+                <th className="py-3 px-4 w-14 text-center">Urutan</th>
+                <th className="py-3 px-4">Nama Topik Spesialisasi</th>
+                <th className="py-3 px-4">Deskripsi / Ruang Lingkup</th>
+                <th className="py-3 px-4 w-28 text-center">Status Aktif</th>
+                <th className="py-3 px-4 w-24 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={`spec-skel-${i}`}>
+                    <td className="py-3 px-4 text-center">
+                      <Skeleton className="h-4 w-6 mx-auto rounded" />
+                    </td>
+                    <td className="py-3 px-4">
+                      <Skeleton className="h-4 w-36 rounded" />
+                    </td>
+                    <td className="py-3 px-4">
+                      <Skeleton className="h-3.5 w-64 rounded" />
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <Skeleton className="h-5 w-9 mx-auto rounded-full" />
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Skeleton className="h-7 w-7 rounded-md" />
+                        <Skeleton className="h-7 w-7 rounded-md" />
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : filteredItems.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-16 text-center text-xs text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center gap-2 px-4">
+                      <Tag className="size-8 text-muted-foreground/40 mb-1" />
+                      <p className="font-medium text-foreground">Belum ada topik spesialisasi</p>
+                      <p className="max-w-sm">
+                        {searchQuery
+                          ? `Tidak ada topik yang cocok dengan pencarian "${searchQuery}".`
+                          : "Klik tombol 'Tambah Topik Baru' untuk menambahkan topik konseling pertama."}
+                      </p>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {filteredItems.map((item) => (
+              ) : (
+                filteredItems.map((item) => (
                   <tr
                     key={item.id}
                     className="hover:bg-muted/30 transition-colors group"
@@ -358,11 +381,11 @@ export default function SpecializationsAdminPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Create / Edit Dialog */}

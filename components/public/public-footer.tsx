@@ -21,23 +21,26 @@ export function PublicFooter() {
             </p>
           </div>
 
-          {/* Column 2: Layanan Klien */}
+            {/* Column 2: Layanan Klien */}
           <div className="flex flex-col gap-2">
             <span className="font-bold text-foreground">Layanan Klien</span>
             <Link
               href="/counselors"
+              prefetch={true}
               className="text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
             >
               Katalog Konselor
             </Link>
             <Link
               href="/pricing"
+              prefetch={true}
               className="text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
             >
               Biaya &amp; Paket Layanan
             </Link>
             <Link
               href="/cek-sesi"
+              prefetch={true}
               className="text-muted-foreground hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
             >
               Cek Tautan Sesi

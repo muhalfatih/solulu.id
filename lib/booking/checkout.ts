@@ -13,6 +13,8 @@ import {
   formatTimeRange,
   countOverlappingActiveSessions,
   MAX_PLATFORM_CONCURRENCY,
+  isSlotBookable,
+  getWIBDateString,
 } from "@/lib/schedules/concurrency"
 import {
   validateVoucherSchema,
@@ -91,18 +93,35 @@ export const DEMO_COUNSELORS: Record<string, any> = {
   },
 }
 
-export const DEMO_SCHEDULES: Record<string, any> = {
-  "s-101": { id: "s-101", counselorId: "c-1", date: "2026-09-29", startTime: "09:00", endTime: "10:30", status: "available" },
-  "s-102": { id: "s-102", counselorId: "c-1", date: "2026-09-29", startTime: "19:00", endTime: "20:30", status: "available" },
-  "s-103": { id: "s-103", counselorId: "c-1", date: "2026-09-30", startTime: "13:30", endTime: "15:00", status: "available" },
-  "s-201": { id: "s-201", counselorId: "c-2", date: "2026-09-29", startTime: "11:00", endTime: "12:30", status: "available" },
-  "s-202": { id: "s-202", counselorId: "c-2", date: "2026-09-29", startTime: "15:30", endTime: "17:00", status: "available" },
-  "s-203": { id: "s-203", counselorId: "c-2", date: "2026-09-30", startTime: "19:00", endTime: "20:30", status: "available" },
-  "s-301": { id: "s-301", counselorId: "c-3", date: "2026-09-29", startTime: "10:00", endTime: "11:30", status: "available" },
-  "s-302": { id: "s-302", counselorId: "c-3", date: "2026-09-30", startTime: "14:00", endTime: "15:30", status: "available" },
-  "s-401": { id: "s-401", counselorId: "c-4", date: "2026-09-29", startTime: "13:30", endTime: "15:00", status: "available" },
-  "s-402": { id: "s-402", counselorId: "c-4", date: "2026-09-30", startTime: "16:00", endTime: "17:30", status: "available" },
+function getDemoScheduleDates() {
+  const d1 = new Date()
+  d1.setDate(d1.getDate() + 1)
+  const d1Str = getWIBDateString(d1)
+
+  const d2 = new Date()
+  d2.setDate(d2.getDate() + 2)
+  const d2Str = getWIBDateString(d2)
+
+  return { d1Str, d2Str }
 }
+
+export function getDemoSchedules(): Record<string, any> {
+  const { d1Str, d2Str } = getDemoScheduleDates()
+  return {
+    "s-101": { id: "s-101", counselorId: "c-1", date: d1Str, startTime: "09:00", endTime: "10:30", status: "available" },
+    "s-102": { id: "s-102", counselorId: "c-1", date: d1Str, startTime: "19:00", endTime: "20:30", status: "available" },
+    "s-103": { id: "s-103", counselorId: "c-1", date: d2Str, startTime: "13:30", endTime: "15:00", status: "available" },
+    "s-201": { id: "s-201", counselorId: "c-2", date: d1Str, startTime: "11:00", endTime: "12:30", status: "available" },
+    "s-202": { id: "s-202", counselorId: "c-2", date: d1Str, startTime: "15:30", endTime: "17:00", status: "available" },
+    "s-203": { id: "s-203", counselorId: "c-2", date: d2Str, startTime: "19:00", endTime: "20:30", status: "available" },
+    "s-301": { id: "s-301", counselorId: "c-3", date: d1Str, startTime: "10:00", endTime: "11:30", status: "available" },
+    "s-302": { id: "s-302", counselorId: "c-3", date: d2Str, startTime: "14:00", endTime: "15:30", status: "available" },
+    "s-401": { id: "s-401", counselorId: "c-4", date: d1Str, startTime: "13:30", endTime: "15:00", status: "available" },
+    "s-402": { id: "s-402", counselorId: "c-4", date: d2Str, startTime: "16:00", endTime: "17:30", status: "available" },
+  }
+}
+
+export const DEMO_SCHEDULES: Record<string, any> = getDemoSchedules()
 
 export const DEMO_BOOKINGS_CACHE = new Map<string, any>()
 
@@ -169,6 +188,7 @@ export interface BookingDependencies {
     appUrl: string
   }) => Promise<{ bookingId: string; transactionId: string }>
   createInvoice?: typeof createXenditInvoice
+  checkExistingPendingHold?: (patientEmail: string, patientPhone: string) => Promise<boolean>
   now?: () => Date
 }
 
@@ -350,8 +370,25 @@ export async function executeGetBookingContext(
       }
     }
 
+    const bookableCheck = isSlotBookable(schedule.date, schedule.startTime, now)
+    if (!bookableCheck.bookable) {
+      return {
+        success: false,
+        error:
+          bookableCheck.reason ||
+          "Slot jadwal ini sudah tidak dapat dipesan (batas minimal pemesanan 2 jam sebelum sesi dimulai atau jadwal sudah terlewat).",
+      }
+    }
+
     const isExpiredHold = schedule.status === "reserved" && isHoldExpired(schedule.reservedUntil, now)
     const isAvailable = schedule.status === "available" || isExpiredHold
+
+    if (!isAvailable) {
+      return {
+        success: false,
+        error: "Slot jadwal ini sudah tidak tersedia atau sedang dalam proses transaksi oleh pasien lain.",
+      }
+    }
 
     let pricingRow: any
     if (deps?.getPricing) {
@@ -489,6 +526,14 @@ export async function executeCreateGuestBooking(
       return { success: false, error: "Slot jadwal tidak ditemukan" }
     }
 
+    const bookableCheck = isSlotBookable(schedule.date, schedule.startTime, now)
+    if (!bookableCheck.bookable) {
+      return {
+        success: false,
+        error: bookableCheck.reason || "Slot jadwal ini sudah tidak dapat dipesan.",
+      }
+    }
+
     if (schedule.status === "booked") {
       return {
         success: false,
@@ -507,6 +552,59 @@ export async function executeCreateGuestBooking(
       return {
         success: false,
         error: "Slot jadwal ini sedang dalam proses pembayaran oleh pasien lain. Coba beberapa menit lagi.",
+      }
+    }
+
+    // Anti-hoarding check: Max 1 active unexpired reservation per patient
+    if (deps?.checkExistingPendingHold) {
+      const hasHold = await deps.checkExistingPendingHold(data.patientEmail, data.patientPhone)
+      if (hasHold) {
+        return {
+          success: false,
+          error:
+            "Anda masih memiliki 1 transaksi pemesanan yang sedang berjalan. Silakan selesaikan pembayaran tersebut atau tunggu hingga batas waktu pembayaran (17 menit) berakhir sebelum memesan jadwal lain.",
+        }
+      }
+    } else {
+      try {
+        const pendingHolds = await db
+          .select({ id: bookings.id })
+          .from(bookings)
+          .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
+          .where(
+            and(
+              sql`(${bookings.patientEmail} ILIKE ${data.patientEmail} OR ${bookings.patientPhone} = ${data.patientPhone})`,
+              eq(bookings.status, "pending_payment"),
+              eq(schedules.status, "reserved"),
+              sql`${schedules.reservedUntil} > ${now.toISOString()}`
+            )
+          )
+          .limit(1)
+
+        if (pendingHolds.length > 0) {
+          return {
+            success: false,
+            error:
+              "Anda masih memiliki 1 transaksi pemesanan yang sedang berjalan. Silakan selesaikan pembayaran tersebut atau tunggu hingga batas waktu pembayaran (17 menit) berakhir sebelum memesan jadwal lain.",
+          }
+        }
+      } catch {
+        // Fallback for demo in-memory cache
+        for (const booking of DEMO_BOOKINGS_CACHE.values()) {
+          if (
+            (booking.patientEmail?.toLowerCase() === data.patientEmail.toLowerCase() ||
+              booking.patientPhone === data.patientPhone) &&
+            booking.status === "pending_payment" &&
+            booking.reservedUntil &&
+            new Date(booking.reservedUntil) > now
+          ) {
+            return {
+              success: false,
+              error:
+                "Anda masih memiliki 1 transaksi pemesanan yang sedang berjalan. Silakan selesaikan pembayaran tersebut atau tunggu hingga batas waktu pembayaran (17 menit) berakhir sebelum memesan jadwal lain.",
+            }
+          }
+        }
       }
     }
 

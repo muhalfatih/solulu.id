@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { MOCK_SESSIONS, type BookingSession } from "../mock-data"
+import type { BookingSession } from "../mock-data"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Clock,
   Copy,
@@ -29,7 +30,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ManualPaymentModal, ManualPaymentDetails } from "./components/manual-payment-modal"
 import { AdminManualBookingModal } from "./components/admin-manual-booking-modal"
-import { confirmManualPaymentAction, getBookingsAdminAction } from "./actions"
+import { confirmManualPaymentAction, rejectManualPaymentAction, getBookingsAdminAction } from "./actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -59,7 +60,7 @@ import {
 } from "@/components/ui/table"
 
 export default function DistilledSessionsPage() {
-  const [sessions, setSessions] = React.useState<BookingSession[]>(MOCK_SESSIONS)
+  const [sessions, setSessions] = React.useState<BookingSession[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<string>("all")
@@ -154,15 +155,13 @@ export default function DistilledSessionsPage() {
               amount: t?.netAmount ? Number(t.netAmount) : 150000,
             }
           })
-          const existingIds = new Set(mapped.map((b) => b.id))
-          const preservedMocks = MOCK_SESSIONS.filter((m) => !existingIds.has(m.id))
-          setSessions([...mapped, ...preservedMocks])
+          setSessions(mapped)
         } else {
-          setSessions(MOCK_SESSIONS)
+          setSessions([])
         }
       } catch (err) {
-        console.error("Gagal memuat sesi booking, menggunakan data mock:", err)
-        setSessions(MOCK_SESSIONS)
+        console.error("Gagal memuat sesi booking dari database:", err)
+        setSessions([])
       } finally {
         setIsLoading(false)
       }
@@ -269,6 +268,51 @@ export default function DistilledSessionsPage() {
 
     showToast(
       `Pembayaran manual untuk ${session.code} (${session.patientName}) berhasil dikonfirmasi. Ruang Zoom telah dialokasikan dan email tiket telah dikirim.`
+    )
+  }
+
+  const handleRejectManualPayment = async (
+    session: BookingSession,
+    reason: string,
+    adminNotes?: string
+  ) => {
+    if (session.id && !session.id.startsWith("ses-")) {
+      try {
+        await rejectManualPaymentAction({
+          bookingId: session.id,
+          reason,
+          adminNotes,
+        })
+      } catch (err) {
+        console.error("Failed to execute rejectManualPaymentAction:", err)
+      }
+    }
+
+    setSessions((prev) =>
+      prev.map((s) => {
+        if (s.id !== session.id) return s
+        return {
+          ...s,
+          status: "cancelled",
+          adminNotes: reason + (adminNotes ? ` - ${adminNotes}` : ""),
+        }
+      })
+    )
+
+    if (selectedSession?.id === session.id) {
+      setSelectedSession((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "cancelled",
+              adminNotes: reason + (adminNotes ? ` - ${adminNotes}` : ""),
+            }
+          : null
+      )
+    }
+
+    showToast(
+      `Pembayaran untuk ${session.patientName} (${session.code}) ditolak. Slot jadwal telah dibebaskan.`
     )
   }
 
@@ -667,10 +711,28 @@ export default function DistilledSessionsPage() {
             </div>
           </div>
 
-          {/* PERIOD A: WEEKLY VIEW */}
-          {calendarPeriod === "weekly" && (
-            <div className="rounded-2xl border border-border bg-card overflow-x-auto shadow-xs">
-              <div className="min-w-[760px]">
+          {/* CALENDAR VIEWS */}
+          {isLoading ? (
+            <div className="rounded-2xl border border-border bg-card p-6 flex flex-col gap-4 animate-pulse">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={`cal-skel-${i}`} className="flex flex-col gap-2 p-3 rounded-xl border border-border/50 bg-muted/20">
+                    <Skeleton className="h-5 w-16 mx-auto rounded-md" />
+                    <Skeleton className="h-7 w-20 mx-auto rounded-md" />
+                    <div className="mt-3 flex flex-col gap-2">
+                      <Skeleton className="h-16 w-full rounded-lg" />
+                      <Skeleton className="h-16 w-full rounded-lg" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* PERIOD A: WEEKLY VIEW */}
+              {calendarPeriod === "weekly" && (
+                <div className="rounded-2xl border border-border bg-card overflow-x-auto shadow-xs">
+                  <div className="min-w-[760px]">
                 {/* Header Row: 7 Days */}
                 <div className="grid grid-cols-8 border-b border-border bg-muted/30 text-xs">
                   <div className="p-3 text-center text-muted-foreground font-medium border-r border-border/60">
@@ -893,6 +955,8 @@ export default function DistilledSessionsPage() {
               </div>
             </div>
           )}
+          </>
+        )}
         </div>
       )}
 
@@ -1121,8 +1185,48 @@ export default function DistilledSessionsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSessions.map((ses) => {
-                  const isLive = ses.status === "in_session"
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={`session-skel-${i}`} className="border-border/60">
+                      <TableCell className="py-3 px-3">
+                        <Skeleton className="h-4 w-20 mb-1.5" />
+                        <Skeleton className="h-3 w-28" />
+                      </TableCell>
+                      <TableCell className="py-3 px-3">
+                        <Skeleton className="h-4 w-32 mb-1.5" />
+                        <Skeleton className="h-3 w-24" />
+                      </TableCell>
+                      <TableCell className="py-3 px-3">
+                        <Skeleton className="h-4 w-28 mb-1.5" />
+                        <Skeleton className="h-3 w-20" />
+                      </TableCell>
+                      <TableCell className="py-3 px-3">
+                        <Skeleton className="h-5 w-20 rounded" />
+                      </TableCell>
+                      <TableCell className="py-3 px-3">
+                        <Skeleton className="h-5 w-24 rounded-full" />
+                      </TableCell>
+                      <TableCell className="py-3 px-3">
+                        <Skeleton className="h-3.5 w-24" />
+                      </TableCell>
+                      <TableCell className="py-3 px-3 text-right sticky right-0 bg-card/90">
+                        <Skeleton className="h-7 w-20 ml-auto rounded-md" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : filteredSessions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
+                      <div className="flex flex-col items-center justify-center gap-1.5">
+                        <CheckCircle2 className="size-6 text-muted-foreground/50 mb-1" />
+                        <p className="text-sm font-medium text-foreground">Tidak ada jadwal sesi ditemukan</p>
+                        <p className="text-xs text-muted-foreground">Belum ada booking atau coba sesuaikan kata kunci pencarian dan filter status.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredSessions.map((ses) => {
+                    const isLive = ses.status === "in_session"
                   const isCompleted = ses.status === "completed"
                   const isLocked = ses.hoursUntilSession > 0 && ses.hoursUntilSession < 12
 
@@ -1212,7 +1316,8 @@ export default function DistilledSessionsPage() {
                       </TableCell>
                     </TableRow>
                   )
-                })}
+                })
+                )}
               </TableBody>
             </Table>
           </div>
@@ -1440,6 +1545,7 @@ export default function DistilledSessionsPage() {
         isOpen={!!manualPaymentSession}
         onClose={() => setManualPaymentSession(null)}
         onConfirm={handleConfirmManualPayment}
+        onReject={handleRejectManualPayment}
       />
 
       {/* Admin Manual Booking Bypass Modal */}
