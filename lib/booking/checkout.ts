@@ -22,6 +22,7 @@ import {
   type ValidateVoucherInput,
   type CreateGuestBookingInput,
 } from "@/lib/validations/booking"
+import { getActiveZoomCapacity } from "@/lib/zoom/active-capacity"
 import {
   evaluateVoucherEligibility,
   type VoucherRecord,
@@ -189,6 +190,7 @@ export interface BookingDependencies {
   }) => Promise<{ bookingId: string; transactionId: string }>
   createInvoice?: typeof createXenditInvoice
   checkExistingPendingHold?: (patientEmail: string, patientPhone: string) => Promise<boolean>
+  getZoomCapacity?: () => Promise<number>
   now?: () => Date
 }
 
@@ -662,10 +664,22 @@ export async function executeCreateGuestBooking(
       schedule.endTime
     )
 
-    if (overlapCount >= MAX_PLATFORM_CONCURRENCY) {
+    let effectiveLimit = MAX_PLATFORM_CONCURRENCY
+    if (deps?.getZoomCapacity) {
+      effectiveLimit = await deps.getZoomCapacity()
+    } else {
+      try {
+        const cap = await getActiveZoomCapacity()
+        if (cap > 0) {
+          effectiveLimit = cap
+        }
+      } catch {}
+    }
+
+    if (overlapCount >= effectiveLimit) {
       return {
         success: false,
-        error: "Kapasitas ruang Zoom penuh pada jam ini (maksimal 2 sesi bersamaan). Silakan pilih slot lain.",
+        error: `Kapasitas ruang Zoom penuh pada jam ini (maksimal ${effectiveLimit} sesi bersamaan). Silakan pilih slot lain.`,
       }
     }
 

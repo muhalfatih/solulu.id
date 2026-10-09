@@ -175,6 +175,8 @@ const QUICK_ACTIONS = [
   },
 ]
 
+import { getZoomTelemetryAction } from "@/app/admin/zoom-settings/actions"
+
 export default function DistilledAdminLayout({
   children,
 }: {
@@ -185,6 +187,30 @@ export default function DistilledAdminLayout({
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [commandOpen, setCommandOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
+  const [zoomTelemetry, setZoomTelemetry] = React.useState<{
+    activeCount: number
+    statusText: string
+  }>({
+    activeCount: 1,
+    statusText: "1/2 Siap",
+  })
+
+  React.useEffect(() => {
+    let isMounted = true
+    getZoomTelemetryAction()
+      .then((res) => {
+        if (isMounted && res.success) {
+          setZoomTelemetry({
+            activeCount: res.activeCount,
+            statusText: res.statusText,
+          })
+        }
+      })
+      .catch(() => {})
+    return () => {
+      isMounted = false
+    }
+  }, [pathname])
 
   // Global Ctrl+K / Cmd+K listener
   React.useEffect(() => {
@@ -333,7 +359,9 @@ export default function DistilledAdminLayout({
                             variant={item.badgeVariant || "outline"}
                             className="text-xs px-1.5 py-0 h-4 font-normal"
                           >
-                            {item.badge}
+                            {item.href === "/admin/zoom-settings"
+                              ? zoomTelemetry.statusText
+                              : item.badge}
                           </Badge>
                         )}
                       </Link>
@@ -625,14 +653,23 @@ export default function DistilledAdminLayout({
 
           {/* Right: Operational Status & Portal Utilities */}
           <div className="flex items-center gap-2.5">
-            {/* Zoom 2 Host Concurrency Guard Telemetry (Stable Horizon Rule) */}
+            {/* Zoom Host Concurrency Guard Telemetry */}
             <Link
               href="/admin/zoom-settings"
               className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/30 border border-border/70 text-xs font-medium text-foreground hover:bg-muted/60 transition-colors"
-              title="Ketersediaan Ruang Zoom (2 Host Concurrency Guard): 2/2 Ruang Siap"
+              title={`Ketersediaan Ruang Zoom (2 Host Concurrency Guard): ${zoomTelemetry.activeCount} dari 2 Akun Siap`}
             >
-              <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-              <span className="tabular-nums">Zoom: 2/2 Siap</span>
+              <span
+                className={`size-1.5 rounded-full ${
+                  zoomTelemetry.activeCount === 2
+                    ? "bg-emerald-500"
+                    : zoomTelemetry.activeCount === 1
+                    ? "bg-blue-500"
+                    : "bg-destructive"
+                }`}
+                aria-hidden="true"
+              />
+              <span className="tabular-nums">Zoom: {zoomTelemetry.statusText}</span>
             </Link>
 
 

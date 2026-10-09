@@ -2,7 +2,7 @@
 
 import { eq, desc } from "drizzle-orm"
 import { db } from "@/db"
-import { bookings, counselors, schedules, transactions } from "@/db/schema"
+import { bookings, counselors, schedules, transactions, zoomAccounts } from "@/db/schema"
 import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
 import {
   confirmManualPayment,
@@ -38,22 +38,36 @@ export async function getBookingsAdminAction(options?: {
   }
 
   try {
-    const rows = await db
-      .select({
-        booking: bookings,
-        counselor: counselors,
-        schedule: schedules,
-        transaction: transactions,
-      })
-      .from(bookings)
-      .leftJoin(counselors, eq(bookings.counselorId, counselors.id))
-      .leftJoin(schedules, eq(bookings.scheduleId, schedules.id))
-      .leftJoin(transactions, eq(transactions.bookingId, bookings.id))
-      .orderBy(desc(bookings.createdAt))
+    const [rows, accounts] = await Promise.all([
+      db
+        .select({
+          booking: bookings,
+          counselor: counselors,
+          schedule: schedules,
+          transaction: transactions,
+          zoomAccount: zoomAccounts,
+        })
+        .from(bookings)
+        .leftJoin(counselors, eq(bookings.counselorId, counselors.id))
+        .leftJoin(schedules, eq(bookings.scheduleId, schedules.id))
+        .leftJoin(transactions, eq(transactions.bookingId, bookings.id))
+        .leftJoin(zoomAccounts, eq(bookings.zoomAccountId, zoomAccounts.id))
+        .orderBy(desc(bookings.createdAt)),
+      db
+        .select({
+          id: zoomAccounts.id,
+          name: zoomAccounts.name,
+          email: zoomAccounts.email,
+          isActive: zoomAccounts.isActive,
+        })
+        .from(zoomAccounts)
+        .orderBy(zoomAccounts.createdAt),
+    ])
 
     return {
       success: true,
       data: rows,
+      activeAccounts: accounts,
     }
   } catch (err: any) {
     return {

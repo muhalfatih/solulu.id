@@ -17,6 +17,7 @@ import {
 } from "@/lib/validations/schedules"
 import { getFallbackCounselors, getFallbackCounselorById } from "./data"
 import { getPlatformPricing } from "@/lib/pricing/platform-pricing"
+import { getActiveZoomCapacity } from "@/lib/zoom/active-capacity"
 
 export interface CatalogPricing {
   basePrice: number
@@ -86,6 +87,7 @@ export async function getCounselorsCatalogAction(
     getPricing?: () => Promise<any[]>
     getSlots?: (counselorIds: string[], date?: string) => Promise<any[]>
     getActiveSessions?: (dates: string[]) => Promise<Record<string, SlotInterval[]>>
+    getZoomCapacity?: () => Promise<number>
   }
 ): Promise<ActionResponse<CatalogCounselorView[]>> {
   const parsed = catalogFilterSchema.safeParse(rawFilters || {})
@@ -222,6 +224,18 @@ export async function getCounselorsCatalogAction(
       visibleSlotsByCounselor[counselorId] = []
     }
 
+    let maxPlatformConcurrency = 2
+    if (options?.getZoomCapacity) {
+      maxPlatformConcurrency = await options.getZoomCapacity()
+    } else {
+      try {
+        const cap = await getActiveZoomCapacity()
+        if (cap > 0) {
+          maxPlatformConcurrency = cap
+        }
+      } catch {}
+    }
+
     const now = new Date()
     for (const slot of slotRows) {
       // Must be bookable (not in the past, >= 2h buffer if today, <= 14 days)
@@ -231,7 +245,7 @@ export async function getCounselorsCatalogAction(
       }
 
       const activeOnDate = activeSessionsByDate[slot.date] || []
-      const [filtered] = filterSlotsByConcurrencyGuard([slot], activeOnDate)
+      const [filtered] = filterSlotsByConcurrencyGuard([slot], activeOnDate, maxPlatformConcurrency)
 
       if (filtered) {
         visibleSlotsByCounselor[slot.counselorId].push({

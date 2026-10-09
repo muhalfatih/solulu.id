@@ -20,6 +20,7 @@ import {
 } from "@/lib/validations/admin-manual-booking"
 import { allocateZoomAccount } from "@/lib/fulfillment/allocate-zoom"
 import { getZoomAccessToken, createZoomMeeting } from "@/lib/zoom/client"
+import { getActiveZoomCapacity } from "@/lib/zoom/active-capacity"
 
 /**
  * Fetches all active counselors available for manual booking assignment.
@@ -145,15 +146,17 @@ export async function checkZoomConcurrencyAction(
 
   try {
     const endTimeStr = computeEndTime(startTimeStr)
+    const effectiveCap = await getActiveZoomCapacity()
+    const maxConcurrency = effectiveCap > 0 ? effectiveCap : 1
 
     if (options?.fetchOverlapCountFn) {
       const activeOverlapCount = await options.fetchOverlapCountFn(dateStr, startTimeStr, endTimeStr)
       return {
         success: true,
         data: {
-          available: activeOverlapCount < MAX_PLATFORM_CONCURRENCY,
+          available: activeOverlapCount < maxConcurrency,
           activeOverlapCount,
-          maxConcurrency: MAX_PLATFORM_CONCURRENCY,
+          maxConcurrency,
         },
       }
     }
@@ -184,9 +187,9 @@ export async function checkZoomConcurrencyAction(
     return {
       success: true,
       data: {
-        available: activeOverlapCount < MAX_PLATFORM_CONCURRENCY,
+        available: activeOverlapCount < maxConcurrency,
         activeOverlapCount,
-        maxConcurrency: MAX_PLATFORM_CONCURRENCY,
+        maxConcurrency,
       },
     }
   } catch (err: any) {
@@ -325,11 +328,14 @@ export async function createAdminManualBookingAction(
           }
         }
 
-        if (overlapCount >= MAX_PLATFORM_CONCURRENCY && !data.manualMeetingUrl) {
+        const effectiveCap = await getActiveZoomCapacity()
+        const maxConcurrency = effectiveCap > 0 ? effectiveCap : 1
+
+        if (overlapCount >= maxConcurrency && !data.manualMeetingUrl) {
           return {
             success: false,
             error:
-              "Kapasitas 2 Akun Zoom platform telah penuh pada jam tersebut. Silakan masukkan tautan rapat manual (Google Meet) atau pilih jam lain.",
+              `Kapasitas ${maxConcurrency} Akun Zoom platform telah penuh pada jam tersebut. Silakan masukkan tautan rapat manual (Google Meet) atau pilih jam lain.`,
           }
         }
       }

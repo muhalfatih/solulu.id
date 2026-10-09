@@ -533,3 +533,36 @@ export async function getTimelineSessionsAction(
   return handleGetTimelineSessions(dateStr)
 }
 
+export async function getZoomTelemetryAction(): Promise<{
+  success: boolean
+  activeCount: number
+  totalConfigured: number
+  statusText: string
+}> {
+  try {
+    const rows = await db
+      .select({
+        id: zoomAccounts.id,
+        isActive: zoomAccounts.isActive,
+      })
+      .from(zoomAccounts)
+
+    const activeCount = rows.filter((r) => r.isActive).length
+    const totalConfigured = rows.length
+
+    return {
+      success: true,
+      activeCount,
+      totalConfigured,
+      statusText: `${activeCount}/2 Siap`,
+    }
+  } catch {
+    return {
+      success: true,
+      activeCount: 1,
+      totalConfigured: 1,
+      statusText: "1/2 Siap",
+    }
+  }
+}
+

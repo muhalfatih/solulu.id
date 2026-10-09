@@ -63,6 +63,9 @@ export interface BookingSession {
   status: "in_session" | "confirmed" | "completed" | "cancelled" | "pending_payment"
   zoomRoom: string
   zoomJoinUrl: string
+  zoomAccountId?: string | null
+  zoomSlotNumber?: 1 | 2 | null
+  zoomAccountName?: string | null
   srqScore: number
   hasSuicidalThoughts: boolean
   waiverSigned?: boolean

@@ -109,11 +109,16 @@ export default function DistilledSessionsPage() {
       try {
         const res = await getBookingsAdminAction()
         if (res.success && res.data && res.data.length > 0) {
+          const accounts = (res as any).activeAccounts || []
+          const slot1Acc = accounts[0]
+          const slot2Acc = accounts[1]
+
           const mapped: BookingSession[] = res.data.map((r: any) => {
             const b = r.booking
             const c = r.counselor
             const s = r.schedule
             const t = r.transaction
+            const za = r.zoomAccount
 
             const counselorType = c?.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"
 
@@ -132,6 +137,33 @@ export default function DistilledSessionsPage() {
               ? b.status
               : "pending_payment") as BookingSession["status"]
 
+            // Accurate Zoom Room & Slot Resolution (Eliminates false R2 label)
+            let zoomSlotNumber: 1 | 2 | null = null
+            let zoomRoom = "Belum Dijadwalkan"
+            let zoomAccountName: string | null = null
+
+            if (b.zoomAccountId) {
+              if (slot2Acc && b.zoomAccountId === slot2Acc.id) {
+                zoomSlotNumber = 2
+                zoomAccountName = slot2Acc.name || "Zoom Pro 2"
+                zoomRoom = "Zoom Pro 2"
+              } else if (slot1Acc && b.zoomAccountId === slot1Acc.id) {
+                zoomSlotNumber = 1
+                zoomAccountName = slot1Acc.name || "Zoom Pro 1"
+                zoomRoom = "Zoom Pro 1"
+              } else if (za) {
+                zoomSlotNumber = 1
+                zoomAccountName = za.name || "Zoom Pro 1"
+                zoomRoom = za.name || "Zoom Pro 1"
+              } else {
+                zoomSlotNumber = 1
+                zoomRoom = "Zoom Pro 1"
+              }
+            } else if (b.zoomMeetingId || (b.zoomJoinUrl && b.zoomJoinUrl !== "#")) {
+              zoomSlotNumber = null
+              zoomRoom = "Ruang Rapat Manual"
+            }
+
             return {
               id: b.id,
               code: `SOL-${b.id.slice(0, 4).toUpperCase()}`,
@@ -143,8 +175,11 @@ export default function DistilledSessionsPage() {
               timeRange,
               hoursUntilSession,
               status,
-              zoomRoom: b.zoomMeetingId ? `Room #${b.zoomMeetingId.slice(-3)}` : "Belum Dijadwalkan",
+              zoomRoom,
               zoomJoinUrl: b.zoomJoinUrl || "#",
+              zoomAccountId: b.zoomAccountId || null,
+              zoomSlotNumber,
+              zoomAccountName,
               srqScore: 0,
               hasSuicidalThoughts: false,
               waiverSigned: !!b.waiverAcceptedAt,
@@ -324,7 +359,12 @@ export default function DistilledSessionsPage() {
       s.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.counselorName.toLowerCase().includes(searchQuery.toLowerCase())
     const matchStatus = statusFilter === "all" || s.status === statusFilter
-    const matchRoom = roomFilter === "all" || s.zoomRoom === roomFilter
+    const matchRoom =
+      roomFilter === "all" ||
+      (roomFilter === "R1" && (s.zoomSlotNumber === 1 || s.zoomRoom === "Zoom Pro 1")) ||
+      (roomFilter === "R2" && (s.zoomSlotNumber === 2 || s.zoomRoom === "Zoom Pro 2")) ||
+      (roomFilter === "manual" && (s.zoomRoom === "Ruang Rapat Manual" || (!s.zoomSlotNumber && s.zoomJoinUrl && s.zoomJoinUrl !== "#"))) ||
+      s.zoomRoom === roomFilter
     const matchCounselor = counselorFilter === "all" || s.counselorName.toLowerCase().includes(counselorFilter.toLowerCase())
     return matchSearch && matchStatus && matchRoom && matchCounselor
   })
@@ -655,14 +695,15 @@ export default function DistilledSessionsPage() {
             <div className="flex flex-wrap items-center gap-2 text-xs">
               {/* Room Filter */}
               <Select value={roomFilter} onValueChange={setRoomFilter}>
-                <SelectTrigger size="sm" className="h-8 text-xs w-32 bg-background">
+                <SelectTrigger size="sm" className="h-8 text-xs w-36 bg-background">
                   <SelectValue placeholder="Semua Ruang" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="all">Semua Ruang</SelectItem>
-                    <SelectItem value="Zoom Pro 1">Ruang Video 1</SelectItem>
-                    <SelectItem value="Zoom Pro 2">Ruang Video 2</SelectItem>
+                    <SelectItem value="R1">Ruang 1 (Zoom 1)</SelectItem>
+                    <SelectItem value="R2">Ruang 2 (Zoom 2)</SelectItem>
+                    <SelectItem value="manual">Ruang Manual</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -820,9 +861,21 @@ export default function DistilledSessionsPage() {
                                       <span className={`text-[10px] px-1 py-0.2 rounded font-medium ${
                                         isPendingPayment
                                           ? "bg-amber-500/20 text-amber-800 dark:text-amber-200"
+                                          : ses.zoomSlotNumber === 1 || ses.zoomRoom === "Zoom Pro 1"
+                                          ? "bg-blue-500/15 text-blue-700 dark:text-blue-300"
+                                          : ses.zoomSlotNumber === 2 || ses.zoomRoom === "Zoom Pro 2"
+                                          ? "bg-purple-500/15 text-purple-700 dark:text-purple-300"
                                           : "bg-muted text-muted-foreground"
                                       }`}>
-                                        {isPendingPayment ? "Bayar" : ses.zoomRoom === "Zoom Pro 1" ? "R1" : "R2"}
+                                        {isPendingPayment
+                                          ? "Bayar"
+                                          : ses.zoomSlotNumber === 1 || ses.zoomRoom === "Zoom Pro 1"
+                                          ? "R1"
+                                          : ses.zoomSlotNumber === 2 || ses.zoomRoom === "Zoom Pro 2"
+                                          ? "R2"
+                                          : ses.zoomJoinUrl && ses.zoomJoinUrl !== "#"
+                                          ? "Manual"
+                                          : "-"}
                                       </span>
                                     </div>
 
@@ -1255,7 +1308,13 @@ export default function DistilledSessionsPage() {
 
                       <TableCell className="py-3 px-3">
                         <Badge variant="outline" className="text-xs py-0.5 px-1.5 font-medium">
-                          {ses.zoomRoom.replace("Zoom Pro ", "Ruang ")}
+                          {ses.zoomSlotNumber === 1
+                            ? "Ruang 1 (Zoom 1)"
+                            : ses.zoomSlotNumber === 2
+                            ? "Ruang 2 (Zoom 2)"
+                            : ses.zoomRoom === "Ruang Rapat Manual"
+                            ? "Ruang Manual"
+                            : ses.zoomRoom.replace("Zoom Pro ", "Ruang ")}
                         </Badge>
                       </TableCell>
 
@@ -1429,7 +1488,15 @@ export default function DistilledSessionsPage() {
                   </div>
                   <Badge variant="outline" className="text-xs px-2 py-1 gap-1">
                     <Video className="size-3 text-primary" />
-                    <span>{selectedSession.zoomRoom.replace("Zoom Pro ", "Ruang ")}</span>
+                    <span>
+                      {selectedSession.zoomSlotNumber === 1
+                        ? "Ruang 1 (Zoom Pro 1)"
+                        : selectedSession.zoomSlotNumber === 2
+                        ? "Ruang 2 (Zoom Pro 2)"
+                        : selectedSession.zoomRoom === "Ruang Rapat Manual"
+                        ? "Ruang Rapat Manual"
+                        : selectedSession.zoomRoom.replace("Zoom Pro ", "Ruang ")}
+                    </span>
                   </Badge>
                 </div>
               </div>
