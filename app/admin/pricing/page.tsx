@@ -5,7 +5,6 @@ import {
   Tag,
   DollarSign,
   Plus,
-  RotateCcw,
   Check,
   X,
   Search,
@@ -85,33 +84,6 @@ const INITIAL_ROLES: RolePricingState[] = [
     isSaleActive: true,
     salePrice: 129000,
     allowVoucher: true,
-  },
-]
-
-const INITIAL_VOUCHERS: VoucherItem[] = [
-  {
-    code: "SOLULUBARU",
-    discount: "Potongan Rp 25.000",
-    usedQuota: 42,
-    totalQuota: 50,
-    status: "active",
-    expiryDate: "30 Sep 2026",
-  },
-  {
-    code: "SEJIWA20",
-    discount: "Diskon 20%",
-    usedQuota: 18,
-    totalQuota: 30,
-    status: "active",
-    expiryDate: "15 Okt 2026",
-  },
-  {
-    code: "FLASHSALE",
-    discount: "Potongan Rp 50.000",
-    usedQuota: 10,
-    totalQuota: 10,
-    status: "exhausted",
-    expiryDate: "10 Sep 2026",
   },
 ]
 
@@ -266,20 +238,6 @@ export default function PricingAdminPage() {
         }
         return v
       })
-    )
-  }
-
-  const handleSimulateRollback = () => {
-    setVouchers((prev) =>
-      prev.map((v) => {
-        if (v.code === "SOLULUBARU" && v.usedQuota > 0) {
-          return { ...v, usedQuota: v.usedQuota - 1 }
-        }
-        return v
-      })
-    )
-    showToast(
-      "Simulasi Rollback (ADR-0002): 1 kuota SOLULUBARU dikembalikan karena batas pembayaran 15 menit kedaluwarsa."
     )
   }
 
@@ -635,17 +593,6 @@ export default function PricingAdminPage() {
             </div>
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleSimulateRollback}
-            className="h-8 text-xs font-normal gap-1.5 px-2.5"
-            title="Simulasikan pengembalian kuota voucher saat batas pembayaran invoice 15 menit habis (ADR-0002)"
-          >
-            <RotateCcw className="size-3 text-primary" aria-hidden="true" />
-            <span>Uji Rollback 15 Menit (ADR-0002)</span>
-          </Button>
         </div>
 
         {/* Table Toolbar: Search and Filter Pills */}
@@ -920,11 +867,11 @@ export default function PricingAdminPage() {
                 </div>
               </div>
 
-              {/* ADR atomic notice */}
+              {/* Atomic hold policy notice */}
               <div className="p-3 rounded-xl bg-primary/10 border border-primary/25 text-[11px] text-foreground flex items-center gap-2">
                 <Info className="size-4 text-primary shrink-0" aria-hidden="true" />
                 <span>
-                  Kuota voucher otomatis ditahan 15 menit saat reservasi slot, dan kembali jika pembayaran kedaluwarsa (ADR-0002).
+                  Kuota voucher otomatis ditahan 15 menit saat reservasi slot, dan kembali jika pembayaran kedaluwarsa.
                 </span>
               </div>
 

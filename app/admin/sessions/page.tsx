@@ -614,38 +614,13 @@ export default function DistilledSessionsPage() {
         </div>
       </div>
 
-      {/* Policy Notice Strip with Simulation Triggers */}
+      {/* Policy Notice Strip */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-muted/40 text-xs">
         <div className="flex items-center gap-2 text-muted-foreground">
           <ShieldAlert className="size-4 text-primary shrink-0" />
           <span>
             <strong className="text-foreground font-medium">Aturan Perubahan Jadwal:</strong> Pasien dapat mengajukan perubahan jadwal selambat-lambatnya 12 jam sebelum sesi dimulai agar jadwal konselor tetap tertib.
           </span>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const target = sessions.find((s) => s.code === "SL-9281")
-              if (target) handleOpenSession(target)
-            }}
-            className="h-8 text-xs font-normal"
-          >
-            <span>Simulasi: Melewati Batas Ubah</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const target = sessions.find((s) => s.code === "SL-9285")
-              if (target) handleOpenSession(target)
-            }}
-            className="h-8 text-xs font-normal"
-          >
-            <span>Simulasi: Masih Bisa Ubah</span>
-          </Button>
         </div>
       </div>
 

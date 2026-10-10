@@ -369,7 +369,7 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
     hourTicks.push(h)
   }
 
-  // Detect Overlap Windows (ADR-0002)
+  // Detect Overlap Windows
   const overlapWindows: Array<{
     start: number
     end: number
@@ -443,7 +443,7 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-2xl">
             Manajemen kredensial 2 akun Zoom Pro terenkripsi <strong>AES-256-GCM</strong> dengan proteksi otomatis{" "}
-            <strong>Safety Lock</strong> untuk mencegah pemutusan ruang telekonseling pasien aktif (ADR-0001 & ADR-0002).
+            <strong>Safety Lock</strong> untuk mencegah pemutusan ruang telekonseling pasien aktif.
           </p>
         </div>
 
@@ -465,7 +465,7 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
         </div>
       </div>
 
-      {/* Dynamic Concurrency Timeline (ADR-0002 Auto-Scale + Date Picker) */}
+      {/* Dynamic Concurrency Timeline (Auto-Scale + Date Picker) */}
       <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4 shadow-xs">
         {/* Timeline Header Toolbar */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 border-b border-border/60 pb-3.5">
@@ -476,7 +476,7 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm sm:text-base font-bold tracking-tight text-foreground">
-                  Peta Alokasi Konkurensi 90-Menit (ADR-0002)
+                  Peta Alokasi Konkurensi 90-Menit
                 </h2>
                 {isLoadingTimeline && (
                   <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
@@ -1030,7 +1030,7 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
                         size="sm"
                         onClick={() => setInspectingAccountId(acc.id)}
                         className="h-8 text-xs text-muted-foreground font-normal hover:text-destructive hover:border-destructive/40"
-                        title="Kredensial terkunci demi menjaga kelancaran sesi konsultasi pasien (ADR-0002)"
+                        title="Kredensial terkunci demi menjaga kelancaran sesi konsultasi pasien"
                       >
                         <Lock className="size-3 mr-1.5 text-destructive" />
                         <span>Kredensial Terkunci</span>
@@ -1106,7 +1106,7 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
         <div className="flex items-center gap-2.5 min-w-0">
           <Server className="size-4 text-primary shrink-0" />
           <span>
-            Efisiensi Operasional (ADR-0001): Alokasi dibatasi tepat <strong>2 akun Zoom Pro</strong> untuk melayani maksimal 2 sesi konseling bersamaan tanpa biaya lisensi berlebih.
+            Efisiensi Operasional: Alokasi dibatasi tepat <strong>2 akun Zoom Pro</strong> untuk melayani maksimal 2 sesi konseling bersamaan tanpa biaya lisensi berlebih.
           </span>
         </div>
         <Badge variant="outline" className="font-mono text-[10px] shrink-0">
@@ -1198,7 +1198,7 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
             {/* Modal Footer */}
             <div className="flex items-center justify-between pt-2 border-t border-border text-xs">
               <span className="text-muted-foreground text-[11px]">
-                Kepatuhan Kebijakan: ADR-0001 (Telekonseling Bebas Biaya Tambahan)
+                Kepatuhan Kebijakan: Telekonseling Bebas Biaya Tambahan
               </span>
               <Button
                 size="sm"

@@ -11,7 +11,6 @@ import { createClient } from "@/lib/supabase/server"
 import { reviewApplicationInputSchema, type ReviewApplicationInput } from "@/lib/validations/counselor-application"
 import { upsertStoreCounselor } from "@/lib/counselor/registry"
 import { sendCounselorWelcomeCredentialsEmail } from "@/lib/fulfillment/emails"
-import { MOCK_APPLICANTS } from "@/app/admin/mock-data"
 
 export interface AdminAuthContext {
   id: string
@@ -127,7 +126,8 @@ export async function getApplicationDocumentUrlAction(
       })
 
     let application = await fetchApplication(input.applicationId)
-    if (!application && input.applicationId.startsWith("app-")) {
+    if (!application && process.env.NODE_ENV === "test" && input.applicationId.startsWith("app-")) {
+      const { MOCK_APPLICANTS } = await import("@/app/admin/mock-data")
       const mock = MOCK_APPLICANTS.find((m) => m.id === input.applicationId)
       if (mock) {
         application = {

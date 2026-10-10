@@ -26,8 +26,6 @@ import {
 import { logoutAction } from "@/app/(auth)/login/actions"
 import {
   getCounselorProfileAction,
-  getCounselorsListForSwitchAction,
-  switchDemoCounselorAction,
 } from "@/app/counselor/actions"
 import { cn } from "@/lib/utils"
 
@@ -68,8 +66,6 @@ export default function CounselorPortalLayout({
   } | null>(null)
   const [isLoadingProfile, setIsLoadingProfile] = React.useState(true)
 
-  const [allCounselors, setAllCounselors] = React.useState<any[]>([])
-
   React.useEffect(() => {
     let isMounted = true
     getCounselorProfileAction()
@@ -89,22 +85,10 @@ export default function CounselorPortalLayout({
         if (isMounted) setIsLoadingProfile(false)
       })
 
-    getCounselorsListForSwitchAction().then((res) => {
-      if (isMounted && res.success && res.data) {
-        setAllCounselors(res.data)
-      }
-    })
-
     return () => {
       isMounted = false
     }
   }, [])
-
-  const handleSwitchCounselor = async (targetId: string) => {
-    await switchDemoCounselorAction(targetId)
-    router.refresh()
-    window.location.reload()
-  }
 
   const handleLogout = async () => {
     setLoggingOut(true)
@@ -272,26 +256,7 @@ export default function CounselorPortalLayout({
                     <span>Lihat Tampilan Publik</span>
                   </Link>
                 </DropdownMenuItem>
-                {allCounselors.length > 1 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                      Ganti Konselor (Simulasi)
-                    </div>
-                    {allCounselors.map((c) => (
-                      <DropdownMenuItem
-                        key={c.id}
-                        onClick={() => handleSwitchCounselor(c.id)}
-                        className="flex items-center justify-between gap-2 cursor-pointer text-xs"
-                      >
-                        <span className="truncate">{c.fullName}</span>
-                        {counselor?.fullName === c.fullName && (
-                          <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
-                        )}
-                      </DropdownMenuItem>
-                    ))}
-                  </>
-                )}
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleLogout}

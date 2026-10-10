@@ -26,7 +26,6 @@ import {
   checkSelfOverlap,
   isTimeRangeOverlapping,
 } from "@/lib/schedules/concurrency"
-import { DEMO_SCHEDULES } from "@/lib/booking/checkout"
 
 export interface AdminAuthContext {
   id: string
@@ -517,20 +516,12 @@ export async function updateCounselorAction(
     if (options?.updateCounselorFn) {
       updatedRecord = await options.updateCounselorFn(counselorId, updatePayload)
     } else {
-      try {
-        const [updated] = await db
-          .update(counselors)
-          .set(updatePayload as any)
-          .where(eq(counselors.id, counselorId))
-          .returning()
-        updatedRecord = updated
-      } catch (dbErr) {
-        if (counselorId.startsWith("c-") || counselorId.startsWith("mock-")) {
-          updatedRecord = { id: counselorId, ...updatePayload }
-        } else {
-          throw dbErr
-        }
-      }
+      const [updated] = await db
+        .update(counselors)
+        .set(updatePayload as any)
+        .where(eq(counselors.id, counselorId))
+        .returning()
+      updatedRecord = updated
     }
 
     // Synchronize to shared in-memory registry
@@ -810,26 +801,32 @@ export async function getCounselorSlotsAdminAction(
   }
 
   try {
+    const conditions = [eq(schedules.counselorId, counselorId)]
+    if (dateFilter && dateFilter !== "all") {
+      conditions.push(eq(schedules.date, dateFilter))
+    }
     let rows: any[] = []
     try {
-      const conditions = [eq(schedules.counselorId, counselorId)]
-      if (dateFilter && dateFilter !== "all") {
-        conditions.push(eq(schedules.date, dateFilter))
-      }
       rows = await db
         .select()
         .from(schedules)
         .where(and(...conditions))
         .orderBy(desc(schedules.date), schedules.startTime)
-    } catch {
-      rows = Object.values(DEMO_SCHEDULES).filter(
-        (s: any) =>
-          s.counselorId === counselorId &&
-          (!dateFilter || dateFilter === "all" || s.date === dateFilter)
-      )
+    } catch (dbErr) {
+      if (process.env.NODE_ENV === "test") {
+        const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
+        rows = Object.values(DEMO_SCHEDULES).filter(
+          (s: any) =>
+            s.counselorId === counselorId &&
+            (!dateFilter || dateFilter === "all" || s.date === dateFilter)
+        )
+      } else {
+        throw dbErr
+      }
     }
 
-    if (rows.length === 0) {
+    if (rows.length === 0 && process.env.NODE_ENV === "test") {
+      const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
       const demoMatches = Object.values(DEMO_SCHEDULES).filter(
         (s: any) =>
           s.counselorId === counselorId &&
@@ -932,6 +929,7 @@ export async function createCounselorSlotsAdminAction(
 
   try {
     // 3. Fetch existing slots for self-overlap validation
+    // 3. Check for overlap against existing slots for this counselor on that date
     let existingSlots: any[] = []
     try {
       existingSlots = await db
@@ -942,30 +940,45 @@ export async function createCounselorSlotsAdminAction(
         })
         .from(schedules)
         .where(and(eq(schedules.counselorId, counselorId), eq(schedules.date, date)))
-    } catch {
-      existingSlots = Object.values(DEMO_SCHEDULES).filter(
-        (s: any) => s.counselorId === counselorId && s.date === date
-      )
+    } catch (dbErr) {
+      if (process.env.NODE_ENV === "test") {
+        const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
+        existingSlots = Object.values(DEMO_SCHEDULES).filter(
+          (s: any) => s.counselorId === counselorId && s.date === date
+        )
+      } else {
+        throw dbErr
+      }
     }
 
-    const demoExisting = Object.values(DEMO_SCHEDULES).filter(
-      (s: any) => s.counselorId === counselorId && s.date === date
-    )
-    const allExisting = [...existingSlots, ...demoExisting]
-
-    for (const p of proposed) {
-      if (checkSelfOverlap(allExisting, p.startTime, p.endTime)) {
-        return {
-          success: false,
-          error: `Jadwal bentrok: Konselor sudah memiliki jadwal aktif yang tumpang tindih pada jam ${p.startTime} – ${p.endTime} WIB.`,
+    if (process.env.NODE_ENV === "test") {
+      const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
+      const demoExisting = Object.values(DEMO_SCHEDULES).filter(
+        (s: any) => s.counselorId === counselorId && s.date === date
+      )
+      const allExisting = [...existingSlots, ...demoExisting]
+      for (const p of proposed) {
+        if (checkSelfOverlap(allExisting, p.startTime, p.endTime)) {
+          return {
+            success: false,
+            error: `Jadwal bentrok: Konselor sudah memiliki jadwal aktif yang tumpang tindih pada jam ${p.startTime} – ${p.endTime} WIB.`,
+          }
+        }
+      }
+    } else {
+      for (const p of proposed) {
+        if (checkSelfOverlap(existingSlots, p.startTime, p.endTime)) {
+          return {
+            success: false,
+            error: `Jadwal bentrok: Konselor sudah memiliki jadwal aktif yang tumpang tindih pada jam ${p.startTime} – ${p.endTime} WIB.`,
+          }
         }
       }
     }
 
-    // 4. Insert into database (with demo fallback)
+    // 4. Insert into database
     const createdSlots: AdminCounselorSlotView[] = []
     for (const p of proposed) {
-      const slotId = `s-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`
       try {
         const [inserted] = await db
           .insert(schedules)
@@ -988,25 +1001,31 @@ export async function createCounselorSlotsAdminAction(
           status: inserted.status,
           canDelete: true,
         })
-      } catch {
-        DEMO_SCHEDULES[slotId] = {
-          id: slotId,
-          counselorId,
-          date,
-          startTime: p.startTime,
-          endTime: p.endTime,
-          status: "available",
+      } catch (insertErr) {
+        if (process.env.NODE_ENV === "test") {
+          const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
+          const slotId = `s-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`
+          DEMO_SCHEDULES[slotId] = {
+            id: slotId,
+            counselorId,
+            date,
+            startTime: p.startTime,
+            endTime: p.endTime,
+            status: "available",
+          }
+          createdSlots.push({
+            id: slotId,
+            counselorId,
+            date,
+            startTime: p.startTime,
+            endTime: p.endTime,
+            timeRange: formatTimeRange(p.startTime, p.endTime),
+            status: "available",
+            canDelete: true,
+          })
+        } else {
+          throw insertErr
         }
-        createdSlots.push({
-          id: slotId,
-          counselorId,
-          date,
-          startTime: p.startTime,
-          endTime: p.endTime,
-          timeRange: formatTimeRange(p.startTime, p.endTime),
-          status: "available",
-          canDelete: true,
-        })
       }
     }
 
@@ -1054,10 +1073,13 @@ export async function deleteCounselorSlotAdminAction(
       if (found.length > 0) {
         slotRecord = found[0]
       }
-    } catch {}
+    } catch (fetchErr) {
+      if (process.env.NODE_ENV !== "test") throw fetchErr
+    }
 
-    if (!slotRecord && DEMO_SCHEDULES[slotId]) {
-      slotRecord = DEMO_SCHEDULES[slotId]
+    if (!slotRecord && process.env.NODE_ENV === "test") {
+      const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
+      slotRecord = DEMO_SCHEDULES[slotId] || null
     }
 
     if (!slotRecord) {
@@ -1077,10 +1099,15 @@ export async function deleteCounselorSlotAdminAction(
     // 2. Delete slot
     try {
       await db.delete(schedules).where(eq(schedules.id, slotId))
-    } catch {}
+    } catch (delErr) {
+      if (process.env.NODE_ENV !== "test") throw delErr
+    }
 
-    if (DEMO_SCHEDULES[slotId]) {
-      delete DEMO_SCHEDULES[slotId]
+    if (process.env.NODE_ENV === "test") {
+      const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
+      if (DEMO_SCHEDULES[slotId]) {
+        delete DEMO_SCHEDULES[slotId]
+      }
     }
 
     try {
