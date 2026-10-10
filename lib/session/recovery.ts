@@ -8,6 +8,7 @@ import { formatTimeRange } from "@/lib/schedules/concurrency"
 import { formatIndonesianDate } from "@/lib/session/time"
 import { recoverSessionSchema, type RecoverSessionInput } from "@/lib/validations/session"
 import { checkRateLimit, type RateLimitResult } from "./rate-limit"
+import { getAppBaseUrl } from "@/lib/url"
 
 import {
   PRIVACY_SAFE_SUCCESS_MESSAGE,
@@ -143,8 +144,7 @@ export async function recoverSessionLinkAction(
         await deps.sendRecoveryEmail(email, matches)
       } else if (process.env.RESEND_API_KEY) {
         try {
-          const appBaseUrl =
-            process.env.NEXT_PUBLIC_APP_URL || "https://solulu.id"
+          const appBaseUrl = getAppBaseUrl()
           const sessionLinksHtml = matches
             .map(
               (m) =>

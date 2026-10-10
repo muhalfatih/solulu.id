@@ -895,7 +895,9 @@ export function ApplicationsClient({
                   variant="outline"
                   className="w-full gap-2 text-xs h-9 cursor-pointer"
                   onClick={() => {
-                    const waText = `Halo ${issuedCredentials.fullName},\n\nSelamat! Aplikasi kemitraan konselor Anda di Solulu telah disetujui. Berikut adalah akun login portal konselor Anda:\n\n• Email: ${issuedCredentials.email}\n• Kata Sandi: ${issuedCredentials.password}\n• Tautan Login: https://solulu.id/login\n\nSilakan masuk dan lengkapi jadwal praktik Anda. Terima kasih!\n- Tim Solulu`
+                    const currentOrigin = typeof window !== "undefined" ? window.location.origin : "https://solulu.id"
+                    const loginUrl = `${currentOrigin}/login`
+                    const waText = `Halo ${issuedCredentials.fullName},\n\nSelamat! Aplikasi kemitraan konselor Anda di Solulu telah disetujui. Berikut adalah akun login portal konselor Anda:\n\n• Email: ${issuedCredentials.email}\n• Kata Sandi: ${issuedCredentials.password}\n• Tautan Login: ${loginUrl}\n\nSilakan masuk dan lengkapi jadwal praktik Anda. Terima kasih!\n- Tim Solulu`
                     navigator.clipboard.writeText(waText)
                     setIsCopied(true)
                     setTimeout(() => setIsCopied(false), 2500)
@@ -918,9 +920,11 @@ export function ApplicationsClient({
                   <Button
                     className="w-full gap-2 text-xs h-9 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white"
                     onClick={() => {
+                      const currentOrigin = typeof window !== "undefined" ? window.location.origin : "https://solulu.id"
+                      const loginUrl = `${currentOrigin}/login`
                       const cleanPhone = issuedCredentials.phone.replace(/[^0-9]/g, "").replace(/^0/, "62")
                       const waText = encodeURIComponent(
-                        `Halo ${issuedCredentials.fullName},\n\nSelamat! Aplikasi kemitraan konselor Anda di Solulu telah disetujui. Berikut adalah akun login portal konselor Anda:\n\n• Email: ${issuedCredentials.email}\n• Kata Sandi: ${issuedCredentials.password}\n• Tautan Login: https://solulu.id/login\n\nSilakan masuk dan lengkapi jadwal praktik Anda.\n- Tim Solulu`
+                        `Halo ${issuedCredentials.fullName},\n\nSelamat! Aplikasi kemitraan konselor Anda di Solulu telah disetujui. Berikut adalah akun login portal konselor Anda:\n\n• Email: ${issuedCredentials.email}\n• Kata Sandi: ${issuedCredentials.password}\n• Tautan Login: ${loginUrl}\n\nSilakan masuk dan lengkapi jadwal praktik Anda.\n- Tim Solulu`
                       )
                       window.open(`https://wa.me/${cleanPhone}?text=${waText}`, "_blank")
                     }}

@@ -16,6 +16,7 @@ import {
   Circle,
   Lock,
   Key,
+  Mail,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -468,7 +469,7 @@ export function CounselorProfileClient({
 
             <CardContent className="p-6 flex flex-col gap-5">
               <FieldGroup className="flex flex-col gap-5">
-                {/* Readonly Name & Editable Title */}
+                {/* Readonly Name, Email & Editable Title */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field>
                     <FieldLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -484,6 +485,28 @@ export function CounselorProfileClient({
                     </FieldDescription>
                   </Field>
 
+                  <Field>
+                    <div className="flex items-center justify-between">
+                      <FieldLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <Mail className="size-3.5 text-muted-foreground" />
+                        <span>Email Login Portal</span>
+                      </FieldLabel>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        Terverifikasi
+                      </span>
+                    </div>
+                    <Input
+                      value={profile.email || "-"}
+                      disabled
+                      className="bg-muted text-foreground font-mono text-sm h-10 cursor-not-allowed select-all"
+                    />
+                    <FieldDescription className="text-xs text-muted-foreground">
+                      Akun kredensial resmi untuk masuk ke portal konselor Solulu.
+                    </FieldDescription>
+                  </Field>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
                   <Field data-invalid={!!fieldErrors.title}>
                     <FieldLabel
                       htmlFor="counselor-title"
@@ -504,7 +527,7 @@ export function CounselorProfileClient({
                       <FieldError className="text-xs">{fieldErrors.title[0]}</FieldError>
                     ) : (
                       <FieldDescription className="text-xs text-muted-foreground">
-                        Gelar akademis atau spesialisasi utama yang disandang.
+                        Gelar akademis atau spesialisasi utama yang disandang di katalog publik.
                       </FieldDescription>
                     )}
                   </Field>

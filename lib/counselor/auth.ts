@@ -29,18 +29,25 @@ export async function getAuthenticatedCounselor(
       const demoCounselorId = cookieStore.get("solulu_demo_counselor_id")?.value
       if (demoCounselorId && UUID_REGEX.test(demoCounselorId)) {
         try {
-          const found = await db
-            .select()
-            .from(counselors)
-            .where(eq(counselors.id, demoCounselorId))
-            .limit(1)
+          const rawFound = await db.execute(sql`
+            SELECT c.*, u.email as auth_email
+            FROM counselors c
+            LEFT JOIN auth.users u ON c.user_id = u.id
+            WHERE c.id = ${demoCounselorId}::uuid
+            LIMIT 1
+          `)
+          const found = (rawFound as any[]) || []
 
           if (found.length > 0) {
             return {
               id: `demo-${found[0].id}`,
               counselorId: found[0].id,
               app_metadata: { role: "counselor" },
-              user_metadata: { role: "counselor", full_name: found[0].fullName },
+              user_metadata: {
+                role: "counselor",
+                full_name: found[0].full_name || found[0].fullName,
+                email: found[0].auth_email || found[0].email,
+              },
             }
           }
         } catch {
@@ -52,7 +59,11 @@ export async function getAuthenticatedCounselor(
         id: "demo-counselor-id",
         counselorId: "e28eb17e-b7cd-43bc-8a30-d67a221342f3", // Sarah Annisa (DB UUID)
         app_metadata: { role: "counselor" },
-        user_metadata: { role: "counselor", full_name: "Sarah Annisa, M.Psi., Psikolog" },
+        user_metadata: {
+          role: "counselor",
+          full_name: "Sarah Annisa, M.Psi., Psikolog",
+          email: "sarah.annisa@solulu.id",
+        },
       }
     }
     if (options?.allowAdmin && demoRole === "admin") {

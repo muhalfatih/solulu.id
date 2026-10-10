@@ -454,20 +454,42 @@ export async function getCounselorProfileAction(deps?: {
   }
 
   try {
-    const rows = await withDbTimeout(
-      db
-        .select()
-        .from(counselors)
-        .where(eq(counselors.id, counselorId))
-        .limit(1),
+    const rawRows = await withDbTimeout(
+      db.execute(sql`
+        SELECT 
+          c.id,
+          c.user_id as "userId",
+          c.full_name as "fullName",
+          c.title,
+          c.counselor_type as "counselorType",
+          c.bio,
+          c.specializations,
+          c.avatar_r2_url as "avatarR2Url",
+          c.is_active as "isActive",
+          u.email as "email"
+        FROM counselors c
+        LEFT JOIN auth.users u ON c.user_id = u.id
+        WHERE c.id = ${counselorId}::uuid
+        LIMIT 1
+      `),
       10000
     )
 
+    const rows = (rawRows as any[]) || []
     if (rows.length === 0) {
       return { success: false, error: "Profil konselor tidak ditemukan di database." }
     }
 
     const c = rows[0]
+    let counselorEmail = c.email || auth.user_metadata?.email || (auth as any).email || ""
+    if (!counselorEmail && c.userId) {
+      try {
+        const supabaseAdmin = createAdminClient()
+        const { data } = await supabaseAdmin.auth.admin.getUserById(c.userId)
+        if (data?.user?.email) counselorEmail = data.user.email
+      } catch {}
+    }
+
     const profile: CounselorProfileView = {
       id: c.id,
       userId: c.userId,
@@ -478,6 +500,7 @@ export async function getCounselorProfileAction(deps?: {
       specializations: (c.specializations as string[]) || [],
       avatarR2Url: c.avatarR2Url,
       isActive: c.isActive,
+      email: counselorEmail || "-",
     }
 
     return { success: true, data: profile }

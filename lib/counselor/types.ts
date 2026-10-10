@@ -43,6 +43,7 @@ export interface CounselorProfileView {
   specializations: string[]
   avatarR2Url: string | null
   isActive: boolean
+  email?: string
 }
 
 export interface SessionReportDetailView {

@@ -159,7 +159,7 @@ export default function DistilledCounselorsPage() {
           title: row.title,
           counselorType: row.counselorType,
           type: row.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya",
-          email: row.email || "counselor@solulu.id",
+          email: row.email || "-",
           phone: row.phone || "-",
           specializations: row.specializations || [],
           isActive: row.isActive,

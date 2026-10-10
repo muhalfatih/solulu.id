@@ -1,3 +1,5 @@
+import { getAppBaseUrl } from "@/lib/url"
+
 export interface PatientEmailPayload {
   patientEmail: string
   patientName: string
@@ -29,7 +31,7 @@ export async function sendPatientConfirmationEmail(
 ): Promise<{ success: boolean; id?: string }> {
   const fetchFn = options.fetchFn ?? fetch
   const apiKey = process.env.RESEND_API_KEY
-  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://solulu.id"
+  const appBaseUrl = getAppBaseUrl()
   const sessionUrl = `${appBaseUrl}/session/${payload.accessToken}`
 
   if ((!apiKey || apiKey === "mock" || process.env.NODE_ENV === "test") && !options.fetchFn) {
@@ -99,7 +101,7 @@ export async function sendCounselorNotificationEmail(
 ): Promise<{ success: boolean; id?: string }> {
   const fetchFn = options.fetchFn ?? fetch
   const apiKey = process.env.RESEND_API_KEY
-  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://solulu.id"
+  const appBaseUrl = getAppBaseUrl()
 
   if ((!apiKey || apiKey === "mock" || process.env.NODE_ENV === "test") && !options.fetchFn) {
     console.log(
@@ -176,7 +178,7 @@ export async function sendCounselorWelcomeCredentialsEmail(
 ): Promise<{ success: boolean; id?: string }> {
   const fetchFn = options.fetchFn ?? fetch
   const apiKey = process.env.RESEND_API_KEY
-  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://solulu.id"
+  const appBaseUrl = getAppBaseUrl()
   const loginUrl = `${appBaseUrl}/login`
 
   if ((!apiKey || apiKey === "mock" || process.env.NODE_ENV === "test") && !options.fetchFn) {

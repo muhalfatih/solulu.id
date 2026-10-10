@@ -1,4 +1,5 @@
 import { fulfillBooking } from "./fulfill"
+import { getAppBaseUrl } from "@/lib/url"
 
 export interface DispatchFulfillmentOptions {
   fetchFn?: typeof fetch
@@ -20,7 +21,10 @@ export async function dispatchFulfillmentJob(
   const qstashToken = options.overrideToken ?? process.env.QSTASH_TOKEN
   const rawUrl = options.overrideUrl ?? process.env.QSTASH_URL ?? "https://qstash.upstash.io/v2"
   const qstashUrl = rawUrl.endsWith("/v2") ? rawUrl : `${rawUrl.replace(/\/+$/, "")}/v2`
-  const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://solulu.id"
+  let appBaseUrl = getAppBaseUrl()
+  if (appBaseUrl.startsWith("http://localhost") || appBaseUrl.startsWith("http://127.0.0.1")) {
+    appBaseUrl = "https://solulu.id"
+  }
 
   // In local development or test without QStash, perform direct execution
   const shouldUseDirect =

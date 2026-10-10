@@ -23,6 +23,7 @@ import {
   type CreateGuestBookingInput,
 } from "@/lib/validations/booking"
 import { getActiveZoomCapacity } from "@/lib/zoom/active-capacity"
+import { getAppBaseUrl } from "@/lib/url"
 import {
   evaluateVoucherEligibility,
   type VoucherRecord,
@@ -751,7 +752,7 @@ export async function executeCreateGuestBooking(
     const accessToken = generateSessionAccessToken()
     const referenceNumber = generateReferenceNumber(now)
     const reservedUntil = computeHoldExpiry(now)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    const appUrl = getAppBaseUrl()
 
     let bookingId: string
     let transactionId: string

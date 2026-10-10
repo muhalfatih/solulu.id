@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   ArrowUpRight,
   Sparkles,
+  Mail,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -501,15 +502,21 @@ export default function EditCounselorPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="email" className="text-xs font-medium text-foreground">
-                Alamat Email Login Terdaftar
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="email" className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                  <Mail className="size-3.5 text-muted-foreground" />
+                  <span>Alamat Email Login Akun</span>
+                </label>
+                <Badge variant="outline" className="text-[10px] text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                  Supabase Auth
+                </Badge>
+              </div>
               <Input
                 id="email"
                 type="email"
-                value={email || "counselor@solulu.id"}
+                value={email || (isLoading ? "Memuat email..." : "Tidak terdaftar")}
                 disabled
-                className="h-9 text-xs bg-muted/60 text-muted-foreground font-mono"
+                className="h-9 text-xs bg-muted/70 text-foreground font-mono font-medium select-all"
               />
               <p className="text-[10px] text-muted-foreground">
                 Email terdaftar di Supabase Auth untuk masuk ke portal konselor (/counselor).

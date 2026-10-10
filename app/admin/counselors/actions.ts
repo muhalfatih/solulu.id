@@ -14,9 +14,7 @@ import {
   type CreateCounselorAdminInput,
   type UpdateCounselorAdminInput,
 } from "@/lib/validations/counselor-admin"
-import { MOCK_ACTIVE_COUNSELORS } from "@/app/admin/mock-data"
 import {
-  getAllStoreCounselors,
   getStoreCounselorById,
   upsertStoreCounselor,
   toggleStoreCounselorActive,
@@ -90,27 +88,49 @@ export async function getCounselorsAdminAction(options?: {
       return { success: true, data }
     }
 
-    // Query counselors with schedule/booking stats
-    const rows = await db
-      .select({
-        id: counselors.id,
-        userId: counselors.userId,
-        fullName: counselors.fullName,
-        title: counselors.title,
-        education: counselors.education,
-        strNumber: counselors.strNumber,
-        counselorType: counselors.counselorType,
-        bio: counselors.bio,
-        specializations: counselors.specializations,
-        avatarR2Url: counselors.avatarR2Url,
-        isActive: counselors.isActive,
-        isFeatured: counselors.isFeatured,
-        createdAt: counselors.createdAt,
-      })
-      .from(counselors)
-      .orderBy(desc(counselors.createdAt))
+    // Direct SQL query joining counselors with auth.users for 100% database SSOT
+    const rawRows = await db.execute(sql`
+      SELECT 
+        c.id,
+        c.user_id as "userId",
+        c.full_name as "fullName",
+        c.title,
+        c.education,
+        c.str_number as "strNumber",
+        c.counselor_type as "counselorType",
+        c.bio,
+        c.specializations,
+        c.avatar_r2_url as "avatarR2Url",
+        c.is_active as "isActive",
+        c.is_featured as "isFeatured",
+        c.created_at as "createdAt",
+        u.email as "email",
+        u.phone as "phone"
+      FROM counselors c
+      LEFT JOIN auth.users u ON c.user_id = u.id
+      ORDER BY c.created_at DESC
+    `)
 
-    // Augment with counts
+    const rows = (rawRows as any[]) || []
+
+    // If any counselor has missing email, try populating via Supabase Admin Client
+    const missingEmailUserIds = rows.filter((r) => !r.email && r.userId).map((r) => r.userId)
+    if (missingEmailUserIds.length > 0) {
+      try {
+        const supabaseAdmin = createAdminClient()
+        const { data } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
+        if (data?.users) {
+          const userMap = new Map(data.users.map((u) => [u.id, u.email]))
+          for (const r of rows) {
+            if (!r.email && userMap.has(r.userId)) {
+              r.email = userMap.get(r.userId)
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // Augment with counts and real email
     const augmented = await Promise.all(
       rows.map(async (c) => {
         try {
@@ -130,12 +150,16 @@ export async function getCounselorsAdminAction(options?: {
 
           return {
             ...c,
+            email: c.email || "-",
+            phone: c.phone || "-",
             activeSlotsCount: Number(activeSlots?.count || 0),
             completedSessionsCount: Number(completedSessions?.count || 0),
           }
         } catch {
           return {
             ...c,
+            email: c.email || "-",
+            phone: c.phone || "-",
             activeSlotsCount: 0,
             completedSessionsCount: 0,
           }
@@ -143,54 +167,13 @@ export async function getCounselorsAdminAction(options?: {
       })
     )
 
-    // Fallback to central store if DB query returned 0 rows
-    if (rows.length > 0) {
-      return { success: true, data: augmented }
-    }
-
-    const storeCounselors = getAllStoreCounselors()
-    const mapped = storeCounselors.map((c) => ({
-      id: c.id,
-      userId: `user-${c.id}`,
-      fullName: c.fullName,
-      title: c.title,
-      education: c.education,
-      counselorType: c.counselorType,
-      bio: c.bio,
-      specializations: c.specializations,
-      avatarR2Url: c.avatarR2Url,
-      isActive: c.isActive,
-      email: c.email,
-      phone: c.phone,
-      activeSlotsCount: (c.slots || []).length,
-      completedSessionsCount: c.totalSessions || 0,
-      createdAt: new Date(),
-    }))
-
-    return { success: true, data: mapped }
+    return { success: true, data: augmented }
   } catch (err: any) {
-    // Resilient fallback to central store
-    const storeCounselors = getAllStoreCounselors()
-    const mapped = storeCounselors.map((c) => ({
-      id: c.id,
-      userId: `user-${c.id}`,
-      fullName: c.fullName,
-      title: c.title,
-      education: c.education,
-      counselorType: c.counselorType,
-      bio: c.bio,
-      specializations: c.specializations,
-      avatarR2Url: c.avatarR2Url,
-      isActive: c.isActive,
-      isFeatured: c.isFeatured ?? false,
-      email: c.email,
-      phone: c.phone,
-      activeSlotsCount: (c.slots || []).length,
-      completedSessionsCount: c.totalSessions || 0,
-      createdAt: new Date(),
-    }))
-
-    return { success: true, data: mapped }
+    return {
+      success: false,
+      error: err.message || "Gagal mengambil daftar konselor dari database.",
+      data: [],
+    }
   }
 }
 
@@ -218,91 +201,58 @@ export async function getCounselorByIdAction(
       return { success: true, data }
     }
 
-    const rows = await db
-      .select()
-      .from(counselors)
-      .where(eq(counselors.id, counselorId))
-      .limit(1)
+    const rawRows = await db.execute(sql`
+      SELECT 
+        c.id,
+        c.user_id as "userId",
+        c.full_name as "fullName",
+        c.title,
+        c.education,
+        c.str_number as "strNumber",
+        c.counselor_type as "counselorType",
+        c.bio,
+        c.specializations,
+        c.avatar_r2_url as "avatarR2Url",
+        c.is_active as "isActive",
+        c.is_featured as "isFeatured",
+        c.created_at as "createdAt",
+        u.email as "email",
+        u.phone as "phone"
+      FROM counselors c
+      LEFT JOIN auth.users u ON c.user_id = u.id
+      WHERE c.id = ${counselorId}::uuid
+      LIMIT 1
+    `)
 
+    const rows = (rawRows as any[]) || []
     if (!rows.length) {
-      const mockData = resolveMockCounselor(counselorId)
-      if (mockData) {
-        return { success: true, data: mockData }
-      }
       return { success: false, error: "Mitra konselor tidak ditemukan." }
     }
 
-    return { success: true, data: rows[0] }
-  } catch (err: any) {
-    const mockData = resolveMockCounselor(counselorId)
-    if (mockData) {
-      return { success: true, data: mockData }
+    const c = rows[0]
+    let resolvedEmail = c.email || ""
+    if (!resolvedEmail && c.userId) {
+      try {
+        const supabaseAdmin = createAdminClient()
+        const { data } = await supabaseAdmin.auth.admin.getUserById(c.userId)
+        if (data?.user?.email) {
+          resolvedEmail = data.user.email
+        }
+      } catch {}
     }
+
+    return {
+      success: true,
+      data: {
+        ...c,
+        email: resolvedEmail || "-",
+      },
+    }
+  } catch (err: any) {
     return {
       success: false,
       error: err.message || "Gagal mengambil data konselor.",
     }
-  }
-}
-
-function resolveMockCounselor(counselorId: string) {
-  const mock =
-    MOCK_ACTIVE_COUNSELORS.find((c) => c.id === counselorId) ||
-    getStoreCounselorById(counselorId)
-  if (!mock) return null
-
-  const rawName = ("name" in mock ? mock.name : (mock as any).fullName) || ""
-  const rawTitle = mock.title || ""
-
-  let cleanName = rawName
-  let cleanTitle = rawTitle
-  if (rawName.includes(",")) {
-    const parts = rawName.split(",")
-    cleanName = parts[0].trim()
-    cleanTitle = parts.slice(1).join(",").trim()
-  }
-
-  const bioMap: Record<string, string> = {
-    "c-1": "Psikolog klinis berlisensi dengan pengalaman lebih dari 5 tahun menangani kecemasan, depresi, dan pemulihan trauma menggunakan pendekatan CBT dan ACT.",
-    "c-2": "Konselor sebaya senior yang mendampingi mahasiswa dan profesional muda dalam menghadapi stres akademik, burnout, serta krisis identitas quarter-life.",
-    "c-3": "Pendekatan berbasis bukti ilmiah untuk penanganan depresi ringan hingga sedang, pemulihan luka masa kecil, serta peningkatan self-esteem dan penerimaan diri.",
-    "c-4": "Konselor sebaya dengan fokus pada regulasi emosi, relasi keluarga, dan pendampingan kesehatan mental remaja secara empatik dan solutif.",
-  }
-
-  const educationMap: Record<string, string> = {
-    "c-1": "S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi",
-    "c-2": "Sarjana Psikologi (S.Psi) • Peer Counselor Indonesia",
-    "c-3": "Doktor & Magister Psikologi • Izin Kemenkes STR Terverifikasi",
-    "c-4": "Sarjana Psikologi (S.Psi) • Fasilitator Komunitas Sejiwa",
-  }
-
-  const counselorType =
-    ("type" in mock
-      ? mock.type === "Psikolog Klinis"
-      : (mock as any).counselorType === "psychologist")
-      ? ("psychologist" as const)
-      : ("peer" as const)
-
-  const education =
-    ("education" in mock ? (mock as any).education : null) ||
-    educationMap[mock.id] ||
-    (counselorType === "psychologist"
-      ? "S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi"
-      : "Sarjana Psikologi (S.Psi) • Peer Counselor Indonesia")
-
-  return {
-    id: mock.id,
-    fullName: cleanName,
-    title: cleanTitle,
-    education,
-    counselorType,
-    email: mock.email,
-    phone: mock.phone,
-    strNumber: ("strNumber" in mock ? mock.strNumber : null) || null,
-    bio: bioMap[mock.id] || (mock as any).bio || "Konselor berpengalaman dalam pendampingan klinis dan konseling sebaya.",
-    specializations: mock.specializations,
-    avatarR2Url: mock.avatarR2Url || null,
-    isActive: mock.isActive,
   }
 }
 
@@ -777,43 +727,12 @@ export async function getFeaturedCounselorsForHomepageAction() {
       rows = [...rows, ...supplements]
     }
 
-    if (rows.length > 0) {
-      return { success: true, data: rows }
-    }
-
-    // Fallback to store
-    const storeCounselors = getAllStoreCounselors().filter((c) => c.isActive)
-    return {
-      success: true,
-      data: storeCounselors.map((c) => ({
-        id: c.id,
-        fullName: c.fullName,
-        title: c.title,
-        education: c.education,
-        counselorType: c.counselorType,
-        bio: c.bio,
-        specializations: c.specializations,
-        avatarR2Url: c.avatarR2Url,
-        isActive: c.isActive,
-        isFeatured: c.isFeatured ?? false,
-      })),
-    }
+    return { success: true, data: rows }
   } catch (err: any) {
-    const storeCounselors = getAllStoreCounselors().filter((c) => c.isActive)
     return {
-      success: true,
-      data: storeCounselors.map((c) => ({
-        id: c.id,
-        fullName: c.fullName,
-        title: c.title,
-        education: c.education,
-        counselorType: c.counselorType,
-        bio: c.bio,
-        specializations: c.specializations,
-        avatarR2Url: c.avatarR2Url,
-        isActive: c.isActive,
-        isFeatured: c.isFeatured ?? false,
-      })),
+      success: false,
+      error: err.message || "Gagal mengambil daftar konselor untuk jadwal.",
+      data: [],
     }
   }
 }
