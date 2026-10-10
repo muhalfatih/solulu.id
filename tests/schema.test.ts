@@ -4,18 +4,21 @@ import fs from "fs";
 import path from "path";
 
 describe("Drizzle ORM Schema & Migrations", () => {
-  it("defines all 11 required tables", () => {
+  it("defines all 14 required tables", () => {
     expect(schema.zoomAccounts).toBeDefined();
     expect(schema.platformPricing).toBeDefined();
+    expect(schema.platformSettings).toBeDefined();
     expect(schema.vouchers).toBeDefined();
     expect(schema.screenings).toBeDefined();
     expect(schema.counselorApplications).toBeDefined();
     expect(schema.counselors).toBeDefined();
+    expect(schema.specializations).toBeDefined();
     expect(schema.schedules).toBeDefined();
     expect(schema.bookings).toBeDefined();
     expect(schema.transactions).toBeDefined();
     expect(schema.sessionReports).toBeDefined();
     expect(schema.publicDocumentations).toBeDefined();
+    expect(schema.testimonials).toBeDefined();
   });
 
   it("defines all 6 required PostgreSQL enums", () => {
@@ -58,6 +61,11 @@ describe("Drizzle ORM Schema & Migrations", () => {
     expect(schema.counselorApplications.ktpR2Key).toBeDefined();
     expect(schema.counselorApplications.diplomaR2Key).toBeDefined();
     expect(schema.counselorApplications.rejectionReason).toBeDefined();
+
+    // counselors custom profile fields
+    expect(schema.counselors.education).toBeDefined();
+    expect(schema.counselors.strNumber).toBeDefined();
+    expect(schema.counselors.isFeatured).toBeDefined();
 
     // transactions voucherId override
     expect(schema.transactions.voucherId).toBeDefined();

@@ -63,6 +63,7 @@ export const reviewApplicationInputSchema = z.object({
   status: z.enum(["approved", "rejected"]),
   rejectionReason: z.string().max(500, "Alasan penolakan maksimal 500 karakter").optional(),
   title: z.string().max(50, "Gelar/titel maksimal 50 karakter").optional(),
+  initialPassword: z.string().min(8, "Kata sandi minimal 8 karakter").max(100).optional(),
 })
 
 export type ReviewApplicationInput = z.infer<typeof reviewApplicationInputSchema>

@@ -27,12 +27,9 @@ import {
   type CancelScheduleSlotInput,
 } from "@/lib/validations/schedules"
 
-export interface AuthContext {
-  id: string
-  counselorId?: string
-  app_metadata?: Record<string, any>
-  user_metadata?: Record<string, any>
-}
+import { getAuthenticatedCounselor, resolveCounselorId } from "@/lib/counselor/auth"
+import type { CounselorAuthContext as AuthContext } from "@/lib/counselor/types"
+export type { AuthContext }
 
 export interface ActionResponse<T = any> {
   success: boolean
@@ -46,102 +43,6 @@ function safeRevalidatePath(path: string) {
     revalidatePath(path)
   } catch {
     // Safely ignore when called outside active Next.js request context (e.g. Vitest)
-  }
-}
-
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-export async function getAuthenticatedCounselor(
-  customUser?: AuthContext | null
-): Promise<AuthContext | null> {
-  if (customUser !== undefined) {
-    if (!customUser) return null
-    const role = customUser.app_metadata?.role || customUser.user_metadata?.role
-    return role === "counselor" ? customUser : null
-  }
-
-  try {
-    const cookieStore = await cookies()
-    const demoRole = cookieStore.get("solulu_demo_role")?.value
-    if (demoRole === "counselor") {
-      return {
-        id: "demo-counselor-id",
-        counselorId: "e28eb17e-b7cd-43bc-8a30-d67a221342f3", // Sarah Annisa (DB UUID)
-        app_metadata: { role: "counselor" },
-        user_metadata: { role: "counselor" },
-      }
-    }
-
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return null
-    const role = user.app_metadata?.role || user.user_metadata?.role
-    if (role !== "counselor") return null
-
-    return {
-      id: user.id,
-      app_metadata: user.app_metadata,
-      user_metadata: user.user_metadata,
-    }
-  } catch {
-    return null
-  }
-}
-
-/**
- * Resolves the database counselor record ID for the authenticated user.
- */
-async function resolveCounselorId(auth: AuthContext): Promise<string | null> {
-  if (auth.counselorId && UUID_REGEX.test(auth.counselorId)) {
-    return auth.counselorId
-  }
-
-  try {
-    if (auth.id && UUID_REGEX.test(auth.id)) {
-      const found = await db
-        .select({ id: counselors.id })
-        .from(counselors)
-        .where(eq(counselors.userId, auth.id))
-        .limit(1)
-
-      if (found.length > 0) {
-        return found[0].id
-      }
-    }
-
-    // Try finding Sarah Annisa specifically
-    const sarah = await db
-      .select({ id: counselors.id })
-      .from(counselors)
-      .where(sql`${counselors.fullName} ILIKE '%Sarah Annisa%'`)
-      .limit(1)
-
-    if (sarah.length > 0) {
-      return sarah[0].id
-    }
-
-    // Fallback for demo counselor
-    const anyCounselor = await db
-      .select({ id: counselors.id })
-      .from(counselors)
-      .where(eq(counselors.isActive, true))
-      .limit(1)
-
-    if (anyCounselor.length > 0) {
-      return anyCounselor[0].id
-    }
-
-    const any = await db
-      .select({ id: counselors.id })
-      .from(counselors)
-      .limit(1)
-
-    return any.length > 0 ? any[0].id : (auth.counselorId || "c-1")
-  } catch {
-    return auth.counselorId || "c-1"
   }
 }
 

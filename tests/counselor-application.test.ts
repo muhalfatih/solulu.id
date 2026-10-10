@@ -404,5 +404,72 @@ describe("Issue #4: Counselor Application & Admin Approval Pipeline", () => {
       expect(updatedApplication).toBeDefined()
       expect(updatedApplication.status).toBe("approved")
     })
+
+    it("approves application with direct initialPassword, bypasses rate limit, and dispatches welcome email", async () => {
+      let createdAuthPayload: any = null
+      const mockCreateUser = vi.fn().mockImplementation(async (params) => {
+        createdAuthPayload = params
+        return {
+          data: {
+            user: {
+              id: "auth-user-direct-101",
+              email: params.email,
+            },
+          },
+          error: null,
+        }
+      })
+
+      let insertedCounselor: any = null
+      const mockInsertCounselor = vi.fn().mockImplementation(async (record) => {
+        insertedCounselor = record
+        return { id: "counselor-table-uuid-2", ...record }
+      })
+
+      const mockSendEmail = vi.fn().mockResolvedValue({ success: true, id: "mail-welcome-123" })
+
+      const res = await reviewCounselorApplicationAction(
+        {
+          applicationId: sampleApplication.id,
+          status: "approved",
+          title: "M.Psi., Psikolog",
+          initialPassword: "KredensialAman2026!",
+        },
+        {
+          currentUser: adminUser,
+          fetchApplicationFn: vi.fn().mockResolvedValue(sampleApplication),
+          createUserFn: mockCreateUser,
+          insertCounselorFn: mockInsertCounselor,
+          updateApplicationFn: vi.fn().mockResolvedValue(sampleApplication),
+          sendEmailFn: mockSendEmail,
+        }
+      )
+
+      expect(res.success).toBe(true)
+      expect(mockCreateUser).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: "nurul@solulu.id",
+          password: "KredensialAman2026!",
+          email_confirm: true,
+          user_metadata: expect.objectContaining({
+            role: "counselor",
+            full_name: "Nurul Hidayah, M.Psi., Psikolog",
+          }),
+        })
+      )
+
+      expect(insertedCounselor.userId).toBe("auth-user-direct-101")
+      expect(mockSendEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          counselorEmail: "nurul@solulu.id",
+          temporaryPassword: "KredensialAman2026!",
+        })
+      )
+
+      expect(res.credentials).toBeDefined()
+      expect(res.credentials?.email).toBe("nurul@solulu.id")
+      expect(res.credentials?.password).toBe("KredensialAman2026!")
+      expect(res.credentials?.phone).toBe(sampleApplication.phone)
+    })
   })
 })

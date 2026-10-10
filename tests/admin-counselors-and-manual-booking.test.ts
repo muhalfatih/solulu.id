@@ -236,6 +236,14 @@ describe("Spec 0002 & ADR 0004: Admin Counselor Management & Zero-Cost Booking B
     it("resolves counselor by ID with clean name and title separation", async () => {
       const res = await getCounselorByIdAction("c-1", {
         currentUser: adminUser,
+        fetchFn: async (id) => ({
+          id: "c-1",
+          userId: "u-1",
+          fullName: "Sarah Annisa",
+          title: "M.Psi., Psikolog",
+          counselorType: "psychologist",
+          email: "sarah.annisa@solulu.id",
+        }),
       })
 
       expect(res.success).toBe(true)

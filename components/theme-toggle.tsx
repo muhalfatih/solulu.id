@@ -99,7 +99,7 @@ export function ThemeToggle({
         className={cn(
           "p-1.5 rounded-lg transition-all cursor-pointer",
           theme === "light"
-            ? "bg-white text-purple-600 dark:bg-neutral-700 dark:text-purple-300 shadow-xs font-semibold"
+            ? "bg-white text-foreground dark:bg-neutral-700 dark:text-neutral-100 shadow-xs font-semibold"
             : "hover:text-neutral-900 dark:hover:text-white"
         )}
         title="Mode Terang"
@@ -114,7 +114,7 @@ export function ThemeToggle({
         className={cn(
           "p-1.5 rounded-lg transition-all cursor-pointer",
           theme === "dark"
-            ? "bg-neutral-900 text-purple-400 dark:bg-neutral-700 shadow-xs font-semibold"
+            ? "bg-neutral-900 text-white dark:bg-neutral-700 shadow-xs font-semibold"
             : "hover:text-neutral-900 dark:hover:text-white"
         )}
         title="Mode Gelap"
@@ -129,11 +129,11 @@ export function ThemeToggle({
         className={cn(
           "p-1.5 rounded-lg transition-all cursor-pointer",
           theme === "system"
-            ? "bg-white text-purple-600 dark:bg-neutral-700 dark:text-purple-300 shadow-xs font-semibold"
+            ? "bg-white text-foreground dark:bg-neutral-700 dark:text-neutral-100 shadow-xs font-semibold"
             : "hover:text-neutral-900 dark:hover:text-white"
         )}
         title="Ikuti Tema Sistem"
-        aria-label="System mode"
+        aria-label="Mode Sistem"
       >
         <Laptop className="w-3.5 h-3.5" />
       </button>

@@ -15,6 +15,13 @@
       "when": 1791206158456,
       "tag": "0001_clumsy_secret_warriors",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791521651270,
+      "tag": "0002_chubby_flatman",
+      "breakpoints": true
     }
   ]
 }

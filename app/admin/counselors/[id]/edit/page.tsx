@@ -99,6 +99,7 @@ export default function EditCounselorPage() {
           setAvatarUrl(c.avatarR2Url || "")
           setIsActive(c.isActive ?? true)
           setIsFeatured(c.isFeatured ?? false)
+        } else {
           setErrorMessage(res.error || "Data profil mitra konselor tidak ditemukan.")
         }
       } catch (err: any) {

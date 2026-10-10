@@ -1,11 +1,13 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { cookies } from "next/headers"
 import { eq, and, sql, desc, asc } from "drizzle-orm"
 import { db } from "@/db"
 import { bookings, schedules, screenings, sessionReports, counselors } from "@/db/schema"
 import { formatTimeRange } from "@/lib/schedules/concurrency"
 import { getAuthenticatedCounselor, resolveCounselorId } from "@/lib/counselor/auth"
+import { createAdminClient } from "@/lib/supabase/admin"
 import {
   sessionReportSchema,
   counselorProfileSchema,
@@ -131,7 +133,6 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
       }
     })
 
-    console.log("[DEBUG COUNSELOR SESSIONS]", { counselorId, rowsCount: rows.length })
     return { success: true, data: sessions }
   } catch (err: any) {
     console.error("[ERROR COUNSELOR SESSIONS]", err)
@@ -642,3 +643,92 @@ export async function getAttachmentDownloadUrlAction(
     return { success: false, error: err.message || "Gagal mengunduh dokumen lampiran." }
   }
 }
+
+/**
+ * Updates counselor account login password in Supabase Auth.
+ */
+export async function updateCounselorPasswordAction(
+  newPassword: string,
+  deps?: {
+    currentUser?: CounselorAuthContext | null
+    updateUserFn?: (id: string, attributes: any) => Promise<{ data: any; error: any }>
+  }
+): Promise<CounselorActionResponse<{ updated: boolean }>> {
+  const auth = await getAuthenticatedCounselor(deps?.currentUser)
+  if (!auth) {
+    return { success: false, error: "Akses ditolak. Silakan login sebagai Mitra Konselor." }
+  }
+
+  if (!newPassword || newPassword.trim().length < 8) {
+    return { success: false, error: "Kata sandi baru minimal 8 karakter." }
+  }
+
+  try {
+    if (deps?.updateUserFn) {
+      const res = await deps.updateUserFn(auth.id, { password: newPassword.trim() })
+      if (res.error) {
+        return { success: false, error: `Gagal memperbarui kata sandi: ${res.error.message}` }
+      }
+      return { success: true, data: { updated: true } }
+    }
+
+    const supabaseAdmin = createAdminClient()
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(auth.id, {
+      password: newPassword.trim(),
+    })
+
+    if (error) {
+      return { success: false, error: `Gagal memperbarui kata sandi: ${error.message}` }
+    }
+
+    return { success: true, data: { updated: true } }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Gagal memperbarui kata sandi." }
+  }
+}
+
+/**
+ * Switches the active demo counselor identity for testing and simulation.
+ */
+export async function switchDemoCounselorAction(counselorId: string) {
+  const cookieStore = await cookies()
+  cookieStore.set("solulu_demo_role", "counselor", {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24,
+  })
+  cookieStore.set("solulu_demo_counselor_id", counselorId, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24,
+  })
+  safeRevalidatePath("/counselor/dashboard")
+  safeRevalidatePath("/counselor/profile")
+  safeRevalidatePath("/counselor/schedules")
+  return { success: true }
+}
+
+/**
+ * Returns available real counselors in the database for the switcher dropdown.
+ */
+export async function getCounselorsListForSwitchAction() {
+  try {
+    const rows = await db
+      .select({
+        id: counselors.id,
+        fullName: counselors.fullName,
+        title: counselors.title,
+        counselorType: counselors.counselorType,
+      })
+      .from(counselors)
+      .where(eq(counselors.isActive, true))
+      .orderBy(counselors.fullName)
+
+    return { success: true, data: rows }
+  } catch (err: any) {
+    return { success: false, error: err.message, data: [] }
+  }
+}
+

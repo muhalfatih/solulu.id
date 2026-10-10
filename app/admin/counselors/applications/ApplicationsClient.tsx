@@ -47,6 +47,12 @@ import {
   Filter,
   FileDown,
   Info,
+  Copy,
+  Check,
+  Sparkles,
+  Eye,
+  EyeOff,
+  MessageSquare,
 } from "lucide-react"
 
 export interface CounselorApplicationView {
@@ -91,6 +97,8 @@ export function ApplicationsClient({
   // Review modal state
   const [approveModal, setApproveModal] = React.useState<CounselorApplicationView | null>(null)
   const [counselorTitle, setCounselorTitle] = React.useState("")
+  const [initialPassword, setInitialPassword] = React.useState("")
+  const [showPassword, setShowPassword] = React.useState(false)
   const [rejectModal, setRejectModal] = React.useState<CounselorApplicationView | null>(null)
   const [rejectionReason, setRejectionReason] = React.useState("")
   const [isProcessing, setIsProcessing] = React.useState(false)
@@ -98,6 +106,43 @@ export function ApplicationsClient({
     type: "success" | "error"
     message: string
   } | null>(null)
+
+  // Issued Credentials Success Modal state
+  const [issuedCredentials, setIssuedCredentials] = React.useState<{
+    email: string
+    password: string
+    fullName: string
+    phone: string
+  } | null>(null)
+  const [isCopied, setIsCopied] = React.useState(false)
+
+  // Helper to generate secure random password
+  const generateRandomPassword = () => {
+    const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*"
+    let pwd = "Sol"
+    for (let i = 0; i < 9; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    setInitialPassword(pwd + "26!")
+  }
+
+  // Pre-fill default title & random password when modal opens
+  React.useEffect(() => {
+    if (approveModal) {
+      setCounselorTitle(
+        approveModal.counselorType === "psychologist"
+          ? "M.Psi., Psikolog"
+          : "S.Psi"
+      )
+      const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*"
+      let pwd = "Sol"
+      for (let i = 0; i < 9; i++) {
+        pwd += chars.charAt(Math.floor(Math.random() * chars.length))
+      }
+      setInitialPassword(pwd + "26!")
+      setShowPassword(false)
+    }
+  }, [approveModal])
 
   const refreshApplications = async () => {
     setIsRefreshing(true)
@@ -159,6 +204,7 @@ export function ApplicationsClient({
         applicationId: approveModal.id,
         status: "approved",
         title: counselorTitle,
+        initialPassword: initialPassword.trim(),
       })
 
       if (!res.success) {
@@ -174,6 +220,14 @@ export function ApplicationsClient({
         type: "success",
         message: res.message || "Aplikasi konselor berhasil disetujui.",
       })
+      if (res.credentials) {
+        setIssuedCredentials({
+          email: res.credentials.email,
+          password: res.credentials.password,
+          fullName: res.credentials.fullName,
+          phone: res.credentials.phone || approveModal.phone || "",
+        })
+      }
       setApproveModal(null)
       await refreshApplications()
     } catch (err: any) {
@@ -718,10 +772,47 @@ export function ApplicationsClient({
                 </span>
               </div>
 
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="counselor-password-input" className="font-medium text-foreground text-xs">
+                    Kata Sandi Akun Login (/counselor)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={generateRandomPassword}
+                    className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <Sparkles className="size-3" />
+                    Buat Acak
+                  </button>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="counselor-password-input"
+                    type={showPassword ? "text" : "password"}
+                    value={initialPassword}
+                    onChange={(e) => setInitialPassword(e.target.value)}
+                    placeholder="Minimal 8 karakter"
+                    className="text-xs pr-9 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    aria-label={showPassword ? "Sembunyikan password" : "Lihat password"}
+                  >
+                    {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                  </button>
+                </div>
+                <span className="text-[11px] text-muted-foreground">
+                  Kata sandi ini otomatis dikirim via email dan dapat disalin langsung untuk dikirim via WhatsApp.
+                </span>
+              </div>
+
               <Alert className="border-primary/20 bg-primary/5 text-xs">
                 <ShieldCheck className="size-4 text-primary" />
                 <AlertDescription className="text-muted-foreground">
-                  Sistem akan memanggil Supabase Admin API untuk mengirimkan email aktivasi akun dan membuat entri konselor resmi.
+                  Sistem akan menerbitkan akun konselor resmi, mengaktifkan login, dan mengirimkan email kredensial via sistem Solulu.
                 </AlertDescription>
               </Alert>
             </div>
@@ -737,17 +828,114 @@ export function ApplicationsClient({
             </Button>
             <Button
               onClick={handleApproveSubmit}
-              disabled={isProcessing}
+              disabled={isProcessing || initialPassword.trim().length < 8}
               id="confirm-approval-btn"
             >
               {isProcessing ? (
                 <>
                   <Loader2 className="size-3.5 animate-spin mr-1.5" />
-                  Mengirim Undangan...
+                  Mengaktifkan Akun...
                 </>
               ) : (
-                "Setujui & Kirim Undangan"
+                "Setujui & Terbitkan Akun"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Issued Credentials Success Modal (with Copy & WhatsApp) */}
+      <Dialog
+        open={Boolean(issuedCredentials)}
+        onOpenChange={(open) => !open && setIssuedCredentials(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="size-10 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-1">
+              <CheckCircle2 className="size-6" />
+            </div>
+            <DialogTitle>Akun Konselor Berhasil Diterbitkan!</DialogTitle>
+            <DialogDescription>
+              Akun login portal konselor telah aktif. Email notifikasi otomatis telah dikirim via Resend. Anda juga dapat menyalin kredensial berikut untuk dikirimkan melalui WhatsApp.
+            </DialogDescription>
+          </DialogHeader>
+
+          {issuedCredentials && (
+            <div className="flex flex-col gap-3 py-2 text-xs">
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 flex flex-col gap-2.5">
+                <span className="font-semibold text-foreground text-sm">
+                  {issuedCredentials.fullName}
+                </span>
+
+                <div className="flex flex-col gap-1 pt-1 border-t border-border/60">
+                  <span className="text-[11px] text-muted-foreground font-medium">Email Login:</span>
+                  <div className="flex items-center justify-between p-2 rounded-md bg-background border border-border">
+                    <code className="text-xs font-mono font-semibold">{issuedCredentials.email}</code>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <span className="text-[11px] text-muted-foreground font-medium">Kata Sandi:</span>
+                  <div className="flex items-center justify-between p-2 rounded-md bg-background border border-border">
+                    <code className="text-xs font-mono font-bold text-primary">{issuedCredentials.password}</code>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <span className="text-[11px] text-muted-foreground font-medium">URL Portal Konselor:</span>
+                  <div className="flex items-center justify-between p-2 rounded-md bg-background border border-border">
+                    <code className="text-[11px] font-mono text-muted-foreground">https://solulu.id/login</code>
+                  </div>
+                </div>
+              </div>
+
+              {/* WhatsApp message text template */}
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  className="w-full gap-2 text-xs h-9 cursor-pointer"
+                  onClick={() => {
+                    const waText = `Halo ${issuedCredentials.fullName},\n\nSelamat! Aplikasi kemitraan konselor Anda di Solulu telah disetujui. Berikut adalah akun login portal konselor Anda:\n\n• Email: ${issuedCredentials.email}\n• Kata Sandi: ${issuedCredentials.password}\n• Tautan Login: https://solulu.id/login\n\nSilakan masuk dan lengkapi jadwal praktik Anda. Terima kasih!\n- Tim Solulu`
+                    navigator.clipboard.writeText(waText)
+                    setIsCopied(true)
+                    setTimeout(() => setIsCopied(false), 2500)
+                  }}
+                >
+                  {isCopied ? (
+                    <>
+                      <Check className="size-3.5 text-emerald-600" />
+                      <span>Tersalin ke Clipboard!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="size-3.5" />
+                      <span>Salin Format WhatsApp</span>
+                    </>
+                  )}
+                </Button>
+
+                {issuedCredentials.phone && (
+                  <Button
+                    className="w-full gap-2 text-xs h-9 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={() => {
+                      const cleanPhone = issuedCredentials.phone.replace(/[^0-9]/g, "").replace(/^0/, "62")
+                      const waText = encodeURIComponent(
+                        `Halo ${issuedCredentials.fullName},\n\nSelamat! Aplikasi kemitraan konselor Anda di Solulu telah disetujui. Berikut adalah akun login portal konselor Anda:\n\n• Email: ${issuedCredentials.email}\n• Kata Sandi: ${issuedCredentials.password}\n• Tautan Login: https://solulu.id/login\n\nSilakan masuk dan lengkapi jadwal praktik Anda.\n- Tim Solulu`
+                      )
+                      window.open(`https://wa.me/${cleanPhone}?text=${waText}`, "_blank")
+                    }}
+                  >
+                    <MessageSquare className="size-3.5" />
+                    <span>Kirim via WhatsApp</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button onClick={() => setIssuedCredentials(null)}>
+              Selesai
             </Button>
           </DialogFooter>
         </DialogContent>

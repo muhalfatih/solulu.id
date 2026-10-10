@@ -188,4 +188,41 @@ describe("Resend Email Delivery Services (lib/fulfillment/emails.ts)", () => {
       consoleErrorSpy.mockRestore()
     })
   })
+
+  describe("sendCounselorWelcomeCredentialsEmail", () => {
+    it("sends welcome email with temporary password and login portal link via Resend", async () => {
+      let capturedUrl = ""
+      let capturedOptions: any = null
+
+      const mockFetch = vi.fn().mockImplementation(async (url, opts) => {
+        capturedUrl = url.toString()
+        capturedOptions = opts
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ id: "resend_msg_welcome_001" }),
+        } as Response
+      })
+
+      const { sendCounselorWelcomeCredentialsEmail } = await import("@/lib/fulfillment/emails")
+      const result = await sendCounselorWelcomeCredentialsEmail(
+        {
+          counselorEmail: "nurul@solulu.id",
+          counselorName: "Nurul Hidayah, M.Psi.",
+          temporaryPassword: "SolTest2026!#",
+          counselorType: "psychologist",
+        },
+        { fetchFn: mockFetch as unknown as typeof fetch }
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.id).toBe("resend_msg_welcome_001")
+      expect(capturedUrl).toBe("https://api.resend.com/emails")
+      const body = JSON.parse(capturedOptions.body)
+      expect(body.to).toContain("nurul@solulu.id")
+      expect(body.subject).toContain("Kredensial Login Akun")
+      expect(body.html).toContain("SolTest2026!#")
+      expect(body.html).toContain("https://solulu.id/login")
+    })
+  })
 })

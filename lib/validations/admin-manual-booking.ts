@@ -44,8 +44,10 @@ export const adminManualBookingSchema = z
     adminNotes: z
       .string()
       .trim()
-      .min(3, "Catatan audit alasan bypass wajib diisi minimal 3 karakter (misal: Beasiswa, Rujukan Khusus, Pembayaran Tunai)")
-      .max(500, "Catatan audit maksimal 500 karakter"),
+      .min(3, "Catatan audit alasan bypass minimal 3 karakter")
+      .max(500, "Catatan audit maksimal 500 karakter")
+      .optional()
+      .default("Booking manual via Admin Console"),
     createZoom: z.boolean().default(true),
     manualMeetingUrl: z
       .string()

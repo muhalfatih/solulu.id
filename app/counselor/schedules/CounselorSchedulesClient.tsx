@@ -2,23 +2,20 @@
 
 import * as React from "react"
 import {
-  Calendar as CalendarIcon,
   Clock,
   Plus,
   Trash2,
   AlertCircle,
   CheckCircle2,
   Info,
-  ShieldCheck,
-  Video,
   X,
   Lock,
-  ChevronRight,
+  Calendar,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -203,24 +200,37 @@ export default function CounselorSchedulesClient({
     }
   }
 
+  // Telemetry statistics
+  const telemetryStats = React.useMemo(() => {
+    const availableUpcoming = slots.filter((s) => !s.isPast && s.status === "available").length
+    const bookedUpcoming = slots.filter((s) => !s.isPast && (s.status === "booked" || s.status === "reserved")).length
+    const completedPast = slots.filter((s) => s.isPast && s.status === "booked").length
+
+    return {
+      availableUpcoming,
+      bookedUpcoming,
+      completedPast,
+    }
+  }, [slots])
+
   // Filter slots for table
+  const upcomingCount = React.useMemo(() => slots.filter((s) => !s.isPast).length, [slots])
+  const todayCount = React.useMemo(() => slots.filter((s) => s.date === todayWIB).length, [slots, todayWIB])
+  const pastCount = React.useMemo(() => slots.filter((s) => s.isPast).length, [slots])
+  const allCount = slots.length
+
   const displayedSlots = React.useMemo(() => {
     if (viewDateFilter === "upcoming") {
       return slots.filter((s) => !s.isPast)
     }
+    if (viewDateFilter === "today") {
+      return slots.filter((s) => s.date === todayWIB)
+    }
     if (viewDateFilter === "past") {
       return slots.filter((s) => s.isPast)
     }
-    if (viewDateFilter === "all") {
-      return slots
-    }
-    return slots.filter((s) => s.date === viewDateFilter)
-  }, [slots, viewDateFilter])
-
-  // Distinct dates in slots for dropdown filter
-  const distinctDates = React.useMemo(() => {
-    return Array.from(new Set(slots.map((s) => s.date))).sort()
-  }, [slots])
+    return slots
+  }, [slots, viewDateFilter, todayWIB])
 
   return (
     <div className="flex flex-col gap-6">
@@ -255,116 +265,127 @@ export default function CounselorSchedulesClient({
 
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/60">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Manajemen Jadwal Praktik</h1>
-            <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
-              Durasi Standar 90 Menit
-            </Badge>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Manajemen Jadwal Praktik</h1>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-muted text-muted-foreground border border-border/70">
+              <Clock className="size-3 text-muted-foreground" aria-hidden="true" />
+              <span>Standar 90 Menit</span>
+            </span>
           </div>
           <p className="text-sm text-muted-foreground">
-            Buka slot waktu konsultasi untuk pasien. Waktu selesai otomatis dihitung (+90 menit) dengan proteksi anti tabrakan mandiri.
+            Buka dan kelola ketersediaan sesi konsultasi konseling untuk pasien.
           </p>
         </div>
 
         <Button
           onClick={() => setIsAddModalOpen(true)}
-          className="gap-2 text-xs font-semibold h-10 shadow-xs cursor-pointer"
+          className="gap-2 text-xs font-medium h-9 shadow-xs cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          id="btn-open-add-slot-modal"
         >
-          <Plus className="size-4" />
+          <Plus className="size-3.5" aria-hidden="true" />
           <span>Buka Slot Praktik Baru</span>
         </Button>
       </div>
 
-      {/* Policy Guidance Alert Card */}
-      <div className="p-4 rounded-xl border border-border/80 bg-muted/20 shadow-2xs flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-foreground font-semibold text-xs tracking-tight">
-          <Info className="size-4 text-primary shrink-0" />
-          <span>Pedoman Alokasi Sesi 90 Menit &amp; Proteksi Kapasitas Ruang Praktik</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-          <div className="flex flex-col gap-1 p-2.5 rounded-lg bg-background border border-border/70">
-            <span className="font-semibold text-foreground flex items-center gap-1.5">
-              <Clock className="size-3.5 text-primary" />
-              Durasi Pasti 90 Menit
-            </span>
-            <p className="text-muted-foreground leading-relaxed">
-              Setiap sesi berdurasi penuh 90 menit. Sistem otomatis mencegah slot yang bertabrakan pada tanggal yang sama.
-            </p>
+      {/* 3 Telemetry Overview Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="border border-border/70 bg-card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Slot Tersedia</span>
+              <span className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+                {telemetryStats.availableUpcoming}
+              </span>
+              <span className="text-xs text-muted-foreground">Siap dipesan pasien</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+              <Clock className="size-5" aria-hidden="true" />
+            </div>
           </div>
-          <div className="flex flex-col gap-1 p-2.5 rounded-lg bg-background border border-border/70">
-            <span className="font-semibold text-foreground flex items-center gap-1.5">
-              <ShieldCheck className="size-3.5 text-primary" />
-              Proteksi Reservasi Klien
-            </span>
-            <p className="text-muted-foreground leading-relaxed">
-              Slot berstatus <span className="font-medium text-amber-700 dark:text-amber-400">Hold</span> (17m) dan <span className="font-medium text-blue-700 dark:text-blue-400">Dipesan</span> dilindungi demi kepastian pasien.
-            </p>
+        </Card>
+
+        <Card className="border border-border/70 bg-card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Sesi Terjadwal</span>
+              <span className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+                {telemetryStats.bookedUpcoming}
+              </span>
+              <span className="text-xs text-muted-foreground">Dipesan / dalam proses</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-primary/10 text-primary border border-primary/20 shrink-0">
+              <CheckCircle2 className="size-5" aria-hidden="true" />
+            </div>
           </div>
-          <div className="flex flex-col gap-1 p-2.5 rounded-lg bg-background border border-border/70">
-            <span className="font-semibold text-foreground flex items-center gap-1.5">
-              <Video className="size-3.5 text-primary" />
-              Kapasitas Zoom Terpadu
-            </span>
-            <p className="text-muted-foreground leading-relaxed">
-              Katalog publik menyembunyikan slot secara dinamis jika pada rentang waktu yang sama kapasitas platform telah penuh.
-            </p>
+        </Card>
+
+        <Card className="border border-border/70 bg-card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Riwayat Terlaksana</span>
+              <span className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+                {telemetryStats.completedPast}
+              </span>
+              <span className="text-xs text-muted-foreground">Sesi konsultasi selesai</span>
+            </div>
+            <div className="p-2.5 rounded-lg bg-muted text-muted-foreground border border-border/70 shrink-0">
+              <Calendar className="size-5" aria-hidden="true" />
+            </div>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Schedules List Section */}
-      <Card className="border border-border/80 shadow-xs">
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
+      <Card className="border border-border/70 shadow-xs bg-card">
+        <CardHeader className="p-6 pb-5 border-b border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <CardTitle className="text-base font-bold">Daftar Slot Praktik Anda</CardTitle>
-            <CardDescription className="text-xs">
-              Menampilkan {displayedSlots.length} slot dari total {slots.length} slot terdaftar
+            <CardTitle className="text-base font-bold text-foreground">Daftar Slot Praktik</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Menampilkan {displayedSlots.length} dari {slots.length} total slot terdaftar
             </CardDescription>
           </div>
 
-          {/* Date Filter Dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Filter Jadwal:</span>
-            <select
-              value={viewDateFilter}
-              onChange={(e) => setViewDateFilter(e.target.value)}
-              className="text-xs h-8 px-2.5 rounded-lg border border-border/80 bg-background focus:ring-1 focus:ring-primary text-foreground font-medium cursor-pointer shadow-2xs"
-            >
-              <option value="upcoming">Slot Mendatang &amp; Hari Ini (Aktif)</option>
-              <option value="all">Semua Slot (Termasuk Riwayat)</option>
-              <option value="past">Riwayat Jadwal Lampau</option>
-              {distinctDates.length > 0 && (
-                <optgroup label="Berdasarkan Tanggal">
-                  {distinctDates.map((d) => (
-                    <option key={d} value={d}>
-                      {d}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
-          </div>
+          {/* Filter Tabs */}
+          <Tabs
+            value={viewDateFilter}
+            onValueChange={setViewDateFilter}
+            className="w-full sm:w-auto"
+          >
+            <TabsList className="h-9 p-1 bg-muted/60 border border-border/60">
+              <TabsTrigger value="upcoming" className="text-xs px-3 py-1 font-medium rounded-md">
+                Mendatang ({upcomingCount})
+              </TabsTrigger>
+              <TabsTrigger value="today" className="text-xs px-3 py-1 font-medium rounded-md">
+                Hari Ini ({todayCount})
+              </TabsTrigger>
+              <TabsTrigger value="past" className="text-xs px-3 py-1 font-medium rounded-md">
+                Riwayat ({pastCount})
+              </TabsTrigger>
+              <TabsTrigger value="all" className="text-xs px-3 py-1 font-medium rounded-md">
+                Semua ({allCount})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </CardHeader>
 
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
+        <CardContent className="p-6 pt-5">
+          <div className="rounded-lg border border-border/70 overflow-hidden bg-background">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/30">
-                  <TableHead className="text-xs font-semibold">Tanggal</TableHead>
-                  <TableHead className="text-xs font-semibold">Rentang Waktu (WIB)</TableHead>
-                  <TableHead className="text-xs font-semibold">Durasi</TableHead>
-                  <TableHead className="text-xs font-semibold">Status Slot</TableHead>
-                  <TableHead className="text-xs font-semibold text-right">Tindakan</TableHead>
+                <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/70">
+                  <TableHead className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tanggal</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Rentang Waktu (WIB)</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status Slot</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider text-right">Tindakan</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {displayedSlots.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-32 text-center text-xs text-muted-foreground">
+                    <TableCell colSpan={4} className="h-32 text-center text-xs text-muted-foreground">
                       <div className="flex flex-col items-center justify-center gap-2">
-                        <Clock className="size-6 text-muted-foreground/50" />
+                        <Clock className="size-6 text-muted-foreground/50" aria-hidden="true" />
                         <span>
                           {viewDateFilter === "upcoming"
                             ? "Belum ada slot praktik mendatang. Buka slot baru untuk pasien."
@@ -383,77 +404,74 @@ export default function CounselorSchedulesClient({
                   </TableRow>
                 ) : (
                   displayedSlots.map((slot) => {
+                    const isSlotToday = slot.date === todayWIB
+
                     return (
-                      <TableRow key={slot.id} className="hover:bg-muted/20">
-                        <TableCell className="text-xs font-medium tabular-nums">
-                          {slot.date}
+                      <TableRow key={slot.id} className="hover:bg-muted/20 border-b border-border/60 last:border-b-0">
+                        <TableCell className="px-4 py-3.5 text-xs font-medium tabular-nums">
+                          <div className="flex items-center gap-2">
+                            <span>{slot.date}</span>
+                            {isSlotToday && !slot.isPast && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-primary/10 text-primary border border-primary/25">
+                                Hari Ini
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
 
-                        <TableCell className="text-xs font-semibold text-foreground">
+                        <TableCell className="px-4 py-3.5 text-xs font-semibold text-foreground tabular-nums">
                           {slot.timeRange}
                         </TableCell>
 
-                        <TableCell className="text-xs text-muted-foreground font-medium tabular-nums">
-                          90 Menit
-                        </TableCell>
-
-                        <TableCell>
+                        <TableCell className="px-4 py-3.5">
                           {slot.isPast ? (
                             slot.status === "booked" ? (
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/30"
-                              >
-                                Selesai
-                              </Badge>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-muted text-muted-foreground border border-border/70">
+                                <span className="size-1.5 rounded-full bg-muted-foreground/60 shrink-0" aria-hidden="true" />
+                                <span>Selesai</span>
+                              </span>
                             ) : slot.status === "cancelled" ? (
-                              <Badge variant="outline" className="text-xs text-muted-foreground border-border/80">
-                                Dibatalkan
-                              </Badge>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-destructive/10 text-destructive border border-destructive/20">
+                                <span className="size-1.5 rounded-full bg-destructive shrink-0" aria-hidden="true" />
+                                <span>Dibatalkan</span>
+                              </span>
                             ) : (
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-muted/60 text-muted-foreground border-border/80"
-                              >
-                                Terlewat / Kedaluwarsa
-                              </Badge>
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-muted/60 text-muted-foreground border border-border/70">
+                                <span className="size-1.5 rounded-full bg-muted-foreground/40 shrink-0" aria-hidden="true" />
+                                <span>Kedaluwarsa</span>
+                              </span>
                             )
                           ) : (
                             <>
                               {slot.status === "available" && (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
-                                >
-                                  Tersedia
-                                </Badge>
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                  <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
+                                  <span>Tersedia</span>
+                                </span>
                               )}
                               {slot.status === "reserved" && (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
-                                >
-                                  Hold Reservasi (17m)
-                                </Badge>
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                  <span className="size-1.5 rounded-full bg-amber-500 shrink-0" aria-hidden="true" />
+                                  <span>Hold Reservasi (17m)</span>
+                                </span>
                               )}
                               {slot.status === "booked" && (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30"
-                                >
-                                  Dipesan Pasien
-                                </Badge>
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                                  <span className="size-1.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
+                                  <span>Dipesan Pasien</span>
+                                </span>
                               )}
                               {slot.status === "cancelled" && (
-                                <Badge variant="outline" className="text-xs text-muted-foreground border-border/80">
-                                  Dibatalkan
-                                </Badge>
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-destructive/10 text-destructive border border-destructive/20">
+                                  <span className="size-1.5 rounded-full bg-destructive shrink-0" aria-hidden="true" />
+                                  <span>Dibatalkan</span>
+                                </span>
                               )}
                             </>
                           )}
                         </TableCell>
 
-                        <TableCell className="text-right">
+                        <TableCell className="px-4 py-3.5 text-right">
                           {slot.isPast ? (
                             <span className="text-xs text-muted-foreground/70 italic select-none">
                               {slot.status === "booked" ? "Sesi Selesai" : "Waktu Terlewat"}
@@ -466,14 +484,17 @@ export default function CounselorSchedulesClient({
                                 setSlotToCancel(slot)
                                 setIsCancelModalOpen(true)
                               }}
-                              className="text-xs h-8 text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5 cursor-pointer"
+                              className="text-xs h-8 text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5 cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                             >
-                              <Trash2 className="size-3.5" />
+                              <Trash2 className="size-3.5" aria-hidden="true" />
                               <span>Batalkan</span>
                             </Button>
                           ) : (
-                            <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground" title={slot.cancelRestrictionReason}>
-                              <Lock className="size-3" />
+                            <div
+                              className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground"
+                              title={slot.cancelRestrictionReason}
+                            >
+                              <Lock className="size-3 text-muted-foreground" aria-hidden="true" />
                               <span>{slot.status === "cancelled" ? "Nonaktif" : "Terkunci"}</span>
                             </div>
                           )}
@@ -509,6 +530,15 @@ export default function CounselorSchedulesClient({
                 <span>{formError}</span>
               </div>
             )}
+
+            {/* Context Guidance Banner */}
+            <div className="p-3 rounded-lg bg-muted/40 border border-border/60 text-xs text-muted-foreground flex items-start gap-2.5">
+              <Info className="size-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="flex flex-col gap-0.5">
+                <span className="font-medium text-foreground">Alokasi Waktu 90 Menit & Proteksi Jadwal</span>
+                <span>Waktu selesai dihitung otomatis (+90m). Sistem secara mandiri mencegah tabrakan slot pada jam yang sama.</span>
+              </div>
+            </div>
 
             {/* Input Tanggal */}
             <Field>

@@ -26,6 +26,28 @@ export async function getAuthenticatedCounselor(
     const cookieStore = await cookies()
     const demoRole = cookieStore.get("solulu_demo_role")?.value
     if (demoRole === "counselor") {
+      const demoCounselorId = cookieStore.get("solulu_demo_counselor_id")?.value
+      if (demoCounselorId && UUID_REGEX.test(demoCounselorId)) {
+        try {
+          const found = await db
+            .select()
+            .from(counselors)
+            .where(eq(counselors.id, demoCounselorId))
+            .limit(1)
+
+          if (found.length > 0) {
+            return {
+              id: `demo-${found[0].id}`,
+              counselorId: found[0].id,
+              app_metadata: { role: "counselor" },
+              user_metadata: { role: "counselor", full_name: found[0].fullName },
+            }
+          }
+        } catch {
+          // fallback to default
+        }
+      }
+
       return {
         id: "demo-counselor-id",
         counselorId: "e28eb17e-b7cd-43bc-8a30-d67a221342f3", // Sarah Annisa (DB UUID)
@@ -117,5 +139,47 @@ export async function resolveCounselorId(auth: CounselorAuthContext): Promise<st
     return any.length > 0 ? any[0].id : (auth.counselorId || "c-1")
   } catch {
     return auth.counselorId || "c-1"
+  }
+}
+
+/**
+ * Switches the active demo counselor identity for testing and simulation.
+ */
+export async function switchDemoCounselorAction(counselorId: string) {
+  const cookieStore = await cookies()
+  cookieStore.set("solulu_demo_role", "counselor", {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24,
+  })
+  cookieStore.set("solulu_demo_counselor_id", counselorId, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24,
+  })
+  return { success: true }
+}
+
+/**
+ * Returns available real counselors in the database for the switcher dropdown.
+ */
+export async function getCounselorsListForSwitchAction() {
+  try {
+    const rows = await db
+      .select({
+        id: counselors.id,
+        fullName: counselors.fullName,
+        title: counselors.title,
+        counselorType: counselors.counselorType,
+      })
+      .from(counselors)
+      .where(eq(counselors.isActive, true))
+      .orderBy(counselors.fullName)
+
+    return { success: true, data: rows }
+  } catch (err: any) {
+    return { success: false, error: err.message, data: [] }
   }
 }

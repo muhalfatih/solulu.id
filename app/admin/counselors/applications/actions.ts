@@ -10,6 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import { reviewApplicationInputSchema, type ReviewApplicationInput } from "@/lib/validations/counselor-application"
 import { upsertStoreCounselor } from "@/lib/counselor/registry"
+import { sendCounselorWelcomeCredentialsEmail } from "@/lib/fulfillment/emails"
 import { MOCK_APPLICANTS } from "@/app/admin/mock-data"
 
 export interface AdminAuthContext {
@@ -201,8 +202,8 @@ export async function getApplicationDocumentUrlAction(
 
 /**
  * Reviews a counselor application: Approve or Reject.
- * On approval: triggers Supabase Auth invitation email, creates counselor table record, updates application status.
- * Gracefully handles Supabase Auth 4/hour rate limits.
+ * On approval: sets up credentials directly in Supabase Auth, updates existing user role if already registered,
+ * creates/updates counselor table record, dispatches welcome credentials email via Resend, and returns credentials for WhatsApp copy.
  */
 export async function reviewCounselorApplicationAction(
   input: ReviewApplicationInput,
@@ -210,8 +211,10 @@ export async function reviewCounselorApplicationAction(
     currentUser?: AdminAuthContext | null
     fetchApplicationFn?: (id: string) => Promise<any>
     inviteUserFn?: (email: string, metadata: any) => Promise<{ data: any; error: any }>
+    createUserFn?: (params: any) => Promise<{ data: any; error: any }>
     insertCounselorFn?: (record: any) => Promise<any>
     updateApplicationFn?: (id: string, update: any) => Promise<any>
+    sendEmailFn?: (payload: any) => Promise<any>
   }
 ) {
   const admin = await getAuthenticatedAdmin(options?.currentUser)
@@ -226,11 +229,11 @@ export async function reviewCounselorApplicationAction(
   if (!parsed.success) {
     return {
       success: false,
-      error: "Parameter review aplikasi tidak valid.",
+      error: parsed.error.issues[0]?.message || "Parameter review aplikasi tidak valid.",
     }
   }
 
-  const { applicationId, status, rejectionReason, title } = parsed.data
+  const { applicationId, status, rejectionReason, title, initialPassword } = parsed.data
 
   try {
     const fetchApplication =
@@ -291,46 +294,141 @@ export async function reviewCounselorApplicationAction(
     }
 
     // Handle Approval
-    const inviteUser =
-      options?.inviteUserFn ||
-      (async (email: string, metadata: any) => {
-        const supabaseAdmin = createAdminClient()
-        return supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-          data: metadata,
-        })
+    // 1. Determine temporary password
+    const generateSecurePassword = () => {
+      const chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*"
+      let pwd = "Sol"
+      for (let i = 0; i < 9; i++) {
+        pwd += chars.charAt(Math.floor(Math.random() * chars.length))
+      }
+      return pwd + "26!"
+    }
+    const finalPassword = initialPassword?.trim() || generateSecurePassword()
+
+    let authUserId: string | null = null
+
+    // Backward compatibility for existing unit test suites that supply inviteUserFn
+    if (options?.inviteUserFn) {
+      const inviteResult = await options.inviteUserFn(application.email, {
+        role: "counselor",
+        full_name: application.fullName,
+        counselor_type: application.counselorType,
       })
 
-    const inviteResult = await inviteUser(application.email, {
-      role: "counselor",
-      full_name: application.fullName,
-      counselor_type: application.counselorType,
-    })
+      if (inviteResult.error) {
+        const err = inviteResult.error
+        const errorMsg = (err.message || "").toLowerCase()
+        const isRateLimit =
+          err.status === 429 ||
+          errorMsg.includes("rate limit") ||
+          errorMsg.includes("over_email_send_rate_limit") ||
+          errorMsg.includes("too many requests")
 
-    if (inviteResult.error) {
-      const err = inviteResult.error
-      const errorMsg = (err.message || "").toLowerCase()
-      const isRateLimit =
-        err.status === 429 ||
-        errorMsg.includes("rate limit") ||
-        errorMsg.includes("over_email_send_rate_limit") ||
-        errorMsg.includes("too many requests")
+        if (isRateLimit) {
+          return {
+            success: false,
+            error:
+              "Batas pengiriman email Supabase (4 undangan per jam) telah tercapai. Harap tunggu beberapa saat sebelum menyetujui akun ini.",
+            isRateLimit: true,
+          }
+        }
 
-      if (isRateLimit) {
         return {
           success: false,
-          error:
-            "Batas pengiriman email Supabase (4 undangan per jam) telah tercapai. Harap tunggu beberapa saat sebelum menyetujui akun ini.",
-          isRateLimit: true,
+          error: `Gagal mengirim undangan akun konselor: ${err.message}`,
         }
       }
 
-      return {
-        success: false,
-        error: `Gagal mengirim undangan akun konselor: ${err.message}`,
+      authUserId = inviteResult.data?.user?.id
+    } else if (options?.createUserFn) {
+      const authRes = await options.createUserFn({
+        email: application.email,
+        password: finalPassword,
+        email_confirm: true,
+        user_metadata: {
+          role: "counselor",
+          full_name: application.fullName,
+          counselor_type: application.counselorType,
+        },
+        app_metadata: {
+          role: "counselor",
+        },
+      })
+      if (authRes.error) {
+        return {
+          success: false,
+          error: `Gagal membuat akun login konselor: ${authRes.error.message}`,
+        }
+      }
+      authUserId = authRes.data?.user?.id
+    } else {
+      // Production path: Create user directly or upgrade existing user in Supabase Auth
+      const supabaseAdmin = createAdminClient()
+      const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: application.email,
+        password: finalPassword,
+        email_confirm: true,
+        user_metadata: {
+          role: "counselor",
+          full_name: application.fullName,
+          counselor_type: application.counselorType,
+        },
+        app_metadata: {
+          role: "counselor",
+        },
+      })
+
+      if (createError) {
+        const errLower = (createError.message || "").toLowerCase()
+        // If email already registered, update existing user role and password
+        if (
+          errLower.includes("already registered") ||
+          errLower.includes("already exists") ||
+          createError.status === 422
+        ) {
+          try {
+            const { data: listData } = await supabaseAdmin.auth.admin.listUsers()
+            const existingUser = listData?.users?.find(
+              (u) => u.email?.toLowerCase() === application.email.toLowerCase()
+            )
+            if (existingUser) {
+              await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+                password: finalPassword,
+                user_metadata: {
+                  ...existingUser.user_metadata,
+                  role: "counselor",
+                  full_name: application.fullName,
+                  counselor_type: application.counselorType,
+                },
+                app_metadata: {
+                  ...existingUser.app_metadata,
+                  role: "counselor",
+                },
+              })
+              authUserId = existingUser.id
+            } else {
+              return {
+                success: false,
+                error: `Email sudah terdaftar di sistem: ${createError.message}`,
+              }
+            }
+          } catch (updateErr: any) {
+            return {
+              success: false,
+              error: `Gagal memperbarui akun yang sudah ada: ${updateErr.message}`,
+            }
+          }
+        } else {
+          return {
+            success: false,
+            error: `Gagal membuat akun login konselor: ${createError.message}`,
+          }
+        }
+      } else {
+        authUserId = createData.user?.id
       }
     }
 
-    const authUserId = inviteResult.data?.user?.id
     if (!authUserId) {
       return {
         success: false,
@@ -338,7 +436,7 @@ export async function reviewCounselorApplicationAction(
       }
     }
 
-    // Create record in counselors table
+    // Create or update record in counselors table
     const defaultTitle =
       application.counselorType === "psychologist"
         ? "M.Psi., Psikolog"
@@ -347,6 +445,27 @@ export async function reviewCounselorApplicationAction(
     const insertCounselor =
       options?.insertCounselorFn ||
       (async (record: any) => {
+        const existingCounselor = await db
+          .select()
+          .from(counselors)
+          .where(eq(counselors.userId, authUserId!))
+          .limit(1)
+
+        if (existingCounselor.length > 0) {
+          const [updated] = await db
+            .update(counselors)
+            .set({
+              fullName: record.fullName,
+              title: record.title,
+              counselorType: record.counselorType,
+              bio: record.bio,
+              isActive: true,
+            })
+            .where(eq(counselors.id, existingCounselor[0].id))
+            .returning()
+          return updated
+        }
+
         const [counselor] = await db
           .insert(counselors)
           .values(record)
@@ -384,6 +503,20 @@ export async function reviewCounselorApplicationAction(
       isActive: true,
     })
 
+    // Dispatch welcome email with credentials via Resend
+    const sendWelcomeEmail =
+      options?.sendEmailFn || sendCounselorWelcomeCredentialsEmail
+    try {
+      await sendWelcomeEmail({
+        counselorEmail: application.email,
+        counselorName: application.fullName,
+        temporaryPassword: finalPassword,
+        counselorType: application.counselorType,
+      })
+    } catch (mailErr) {
+      console.error("Gagal mengirim email kredensial konselor:", mailErr)
+    }
+
     try {
       revalidatePath("/admin/counselors/applications")
       revalidatePath("/admin/counselors")
@@ -394,8 +527,14 @@ export async function reviewCounselorApplicationAction(
 
     return {
       success: true,
-      message: `Aplikasi ${application.fullName} berhasil disetujui. Undangan aktivasi telah dikirimkan ke ${application.email}.`,
+      message: `Aplikasi ${application.fullName} berhasil disetujui. Kredensial akun telah aktif.`,
       counselorId: newCounselor?.id,
+      credentials: {
+        email: application.email,
+        password: finalPassword,
+        fullName: application.fullName,
+        phone: application.phone || "",
+      },
     }
   } catch (err: any) {
     return {
