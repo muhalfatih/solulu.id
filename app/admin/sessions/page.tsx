@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import type { BookingSession } from "../mock-data"
+import type { BookingSession } from "@/lib/types/admin"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Clock,

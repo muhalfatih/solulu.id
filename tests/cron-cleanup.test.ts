@@ -144,7 +144,7 @@ describe("Cron Cleanup & Auto-Archive Worker (Issue #10 / Solulu v1)", () => {
     })
 
     it("returns HTTP 200 with data when cleanup executes successfully", async () => {
-      const { handleCronRequest } = await import("@/app/api/cron/cleanup-slots/route")
+      const { handleCronRequest } = await import("@/lib/cron/handler")
 
       const req = new Request("http://localhost:3000/api/cron/cleanup-slots", {
         method: "POST",

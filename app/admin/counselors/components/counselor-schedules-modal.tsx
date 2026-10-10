@@ -13,11 +13,15 @@ import {
   Lock,
   RefreshCw,
   Loader2,
-  ArrowLeft,
+  Filter,
+  Check,
+  ShieldCheck,
+  TableProperties,
+  Sparkles,
+  AlertTriangle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -46,6 +50,7 @@ import {
   getWIBDateString,
   getMaxBookableDateString,
   parseTimeToMinutes,
+  isTimeRangeOverlapping,
 } from "@/lib/schedules/concurrency"
 
 interface CounselorScheduleModalProps {
@@ -69,6 +74,37 @@ const PRESET_START_TIMES = [
   "20:30",
 ]
 
+function formatIndonesianDateLabel(dateStr: string): string {
+  try {
+    const [year, month, day] = dateStr.split("-").map(Number)
+    if (!year || !month || !day) return dateStr
+    const date = new Date(year, month - 1, day)
+    return date.toLocaleDateString("id-ID", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    })
+  } catch {
+    return dateStr
+  }
+}
+
+function formatIndonesianDateShort(dateStr: string): string {
+  try {
+    const [year, month, day] = dateStr.split("-").map(Number)
+    if (!year || !month || !day) return dateStr
+    const date = new Date(year, month - 1, day)
+    return date.toLocaleDateString("id-ID", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    })
+  } catch {
+    return dateStr
+  }
+}
+
 export function CounselorSchedulesModal({
   counselor,
   isOpen,
@@ -79,7 +115,12 @@ export function CounselorSchedulesModal({
   const [isLoading, setIsLoading] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
-  const [activeTab, setActiveTab] = React.useState<"list" | "add">("list")
+  const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(null)
+
+  // Layout presentation: "workbench" (Dual-pane) vs "table" (Full-width audit view)
+  const [viewMode, setViewMode] = React.useState<"workbench" | "table">("workbench")
+  // Mobile tab toggle when in small screen (< md)
+  const [mobileTab, setMobileTab] = React.useState<"composer" | "slots">("composer")
 
   // Creation form date bounds (WIB)
   const nowWIB = React.useMemo(() => getNowWIB(), [])
@@ -89,6 +130,18 @@ export function CounselorSchedulesModal({
   const tomorrowStr = React.useMemo(() => {
     const d = new Date()
     d.setDate(d.getDate() + 1)
+    return getWIBDateString(d)
+  }, [])
+
+  const dayAfterTomorrowStr = React.useMemo(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 2)
+    return getWIBDateString(d)
+  }, [])
+
+  const threeDaysStr = React.useMemo(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 3)
     return getWIBDateString(d)
   }, [])
 
@@ -125,29 +178,100 @@ export function CounselorSchedulesModal({
   React.useEffect(() => {
     if (isOpen && counselor?.id) {
       loadSlots()
-      setActiveTab("list")
+      setConfirmDeleteId(null)
+      setFormError(null)
     }
   }, [isOpen, counselor?.id, loadSlots])
 
-  // Computed preview of slots to be added
-  const previewProposedSlots = React.useMemo(() => {
-    return selectedTimes
-      .slice()
-      .sort()
-      .map((st) => ({
-        startTime: st,
-        endTime: computeEndTime(st),
-        timeRange: formatTimeRange(st, computeEndTime(st)),
-      }))
-  }, [selectedTimes])
+  // Distinct dates in loaded slots
+  const distinctDates = React.useMemo(() => {
+    const set = new Set<string>()
+    slots.forEach((s) => set.add(s.date))
+    return Array.from(set).sort()
+  }, [slots])
+
+  // Filtered slots for right panel
+  const displayedSlots = React.useMemo(() => {
+    if (viewDateFilter === "all") return slots
+    return slots.filter((s) => s.date === viewDateFilter)
+  }, [slots, viewDateFilter])
+
+  // Group slots by date for intuitive scanning
+  const groupedSlots = React.useMemo(() => {
+    const groups: Record<string, AdminCounselorSlotView[]> = {}
+    displayedSlots.forEach((slot) => {
+      if (!groups[slot.date]) groups[slot.date] = []
+      groups[slot.date].push(slot)
+    })
+    // Sort slots in each date chronologically by start time
+    Object.keys(groups).forEach((date) => {
+      groups[date].sort((a, b) => parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime))
+    })
+    return groups
+  }, [displayedSlots])
+
+  // Active slots existing on the selected creation date
+  const existingSlotsOnSelectedDate = React.useMemo(() => {
+    return slots.filter((s) => s.date === selectedDate && s.status !== "cancelled")
+  }, [slots, selectedDate])
+
+  // Concurrency & overlap intelligence for preset buttons
+  const getPresetStatus = React.useCallback(
+    (time: string) => {
+      const isTimePassedToday =
+        selectedDate === todayWIB && parseTimeToMinutes(time) <= nowWIB.timeMinutes
+      if (isTimePassedToday) {
+        return { isPassed: true, isExisting: false, hasOverlap: false, label: "Terlewat" }
+      }
+
+      const isExactExisting = existingSlotsOnSelectedDate.some((s) => s.startTime === time)
+      if (isExactExisting) {
+        return { isPassed: false, isExisting: true, hasOverlap: false, label: "Terdaftar" }
+      }
+
+      const endTime = computeEndTime(time)
+      const isOverlapping = existingSlotsOnSelectedDate.some((s) =>
+        isTimeRangeOverlapping(s.startTime, s.endTime, time, endTime)
+      )
+      if (isOverlapping) {
+        return { isPassed: false, isExisting: false, hasOverlap: true, label: "Bentrok" }
+      }
+
+      return { isPassed: false, isExisting: false, hasOverlap: false, label: null }
+    },
+    [selectedDate, todayWIB, nowWIB.timeMinutes, existingSlotsOnSelectedDate]
+  )
 
   const togglePresetTime = (timeStr: string) => {
     setFormError(null)
+    const status = getPresetStatus(timeStr)
+    if (status.isPassed || status.isExisting || status.hasOverlap) return
+
     if (selectedTimes.includes(timeStr)) {
       setSelectedTimes(selectedTimes.filter((t) => t !== timeStr))
     } else {
       setSelectedTimes([...selectedTimes, timeStr])
     }
+  }
+
+  const handleSelectQuickGroup = (group: "pagi" | "sore" | "all" | "clear") => {
+    setFormError(null)
+    if (group === "clear") {
+      setSelectedTimes([])
+      return
+    }
+
+    let candidates: string[] = []
+    if (group === "pagi") candidates = ["09:00", "11:00"]
+    if (group === "sore") candidates = ["15:30", "19:00", "20:30"]
+    if (group === "all") candidates = PRESET_START_TIMES
+
+    const validCandidates = candidates.filter((time) => {
+      const status = getPresetStatus(time)
+      return !status.isPassed && !status.isExisting && !status.hasOverlap
+    })
+
+    setSelectedTimes(validCandidates)
   }
 
   const handleAddCustomTime = () => {
@@ -161,7 +285,16 @@ export function CounselorSchedulesModal({
       return
     }
 
-    setSelectedTimes([...selectedTimes, customTime])
+    const endTime = computeEndTime(customTime)
+    const overlaps = existingSlotsOnSelectedDate.some((s) =>
+      isTimeRangeOverlapping(s.startTime, s.endTime, customTime, endTime)
+    )
+    if (overlaps) {
+      setFormError(`Jam ${customTime} bentrok dengan slot yang sudah ada pada tanggal ini.`)
+      return
+    }
+
+    setSelectedTimes([...selectedTimes, customTime].sort())
     setCustomTime("")
     setFormError(null)
   }
@@ -191,10 +324,9 @@ export function CounselorSchedulesModal({
           "success",
           `Berhasil membuka ${res.count} slot jadwal untuk ${counselor.name}.`
         )
-        // Reset selections
+        // Reset selections & reload
         setSelectedTimes(["09:00", "19:00"])
         await loadSlots()
-        setActiveTab("list")
         if (onSlotsUpdated) onSlotsUpdated()
       }
     } catch (err: any) {
@@ -205,9 +337,8 @@ export function CounselorSchedulesModal({
   }
 
   const handleDeleteSlot = async (slotId: string, timeRange: string) => {
-    if (!confirm(`Hapus slot waktu ${timeRange} ini?`)) return
-
     setDeletingId(slotId)
+    setConfirmDeleteId(null)
     try {
       const res = await deleteCounselorSlotAdminAction(slotId)
       if (res.success) {
@@ -224,65 +355,67 @@ export function CounselorSchedulesModal({
     }
   }
 
-  // Filtered slot items
-  const distinctDates = React.useMemo(() => {
-    const set = new Set<string>()
-    slots.forEach((s) => set.add(s.date))
-    return Array.from(set).sort().reverse()
-  }, [slots])
-
-  const displayedSlots = React.useMemo(() => {
-    if (viewDateFilter === "all") return slots
-    return slots.filter((s) => s.date === viewDateFilter)
-  }, [slots, viewDateFilter])
-
   const availableCount = slots.filter((s) => s.status === "available").length
   const bookedCount = slots.filter((s) => s.status === "booked").length
   const reservedCount = slots.filter((s) => s.status === "reserved").length
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl w-full max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-card border-border rounded-xl shadow-xl">
-        {/* Header */}
-        <DialogHeader className="px-6 py-5 border-b border-border bg-muted/20 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div className="flex flex-col gap-1.5 text-left">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <div className="size-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
-                <CalendarIcon className="size-4" />
-              </div>
-              <DialogTitle className="text-base font-semibold text-foreground tracking-tight">
-                Kelola Slot Jadwal: {counselor?.name}
-              </DialogTitle>
-              {counselor?.type && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                  <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
-                  <span>{counselor.type === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"}</span>
-                </span>
-              )}
+      <DialogContent
+        showCloseButton={false}
+        className="w-full sm:max-w-4xl lg:max-w-[980px] h-[680px] max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden bg-card border border-border/80 rounded-xl shadow-2xl"
+      >
+        {/* Header - Clinical Precision & Operational Sanctuary */}
+        <DialogHeader className="px-5 py-3 border-b border-border/70 bg-muted/10 flex flex-row items-center justify-between gap-3 shrink-0 space-y-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="size-8 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-2xs">
+              <CalendarIcon className="size-4" />
             </div>
-            <DialogDescription className="text-xs text-muted-foreground leading-relaxed sm:pl-10.5">
-              Atur ketersediaan slot sesi konsultasi 90 menit. Sesi otomatis tayang di katalog publik bagi pasien.
-            </DialogDescription>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <DialogTitle className="text-sm font-semibold text-foreground tracking-tight truncate">
+                  Kelola Slot Jadwal: {counselor?.name}
+                </DialogTitle>
+                {counselor?.type && (
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                    <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                    <span>{counselor.type === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"}</span>
+                  </span>
+                )}
+              </div>
+              <DialogDescription className="text-[11px] text-muted-foreground truncate">
+                Sesi 90 menit • Concurrency Guard maks 2 Zoom Pro simultan se-platform
+              </DialogDescription>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 self-end sm:self-start">
+          <div className="flex items-center gap-1.5 shrink-0">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon-sm"
               onClick={loadSlots}
               disabled={isLoading}
-              title="Muat ulang jadwal"
-              className="size-8.5 rounded-md cursor-pointer hover:bg-muted"
+              title="Muat ulang data slot jadwal"
+              className="size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer"
             >
-              <RefreshCw className={`size-3.5 ${isLoading ? "animate-spin text-primary" : "text-muted-foreground"}`} />
+              <RefreshCw className={`size-3.5 ${isLoading ? "animate-spin text-primary" : ""}`} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={onClose}
+              className="size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer"
+              aria-label="Tutup dialog"
+            >
+              <X className="size-4" />
             </Button>
           </div>
         </DialogHeader>
 
-        {/* Toast Alert */}
+        {/* Toast Alert Banner */}
         {toastMessage && (
           <div
-            className={`px-6 py-3 text-xs flex items-center justify-between border-b ${
+            className={`px-5 py-2 text-xs flex items-center justify-between border-b shrink-0 ${
               toastMessage.type === "success"
                 ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
                 : "bg-destructive/10 text-destructive border-destructive/20"
@@ -290,202 +423,661 @@ export function CounselorSchedulesModal({
           >
             <div className="flex items-center gap-2">
               {toastMessage.type === "success" ? (
-                <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               ) : (
-                <AlertCircle className="size-4 shrink-0 text-destructive" />
+                <AlertCircle className="size-3.5 shrink-0 text-destructive" />
               )}
-              <span className="font-medium">{toastMessage.text}</span>
+              <span className="font-medium text-[11px]">{toastMessage.text}</span>
             </div>
             <button
               onClick={() => setToastMessage(null)}
               className="text-xs opacity-70 hover:opacity-100 p-0.5 cursor-pointer rounded transition-opacity"
               aria-label="Tutup notifikasi"
             >
-              <X className="size-3.5" />
+              <X className="size-3" />
             </button>
           </div>
         )}
 
-        {/* Navigation Tabs & Telemetry Ribbon */}
-        <div className="px-6 py-3 border-b border-border bg-background flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <Tabs
-            value={activeTab}
-            onValueChange={(val) => setActiveTab(val as "list" | "add")}
-            className="w-full sm:w-auto"
-          >
-            <TabsList className="h-9 p-1 bg-muted/60 border border-border rounded-lg">
-              <TabsTrigger
-                value="list"
-                className="text-xs px-3.5 py-1 font-medium gap-2 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer"
-              >
-                <span>Daftar Slot Praktik</span>
-                <span className="px-1.5 py-0.5 rounded bg-muted text-foreground text-xs font-mono font-medium tabular-nums">
-                  {slots.length}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="add"
-                className="text-xs px-3.5 py-1 font-medium gap-1.5 rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-2xs cursor-pointer"
-              >
-                <Plus className="size-3.5" />
-                <span>Buka Slot Baru</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {/* Telemetry Status Counters */}
-          <div className="flex items-center gap-2 text-xs tabular-nums flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-              <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+        {/* Operational Telemetry & Control Bar */}
+        <div className="px-5 py-2 border-b border-border/60 bg-muted/20 flex flex-wrap items-center justify-between gap-2 shrink-0">
+          {/* Live Telemetry Counts */}
+          <div className="flex items-center gap-2 text-xs tabular-nums">
+            <span className="text-[11px] font-medium text-muted-foreground mr-0.5">Status:</span>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
               <span>{availableCount} Tersedia</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary border border-primary/20">
-              <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
+              <span className="size-1.5 rounded-full bg-primary" />
               <span>{bookedCount} Dipesan</span>
             </span>
             {reservedCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" aria-hidden="true" />
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
                 <span>{reservedCount} Hold</span>
               </span>
             )}
+            <span className="text-[11px] text-muted-foreground font-mono ml-1">
+              ({slots.length} total)
+            </span>
+          </div>
+
+          {/* Desktop View Switcher & Mobile Tabs */}
+          <div className="flex items-center gap-2">
+            {/* Small Screen Toggle (< md) */}
+            <div className="flex md:hidden items-center p-0.5 bg-muted rounded-md border border-border">
+              <button
+                type="button"
+                onClick={() => setMobileTab("composer")}
+                className={`px-2.5 py-1 text-[11px] font-medium rounded transition-colors cursor-pointer flex items-center gap-1 ${
+                  mobileTab === "composer"
+                    ? "bg-background text-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Plus className="size-3" />
+                <span>Buka Slot</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileTab("slots")}
+                className={`px-2.5 py-1 text-[11px] font-medium rounded transition-colors cursor-pointer ${
+                  mobileTab === "slots"
+                    ? "bg-background text-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Daftar ({slots.length})
+              </button>
+            </div>
+
+            {/* Desktop View Toggle */}
+            <div className="hidden md:flex items-center gap-1 p-0.5 bg-muted/60 border border-border/60 rounded-md">
+              <button
+                type="button"
+                onClick={() => setViewMode("workbench")}
+                className={`px-2.5 py-0.5 text-[11px] font-medium rounded transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  viewMode === "workbench"
+                    ? "bg-background text-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="Tampilan 2-kolom: Composer & Live Feed"
+              >
+                <Sparkles className="size-3 text-primary" />
+                <span>Workbench</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                className={`px-2.5 py-0.5 text-[11px] font-medium rounded transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  viewMode === "table"
+                    ? "bg-background text-foreground shadow-2xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="Tampilan audit tabel penuh"
+              >
+                <TableProperties className="size-3 text-muted-foreground" />
+                <span>Tabel Penuh</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Modal Scrollable Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          {/* TAB 1: DAFTAR SLOT PRAKTIK */}
-          {activeTab === "list" && (
-            <div className="flex flex-col gap-4">
-              {/* Table Toolbar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Filter Tanggal:
-                  </span>
-                  {distinctDates.length > 1 ? (
-                    <select
-                      value={viewDateFilter}
-                      onChange={(e) => setViewDateFilter(e.target.value)}
-                      className="h-8.5 text-xs rounded-md border border-border bg-background px-3 font-mono cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
-                    >
-                      <option value="all">Semua Tanggal ({slots.length})</option>
-                      {distinctDates.map((d) => (
-                        <option key={d} value={d}>
-                          {d} ({slots.filter((s) => s.date === d).length} slot)
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className="text-xs font-mono font-medium text-foreground px-2.5 py-1 rounded-md bg-muted/50 border border-border">
-                      {distinctDates[0] ? `${distinctDates[0]} (${slots.length} slot)` : "Semua Jadwal"}
-                    </span>
-                  )}
-                </div>
-
-                <Button
-                  size="sm"
-                  onClick={() => setActiveTab("add")}
-                  className="gap-1.5 text-xs h-8.5 px-3.5 font-medium cursor-pointer"
-                >
-                  <Plus className="size-3.5" />
-                  <span>Buka Slot Baru</span>
-                </Button>
-              </div>
-
-              {/* Slots Table Card */}
-              <div className="rounded-xl border border-border overflow-hidden bg-background shadow-2xs">
-                {displayedSlots.length === 0 ? (
-                  <div className="py-16 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-3">
-                    <div className="size-12 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground/60">
-                      <CalendarIcon className="size-6" />
-                    </div>
-                    <div className="flex flex-col gap-1 max-w-sm">
-                      <span className="text-sm font-semibold text-foreground">Belum ada slot waktu terdaftar</span>
-                      <span className="text-xs text-muted-foreground leading-relaxed">
-                        Buka slot sesi praktik agar pasien dapat menjadwalkan konsultasi melalui katalog publik.
+        {/* MAIN BODY AREA */}
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          {/* VIEW MODE 1: WORKBENCH (DUAL-PANE COMPACT COCKPIT) */}
+          {viewMode === "workbench" ? (
+            <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x divide-border/70 overflow-hidden">
+              {/* LEFT PANE: COMPOSER (340px / 5 cols) */}
+              <div
+                className={`md:col-span-5 flex-col flex-1 h-full min-h-0 bg-muted/5 overflow-y-auto ${
+                  mobileTab === "composer" ? "flex" : "hidden md:flex"
+                }`}
+              >
+                <form onSubmit={handleCreateSlots} className="p-3.5 flex flex-col justify-between min-h-full gap-3">
+                  <div className="flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between pb-1 border-b border-border/50">
+                      <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                        <Plus className="size-3.5 text-primary" />
+                        <span>Buka Slot Praktik Baru</span>
+                      </span>
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        +90 Menit/Sesi
                       </span>
                     </div>
+
+                    {formError && (
+                      <div className="p-2 rounded-md bg-destructive/10 text-destructive text-[11px] flex items-center gap-2 border border-destructive/20">
+                        <AlertCircle className="size-3.5 shrink-0" />
+                        <span className="font-medium leading-tight">{formError}</span>
+                      </div>
+                    )}
+
+                    {/* 1. Date Selector with Fast relative chips */}
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="slot-date-wb" className="text-[11px] font-semibold text-foreground">
+                          Tanggal Praktik
+                        </label>
+                        <span className="text-[10px] text-muted-foreground tabular-nums font-mono">
+                          Maks {maxDateWIB}
+                        </span>
+                      </div>
+
+                      <Input
+                        id="slot-date-wb"
+                        type="date"
+                        min={todayWIB}
+                        max={maxDateWIB}
+                        value={selectedDate}
+                        onChange={(e) => {
+                          setSelectedDate(e.target.value)
+                          setFormError(null)
+                        }}
+                        required
+                        className="h-7.5 text-xs bg-background tabular-nums font-mono rounded-md"
+                      />
+
+                      {/* Relative Date Shortcut Pills */}
+                      <div className="grid grid-cols-3 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDate(tomorrowStr)}
+                          className={`text-[11px] font-medium py-1 px-1 rounded-md border text-center transition-all cursor-pointer ${
+                            selectedDate === tomorrowStr
+                              ? "bg-primary text-primary-foreground border-primary font-semibold shadow-2xs"
+                              : "bg-background text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
+                          }`}
+                        >
+                          Besok
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDate(dayAfterTomorrowStr)}
+                          className={`text-[11px] font-medium py-1 px-1 rounded-md border text-center transition-all cursor-pointer ${
+                            selectedDate === dayAfterTomorrowStr
+                              ? "bg-primary text-primary-foreground border-primary font-semibold shadow-2xs"
+                              : "bg-background text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
+                          }`}
+                        >
+                          Lusa
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDate(threeDaysStr)}
+                          className={`text-[11px] font-medium py-1 px-1 rounded-md border text-center transition-all cursor-pointer ${
+                            selectedDate === threeDaysStr
+                              ? "bg-primary text-primary-foreground border-primary font-semibold shadow-2xs"
+                              : "bg-background text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
+                          }`}
+                        >
+                          +3 Hari
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 2. Session Start Times Matrix with Realtime Conflict Awareness */}
+                    <div className="flex flex-col gap-1.5 pt-1.5 border-t border-border/50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-foreground">
+                          Pilih Jam Mulai Sesi
+                        </span>
+                        {/* Batch Shortcuts */}
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectQuickGroup("pagi")}
+                            className="px-1.5 py-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer font-medium"
+                          >
+                            Pagi
+                          </button>
+                          <span className="text-muted-foreground/30">•</span>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectQuickGroup("sore")}
+                            className="px-1.5 py-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer font-medium"
+                          >
+                            Malam
+                          </button>
+                          <span className="text-muted-foreground/30">•</span>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectQuickGroup("all")}
+                            className="px-1.5 py-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer font-medium"
+                          >
+                            Semua
+                          </button>
+                          <span className="text-muted-foreground/30">•</span>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectQuickGroup("clear")}
+                            className="px-1.5 py-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-muted/60 cursor-pointer font-medium"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {PRESET_START_TIMES.map((time) => {
+                          const isSelected = selectedTimes.includes(time)
+                          const endStr = computeEndTime(time)
+                          const status = getPresetStatus(time)
+                          const isDisabled = status.isPassed || status.isExisting || status.hasOverlap
+
+                          return (
+                            <button
+                              key={time}
+                              type="button"
+                              disabled={isDisabled}
+                              onClick={() => togglePresetTime(time)}
+                              title={status.hasOverlap ? "Bentrok dengan sesi lain pada tanggal ini" : undefined}
+                              className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-md border text-xs transition-all select-none relative ${
+                                isDisabled
+                                  ? status.hasOverlap
+                                    ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 cursor-not-allowed"
+                                    : "bg-muted/40 text-muted-foreground/45 border-border/40 cursor-not-allowed"
+                                  : isSelected
+                                  ? "bg-primary text-primary-foreground border-primary font-medium shadow-2xs ring-1 ring-primary/40 cursor-pointer"
+                                  : "bg-background text-foreground border-border hover:bg-muted/60 cursor-pointer"
+                              }`}
+                            >
+                              <div className="flex items-center gap-1">
+                                <span className="font-mono font-bold text-xs tabular-nums">{time}</span>
+                                {isSelected && <Check className="size-3 text-primary-foreground" />}
+                              </div>
+                              <span
+                                className={`text-[10px] tabular-nums font-mono ${
+                                  status.hasOverlap
+                                    ? "text-amber-700 dark:text-amber-400 font-semibold"
+                                    : isDisabled
+                                    ? "text-muted-foreground/40"
+                                    : isSelected
+                                    ? "text-primary-foreground/80"
+                                    : "text-muted-foreground"
+                                }`}
+                              >
+                                {status.label ? status.label : `– ${endStr}`}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+
+                      {/* Integrated Custom Time Input */}
+                      <div className="pt-1.5 flex items-center justify-between gap-2">
+                        <div className="flex flex-col">
+                          <label htmlFor="custom-time-input-wb" className="text-[10px] font-medium text-muted-foreground">
+                            Jam Kustom (HH:mm)
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Input
+                            id="custom-time-input-wb"
+                            type="text"
+                            placeholder="14:15"
+                            value={customTime}
+                            onChange={(e) => setCustomTime(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault()
+                                handleAddCustomTime()
+                              }
+                            }}
+                            className="w-20 h-7 text-xs bg-background text-center font-mono tabular-nums rounded-md"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAddCustomTime}
+                            className="h-7 px-2 text-xs cursor-pointer rounded-md shrink-0"
+                          >
+                            + Tambah
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. Summary & Submit Action (Cleanly anchored at bottom) */}
+                  <div className="pt-2 border-t border-border/50 flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>Total Slot Dipilih:</span>
+                      <span className="font-mono font-semibold text-foreground tabular-nums">
+                        {selectedTimes.length} Sesi ({selectedTimes.length * 90} Mnt)
+                      </span>
+                    </div>
+
                     <Button
+                      type="submit"
                       size="sm"
-                      onClick={() => setActiveTab("add")}
-                      className="mt-2 gap-2 text-xs h-8.5 px-4 font-medium cursor-pointer"
+                      disabled={isSubmitting || selectedTimes.length === 0}
+                      className="w-full h-8 px-3 text-xs font-medium gap-1.5 cursor-pointer rounded-md shadow-2xs"
                     >
-                      <Plus className="size-3.5" />
-                      <span>Buka Slot Pertama</span>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="size-3.5 animate-spin" />
+                          <span>Menyimpan Slot…</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="size-3.5" />
+                          <span>Buka {selectedTimes.length} Slot ({formatIndonesianDateShort(selectedDate)})</span>
+                        </>
+                      )}
                     </Button>
                   </div>
-                ) : (
+                </form>
+              </div>
+
+              {/* RIGHT PANE: LIVE SCHEDULE FEED & EXPLORER (7 cols) */}
+              <div
+                className={`md:col-span-7 flex flex-col flex-1 h-full min-h-0 bg-background overflow-hidden ${
+                  mobileTab === "slots" ? "flex" : "hidden md:flex"
+                }`}
+              >
+                {/* Date Filter & Explorer Toolbar */}
+                <div className="px-4 py-2 border-b border-border/60 bg-muted/10 flex flex-wrap items-center justify-between gap-1.5 shrink-0">
+                  <div className="flex items-center gap-1 flex-wrap max-w-full overflow-x-auto py-0.5">
+                    <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1 mr-0.5">
+                      <Filter className="size-3 text-muted-foreground/70" />
+                      <span>Filter:</span>
+                    </span>
+
+                    {/* Quick Date Pills */}
+                    <button
+                      type="button"
+                      onClick={() => setViewDateFilter("all")}
+                      className={`text-[11px] font-mono px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
+                        viewDateFilter === "all"
+                          ? "bg-primary text-primary-foreground border-primary font-medium shadow-2xs"
+                          : "bg-muted/40 text-muted-foreground border-border hover:bg-muted"
+                      }`}
+                    >
+                      Semua ({slots.length})
+                    </button>
+
+                    {distinctDates.map((date) => {
+                      const count = slots.filter((s) => s.date === date).length
+                      const isSelected = viewDateFilter === date
+                      return (
+                        <button
+                          key={date}
+                          type="button"
+                          onClick={() => setViewDateFilter(date)}
+                          className={`text-[11px] font-mono px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
+                            isSelected
+                              ? "bg-primary text-primary-foreground border-primary font-medium shadow-2xs"
+                              : "bg-muted/40 text-muted-foreground border-border hover:bg-muted"
+                          }`}
+                        >
+                          {formatIndonesianDateShort(date)} ({count})
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <span className="text-[10px] font-mono text-muted-foreground tabular-nums shrink-0">
+                    {displayedSlots.length} sesi aktif
+                  </span>
+                </div>
+
+                {/* Grouped Slot Feed Container */}
+                <div className="flex-1 min-h-0 overflow-y-auto p-3.5 flex flex-col gap-2.5">
+                  {displayedSlots.length === 0 ? (
+                    <div className="py-16 px-4 text-center text-xs text-muted-foreground flex flex-col items-center justify-center gap-2 my-auto">
+                      <div className="size-9 rounded-lg bg-muted/60 border border-border/80 flex items-center justify-center text-muted-foreground">
+                        <CalendarIcon className="size-4 text-muted-foreground/70" />
+                      </div>
+                      <div className="flex flex-col gap-0.5 max-w-xs">
+                        <span className="text-xs font-semibold text-foreground">
+                          {viewDateFilter === "all"
+                            ? "Belum ada slot waktu terdaftar"
+                            : `Tidak ada slot untuk ${formatIndonesianDateLabel(viewDateFilter)}`}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground leading-relaxed">
+                          Pilih tanggal dan jam di panel sebelah kiri untuk menambahkan slot konsultasi bagi konselor ini.
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    Object.keys(groupedSlots).map((date) => {
+                      const dateSlots = groupedSlots[date]
+
+                      return (
+                        <div key={date} className="shrink-0 rounded-lg border border-border/70 overflow-hidden bg-card shadow-2xs">
+                          {/* Date Header Strip */}
+                          <div className="px-3 py-1.5 bg-muted/40 border-b border-border/60 flex items-center justify-between">
+                            <span className="text-[11px] font-semibold text-foreground flex items-center gap-1.5 font-mono">
+                              <CalendarIcon className="size-3 text-primary" />
+                              <span>{formatIndonesianDateLabel(date)}</span>
+                            </span>
+                            <span className="text-[10px] font-mono font-medium text-muted-foreground tabular-nums">
+                              {dateSlots.length} Sesi
+                            </span>
+                          </div>
+
+                          {/* Slot Rows List */}
+                          <div className="divide-y divide-border/40">
+                            {dateSlots.map((s) => {
+                              const isDeleting = deletingId === s.id
+                              const isConfirming = confirmDeleteId === s.id
+
+                              return (
+                                <div
+                                  key={s.id}
+                                  className="px-3 py-2 flex items-center justify-between gap-2.5 hover:bg-muted/20 transition-colors"
+                                >
+                                  {/* Left: Time & 90m Indicator */}
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <Clock className="size-3.5 text-muted-foreground/70 shrink-0" />
+                                    <span className="text-xs font-mono font-semibold tabular-nums text-foreground">
+                                      {s.timeRange}
+                                    </span>
+                                    <span className="text-[10px] px-1 py-0.2 rounded bg-muted/60 text-muted-foreground font-mono">
+                                      90m
+                                    </span>
+                                  </div>
+
+                                  {/* Right: Status Pill & Delete Button */}
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {s.status === "available" ? (
+                                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                        <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                        <span>Tersedia</span>
+                                      </span>
+                                    ) : s.status === "booked" ? (
+                                      <span
+                                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20"
+                                        title={s.deleteRestrictionReason}
+                                      >
+                                        <span className="size-1.5 rounded-full bg-primary shrink-0" />
+                                        <span>Dipesan</span>
+                                      </span>
+                                    ) : s.status === "reserved" ? (
+                                      <span
+                                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
+                                        title={s.deleteRestrictionReason}
+                                      >
+                                        <span className="size-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                                        <span>Hold</span>
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted text-muted-foreground border border-border">
+                                        <span>Dibatalkan</span>
+                                      </span>
+                                    )}
+
+                                    {/* Action Button: Two-Step Confirm Delete */}
+                                    {s.canDelete ? (
+                                      isConfirming ? (
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteSlot(s.id, s.timeRange)}
+                                            disabled={isDeleting}
+                                            className="h-6 px-2 text-[11px] bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded font-medium cursor-pointer shadow-2xs"
+                                          >
+                                            {isDeleting ? "Hapus…" : "Yakin?"}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => setConfirmDeleteId(null)}
+                                            className="h-6 px-1.5 text-[11px] text-muted-foreground hover:bg-muted rounded cursor-pointer"
+                                          >
+                                            Batal
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() => setConfirmDeleteId(s.id)}
+                                          className="size-6.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors cursor-pointer"
+                                          title="Hapus slot jadwal ini"
+                                        >
+                                          <Trash2 className="size-3.5" />
+                                        </button>
+                                      )
+                                    ) : (
+                                      <span
+                                        className="size-6.5 flex items-center justify-center text-muted-foreground/50 cursor-help"
+                                        title={s.deleteRestrictionReason || "Slot tidak dapat dihapus"}
+                                      >
+                                        <Lock className="size-3" />
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* VIEW MODE 2: AUDIT TABLE VIEW (FULL WIDTH) */
+            <div className="flex-1 min-h-0 flex flex-col p-4 overflow-hidden">
+              <div className="flex items-center justify-between pb-3 shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-foreground">
+                    Audit Data Slot Jadwal
+                  </span>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    ({displayedSlots.length} baris)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={viewDateFilter}
+                    onChange={(e) => setViewDateFilter(e.target.value)}
+                    className="h-7 text-xs rounded border border-border bg-background px-2 font-mono cursor-pointer"
+                  >
+                    <option value="all">Semua Tanggal ({slots.length})</option>
+                    {distinctDates.map((d) => (
+                      <option key={d} value={d}>
+                        {formatIndonesianDateLabel(d)} ({slots.filter((s) => s.date === d).length})
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setViewMode("workbench")}
+                    className="h-7 px-2.5 text-xs font-medium cursor-pointer"
+                  >
+                    Buka Workbench
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border overflow-hidden bg-background shadow-2xs flex-1 min-h-0">
+                <div className="overflow-y-auto h-full">
                   <Table className="text-xs">
-                    <TableHeader>
-                      <TableRow className="bg-muted/30 hover:bg-muted/30 border-b border-border">
-                        <TableHead className="px-5 py-3 text-xs font-semibold text-muted-foreground">Tanggal</TableHead>
-                        <TableHead className="px-5 py-3 text-xs font-semibold text-muted-foreground">Waktu Sesi (90 Menit)</TableHead>
-                        <TableHead className="px-5 py-3 text-xs font-semibold text-muted-foreground">Status Slot</TableHead>
-                        <TableHead className="px-5 py-3 text-xs font-semibold text-muted-foreground text-right">Tindakan</TableHead>
+                    <TableHeader className="sticky top-0 bg-muted/80 backdrop-blur-xs z-10 border-b border-border">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="px-4 py-2.5 font-semibold text-muted-foreground w-44">
+                          Tanggal Praktik
+                        </TableHead>
+                        <TableHead className="px-4 py-2.5 font-semibold text-muted-foreground w-48">
+                          Jam Sesi (90 Mnt)
+                        </TableHead>
+                        <TableHead className="px-4 py-2.5 font-semibold text-muted-foreground w-36">
+                          Status
+                        </TableHead>
+                        <TableHead className="px-4 py-2.5 font-semibold text-muted-foreground text-right">
+                          Tindakan
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {displayedSlots.map((s) => {
                         const isDeleting = deletingId === s.id
+                        const isConfirming = confirmDeleteId === s.id
 
                         return (
-                          <TableRow key={s.id} className="border-b border-border last:border-b-0 hover:bg-muted/20 transition-colors">
-                            <TableCell className="px-5 py-3.5 font-mono text-foreground font-medium tabular-nums text-xs">
-                              {s.date}
+                          <TableRow key={s.id} className="border-b border-border last:border-b-0 hover:bg-muted/15">
+                            <TableCell className="px-4 py-2 font-mono font-medium tabular-nums text-xs">
+                              {formatIndonesianDateLabel(s.date)}
                             </TableCell>
-                            <TableCell className="px-5 py-3.5 font-mono text-foreground tabular-nums text-xs font-medium">
+                            <TableCell className="px-4 py-2 font-mono text-foreground tabular-nums text-xs font-medium">
                               {s.timeRange}
                             </TableCell>
-                            <TableCell className="px-5 py-3.5">
+                            <TableCell className="px-4 py-2">
                               {s.status === "available" ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                                  <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                  <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
                                   <span>Tersedia</span>
                                 </span>
                               ) : s.status === "booked" ? (
-                                <span
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
-                                  title={s.deleteRestrictionReason}
-                                >
-                                  <span className="size-1.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
                                   <span>Dipesan Pasien</span>
                                 </span>
-                              ) : s.status === "reserved" ? (
-                                <span
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
-                                  title={s.deleteRestrictionReason}
-                                >
-                                  <span className="size-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" aria-hidden="true" />
-                                  <span>Hold (17m)</span>
-                                </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
-                                  <span className="size-1.5 rounded-full bg-muted-foreground/60 shrink-0" aria-hidden="true" />
-                                  <span>Dibatalkan</span>
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                  <span>Hold</span>
                                 </span>
                               )}
                             </TableCell>
-                            <TableCell className="px-5 py-3.5 text-right">
+                            <TableCell className="px-4 py-2 text-right">
                               {s.canDelete ? (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDeleteSlot(s.id, s.timeRange)}
-                                  disabled={isDeleting}
-                                  className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 rounded-md cursor-pointer"
-                                  title="Hapus slot jadwal ini"
-                                >
-                                  <Trash2 className="size-3.5 mr-1" />
-                                  <span>{isDeleting ? "..." : "Hapus"}</span>
-                                </Button>
+                                isConfirming ? (
+                                  <div className="flex items-center justify-end gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteSlot(s.id, s.timeRange)}
+                                      disabled={isDeleting}
+                                      className="h-6 px-2 text-[11px] bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded font-medium cursor-pointer"
+                                    >
+                                      {isDeleting ? "Hapus…" : "Yakin?"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setConfirmDeleteId(null)}
+                                      className="h-6 px-1.5 text-[11px] text-muted-foreground hover:bg-muted rounded cursor-pointer"
+                                    >
+                                      Batal
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setConfirmDeleteId(s.id)}
+                                    className="h-6 px-2 text-[11px] text-destructive hover:bg-destructive/10 rounded cursor-pointer"
+                                  >
+                                    <Trash2 className="size-3 mr-1" />
+                                    <span>Hapus</span>
+                                  </Button>
+                                )
                               ) : (
-                                <span
-                                  className="text-xs text-muted-foreground/70 italic cursor-help inline-flex items-center justify-end gap-1.5"
-                                  title={s.deleteRestrictionReason || "Slot tidak dapat dihapus"}
-                                >
-                                  <Lock className="size-3 text-muted-foreground/50" />
-                                  <span>Terkunci</span>
+                                <span className="text-[11px] text-muted-foreground/60 italic">
+                                  Terkunci
                                 </span>
                               )}
                             </TableCell>
@@ -494,215 +1086,24 @@ export function CounselorSchedulesModal({
                       })}
                     </TableBody>
                   </Table>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: FORM BUKA SLOT PRAKTIK BARU */}
-          {activeTab === "add" && (
-            <div className="flex flex-col gap-6">
-              {/* Guidance Notice Banner */}
-              <div className="p-4 rounded-xl bg-muted/40 border border-border flex items-start gap-3">
-                <Info className="size-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-xs font-semibold text-foreground">Alokasi Waktu Standar 90 Menit</span>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Tentukan tanggal dan pilih jam mulai sesi. Waktu selesai otomatis dihitung (+90 menit). Sistem secara mandiri memvalidasi ketersediaan dan mencegah bentrok jadwal.
-                  </p>
                 </div>
               </div>
-
-              <form onSubmit={handleCreateSlots} className="flex flex-col gap-6">
-                {/* Error Banner */}
-                {formError && (
-                  <div className="p-3.5 rounded-xl bg-destructive/10 text-destructive text-xs flex items-center gap-2 border border-destructive/20">
-                    <AlertCircle className="size-4 shrink-0" />
-                    <span className="font-medium">{formError}</span>
-                  </div>
-                )}
-
-                {/* Section 1: Tanggal Praktik */}
-                <div className="space-y-2">
-                  <div className="flex flex-col gap-1">
-                    <label htmlFor="slot-date" className="text-xs font-semibold text-foreground">
-                      Tanggal Praktik
-                    </label>
-                    <p className="text-xs text-muted-foreground">
-                      Pilih tanggal dalam rentang 14 hari ke depan ({maxDateWIB}). Sesi lampau tidak dapat dibuka.
-                    </p>
-                  </div>
-                  <Input
-                    id="slot-date"
-                    type="date"
-                    min={todayWIB}
-                    max={maxDateWIB}
-                    value={selectedDate}
-                    onChange={(e) => {
-                      setSelectedDate(e.target.value)
-                      setFormError(null)
-                    }}
-                    required
-                    className="h-10 text-xs bg-background tabular-nums font-mono sm:max-w-xs rounded-md"
-                  />
-                </div>
-
-                {/* Section 2: Preset Jam Mulai Sesi */}
-                <div className="space-y-2.5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                    <label className="text-xs font-semibold text-foreground">
-                      Pilih Jam Mulai Sesi (Durasi 90 Menit)
-                    </label>
-                    <span className="text-xs text-muted-foreground">
-                      Klik opsi untuk memilih atau membatalkan
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {PRESET_START_TIMES.map((time) => {
-                      const isSelected = selectedTimes.includes(time)
-                      const endStr = computeEndTime(time)
-                      const isTimePassedToday =
-                        selectedDate === todayWIB && parseTimeToMinutes(time) <= nowWIB.timeMinutes
-
-                      return (
-                        <button
-                          key={time}
-                          type="button"
-                          disabled={isTimePassedToday}
-                          onClick={() => !isTimePassedToday && togglePresetTime(time)}
-                          className={`flex flex-col items-center justify-center py-3 px-4 rounded-lg border text-xs transition-colors cursor-pointer select-none ${
-                            isTimePassedToday
-                              ? "bg-muted/40 text-muted-foreground/50 border-border/40 cursor-not-allowed line-through"
-                              : isSelected
-                              ? "bg-primary text-primary-foreground border-primary font-medium shadow-2xs"
-                              : "bg-background text-foreground border-border hover:bg-muted/40"
-                          }`}
-                        >
-                          <span className="font-semibold text-sm tabular-nums">{time}</span>
-                          <span
-                            className={`text-xs mt-0.5 ${
-                              isTimePassedToday
-                                ? "text-muted-foreground/40"
-                                : isSelected
-                                ? "text-primary-foreground/80"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {isTimePassedToday ? "Sudah Terlewat" : `s/d ${endStr} WIB`}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Section 3: Jam Kustom */}
-                <div className="space-y-2 pt-2 border-t border-border">
-                  <label htmlFor="custom-time-input" className="text-xs font-medium text-foreground">
-                    Atau Tambahkan Jam Mulai Kustom (HH:mm)
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="custom-time-input"
-                      type="text"
-                      placeholder="Contoh: 14:15"
-                      value={customTime}
-                      onChange={(e) => setCustomTime(e.target.value)}
-                      className="w-36 h-9 text-xs bg-background text-center font-mono tabular-nums rounded-md"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddCustomTime}
-                      className="h-9 px-3.5 text-xs cursor-pointer rounded-md"
-                    >
-                      Tambah Jam
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Section 4: Ringkasan Slot Terpilih */}
-                <div className="p-4 rounded-xl bg-muted/30 border border-border flex flex-col gap-3">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                      <Clock className="size-3.5 text-primary" />
-                      <span>Ringkasan Slot ({previewProposedSlots.length} Sesi Terpilih)</span>
-                    </span>
-                    <span className="text-xs text-muted-foreground font-mono tabular-nums px-2 py-0.5 rounded bg-background border border-border">
-                      Tanggal: {selectedDate}
-                    </span>
-                  </div>
-
-                  {previewProposedSlots.length === 0 ? (
-                    <span className="text-xs text-muted-foreground italic">Belum ada jam sesi yang dipilih.</span>
-                  ) : (
-                    <div className="flex flex-wrap gap-2 pt-0.5">
-                      {previewProposedSlots.map((p) => (
-                        <span
-                          key={p.startTime}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-mono font-medium bg-background border border-border text-foreground shadow-2xs"
-                        >
-                          <span>{p.timeRange}</span>
-                          <button
-                            type="button"
-                            onClick={() => togglePresetTime(p.startTime)}
-                            className="text-muted-foreground hover:text-destructive cursor-pointer ml-0.5 transition-colors"
-                            aria-label={`Hapus jam ${p.startTime}`}
-                          >
-                            <X className="size-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center justify-between border-t border-border pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActiveTab("list")}
-                    className="h-9 text-xs cursor-pointer gap-1.5 rounded-md"
-                  >
-                    <ArrowLeft className="size-3.5" />
-                    <span>Kembali ke Daftar</span>
-                  </Button>
-
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={isSubmitting || selectedTimes.length === 0}
-                    className="h-9 px-5 text-xs font-medium gap-2 cursor-pointer rounded-md"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="size-3.5 animate-spin" />
-                        <span>Menyimpan Slot...</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="size-3.5" />
-                        <span>Buka {selectedTimes.length} Slot Praktik</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
             </div>
           )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-border bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Info className="size-4 text-primary shrink-0" />
-            <span>Maksimal 2 sesi bersamaan se-platform (Platform Concurrency Guard 2 Akun Zoom).</span>
+        {/* Unified Bottom Footer */}
+        <div className="px-5 py-2.5 border-t border-border/70 bg-muted/15 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <Info className="size-3.5 text-primary shrink-0" />
+            <span>Maksimal 2 sesi bersamaan se-platform (Platform Concurrency Guard 2 Akun Zoom Pro).</span>
           </div>
-          <Button variant="outline" size="sm" onClick={onClose} className="h-8.5 px-4 text-xs cursor-pointer rounded-md shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            className="h-7.5 px-3 text-xs cursor-pointer rounded-md shrink-0"
+          >
             Tutup Dialog
           </Button>
         </div>

@@ -13,7 +13,7 @@ import {
   Grid2X2,
   LayoutGrid,
 } from "lucide-react"
-import { GalleryItem } from "../../mock-data"
+import type { GalleryItem } from "@/lib/types/admin"
 import { Button } from "@/components/ui/button"
 
 interface GalleryGridProps {

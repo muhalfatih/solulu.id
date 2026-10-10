@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import type { GalleryItem } from "../mock-data"
+import type { GalleryItem } from "@/lib/types/admin"
 import { Skeleton } from "@/components/ui/skeleton"
 import { GalleryGrid } from "./components/gallery-grid"
 import { GalleryUploadDialog } from "./components/gallery-upload-dialog"

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest"
 import { dispatchFulfillmentJob } from "@/lib/fulfillment/qstash"
 import { POST as fulfillJobHandler } from "@/app/api/jobs/fulfill-booking/route"
-import { handleCronRequest } from "@/app/api/cron/cleanup-slots/route"
+import { handleCronRequest } from "@/lib/cron/handler"
 
 describe("Upstash QStash Asynchronous Processing & Cron Architecture (ADR-0001 / US-55 / US-56 / US-58)", () => {
   describe("dispatchFulfillmentJob (Dispatcher)", () => {

@@ -272,12 +272,12 @@ describe("Issue #4: Counselor Application & Admin Approval Pipeline", () => {
       })
     })
 
-    it("handles mock applicant IDs with fallback mock records in demo mode", async () => {
-      const mockPresigner = vi.fn().mockResolvedValue("https://r2.storage/solulu-private/mock-ktp.jpg?signed=1")
+    it("returns error when application is not found in database", async () => {
+      const mockPresigner = vi.fn().mockResolvedValue("https://r2.storage/solulu-private/ktp.jpg?signed=1")
 
       const res = await getApplicationDocumentUrlAction(
         {
-          applicationId: "app-1",
+          applicationId: "non-existent-id",
           documentType: "ktp",
         },
         {
@@ -287,9 +287,8 @@ describe("Issue #4: Counselor Application & Admin Approval Pipeline", () => {
         }
       )
 
-      expect(res.success).toBe(true)
-      expect(res.data?.fileName).toBe("mock-ktp.jpg")
-      expect(res.data?.applicantName).toBe("Sarah Annisa, M.Psi., Psikolog")
+      expect(res.success).toBe(false)
+      expect(res.error).toBe("Data aplikasi tidak ditemukan.")
     })
 
     it("handles rejection by recording optional rejection reason and updating status", async () => {

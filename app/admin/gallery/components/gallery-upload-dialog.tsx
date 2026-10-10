@@ -6,7 +6,7 @@ import {
   X,
   ImageIcon,
 } from "lucide-react"
-import { GalleryItem } from "../../mock-data"
+import type { GalleryItem } from "@/lib/types/admin"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"

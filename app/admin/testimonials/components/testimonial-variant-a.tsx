@@ -13,7 +13,7 @@ import {
   Filter,
   Sparkles,
 } from "lucide-react"
-import { TestimonialItem } from "../../mock-data"
+import type { TestimonialItem } from "@/lib/types/admin"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"

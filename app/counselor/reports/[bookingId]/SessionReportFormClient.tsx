@@ -251,7 +251,7 @@ export function SessionReportFormClient({ initialData }: SessionReportFormClient
             <div className="flex flex-col gap-1.5 p-3 rounded-lg bg-background border border-border/70">
               <span className="font-semibold text-foreground">Catatan Awal Pasien:</span>
               <p className="text-muted-foreground italic leading-relaxed">
-                "{booking.initialNotes || "Pasien tidak mencantumkan catatan awal keluhan."}"
+                &ldquo;{booking.initialNotes || "Pasien tidak mencantumkan catatan awal keluhan."}&rdquo;
               </p>
             </div>
           </div>

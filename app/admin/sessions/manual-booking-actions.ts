@@ -125,6 +125,28 @@ export async function getCounselorAvailableSlotsAction(
 }
 
 /**
+ * Fetches the active platform Zoom capacity count (0, 1, or 2).
+ */
+export async function getActiveZoomCapacityAction(options?: {
+  currentUser?: AdminAuthContext | null
+}) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return {
+      success: false,
+      error: "Akses ditolak: Diperlukan role Admin.",
+      data: 1,
+    }
+  }
+
+  const capacity = await getActiveZoomCapacity()
+  return {
+    success: true,
+    data: capacity > 0 ? capacity : 1,
+  }
+}
+
+/**
  * Checks platform-wide Zoom concurrency for a proposed date and time window.
  * Returns whether 2 concurrent Zoom limit is saturated.
  */

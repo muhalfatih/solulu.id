@@ -125,23 +125,7 @@ export async function getApplicationDocumentUrlAction(
         return rows[0] || null
       })
 
-    let application = await fetchApplication(input.applicationId)
-    if (!application && process.env.NODE_ENV === "test" && input.applicationId.startsWith("app-")) {
-      const { MOCK_APPLICANTS } = await import("@/app/admin/mock-data")
-      const mock = MOCK_APPLICANTS.find((m) => m.id === input.applicationId)
-      if (mock) {
-        application = {
-          id: mock.id,
-          fullName: mock.name,
-          email: mock.email,
-          counselorType: mock.type === "Psikolog Klinis" ? "psychologist" : "peer",
-          cvR2Key: "counselor-applications/cv/mock-cv.pdf",
-          ktpR2Key: "counselor-applications/ktp/mock-ktp.jpg",
-          diplomaR2Key: "counselor-applications/diploma/mock-ijazah.pdf",
-          strR2Key: mock.documents.str ? "counselor-applications/str/mock-str.pdf" : null,
-        }
-      }
-    }
+    const application = await fetchApplication(input.applicationId)
 
     if (!application) {
       return {

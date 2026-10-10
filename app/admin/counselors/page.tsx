@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import type { CounselorApplicant } from "../mock-data"
+import type { CounselorApplicant } from "@/lib/types/admin"
 import Link from "next/link"
 import {
   CheckCircle2,

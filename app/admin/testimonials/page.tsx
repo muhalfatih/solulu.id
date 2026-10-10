@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import type { TestimonialItem } from "../mock-data"
+import type { TestimonialItem } from "@/lib/types/admin"
 import { Skeleton } from "@/components/ui/skeleton"
 import { TestimonialVariantA } from "./components/testimonial-variant-a"
 import { Check, X } from "lucide-react"

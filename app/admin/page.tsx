@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import type { BookingSession } from "./mock-data"
+import type { BookingSession } from "@/lib/types/admin"
 import { getBookingsAdminAction } from "./sessions/actions"
 import { getCounselorApplicationsAction } from "./counselors/applications/actions"
 import { getAdminDashboardMetricsAction, type AdminDashboardMetrics } from "./actions"
@@ -484,7 +484,7 @@ export default function DistilledAdminDashboard() {
                       <div className="flex flex-col items-center justify-center gap-1">
                         <CheckCircle2 className="size-5 text-muted-foreground/60 mb-1" />
                         <span className="font-semibold text-foreground">Tidak ada sesi pada filter ini</span>
-                        <span className="text-xs text-muted-foreground">Pilih tab filter lain atau kembali ke "Semua" untuk meninjau seluruh jadwal hari ini.</span>
+                        <span className="text-xs text-muted-foreground">Pilih tab filter lain atau kembali ke &ldquo;Semua&rdquo; untuk meninjau seluruh jadwal hari ini.</span>
                       </div>
                     </TableCell>
                   </TableRow>
