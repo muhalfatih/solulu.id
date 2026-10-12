@@ -29,7 +29,7 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
-import { AdminPageHeader, SessionStatusBadge } from "@/components/admin"
+import { AdminPageHeader, SessionStatusBadge, resolveSessionTimingAndStatus, groupSessionsByTime } from "@/components/admin"
 import { ManualPaymentModal, ManualPaymentDetails } from "./components/manual-payment-modal"
 import { AdminManualBookingModal } from "./components/admin-manual-booking-modal"
 import { confirmManualPaymentAction, rejectManualPaymentAction, getBookingsAdminAction } from "./actions"
@@ -124,20 +124,18 @@ export default function DistilledSessionsPage() {
 
             const counselorType = c?.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"
 
-            let hoursUntilSession = 24
-            if (s?.date && s?.startTime) {
-              try {
-                const sessionDate = new Date(`${s.date}T${s.startTime}`)
-                hoursUntilSession = Math.round((sessionDate.getTime() - Date.now()) / (1000 * 60 * 60))
-              } catch {}
-            }
-
             const dateStr = s?.date ? String(s.date) : ""
             const timeRange = s ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)}` : "09:00 - 10:30"
 
-            const status = (["in_session", "confirmed", "completed", "cancelled", "pending_payment"].includes(b.status)
-              ? b.status
-              : "pending_payment") as BookingSession["status"]
+            const timing = resolveSessionTimingAndStatus({
+              date: s?.date,
+              startTime: s?.startTime,
+              endTime: s?.endTime,
+              status: b.status,
+            })
+            const hoursUntilSession = timing.hoursUntilSession
+            const status = timing.status
+            const isPast = timing.isPast
 
             // Accurate Zoom Room & Slot Resolution (Eliminates false R2 label)
             let zoomSlotNumber: 1 | 2 | null = null
@@ -177,6 +175,7 @@ export default function DistilledSessionsPage() {
               timeRange,
               hoursUntilSession,
               status,
+              isPast,
               zoomRoom,
               zoomJoinUrl: b.zoomJoinUrl || "#",
               zoomAccountId: b.zoomAccountId || null,
@@ -273,9 +272,18 @@ export default function DistilledSessionsPage() {
     setSessions((prev) =>
       prev.map((s) => {
         if (s.id !== session.id) return s
+        const startTime = s.timeRange?.split(" - ")[0] || "09:00"
+        const endTime = s.timeRange?.split(" - ")[1] || "10:30"
+        const timing = resolveSessionTimingAndStatus({
+          date: s.date,
+          startTime,
+          endTime,
+          status: "confirmed",
+        })
         return {
           ...s,
-          status: "confirmed",
+          status: timing.status,
+          isPast: timing.isPast,
           zoomRoom: "Zoom Pro 1",
           zoomJoinUrl: `https://zoom.us/j/88${Math.floor(10000000 + Math.random() * 90000000)}`,
           paymentMethod: details.paymentMethod,
@@ -287,20 +295,28 @@ export default function DistilledSessionsPage() {
     )
 
     if (selectedSession?.id === session.id) {
-      setSelectedSession((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: "confirmed",
-              zoomRoom: "Zoom Pro 1",
-              zoomJoinUrl: `https://zoom.us/j/88${Math.floor(10000000 + Math.random() * 90000000)}`,
-              paymentMethod: details.paymentMethod,
-              paymentProvider: "manual",
-              referenceNumber: details.referenceNumber,
-              adminNotes: details.adminNotes,
-            }
-          : null
-      )
+      setSelectedSession((prev) => {
+        if (!prev) return null
+        const startTime = prev.timeRange?.split(" - ")[0] || "09:00"
+        const endTime = prev.timeRange?.split(" - ")[1] || "10:30"
+        const timing = resolveSessionTimingAndStatus({
+          date: prev.date,
+          startTime,
+          endTime,
+          status: "confirmed",
+        })
+        return {
+          ...prev,
+          status: timing.status,
+          isPast: timing.isPast,
+          zoomRoom: "Zoom Pro 1",
+          zoomJoinUrl: `https://zoom.us/j/88${Math.floor(10000000 + Math.random() * 90000000)}`,
+          paymentMethod: details.paymentMethod,
+          paymentProvider: "manual",
+          referenceNumber: details.referenceNumber,
+          adminNotes: details.adminNotes,
+        }
+      })
     }
 
     showToast(
@@ -354,6 +370,7 @@ export default function DistilledSessionsPage() {
   }
 
   const pendingPaymentCount = sessions.filter((s) => s.status === "pending_payment").length
+  const expiredCount = sessions.filter((s) => s.status === "expired").length
 
   const filteredSessions = sessions.filter((s) => {
     const matchSearch =
@@ -370,6 +387,10 @@ export default function DistilledSessionsPage() {
     const matchCounselor = counselorFilter === "all" || s.counselorName.toLowerCase().includes(counselorFilter.toLowerCase())
     return matchSearch && matchStatus && matchRoom && matchCounselor
   })
+
+  const { upcomingSessions, pastSessions } = React.useMemo(() => {
+    return groupSessionsByTime(filteredSessions)
+  }, [filteredSessions])
 
   const handleCopyLink = (code: string) => {
     navigator.clipboard.writeText(`https://solulu.id/session/tok_${code.toLowerCase()}_sample`)
@@ -691,6 +712,8 @@ export default function DistilledSessionsPage() {
                     <SelectItem value="in_session">Sedang Berjalan</SelectItem>
                     <SelectItem value="confirmed">Menunggu Sesi</SelectItem>
                     <SelectItem value="completed">Selesai</SelectItem>
+                    <SelectItem value="expired">Kadaluarsa</SelectItem>
+                    <SelectItem value="cancelled">Dibatalkan</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -801,6 +824,7 @@ export default function DistilledSessionsPage() {
                                 const isLive = ses.status === "in_session"
                                 const isCompleted = ses.status === "completed"
                                 const isPendingPayment = ses.status === "pending_payment"
+                                const isExpired = ses.status === "expired"
 
                                 return (
                                   <button
@@ -808,11 +832,13 @@ export default function DistilledSessionsPage() {
                                     type="button"
                                     onClick={() => handleOpenSession(ses)}
                                     className={`group w-full text-left p-2 rounded-xl border transition-all cursor-pointer shadow-2xs relative ${
-                                      isPendingPayment
+                                      isExpired
+                                        ? "bg-rose-500/10 border-rose-500/30 opacity-75 hover:opacity-100"
+                                        : isPendingPayment
                                         ? "bg-amber-500/10 border-amber-500/30 hover:border-amber-500/60"
                                         : isLive
                                         ? "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/60"
-                                        : isCompleted
+                                        : isCompleted || ses.isPast
                                         ? "bg-muted/40 border-border/60 opacity-80"
                                         : "bg-card border-border hover:border-primary/50"
                                     }`}
@@ -830,7 +856,9 @@ export default function DistilledSessionsPage() {
                                         {ses.timeRange.slice(0, 5)}
                                       </span>
                                       <span className={`text-[10px] px-1 py-0.2 rounded font-medium ${
-                                        isPendingPayment
+                                        isExpired
+                                          ? "bg-rose-500/20 text-rose-800 dark:text-rose-200"
+                                          : isPendingPayment
                                           ? "bg-amber-500/20 text-amber-800 dark:text-amber-200"
                                           : ses.zoomSlotNumber === 1 || ses.zoomRoom === "Zoom Pro 1"
                                           ? "bg-blue-500/15 text-blue-700 dark:text-blue-300"
@@ -838,7 +866,9 @@ export default function DistilledSessionsPage() {
                                           ? "bg-purple-500/15 text-purple-700 dark:text-purple-300"
                                           : "bg-muted text-muted-foreground"
                                       }`}>
-                                        {isPendingPayment
+                                        {isExpired
+                                          ? "Lewat"
+                                          : isPendingPayment
                                           ? "Bayar"
                                           : ses.zoomSlotNumber === 1 || ses.zoomRoom === "Zoom Pro 1"
                                           ? "R1"
@@ -935,6 +965,8 @@ export default function DistilledSessionsPage() {
                               className={`size-1.5 rounded-full shrink-0 ${
                                 ses.status === "in_session"
                                   ? "bg-emerald-500"
+                                  : ses.status === "expired"
+                                  ? "bg-rose-500"
                                   : ses.status === "pending_payment"
                                   ? "bg-amber-500"
                                   : ses.hasSuicidalThoughts
@@ -1182,6 +1214,22 @@ export default function DistilledSessionsPage() {
                 >
                   Selesai
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("expired")}
+                  className={`h-7 px-2.5 rounded-md text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                    statusFilter === "expired"
+                      ? "bg-rose-600 text-white font-medium"
+                      : "text-rose-700 dark:text-rose-400 hover:text-foreground"
+                  }`}
+                >
+                  <span>Kadaluarsa</span>
+                  {expiredCount > 0 && (
+                    <span className="size-4 rounded-full bg-rose-500/20 text-rose-800 dark:text-rose-200 text-[10px] flex items-center justify-center font-bold">
+                      {expiredCount}
+                    </span>
+                  )}
+                </button>
               </div>
 
               <span className="text-xs text-muted-foreground tabular-nums">
@@ -1247,85 +1295,194 @@ export default function DistilledSessionsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredSessions.map((ses) => {
-                    const isLive = ses.status === "in_session"
-                    const isCompleted = ses.status === "completed"
-                    const isLocked = ses.hoursUntilSession > 0 && ses.hoursUntilSession < 12
+                  <>
+                    {/* Sekat 1: Jadwal Mendatang & Hari Ini */}
+                    {upcomingSessions.length > 0 && (
+                      <>
+                        <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border">
+                          <TableCell colSpan={7} className="py-2.5 px-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="size-4 text-primary" />
+                                <span className="font-semibold text-foreground text-xs">Jadwal Mendatang & Hari Ini</span>
+                                <Badge variant="secondary" className="text-[11px] py-0 px-2 font-mono font-medium">
+                                  {upcomingSessions.length} sesi
+                                </Badge>
+                              </div>
+                              <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                                Sesi aktif, terkonfirmasi, dan siap berjalan
+                              </span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        {upcomingSessions.map((ses) => {
+                          const isLive = ses.status === "in_session"
+                          const isLocked = !ses.isPast && ses.hoursUntilSession > 0 && ses.hoursUntilSession < 12
 
-                    return (
-                      <TableRow key={ses.id} className="hover:bg-muted/30 transition-colors border-border/60">
-                        <TableCell className="py-3 px-3">
-                          <span className="font-semibold text-primary font-mono">{ses.code}</span>
-                          <div className="text-foreground font-medium mt-0.5">{ses.timeRange}</div>
-                          <div className="text-[11px] text-muted-foreground">{ses.date}</div>
-                        </TableCell>
+                          return (
+                            <TableRow key={ses.id} className={`transition-colors border-border/60 ${isLive ? "bg-emerald-500/[0.06] hover:bg-emerald-500/[0.1] border-emerald-500/20" : "hover:bg-muted/30"}`}>
+                              <TableCell className="py-3 px-3">
+                                <span className="font-semibold text-primary font-mono">{ses.code}</span>
+                                <div className="text-foreground font-medium mt-0.5">{ses.timeRange}</div>
+                                <div className="text-[11px] text-muted-foreground">{ses.date}</div>
+                              </TableCell>
 
-                        <TableCell className="py-3 px-3">
-                          <div className="text-foreground font-medium">{ses.patientName}</div>
-                          <div className="text-[11px] text-muted-foreground">{ses.patientContact}</div>
-                          {ses.hasSuicidalThoughts && (
-                            <Badge variant="destructive" className="text-[10px] py-0 px-1 font-medium mt-1">
-                              Kondisi Mendesak
-                            </Badge>
-                          )}
-                        </TableCell>
+                              <TableCell className="py-3 px-3">
+                                <div className="text-foreground font-medium">{ses.patientName}</div>
+                                <div className="text-[11px] text-muted-foreground">{ses.patientContact}</div>
+                                {ses.hasSuicidalThoughts && (
+                                  <Badge variant="destructive" className="text-[10px] py-0 px-1 font-medium mt-1">
+                                    Kondisi Mendesak
+                                  </Badge>
+                                )}
+                              </TableCell>
 
-                        <TableCell className="py-3 px-3">
-                          <div className="text-foreground font-medium">{ses.counselorName}</div>
-                          <div className="text-[11px] text-muted-foreground">{ses.counselorType}</div>
-                        </TableCell>
+                              <TableCell className="py-3 px-3">
+                                <div className="text-foreground font-medium">{ses.counselorName}</div>
+                                <div className="text-[11px] text-muted-foreground">{ses.counselorType}</div>
+                              </TableCell>
 
-                        <TableCell className="py-3 px-3">
-                          <Badge variant="outline" className="text-xs py-0.5 px-1.5 font-medium">
-                            {ses.zoomSlotNumber === 1
-                              ? "Ruang 1 (Zoom 1)"
-                              : ses.zoomSlotNumber === 2
-                              ? "Ruang 2 (Zoom 2)"
-                              : ses.zoomRoom === "Ruang Rapat Manual"
-                              ? "Ruang Manual"
-                              : ses.zoomRoom.replace("Zoom Pro ", "Ruang ")}
-                          </Badge>
-                        </TableCell>
+                              <TableCell className="py-3 px-3">
+                                <Badge variant="outline" className="text-xs py-0.5 px-1.5 font-medium">
+                                  {ses.zoomSlotNumber === 1
+                                    ? "Ruang 1 (Zoom 1)"
+                                    : ses.zoomSlotNumber === 2
+                                    ? "Ruang 2 (Zoom 2)"
+                                    : ses.zoomRoom === "Ruang Rapat Manual"
+                                    ? "Ruang Manual"
+                                    : ses.zoomRoom.replace("Zoom Pro ", "Ruang ")}
+                                </Badge>
+                              </TableCell>
 
-                        <TableCell className="py-3 px-3">
-                          <SessionStatusBadge status={ses.status} />
-                        </TableCell>
+                              <TableCell className="py-3 px-3">
+                                <SessionStatusBadge status={ses.status} />
+                              </TableCell>
 
-                        <TableCell className="py-3 px-3">
-                          {isCompleted ? (
-                            <span className="text-xs text-muted-foreground">Sesi Selesai</span>
-                          ) : isLocked ? (
-                            <span className="text-xs text-destructive font-medium">Terkunci (&lt;12 jam)</span>
-                          ) : (
-                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Bisa Diubah</span>
-                          )}
-                        </TableCell>
+                              <TableCell className="py-3 px-3">
+                                {isLocked ? (
+                                  <span className="text-xs text-destructive font-medium">Terkunci (&lt;12 jam)</span>
+                                ) : (
+                                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Bisa Diubah</span>
+                                )}
+                              </TableCell>
 
-                        <TableCell className="py-3 px-3 text-right sticky right-0 bg-card/90 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {ses.status === "pending_payment" && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setManualPaymentSession(ses)}
-                                className="font-semibold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 gap-1 cursor-pointer"
-                              >
-                                <CreditCard className="size-3.5" />
-                                <span>Konfirmasi</span>
-                              </Button>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleOpenSession(ses)}
-                            >
-                              Rincian
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
+                              <TableCell className="py-3 px-3 text-right sticky right-0 bg-card/90 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {ses.status === "pending_payment" && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setManualPaymentSession(ses)}
+                                      className="font-semibold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 gap-1 cursor-pointer"
+                                    >
+                                      <CreditCard className="size-3.5" />
+                                      <span>Konfirmasi</span>
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleOpenSession(ses)}
+                                  >
+                                    Rincian
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </>
+                    )}
+
+                    {/* Sekat 2: Riwayat & Terlewat */}
+                    {pastSessions.length > 0 && (
+                      <>
+                        <TableRow className={`bg-muted/40 hover:bg-muted/40 border-y border-border ${upcomingSessions.length > 0 ? "border-t-2 border-t-border" : ""}`}>
+                          <TableCell colSpan={7} className="py-2.5 px-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Clock className="size-4 text-muted-foreground" />
+                                <span className="font-semibold text-foreground text-xs">Riwayat & Terlewat</span>
+                                <Badge variant="outline" className="text-[11px] py-0 px-2 font-mono text-muted-foreground">
+                                  {pastSessions.length} sesi
+                                </Badge>
+                              </div>
+                              <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                                Sesi yang telah selesai, kadaluarsa, atau dibatalkan
+                              </span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        {pastSessions.map((ses) => {
+                          const isExpired = ses.status === "expired"
+                          const isCompleted = ses.status === "completed"
+
+                          return (
+                            <TableRow key={ses.id} className="hover:bg-muted/30 transition-colors border-border/60 opacity-80 hover:opacity-100 bg-muted/10">
+                              <TableCell className="py-3 px-3">
+                                <span className="font-semibold text-muted-foreground font-mono">{ses.code}</span>
+                                <div className="text-foreground font-medium mt-0.5">{ses.timeRange}</div>
+                                <div className="text-[11px] text-muted-foreground">{ses.date}</div>
+                              </TableCell>
+
+                              <TableCell className="py-3 px-3">
+                                <div className="text-foreground font-medium">{ses.patientName}</div>
+                                <div className="text-[11px] text-muted-foreground">{ses.patientContact}</div>
+                                {ses.hasSuicidalThoughts && (
+                                  <Badge variant="destructive" className="text-[10px] py-0 px-1 font-medium mt-1">
+                                    Kondisi Mendesak
+                                  </Badge>
+                                )}
+                              </TableCell>
+
+                              <TableCell className="py-3 px-3">
+                                <div className="text-foreground font-medium">{ses.counselorName}</div>
+                                <div className="text-[11px] text-muted-foreground">{ses.counselorType}</div>
+                              </TableCell>
+
+                              <TableCell className="py-3 px-3">
+                                <Badge variant="outline" className="text-xs py-0.5 px-1.5 font-medium opacity-80">
+                                  {ses.zoomSlotNumber === 1
+                                    ? "Ruang 1 (Zoom 1)"
+                                    : ses.zoomSlotNumber === 2
+                                    ? "Ruang 2 (Zoom 2)"
+                                    : ses.zoomRoom === "Ruang Rapat Manual"
+                                    ? "Ruang Manual"
+                                    : ses.zoomRoom.replace("Zoom Pro ", "Ruang ")}
+                                </Badge>
+                              </TableCell>
+
+                              <TableCell className="py-3 px-3">
+                                <SessionStatusBadge status={ses.status} />
+                              </TableCell>
+
+                              <TableCell className="py-3 px-3">
+                                {isExpired ? (
+                                  <span className="text-xs text-rose-600 dark:text-rose-400 font-medium">Kadaluarsa</span>
+                                ) : isCompleted ? (
+                                  <span className="text-xs text-muted-foreground">Sesi Selesai</span>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Waktu Terlewat</span>
+                                )}
+                              </TableCell>
+
+                              <TableCell className="py-3 px-3 text-right sticky right-0 bg-card/90 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleOpenSession(ses)}
+                                  >
+                                    Rincian
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </>
+                    )}
+                  </>
                 )}
               </TableBody>
             </Table>
@@ -1453,11 +1610,30 @@ export default function DistilledSessionsPage() {
                     {selectedSession.date}, {selectedSession.timeRange}
                   </span>
                 </div>
-                {selectedSession.status === "pending_payment" ? (
+                {selectedSession.status === "expired" ? (
                   <>
                     <div className="flex items-center justify-between pt-2 border-t border-border/60">
                       <span className="text-muted-foreground">Status Pembayaran:</span>
-                      <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 text-xs">
+                      <Badge variant="outline" className="bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30 text-xs font-semibold gap-1">
+                        <AlertTriangle className="size-3" />
+                        <span>Kadaluarsa</span>
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Tagihan:</span>
+                      <span className="font-semibold text-muted-foreground line-through">
+                        Rp {selectedSession.amount.toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground bg-muted/40 rounded-lg p-2.5 border border-border/60 leading-relaxed">
+                      Waktu jadwal telekonseling telah dimulai/terlewat tanpa verifikasi pembayaran. Sesi ini telah kadaluarsa dan slot jadwal tidak lagi aktif.
+                    </div>
+                  </>
+                ) : selectedSession.status === "pending_payment" ? (
+                  <>
+                    <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                      <span className="text-muted-foreground">Status Pembayaran:</span>
+                      <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 text-xs font-semibold">
                         Menunggu Pembayaran
                       </Badge>
                     </div>
@@ -1484,7 +1660,19 @@ export default function DistilledSessionsPage() {
                   <Clock className="size-3.5 text-primary" />
                   <span>Pengajuan Perubahan Jadwal</span>
                 </span>
-                {selectedSession.hoursUntilSession > 0 && selectedSession.hoursUntilSession < 12 ? (
+                {selectedSession.status === "expired" ? (
+                  <div className="text-xs text-rose-600 dark:text-rose-400 leading-relaxed font-medium">
+                    Jadwal sesi telah kadaluarsa karena waktu telekonseling telah terlewati sebelum pembayaran diverifikasi. Perubahan jadwal tidak dapat dilakukan.
+                  </div>
+                ) : selectedSession.isPast || selectedSession.status === "completed" ? (
+                  <div className="text-xs text-muted-foreground leading-relaxed">
+                    Sesi konseling telah selesai dilaksanakan. Perubahan jadwal sudah tidak berlaku.
+                  </div>
+                ) : selectedSession.status === "cancelled" ? (
+                  <div className="text-xs text-destructive leading-relaxed">
+                    Sesi telah dibatalkan. Perubahan jadwal tidak dapat dilakukan.
+                  </div>
+                ) : selectedSession.hoursUntilSession > 0 && selectedSession.hoursUntilSession < 12 ? (
                   <div className="text-xs text-destructive leading-relaxed">
                     Perubahan ditutup karena sesi dimulai dalam <strong>{selectedSession.hoursUntilSession} jam</strong> (batas minimal 12 jam sebelumnya).
                   </div>
@@ -1498,14 +1686,33 @@ export default function DistilledSessionsPage() {
 
             {/* Bottom Actions */}
             <div className="pt-4 border-t border-border flex flex-col gap-2">
-              {selectedSession.status === "pending_payment" ? (
+              {selectedSession.status === "expired" ? (
+                <Button
+                  size="sm"
+                  disabled
+                  className="w-full h-9 text-xs font-semibold bg-muted text-muted-foreground cursor-not-allowed opacity-60 gap-1.5"
+                >
+                  <AlertTriangle className="size-3.5 mr-1" />
+                  <span>Jadwal Telah Kadaluarsa</span>
+                </Button>
+              ) : selectedSession.status === "pending_payment" ? (
                 <Button
                   size="sm"
                   onClick={() => setManualPaymentSession(selectedSession)}
-                  className="w-full h-9 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white gap-1.5 cursor-pointer shadow-sm"
+                  className="w-full h-9 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white gap-1.5 cursor-pointer shadow-xs"
                 >
                   <CreditCard className="size-3.5 mr-1" />
                   <span>Konfirmasi Pembayaran Manual</span>
+                </Button>
+              ) : selectedSession.isPast || selectedSession.status === "completed" ? (
+                <Button
+                  size="sm"
+                  disabled
+                  variant="secondary"
+                  className="w-full h-9 text-xs font-semibold opacity-60 cursor-not-allowed"
+                >
+                  <CheckCircle2 className="size-3.5 mr-1.5" />
+                  <span>Sesi Telah Berakhir</span>
                 </Button>
               ) : (
                 <Button
@@ -1525,7 +1732,7 @@ export default function DistilledSessionsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleCopyLink(selectedSession.code)}
-                disabled={selectedSession.status === "pending_payment"}
+                disabled={selectedSession.status === "pending_payment" || selectedSession.status === "expired"}
                 className="w-full h-8 text-xs font-normal"
               >
                 <Copy className="size-3.5 mr-1.5" />
@@ -1536,7 +1743,7 @@ export default function DistilledSessionsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => handleResendEmail(selectedSession.patientName)}
-                disabled={selectedSession.status === "pending_payment"}
+                disabled={selectedSession.status === "pending_payment" || selectedSession.status === "expired"}
                 className="w-full h-8 text-xs font-normal text-muted-foreground hover:text-foreground"
               >
                 <Mail className="size-3.5 mr-1.5" />

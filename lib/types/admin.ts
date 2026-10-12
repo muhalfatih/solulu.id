@@ -65,7 +65,8 @@ export interface BookingSession {
   date: string
   timeRange: string
   hoursUntilSession: number
-  status: "in_session" | "confirmed" | "completed" | "cancelled" | "pending_payment"
+  status: "in_session" | "confirmed" | "completed" | "cancelled" | "pending_payment" | "expired"
+  isPast?: boolean
   zoomRoom: string
   zoomJoinUrl: string
   zoomAccountId?: string | null

@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Badge } from "@/components/ui/badge"
-import { Clock, CheckCircle2, XCircle } from "lucide-react"
+import { Clock, CheckCircle2, XCircle, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export type SessionOperationalStatus =
@@ -9,6 +9,7 @@ export type SessionOperationalStatus =
   | "confirmed"
   | "completed"
   | "cancelled"
+  | "expired"
 
 export interface SessionStatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   status: SessionOperationalStatus
@@ -25,6 +26,22 @@ export function SessionStatusBadge({
   className,
   ...props
 }: SessionStatusBadgeProps) {
+  if (status === "expired") {
+    return (
+      <Badge
+        variant="outline"
+        className={cn(
+          "inline-flex items-center gap-1.5 font-semibold text-rose-700 dark:text-rose-400 border-rose-500/35 bg-rose-500/10 shadow-2xs",
+          className
+        )}
+        {...props}
+      >
+        <AlertCircle className="size-3 text-rose-600 dark:text-rose-400 shrink-0" />
+        <span>{roomName ? `${roomName} • Kadaluarsa` : "Kadaluarsa"}</span>
+      </Badge>
+    )
+  }
+
   if (status === "pending_payment") {
     return (
       <Badge

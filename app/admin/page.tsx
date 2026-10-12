@@ -45,6 +45,7 @@ import {
   AdminPageHeader,
   AdminMetricCard,
   SessionStatusBadge,
+  resolveSessionTimingAndStatus,
 } from "@/components/admin"
 
 export default function DistilledAdminDashboard() {
@@ -87,21 +88,15 @@ export default function DistilledAdminDashboard() {
             ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)} WIB`
             : "09:00 - 10:30 WIB"
 
-          let hoursUntilSession = 0
-          if (s?.date && s?.startTime) {
-            try {
-              const sessionDate = new Date(`${s.date}T${s.startTime}`)
-              hoursUntilSession = Math.round(
-                (sessionDate.getTime() - Date.now()) / (1000 * 60 * 60)
-              )
-            } catch {}
-          }
-
-          const status = (
-            ["in_session", "confirmed", "completed", "cancelled", "pending_payment"].includes(b.status)
-              ? b.status
-              : "pending_payment"
-          ) as BookingSession["status"]
+          const timing = resolveSessionTimingAndStatus({
+            date: s?.date,
+            startTime: s?.startTime,
+            endTime: s?.endTime,
+            status: b.status,
+          })
+          const hoursUntilSession = timing.hoursUntilSession
+          const status = timing.status
+          const isPast = timing.isPast
 
           return {
             id: b.id,
@@ -116,6 +111,7 @@ export default function DistilledAdminDashboard() {
             timeRange,
             hoursUntilSession,
             status,
+            isPast,
             zoomRoom: b.zoomMeetingId
               ? `Ruang #${b.zoomMeetingId.slice(-3)}`
               : "Belum Dijadwalkan",
@@ -275,30 +271,36 @@ export default function DistilledAdminDashboard() {
 
   // Filtered session list based on active tab
   const displayedSessions = React.useMemo(() => {
+    let source: BookingSession[] = []
     if (sessionFilter === "pending_payment") {
-      return allSessions.filter((s) => s.status === "pending_payment")
+      source = allSessions.filter((s) => s.status === "pending_payment")
+    } else if (sessionFilter === "in_session") {
+      source = allSessions.filter((s) => s.status === "in_session")
+    } else if (sessionFilter === "confirmed") {
+      source = allSessions.filter((s) => s.status === "confirmed")
+    } else if (sessionFilter === "completed") {
+      source = allSessions.filter((s) => s.status === "completed" || s.status === "expired")
+    } else {
+      // "all": show today's sessions if any, otherwise all sessions
+      source = todaySessions.length > 0 ? todaySessions : allSessions
     }
-    if (sessionFilter === "in_session") {
-      return allSessions.filter((s) => s.status === "in_session")
-    }
-    if (sessionFilter === "confirmed") {
-      return allSessions.filter((s) => s.status === "confirmed")
-    }
-    if (sessionFilter === "completed") {
-      return allSessions.filter((s) => s.status === "completed")
-    }
-    // "all": show today's sessions if any, otherwise all sessions
-    const source = todaySessions.length > 0 ? todaySessions : allSessions
+
     return [...source].sort((a, b) => {
-      const order: Record<string, number> = { in_session: 0, pending_payment: 1, confirmed: 2, completed: 3, cancelled: 4 }
-      return (order[a.status] ?? 5) - (order[b.status] ?? 5)
+      // Prioritize active/upcoming sessions over past/expired sessions
+      const aIsPast = a.isPast || a.status === "completed" || a.status === "expired" || a.status === "cancelled"
+      const bIsPast = b.isPast || b.status === "completed" || b.status === "expired" || b.status === "cancelled"
+      if (aIsPast !== bIsPast) {
+        return aIsPast ? 1 : -1
+      }
+      const order: Record<string, number> = { in_session: 0, pending_payment: 1, confirmed: 2, completed: 3, expired: 4, cancelled: 5 }
+      return (order[a.status] ?? 6) - (order[b.status] ?? 6)
     })
   }, [todaySessions, allSessions, sessionFilter])
 
   const pendingPaymentCount = allSessions.filter((s) => s.status === "pending_payment").length
   const inSessionCount = allSessions.filter((s) => s.status === "in_session").length
-  const confirmedCount = todaySessions.filter((s) => s.status === "confirmed").length
-  const completedCount = todaySessions.filter((s) => s.status === "completed").length
+  const confirmedCount = todaySessions.filter((s) => s.status === "confirmed" && !s.isPast).length
+  const completedCount = todaySessions.filter((s) => s.status === "completed" || s.isPast).length
 
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-12">
@@ -549,6 +551,8 @@ export default function DistilledAdminDashboard() {
                       const isInSession = ses.status === "in_session"
                       const isCrisis = ses.hasSuicidalThoughts
                       const isCompleted = ses.status === "completed"
+                      const isExpired = ses.status === "expired"
+                      const isPast = ses.isPast || isCompleted || isExpired || ses.status === "cancelled"
 
                       return (
                         <TableRow
@@ -556,8 +560,8 @@ export default function DistilledAdminDashboard() {
                           className={`transition-colors border-border/60 ${
                             isInSession
                               ? "bg-emerald-500/[0.07] dark:bg-emerald-950/20 hover:bg-emerald-500/[0.1] border-emerald-500/20"
-                              : isCompleted
-                              ? "opacity-60 hover:opacity-90"
+                              : isPast
+                              ? "opacity-65 hover:opacity-95 bg-muted/10"
                               : "hover:bg-muted/30"
                           }`}
                         >
@@ -619,6 +623,21 @@ export default function DistilledAdminDashboard() {
                                 <CreditCard className="size-3.5 text-amber-600 dark:text-amber-400" />
                                 <span>Verifikasi</span>
                               </Button>
+                            ) : ses.status === "expired" ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                asChild
+                                className="font-medium text-rose-700 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10"
+                              >
+                                <Link
+                                  href="/admin/sessions"
+                                  title="Lihat status kadaluarsa di manajemen jadwal"
+                                  aria-label={`Lihat status kadaluarsa sesi ${ses.code}`}
+                                >
+                                  <span>Detail</span>
+                                </Link>
+                              </Button>
                             ) : isInSession && ses.zoomJoinUrl ? (
                               <Button
                                 size="sm"
@@ -636,7 +655,7 @@ export default function DistilledAdminDashboard() {
                                   <ExternalLink className="size-3.5" />
                                 </a>
                               </Button>
-                            ) : isCompleted ? (
+                            ) : isCompleted || isPast ? (
                               <Button
                                 variant="ghost"
                                 size="sm"
