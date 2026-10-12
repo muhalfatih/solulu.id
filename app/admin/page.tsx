@@ -16,7 +16,18 @@ import {
   Clock,
   CreditCard,
   UserCheck,
+  MoreHorizontal,
+  FileText,
+  Video,
+  Copy,
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   ManualPaymentModal,
   type ManualPaymentDetails,
@@ -477,22 +488,19 @@ export default function DistilledAdminDashboard() {
             </CardHeader>
 
             <CardContent className="p-0">
-              <Table className="w-full min-w-[580px] text-xs">
+              <Table className="w-full text-xs">
                 <TableHeader className="bg-muted/50 border-b border-border">
                   <TableRow className="border-border/60">
                     <TableHead className="py-3 pl-4 pr-2 font-semibold text-foreground">
-                      Pasien
+                      Pasien & Konselor
                     </TableHead>
                     <TableHead className="py-3 px-2 font-semibold text-foreground">
-                      Konselor
+                      Jadwal & Ruang
                     </TableHead>
                     <TableHead className="py-3 px-2 font-semibold text-foreground">
-                      Jadwal (WIB)
+                      Status
                     </TableHead>
-                    <TableHead className="py-3 px-2 font-semibold text-foreground">
-                      Ruang & Status
-                    </TableHead>
-                    <TableHead className="py-3 pl-2 pr-4 font-semibold text-foreground text-right sticky right-0 bg-muted/95 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">
+                    <TableHead className="py-3 pl-2 pr-4 font-semibold text-foreground text-right w-[110px]">
                       Aksi
                     </TableHead>
                   </TableRow>
@@ -506,31 +514,28 @@ export default function DistilledAdminDashboard() {
                       >
                         <TableCell className="py-3 pl-4 pr-2">
                           <div className="flex flex-col gap-1.5">
-                            <Skeleton className="h-4 w-28 bg-muted/80" />
-                            <Skeleton className="h-3 w-16 bg-muted/60" />
+                            <Skeleton className="h-4 w-32 bg-muted/80" />
+                            <Skeleton className="h-3 w-40 bg-muted/60" />
                           </div>
                         </TableCell>
                         <TableCell className="py-3 px-2">
                           <div className="flex flex-col gap-1.5">
-                            <Skeleton className="h-4 w-32 bg-muted/80" />
-                            <Skeleton className="h-3 w-20 bg-muted/60" />
+                            <Skeleton className="h-4 w-20 bg-muted/80" />
+                            <Skeleton className="h-3 w-16 bg-muted/60" />
                           </div>
                         </TableCell>
                         <TableCell className="py-3 px-2">
-                          <Skeleton className="h-4 w-24 bg-muted/80" />
+                          <Skeleton className="h-6 w-24 rounded-full bg-muted/70" />
                         </TableCell>
-                        <TableCell className="py-3 px-2">
-                          <Skeleton className="h-6 w-32 rounded-full bg-muted/70" />
-                        </TableCell>
-                        <TableCell className="py-3 pl-2 pr-4 text-right sticky right-0 bg-card/95">
-                          <Skeleton className="h-8 w-20 ml-auto rounded-md bg-muted/80" />
+                        <TableCell className="py-3 pl-2 pr-4 text-right">
+                          <Skeleton className="h-7 w-12 ml-auto rounded-md bg-muted/80" />
                         </TableCell>
                       </TableRow>
                     ))
                   ) : displayedSessions.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={4}
                         className="py-10 text-center text-muted-foreground"
                       >
                         <div className="flex flex-col items-center justify-center gap-1.5">
@@ -565,127 +570,143 @@ export default function DistilledAdminDashboard() {
                               : "hover:bg-muted/30"
                           }`}
                         >
-                          {/* Patient & Code */}
+                          {/* Patient & Counselor (Stacked) */}
                           <TableCell className="py-2.5 pl-4 pr-2 align-middle">
-                            <div className="text-foreground font-bold">
-                              {ses.patientName}
-                            </div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="font-mono text-xs text-muted-foreground font-medium tabular-nums">
-                                {ses.code}
+                            <div className="flex items-center gap-2">
+                              <span className="text-foreground font-bold">
+                                {ses.patientName}
                               </span>
                               {isCrisis && (
                                 <Badge
                                   variant="destructive"
-                                  className="text-xs py-0 px-1.5 font-semibold"
+                                  className="text-[10px] py-0 px-1.5 font-semibold"
                                 >
                                   Risiko Tinggi
                                 </Badge>
                               )}
                             </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                              <span className="font-mono text-[11px] font-medium tabular-nums">
+                                {ses.code}
+                              </span>
+                              <span>•</span>
+                              <span className="font-medium text-foreground/85 truncate max-w-[130px]" title={ses.counselorName}>
+                                {ses.counselorName}
+                              </span>
+                              <span className="hidden sm:inline text-muted-foreground/80">
+                                ({ses.counselorType})
+                              </span>
+                            </div>
                           </TableCell>
 
-                          {/* Counselor */}
-                          <TableCell className="py-2.5 px-2 align-middle">
-                            <div className="text-foreground font-semibold">
-                              {ses.counselorName}
-                            </div>
-                            <div className="text-xs text-muted-foreground font-medium">
-                              {ses.counselorType}
-                            </div>
-                          </TableCell>
-
-                          {/* Time */}
+                          {/* Time & Room (Stacked) */}
                           <TableCell className="py-2.5 px-2 tabular-nums align-middle whitespace-nowrap">
-                            <span className="font-bold text-foreground">
+                            <div className="font-bold text-foreground">
                               {ses.timeRange}
-                            </span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground font-medium">
+                              {ses.zoomRoom.replace("Zoom Pro ", "Ruang ")}
+                            </div>
                           </TableCell>
 
-                          {/* Unified Room & Operational Status */}
+                          {/* Unified Status */}
                           <TableCell className="py-2.5 px-2 align-middle whitespace-nowrap">
-                            <SessionStatusBadge
-                              status={ses.status}
-                              roomName={ses.zoomRoom.replace("Zoom Pro ", "Ruang ")}
-                            />
+                            <SessionStatusBadge status={ses.status} />
                           </TableCell>
 
-                          {/* Actions */}
-                          <TableCell className="py-2.5 pl-2 pr-4 text-right align-middle whitespace-nowrap sticky right-0 bg-card/95 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">
-                            {ses.status === "pending_payment" ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleOpenVerifyModal(ses)}
-                                className="font-semibold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15 hover:border-amber-500/60 gap-1.5 cursor-pointer"
-                                title={`Verifikasi pembayaran manual untuk ${ses.patientName}`}
-                              >
-                                <CreditCard className="size-3.5 text-amber-600 dark:text-amber-400" />
-                                <span>Verifikasi</span>
-                              </Button>
-                            ) : ses.status === "expired" ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                asChild
-                                className="font-medium text-rose-700 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/10"
-                              >
-                                <Link
-                                  href="/admin/sessions"
-                                  title="Lihat status kadaluarsa di manajemen jadwal"
-                                  aria-label={`Lihat status kadaluarsa sesi ${ses.code}`}
+                          {/* Actions (Fluid, DropdownMenu + Quick Action) */}
+                          <TableCell className="py-2.5 pl-2 pr-4 text-right align-middle whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1">
+                              {ses.status === "pending_payment" ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleOpenVerifyModal(ses)}
+                                  className="h-7 px-2 text-xs font-semibold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/15 hover:border-amber-500/60 gap-1 cursor-pointer"
+                                  title={`Verifikasi pembayaran manual untuk ${ses.patientName}`}
                                 >
-                                  <span>Detail</span>
-                                </Link>
-                              </Button>
-                            ) : isInSession && ses.zoomJoinUrl ? (
-                              <Button
-                                size="sm"
-                                asChild
-                                className="font-semibold gap-1.5"
-                              >
-                                <a
-                                  href={ses.zoomJoinUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  title="Buka tautan ruang Zoom telekonseling di tab baru"
-                                  aria-label={`Buka ruang Zoom telekonseling untuk sesi ${ses.code}`}
+                                  <CreditCard className="size-3 text-amber-600 dark:text-amber-400" />
+                                  <span className="hidden sm:inline">Verifikasi</span>
+                                </Button>
+                              ) : isInSession && ses.zoomJoinUrl ? (
+                                <Button
+                                  size="sm"
+                                  asChild
+                                  className="h-7 px-2 text-xs font-semibold gap-1"
                                 >
-                                  <span>Masuk Sesi</span>
-                                  <ExternalLink className="size-3.5" />
-                                </a>
-                              </Button>
-                            ) : isCompleted || isPast ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                asChild
-                                className="font-medium text-muted-foreground hover:text-foreground"
-                              >
-                                <Link
-                                  href="/admin/sessions"
-                                  title="Buka rekam medis dan catatan konseling"
-                                  aria-label={`Buka rekam medis dan catatan konseling untuk sesi ${ses.code}`}
-                                >
-                                  <span>Catatan</span>
-                                </Link>
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                asChild
-                                className="font-medium border-border/80 hover:bg-muted"
-                              >
-                                <Link
-                                  href="/admin/sessions"
-                                  title="Lihat rincian jadwal dan data reservasi"
-                                  aria-label={`Lihat rincian jadwal dan data reservasi sesi ${ses.code}`}
-                                >
-                                  <span>Detail</span>
-                                </Link>
-                              </Button>
-                            )}
+                                  <a
+                                    href={ses.zoomJoinUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title="Buka tautan ruang Zoom telekonseling di tab baru"
+                                    aria-label={`Buka ruang Zoom telekonseling untuk sesi ${ses.code}`}
+                                  >
+                                    <span>Masuk</span>
+                                    <ExternalLink className="size-3" />
+                                  </a>
+                                </Button>
+                              ) : null}
+
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                                    title="Opsi tindakan"
+                                    aria-label={`Opsi tindakan untuk sesi ${ses.code}`}
+                                  >
+                                    <MoreHorizontal className="size-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44">
+                                  <DropdownMenuItem asChild>
+                                    <Link
+                                      href="/admin/sessions"
+                                      className="cursor-pointer flex items-center"
+                                      title="Buka manajemen jadwal lengkap"
+                                    >
+                                      <FileText className="size-3.5 mr-2" />
+                                      <span>{isCompleted || isPast ? "Catatan Sesi" : "Lihat Detail"}</span>
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  {ses.status === "pending_payment" && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleOpenVerifyModal(ses)}
+                                      className="cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-600 focus:bg-amber-500/10"
+                                    >
+                                      <CreditCard className="size-3.5 mr-2" />
+                                      <span>Verifikasi Bayar</span>
+                                    </DropdownMenuItem>
+                                  )}
+                                  {ses.zoomJoinUrl && (
+                                    <DropdownMenuItem asChild>
+                                      <a
+                                        href={ses.zoomJoinUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="cursor-pointer flex items-center"
+                                      >
+                                        <Video className="size-3.5 mr-2" />
+                                        <span>Masuk Zoom</span>
+                                      </a>
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(ses.code)
+                                      setVerificationNotice(`Kode booking ${ses.code} berhasil disalin`)
+                                      setTimeout(() => setVerificationNotice(null), 3000)
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    <Copy className="size-3.5 mr-2" />
+                                    <span>Salin Kode</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )

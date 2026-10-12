@@ -26,7 +26,14 @@ import {
   Filter,
   CreditCard,
   Plus,
+  Lock,
 } from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { AdminPageHeader, SessionStatusBadge, resolveSessionTimingAndStatus, groupSessionsByTime } from "@/components/admin"
@@ -1238,255 +1245,355 @@ export default function DistilledSessionsPage() {
             </div>
           </div>
 
-          {/* Desktop & Mobile Table with horizontal scroll */}
-          <div className="overflow-x-auto">
-            <Table className="text-xs min-w-[760px]">
-              <TableHeader className="bg-muted/40 border-b border-border">
-                <TableRow className="border-border/60">
-                  <TableHead className="py-2.5 px-3 font-semibold text-foreground w-[150px]">Sesi & Jadwal</TableHead>
-                  <TableHead className="py-2.5 px-3 font-semibold text-foreground w-[210px]">Pasien & Kondisi</TableHead>
-                  <TableHead className="py-2.5 px-3 font-semibold text-foreground w-[170px]">Mitra Konselor</TableHead>
-                  <TableHead className="py-2.5 px-3 font-semibold text-foreground w-[110px]">Ruang Video</TableHead>
-                  <TableHead className="py-2.5 px-3 font-semibold text-foreground w-[140px]">Status</TableHead>
-                  <TableHead className="py-2.5 px-3 font-semibold text-foreground w-[150px]">Batas Ubah Jadwal</TableHead>
-                  <TableHead className="py-2.5 px-3 font-semibold text-foreground text-right w-[130px] sticky right-0 bg-muted/95 backdrop-blur-xs z-10 shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">
-                    Tindakan
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={`session-skel-${i}`} className="border-border/60">
-                      <TableCell className="py-3 px-3">
-                        <Skeleton className="h-4 w-20 mb-1.5" />
-                        <Skeleton className="h-3 w-28" />
-                      </TableCell>
-                      <TableCell className="py-3 px-3">
-                        <Skeleton className="h-4 w-32 mb-1.5" />
-                        <Skeleton className="h-3 w-24" />
-                      </TableCell>
-                      <TableCell className="py-3 px-3">
-                        <Skeleton className="h-4 w-28 mb-1.5" />
-                        <Skeleton className="h-3 w-20" />
-                      </TableCell>
-                      <TableCell className="py-3 px-3">
-                        <Skeleton className="h-5 w-20 rounded" />
-                      </TableCell>
-                      <TableCell className="py-3 px-3">
-                        <Skeleton className="h-5 w-24 rounded-full" />
-                      </TableCell>
-                      <TableCell className="py-3 px-3">
-                        <Skeleton className="h-3.5 w-24" />
-                      </TableCell>
-                      <TableCell className="py-3 px-3 text-right sticky right-0 bg-card/90">
-                        <Skeleton className="h-8 w-20 ml-auto rounded-md" />
+          {/* Desktop & Mobile Table - Fluid Zero Horizontal Scroll */}
+          <TooltipProvider delayDuration={150}>
+            <div className="w-full overflow-hidden">
+              <Table className="w-full text-xs">
+                <TableHeader className="bg-muted/40 border-b border-border">
+                  <TableRow className="border-border/60">
+                    <TableHead className="py-2.5 px-3 font-semibold text-foreground w-[160px]">Jadwal & Sesi</TableHead>
+                    <TableHead className="py-2.5 px-3 font-semibold text-foreground">Partisipan & Konseling</TableHead>
+                    <TableHead className="py-2.5 px-3 font-semibold text-foreground w-[180px]">Status & Ruang</TableHead>
+                    <TableHead className="py-2.5 px-3 font-semibold text-foreground text-right w-[120px]">Tindakan</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <TableRow key={`session-skel-${i}`} className="border-border/60">
+                        <TableCell className="py-3 px-3">
+                          <Skeleton className="h-4 w-20 mb-1.5" />
+                          <Skeleton className="h-3 w-28" />
+                        </TableCell>
+                        <TableCell className="py-3 px-3">
+                          <Skeleton className="h-4 w-36 mb-1.5" />
+                          <Skeleton className="h-3 w-48" />
+                        </TableCell>
+                        <TableCell className="py-3 px-3">
+                          <Skeleton className="h-5 w-24 rounded-full mb-1" />
+                          <Skeleton className="h-4 w-20 rounded" />
+                        </TableCell>
+                        <TableCell className="py-3 px-3 text-right">
+                          <Skeleton className="h-7 w-16 ml-auto rounded-md" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : filteredSessions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
+                        <div className="flex flex-col items-center justify-center gap-1.5">
+                          <CheckCircle2 className="size-6 text-muted-foreground/50 mb-1" />
+                          <p className="text-sm font-medium text-foreground">Tidak ada jadwal sesi ditemukan</p>
+                          <p className="text-xs text-muted-foreground">Belum ada booking atau coba sesuaikan kata kunci pencarian dan filter status.</p>
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : filteredSessions.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
-                      <div className="flex flex-col items-center justify-center gap-1.5">
-                        <CheckCircle2 className="size-6 text-muted-foreground/50 mb-1" />
-                        <p className="text-sm font-medium text-foreground">Tidak ada jadwal sesi ditemukan</p>
-                        <p className="text-xs text-muted-foreground">Belum ada booking atau coba sesuaikan kata kunci pencarian dan filter status.</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  <>
-                    {/* Sekat 1: Jadwal Mendatang & Hari Ini */}
-                    {upcomingSessions.length > 0 && (
-                      <>
-                        <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border">
-                          <TableCell colSpan={7} className="py-2.5 px-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Calendar className="size-4 text-primary" />
-                                <span className="font-semibold text-foreground text-xs">Jadwal Mendatang & Hari Ini</span>
-                                <Badge variant="secondary" className="text-[11px] py-0 px-2 font-mono font-medium">
-                                  {upcomingSessions.length} sesi
-                                </Badge>
-                              </div>
-                              <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                                Sesi aktif, terkonfirmasi, dan siap berjalan
-                              </span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        {upcomingSessions.map((ses) => {
-                          const isLive = ses.status === "in_session"
-                          const isLocked = !ses.isPast && ses.hoursUntilSession > 0 && ses.hoursUntilSession < 12
-
-                          return (
-                            <TableRow key={ses.id} className={`transition-colors border-border/60 ${isLive ? "bg-emerald-500/[0.06] hover:bg-emerald-500/[0.1] border-emerald-500/20" : "hover:bg-muted/30"}`}>
-                              <TableCell className="py-3 px-3">
-                                <span className="font-semibold text-primary font-mono">{ses.code}</span>
-                                <div className="text-foreground font-medium mt-0.5">{ses.timeRange}</div>
-                                <div className="text-[11px] text-muted-foreground">{ses.date}</div>
-                              </TableCell>
-
-                              <TableCell className="py-3 px-3">
-                                <div className="text-foreground font-medium">{ses.patientName}</div>
-                                <div className="text-[11px] text-muted-foreground">{ses.patientContact}</div>
-                                {ses.hasSuicidalThoughts && (
-                                  <Badge variant="destructive" className="text-[10px] py-0 px-1 font-medium mt-1">
-                                    Kondisi Mendesak
+                  ) : (
+                    <>
+                      {/* Sekat 1: Jadwal Mendatang & Hari Ini */}
+                      {upcomingSessions.length > 0 && (
+                        <>
+                          <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border">
+                            <TableCell colSpan={4} className="py-2.5 px-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="size-4 text-primary" />
+                                  <span className="font-semibold text-foreground text-xs">Jadwal Mendatang & Hari Ini</span>
+                                  <Badge variant="secondary" className="text-[11px] py-0 px-2 font-mono font-medium">
+                                    {upcomingSessions.length} sesi
                                   </Badge>
-                                )}
-                              </TableCell>
-
-                              <TableCell className="py-3 px-3">
-                                <div className="text-foreground font-medium">{ses.counselorName}</div>
-                                <div className="text-[11px] text-muted-foreground">{ses.counselorType}</div>
-                              </TableCell>
-
-                              <TableCell className="py-3 px-3">
-                                <Badge variant="outline" className="text-xs py-0.5 px-1.5 font-medium">
-                                  {ses.zoomSlotNumber === 1
-                                    ? "Ruang 1 (Zoom 1)"
-                                    : ses.zoomSlotNumber === 2
-                                    ? "Ruang 2 (Zoom 2)"
-                                    : ses.zoomRoom === "Ruang Rapat Manual"
-                                    ? "Ruang Manual"
-                                    : ses.zoomRoom.replace("Zoom Pro ", "Ruang ")}
-                                </Badge>
-                              </TableCell>
-
-                              <TableCell className="py-3 px-3">
-                                <SessionStatusBadge status={ses.status} />
-                              </TableCell>
-
-                              <TableCell className="py-3 px-3">
-                                {isLocked ? (
-                                  <span className="text-xs text-destructive font-medium">Terkunci (&lt;12 jam)</span>
-                                ) : (
-                                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Bisa Diubah</span>
-                                )}
-                              </TableCell>
-
-                              <TableCell className="py-3 px-3 text-right sticky right-0 bg-card/90 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">
-                                <div className="flex items-center justify-end gap-1.5">
-                                  {ses.status === "pending_payment" && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => setManualPaymentSession(ses)}
-                                      className="font-semibold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 gap-1 cursor-pointer"
-                                    >
-                                      <CreditCard className="size-3.5" />
-                                      <span>Konfirmasi</span>
-                                    </Button>
-                                  )}
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleOpenSession(ses)}
-                                  >
-                                    Rincian
-                                  </Button>
                                 </div>
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                      </>
-                    )}
-
-                    {/* Sekat 2: Riwayat & Terlewat */}
-                    {pastSessions.length > 0 && (
-                      <>
-                        <TableRow className={`bg-muted/40 hover:bg-muted/40 border-y border-border ${upcomingSessions.length > 0 ? "border-t-2 border-t-border" : ""}`}>
-                          <TableCell colSpan={7} className="py-2.5 px-3">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Clock className="size-4 text-muted-foreground" />
-                                <span className="font-semibold text-foreground text-xs">Riwayat & Terlewat</span>
-                                <Badge variant="outline" className="text-[11px] py-0 px-2 font-mono text-muted-foreground">
-                                  {pastSessions.length} sesi
-                                </Badge>
+                                <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                                  Sesi aktif, terkonfirmasi, dan siap berjalan
+                                </span>
                               </div>
-                              <span className="text-[11px] text-muted-foreground hidden sm:inline">
-                                Sesi yang telah selesai, kadaluarsa, atau dibatalkan
-                              </span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        {pastSessions.map((ses) => {
-                          const isExpired = ses.status === "expired"
-                          const isCompleted = ses.status === "completed"
+                            </TableCell>
+                          </TableRow>
+                          {upcomingSessions.map((ses) => {
+                            const isLive = ses.status === "in_session"
+                            const isLocked = !ses.isPast && ses.hoursUntilSession > 0 && ses.hoursUntilSession < 12
 
-                          return (
-                            <TableRow key={ses.id} className="hover:bg-muted/30 transition-colors border-border/60 opacity-80 hover:opacity-100 bg-muted/10">
-                              <TableCell className="py-3 px-3">
-                                <span className="font-semibold text-muted-foreground font-mono">{ses.code}</span>
-                                <div className="text-foreground font-medium mt-0.5">{ses.timeRange}</div>
-                                <div className="text-[11px] text-muted-foreground">{ses.date}</div>
-                              </TableCell>
+                            return (
+                              <TableRow
+                                key={ses.id}
+                                onClick={() => handleOpenSession(ses)}
+                                className={`transition-colors border-border/60 cursor-pointer ${
+                                  isLive
+                                    ? "bg-emerald-500/[0.06] hover:bg-emerald-500/[0.1] border-emerald-500/20"
+                                    : "hover:bg-muted/30"
+                                }`}
+                              >
+                                <TableCell className="py-3 px-3 align-top">
+                                  <div className="font-semibold text-foreground tabular-nums">{ses.timeRange}</div>
+                                  <div className="text-[11px] text-muted-foreground">{ses.date}</div>
+                                  <span className="inline-block font-mono text-[10px] text-primary font-semibold mt-0.5">{ses.code}</span>
+                                </TableCell>
 
-                              <TableCell className="py-3 px-3">
-                                <div className="text-foreground font-medium">{ses.patientName}</div>
-                                <div className="text-[11px] text-muted-foreground">{ses.patientContact}</div>
-                                {ses.hasSuicidalThoughts && (
-                                  <Badge variant="destructive" className="text-[10px] py-0 px-1 font-medium mt-1">
-                                    Kondisi Mendesak
-                                  </Badge>
-                                )}
-                              </TableCell>
+                                <TableCell className="py-3 px-3 align-top">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-foreground font-semibold">{ses.patientName}</span>
+                                    {ses.hasSuicidalThoughts && (
+                                      <Badge variant="destructive" className="text-[10px] py-0 px-1 font-medium">
+                                        Kondisi Mendesak
+                                      </Badge>
+                                    )}
+                                    {ses.patientContact && (
+                                      <span className="text-[11px] text-muted-foreground">({ses.patientContact})</span>
+                                    )}
+                                  </div>
+                                  <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-muted-foreground/80">Konselor:</span>
+                                    <span className="font-medium text-foreground/90">{ses.counselorName}</span>
+                                    <span>•</span>
+                                    <span>{ses.counselorType}</span>
+                                  </div>
+                                </TableCell>
 
-                              <TableCell className="py-3 px-3">
-                                <div className="text-foreground font-medium">{ses.counselorName}</div>
-                                <div className="text-[11px] text-muted-foreground">{ses.counselorType}</div>
-                              </TableCell>
+                                <TableCell className="py-3 px-3 align-top">
+                                  <div className="flex flex-col gap-1 items-start">
+                                    <SessionStatusBadge status={ses.status} />
+                                    <div className="flex items-center gap-1.5">
+                                      <Badge variant="outline" className="text-[11px] py-0 px-1.5 font-medium">
+                                        {ses.zoomSlotNumber === 1
+                                          ? "Ruang 1 (Zoom 1)"
+                                          : ses.zoomSlotNumber === 2
+                                          ? "Ruang 2 (Zoom 2)"
+                                          : ses.zoomRoom === "Ruang Rapat Manual"
+                                          ? "Ruang Manual"
+                                          : ses.zoomRoom.replace("Zoom Pro ", "Ruang ")}
+                                      </Badge>
+                                      {isLocked && (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span
+                                              className="inline-flex items-center text-amber-600 dark:text-amber-400 cursor-help"
+                                              aria-label="Jadwal terkunci (<12 jam sebelum sesi)"
+                                            >
+                                              <Lock className="size-3.5" />
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top">
+                                            Terkunci (&lt;12 jam sebelum sesi)
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      )}
+                                    </div>
+                                  </div>
+                                </TableCell>
 
-                              <TableCell className="py-3 px-3">
-                                <Badge variant="outline" className="text-xs py-0.5 px-1.5 font-medium opacity-80">
-                                  {ses.zoomSlotNumber === 1
-                                    ? "Ruang 1 (Zoom 1)"
-                                    : ses.zoomSlotNumber === 2
-                                    ? "Ruang 2 (Zoom 2)"
-                                    : ses.zoomRoom === "Ruang Rapat Manual"
-                                    ? "Ruang Manual"
-                                    : ses.zoomRoom.replace("Zoom Pro ", "Ruang ")}
-                                </Badge>
-                              </TableCell>
-
-                              <TableCell className="py-3 px-3">
-                                <SessionStatusBadge status={ses.status} />
-                              </TableCell>
-
-                              <TableCell className="py-3 px-3">
-                                {isExpired ? (
-                                  <span className="text-xs text-rose-600 dark:text-rose-400 font-medium">Kadaluarsa</span>
-                                ) : isCompleted ? (
-                                  <span className="text-xs text-muted-foreground">Sesi Selesai</span>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">Waktu Terlewat</span>
-                                )}
-                              </TableCell>
-
-                              <TableCell className="py-3 px-3 text-right sticky right-0 bg-card/90 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">
-                                <div className="flex items-center justify-end gap-1.5">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleOpenSession(ses)}
+                                <TableCell className="py-3 px-3 text-right align-top">
+                                  <div
+                                    className="flex items-center justify-end gap-1.5"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
-                                    Rincian
-                                  </Button>
+                                    {ses.status === "pending_payment" ? (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setManualPaymentSession(ses)}
+                                        className="h-7 text-xs font-semibold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 gap-1 cursor-pointer"
+                                      >
+                                        <CreditCard className="size-3" />
+                                        <span className="hidden sm:inline">Konfirmasi</span>
+                                      </Button>
+                                    ) : isLive && ses.zoomJoinUrl ? (
+                                      <Button
+                                        size="sm"
+                                        asChild
+                                        className="h-7 text-xs font-semibold gap-1"
+                                      >
+                                        <a href={ses.zoomJoinUrl} target="_blank" rel="noreferrer">
+                                          <Video className="size-3" />
+                                          <span>Masuk</span>
+                                        </a>
+                                      </Button>
+                                    ) : null}
+
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                                          aria-label={`Menu tindakan untuk ${ses.code}`}
+                                        >
+                                          <MoreHorizontal className="size-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-48">
+                                        <DropdownMenuItem
+                                          onClick={() => handleOpenSession(ses)}
+                                          className="cursor-pointer"
+                                        >
+                                          <ExternalLink className="size-3.5 mr-2" />
+                                          <span>Rincian Sesi</span>
+                                        </DropdownMenuItem>
+                                        {ses.status === "pending_payment" && (
+                                          <DropdownMenuItem
+                                            onClick={() => setManualPaymentSession(ses)}
+                                            className="cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-600"
+                                          >
+                                            <CreditCard className="size-3.5 mr-2" />
+                                            <span>Konfirmasi Bayar</span>
+                                          </DropdownMenuItem>
+                                        )}
+                                        {ses.zoomJoinUrl && (
+                                          <DropdownMenuItem asChild className="cursor-pointer">
+                                            <a href={ses.zoomJoinUrl} target="_blank" rel="noreferrer">
+                                              <Video className="size-3.5 mr-2" />
+                                              <span>Buka Ruang Zoom</span>
+                                            </a>
+                                          </DropdownMenuItem>
+                                        )}
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() => handleCopyLink(ses.code)}
+                                          disabled={ses.status === "pending_payment" || ses.status === "expired"}
+                                          className="cursor-pointer"
+                                        >
+                                          <Copy className="size-3.5 mr-2" />
+                                          <span>Salin Link</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => handleResendEmail(ses.patientName)}
+                                          disabled={ses.status === "pending_payment" || ses.status === "expired"}
+                                          className="cursor-pointer"
+                                        >
+                                          <Mail className="size-3.5 mr-2" />
+                                          <span>Kirim Ulang Email</span>
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
+                        </>
+                      )}
+
+                      {/* Sekat 2: Riwayat & Terlewat */}
+                      {pastSessions.length > 0 && (
+                        <>
+                          <TableRow className={`bg-muted/40 hover:bg-muted/40 border-y border-border ${upcomingSessions.length > 0 ? "border-t-2 border-t-border" : ""}`}>
+                            <TableCell colSpan={4} className="py-2.5 px-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="size-4 text-muted-foreground" />
+                                  <span className="font-semibold text-foreground text-xs">Riwayat & Terlewat</span>
+                                  <Badge variant="outline" className="text-[11px] py-0 px-2 font-mono text-muted-foreground">
+                                    {pastSessions.length} sesi
+                                  </Badge>
                                 </div>
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                      </>
-                    )}
-                  </>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                                <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                                  Sesi yang telah selesai, kadaluarsa, atau dibatalkan
+                                </span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                          {pastSessions.map((ses) => {
+                            return (
+                              <TableRow
+                                key={ses.id}
+                                onClick={() => handleOpenSession(ses)}
+                                className="hover:bg-muted/30 transition-colors border-border/60 opacity-80 hover:opacity-100 bg-muted/10 cursor-pointer"
+                              >
+                                <TableCell className="py-3 px-3 align-top">
+                                  <div className="font-semibold text-muted-foreground tabular-nums">{ses.timeRange}</div>
+                                  <div className="text-[11px] text-muted-foreground">{ses.date}</div>
+                                  <span className="inline-block font-mono text-[10px] text-muted-foreground font-semibold mt-0.5">{ses.code}</span>
+                                </TableCell>
+
+                                <TableCell className="py-3 px-3 align-top">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-foreground font-medium">{ses.patientName}</span>
+                                    {ses.hasSuicidalThoughts && (
+                                      <Badge variant="destructive" className="text-[10px] py-0 px-1 font-medium">
+                                        Kondisi Mendesak
+                                      </Badge>
+                                    )}
+                                    {ses.patientContact && (
+                                      <span className="text-[11px] text-muted-foreground">({ses.patientContact})</span>
+                                    )}
+                                  </div>
+                                  <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-muted-foreground/80">Konselor:</span>
+                                    <span className="font-medium text-foreground/90">{ses.counselorName}</span>
+                                    <span>•</span>
+                                    <span>{ses.counselorType}</span>
+                                  </div>
+                                </TableCell>
+
+                                <TableCell className="py-3 px-3 align-top">
+                                  <div className="flex flex-col gap-1 items-start">
+                                    <SessionStatusBadge status={ses.status} />
+                                    <Badge variant="outline" className="text-[11px] py-0 px-1.5 font-medium opacity-80">
+                                      {ses.zoomSlotNumber === 1
+                                        ? "Ruang 1 (Zoom 1)"
+                                        : ses.zoomSlotNumber === 2
+                                        ? "Ruang 2 (Zoom 2)"
+                                        : ses.zoomRoom === "Ruang Rapat Manual"
+                                        ? "Ruang Manual"
+                                        : ses.zoomRoom.replace("Zoom Pro ", "Ruang ")}
+                                    </Badge>
+                                  </div>
+                                </TableCell>
+
+                                <TableCell className="py-3 px-3 text-right align-top">
+                                  <div
+                                    className="flex items-center justify-end gap-1.5"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                                          aria-label={`Menu tindakan untuk ${ses.code}`}
+                                        >
+                                          <MoreHorizontal className="size-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" className="w-48">
+                                        <DropdownMenuItem
+                                          onClick={() => handleOpenSession(ses)}
+                                          className="cursor-pointer"
+                                        >
+                                          <ExternalLink className="size-3.5 mr-2" />
+                                          <span>Rincian Sesi</span>
+                                        </DropdownMenuItem>
+                                        {ses.zoomJoinUrl && (
+                                          <DropdownMenuItem asChild className="cursor-pointer">
+                                            <a href={ses.zoomJoinUrl} target="_blank" rel="noreferrer">
+                                              <Video className="size-3.5 mr-2" />
+                                              <span>Buka Ruang Zoom</span>
+                                            </a>
+                                          </DropdownMenuItem>
+                                        )}
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem
+                                          onClick={() => handleCopyLink(ses.code)}
+                                          className="cursor-pointer"
+                                        >
+                                          <Copy className="size-3.5 mr-2" />
+                                          <span>Salin Link</span>
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
+                        </>
+                      )}
+                    </>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TooltipProvider>
         </Card>
       )}
 
