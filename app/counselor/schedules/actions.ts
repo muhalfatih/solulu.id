@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
 import { eq, and, sql, desc } from "drizzle-orm"
 import { db } from "@/db"
-import { schedules, counselors } from "@/db/schema"
+import { schedules, counselors, bookings } from "@/db/schema"
 import { createClient } from "@/lib/supabase/server"
 import {
   computeEndTime,
@@ -57,6 +57,8 @@ export interface ScheduleItemView {
   canCancel: boolean
   cancelRestrictionReason?: string
   isPast: boolean
+  bookingStatus?: "pending_payment" | "confirmed" | "completed" | "cancelled"
+  patientName?: string
 }
 
 /**
@@ -97,27 +99,45 @@ export async function getCounselorSchedulesAction(
       }
 
       rows = await db
-        .select()
+        .select({
+          schedule: schedules,
+          booking: {
+            id: bookings.id,
+            patientName: bookings.patientName,
+            status: bookings.status,
+          },
+        })
         .from(schedules)
+        .leftJoin(
+          bookings,
+          and(
+            eq(bookings.scheduleId, schedules.id),
+            sql`${bookings.status} != 'cancelled'`
+          )
+        )
         .where(and(...conditions))
         .orderBy(desc(schedules.date), schedules.startTime)
     }
 
     const now = new Date()
     const items: ScheduleItemView[] = rows.map((r) => {
-      const isPast = isSlotInPast(r.date, r.endTime, now)
-      const cancelCheck = canCancelSlot(r.status, isPast)
+      const s = r.schedule || r
+      const b = r.booking || null
+      const isPast = isSlotInPast(s.date, s.endTime, now)
+      const cancelCheck = canCancelSlot(s.status, isPast)
       return {
-        id: r.id,
-        counselorId: r.counselorId,
-        date: r.date,
-        startTime: r.startTime,
-        endTime: r.endTime,
-        timeRange: formatTimeRange(r.startTime, r.endTime),
-        status: r.status,
+        id: s.id,
+        counselorId: s.counselorId,
+        date: s.date,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        timeRange: formatTimeRange(s.startTime, s.endTime),
+        status: s.status,
         canCancel: cancelCheck.allowed,
         cancelRestrictionReason: cancelCheck.reason,
         isPast,
+        bookingStatus: b?.status,
+        patientName: b?.patientName,
       }
     })
 

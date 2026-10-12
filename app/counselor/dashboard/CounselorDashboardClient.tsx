@@ -15,6 +15,10 @@ import {
   Mail,
   Loader2,
   ClipboardList,
+  Lock,
+  Activity,
+  AlertCircle,
+  CalendarCheck,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -31,17 +35,28 @@ import {
 } from "@/components/ui/dialog"
 import { completeSessionAndOpenReportAction } from "@/app/counselor/actions"
 import type { CounselorUpcomingSessionView } from "@/lib/counselor/types"
-
+import {
+  SessionStatusBadge,
+  resolveSessionTimingAndStatus,
+  type SessionOperationalStatus,
+} from "@/components/admin"
 import { cn } from "@/lib/utils"
 
 interface CounselorDashboardClientProps {
   initialSessions: CounselorUpcomingSessionView[]
 }
 
+type CounselorDashboardFilter =
+  | "all"
+  | "pending_payment"
+  | "in_session"
+  | "confirmed"
+  | "completed"
+
 export function CounselorDashboardClient({ initialSessions }: CounselorDashboardClientProps) {
   const router = useRouter()
   const [sessions, setSessions] = React.useState<CounselorUpcomingSessionView[]>(initialSessions)
-  const [filter, setFilter] = React.useState<"all" | "confirmed" | "completed">("all")
+  const [filter, setFilter] = React.useState<CounselorDashboardFilter>("all")
   const [completingId, setCompletingId] = React.useState<string | null>(null)
   const [confirmSession, setConfirmSession] = React.useState<CounselorUpcomingSessionView | null>(null)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
@@ -51,14 +66,61 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
     return dateStr === today || dateStr.startsWith(today)
   }, [])
 
-  const filteredSessions = React.useMemo(() => {
-    if (filter === "all") return sessions
-    return sessions.filter((s) => s.status === filter)
-  }, [sessions, filter])
+  // Resolve real-time operational status (in_session, confirmed, completed, expired, pending_payment)
+  const enrichedSessions = React.useMemo(() => {
+    const now = new Date()
+    return sessions.map((s) => {
+      const timing = resolveSessionTimingAndStatus(
+        {
+          date: s.date,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          status: s.status,
+        },
+        now
+      )
 
-  const confirmedCount = sessions.filter((s) => s.status === "confirmed").length
-  const completedCount = sessions.filter((s) => s.status === "completed").length
-  const highRiskCount = sessions.filter((s) => s.hasSuicidalThoughts).length
+      return {
+        ...s,
+        operationalStatus: timing.status as SessionOperationalStatus,
+        isOngoing: timing.isOngoing,
+        isPastSession: timing.isPast,
+        hoursUntilSession: timing.hoursUntilSession,
+      }
+    })
+  }, [sessions])
+
+  // Operational metrics
+  const pendingCount = React.useMemo(
+    () => enrichedSessions.filter((s) => s.operationalStatus === "pending_payment").length,
+    [enrichedSessions]
+  )
+  const inSessionCount = React.useMemo(
+    () => enrichedSessions.filter((s) => s.operationalStatus === "in_session").length,
+    [enrichedSessions]
+  )
+  const confirmedCount = React.useMemo(
+    () => enrichedSessions.filter((s) => s.operationalStatus === "confirmed").length,
+    [enrichedSessions]
+  )
+  const completedCount = React.useMemo(
+    () => enrichedSessions.filter((s) => s.operationalStatus === "completed").length,
+    [enrichedSessions]
+  )
+  const highRiskCount = React.useMemo(
+    () => enrichedSessions.filter((s) => s.hasSuicidalThoughts).length,
+    [enrichedSessions]
+  )
+  const todayCount = React.useMemo(
+    () => enrichedSessions.filter((s) => isToday(s.date) && s.operationalStatus !== "cancelled").length,
+    [enrichedSessions]
+  )
+
+  // Filtered session list
+  const filteredSessions = React.useMemo(() => {
+    if (filter === "all") return enrichedSessions
+    return enrichedSessions.filter((s) => s.operationalStatus === filter)
+  }, [enrichedSessions, filter])
 
   const handleCompleteAndReport = async (bookingId: string) => {
     setCompletingId(bookingId)
@@ -66,7 +128,6 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
     try {
       const res = await completeSessionAndOpenReportAction(bookingId)
       if (res.success && res.data?.redirectUrl) {
-        // Update local state to completed
         setSessions((prev) =>
           prev.map((s) => (s.id === bookingId ? { ...s, status: "completed" as const } : s))
         )
@@ -84,16 +145,27 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
   return (
     <div className="flex flex-col gap-6">
       {/* Top Banner Header */}
-      <div className="flex flex-col gap-1 pb-5 border-b border-border/60">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Sesi Konseling Mendatang</h1>
-          <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border/70 font-medium">
-            7 Hari Ke Depan
-          </Badge>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 border-b border-border/60">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Sesi Konseling Praktik</h1>
+            <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border/70 font-medium">
+              7 Hari Ke Depan
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Daftar sesi konseling terintegrasi dengan status operasional real-time dan rekam medis pasien.
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Sesi konseling terjadwal dan ringkasan klinis pasien.
-        </p>
+
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm" className="text-xs h-9 gap-1.5 border-border/80">
+            <Link href="/counselor/schedules">
+              <Calendar className="size-3.5" aria-hidden="true" />
+              <span>Kelola Slot Praktik</span>
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {errorMessage && (
@@ -105,31 +177,93 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
         </div>
       )}
 
-      {/* Grid Overview Cards - 3 Pure Dynamic Columns */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl border border-border/80 bg-card shadow-xs flex flex-col justify-between gap-3">
+      {/* Grid Overview Cards - 4 Standardized Operational Metric Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Metric 1: Sedang Berlangsung / Hari Ini */}
+        <div className="p-4 rounded-xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Sesi Terkonfirmasi
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Sesi Hari Ini
             </span>
-            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
-              <CheckCircle2 className="size-4" aria-hidden="true" />
+            <div
+              className={cn(
+                "size-8 rounded-lg flex items-center justify-center shrink-0",
+                inSessionCount > 0
+                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-2 ring-emerald-500/20"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              <Activity className="size-4" aria-hidden="true" />
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+              {todayCount} Sesi
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {inSessionCount > 0 ? (
+                <strong className="text-emerald-700 dark:text-emerald-400 font-semibold">
+                  {inSessionCount} sedang aktif sekarang
+                </strong>
+              ) : (
+                "Jadwal terlaksana hari ini"
+              )}
+            </span>
+          </div>
+        </div>
+
+        {/* Metric 2: Terkonfirmasi / Mendatang */}
+        <div className="p-4 rounded-xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Mendatang
+            </span>
+            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <CalendarCheck className="size-4" aria-hidden="true" />
             </div>
           </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
               {confirmedCount} Sesi
             </span>
-            <span className="text-xs text-muted-foreground">Siap dilaksanakan via Zoom S2S</span>
+            <span className="text-xs text-muted-foreground">Terkonfirmasi & siap di Zoom</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-xl border border-border/80 bg-card shadow-xs flex flex-col justify-between gap-3">
+        {/* Metric 3: Menunggu Pembayaran */}
+        <div
+          className={cn(
+            "p-4 rounded-xl border shadow-2xs flex flex-col justify-between gap-3 transition-colors",
+            pendingCount > 0
+              ? "border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10"
+              : "border-border/80 bg-card"
+          )}
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+              Menunggu Bayar
+            </span>
+            <div className="size-8 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Clock className="size-4" aria-hidden="true" />
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-2xl font-bold tracking-tight text-amber-700 dark:text-amber-400 tabular-nums">
+              {pendingCount} Sesi
+            </span>
+            <span className="text-xs text-amber-700/80 dark:text-amber-400/80">
+              {pendingCount > 0 ? "Klien dalam proses transfer" : "Tidak ada antrean tertunda"}
+            </span>
+          </div>
+        </div>
+
+        {/* Metric 4: Selesai / Laporan Klinis */}
+        <div className="p-4 rounded-xl border border-border/80 bg-card shadow-2xs flex flex-col justify-between gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
               Selesai / Laporan
             </span>
-            <div className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+            <div className="size-8 rounded-lg bg-muted text-muted-foreground flex items-center justify-center shrink-0">
               <ClipboardList className="size-4" aria-hidden="true" />
             </div>
           </div>
@@ -140,51 +274,90 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
             <span className="text-xs text-muted-foreground">Catatan klinis terarsip privat</span>
           </div>
         </div>
-
-        <div
-          className={cn(
-            "p-4 rounded-xl border shadow-xs flex flex-col justify-between gap-3 transition-colors",
-            highRiskCount > 0
-              ? "border-amber-500/30 bg-amber-500/5 dark:bg-amber-500/10"
-              : "border-border/80 bg-card"
-          )}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
-              Perhatian Klinis (SRQ)
-            </span>
-            <div className="size-8 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center">
-              <ShieldAlert className="size-4" aria-hidden="true" />
-            </div>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-2xl font-bold tracking-tight text-amber-700 dark:text-amber-400 tabular-nums">
-              {highRiskCount} Pasien
-            </span>
-            <span className="text-xs text-amber-700/80 dark:text-amber-400/80">
-              {highRiskCount > 0 ? "Indikasi ide bunuh diri / skor tinggi" : "Tidak ada pasien risiko tinggi"}
-            </span>
-          </div>
-        </div>
       </div>
 
-      {/* Filter Tabs & Session List */}
-      <div className="flex flex-col gap-4 pt-2">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h2 className="text-base font-semibold tracking-tight">Daftar Klien Terjadwal</h2>
+      {/* Clinical Attention Alert Banner (if high-risk clients exist) */}
+      {highRiskCount > 0 && (
+        <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/5 dark:bg-rose-500/10 text-xs flex items-start gap-3">
+          <ShieldAlert className="size-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="flex flex-col gap-1">
+            <span className="font-bold text-rose-700 dark:text-rose-300 text-sm">
+              Perhatian Khusus Klinis: {highRiskCount} Pasien Memerlukan Atensi (SRQ-20)
+            </span>
+            <p className="text-rose-700/90 dark:text-rose-300/90 leading-relaxed">
+              Terdapat pasien dengan indikasi ide bunuh diri (Pertanyaan 17 Skrining SRQ-20) atau skor tinggi. Mohon
+              prioritaskan protokol keselamatan krisis dan rujukan psikolog klinis jika diperlukan.
+            </p>
+          </div>
+        </div>
+      )}
 
-          <Tabs value={filter} onValueChange={(val) => setFilter(val as "all" | "confirmed" | "completed")}>
-            <TabsList className="h-8">
-              <TabsTrigger value="all" className="text-xs px-2.5">
-                Semua ({sessions.length})
-              </TabsTrigger>
-              <TabsTrigger value="confirmed" className="text-xs px-2.5">
-                Terkonfirmasi ({confirmedCount})
-              </TabsTrigger>
-              <TabsTrigger value="completed" className="text-xs px-2.5">
-                Selesai ({completedCount})
-              </TabsTrigger>
-            </TabsList>
+      {/* Filter Tabs & Session List */}
+      <div className="flex flex-col gap-4 pt-1">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-semibold tracking-tight text-foreground">Daftar Sesi Jadwal</h2>
+            <span className="text-xs text-muted-foreground">
+              ({filteredSessions.length} ditampilkan)
+            </span>
+          </div>
+
+          {/* Segmented Filter Tabs matching Admin Dashboard */}
+          <Tabs
+            value={filter}
+            onValueChange={(val) => setFilter(val as CounselorDashboardFilter)}
+            className="w-full sm:w-auto"
+          >
+            <div className="overflow-x-auto pb-0.5">
+              <TabsList className="h-8 p-1 bg-muted/70 text-xs w-full sm:w-auto flex justify-start sm:justify-center border border-border/50">
+                <TabsTrigger
+                  value="all"
+                  id="tab-filter-all"
+                  className="text-xs px-3 py-1 font-medium data-[state=active]:font-semibold data-[state=active]:text-foreground whitespace-nowrap"
+                >
+                  Semua ({enrichedSessions.length})
+                </TabsTrigger>
+
+                {pendingCount > 0 && (
+                  <TabsTrigger
+                    value="pending_payment"
+                    id="tab-filter-pending"
+                    className="text-xs px-3 py-1 font-medium text-amber-700 dark:text-amber-400 data-[state=active]:font-bold data-[state=active]:text-amber-800 dark:data-[state=active]:text-amber-300 data-[state=active]:bg-amber-500/15 whitespace-nowrap"
+                  >
+                    Menunggu Bayar ({pendingCount})
+                  </TabsTrigger>
+                )}
+
+                <TabsTrigger
+                  value="in_session"
+                  id="tab-filter-in-session"
+                  className={cn(
+                    "text-xs px-3 py-1 font-medium whitespace-nowrap",
+                    inSessionCount > 0
+                      ? "text-emerald-700 dark:text-emerald-400 data-[state=active]:font-bold data-[state=active]:bg-emerald-500/15"
+                      : "data-[state=active]:font-semibold data-[state=active]:text-foreground"
+                  )}
+                >
+                  Berlangsung ({inSessionCount})
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="confirmed"
+                  id="tab-filter-confirmed"
+                  className="text-xs px-3 py-1 font-medium data-[state=active]:font-semibold data-[state=active]:text-foreground whitespace-nowrap"
+                >
+                  Mendatang ({confirmedCount})
+                </TabsTrigger>
+
+                <TabsTrigger
+                  value="completed"
+                  id="tab-filter-completed"
+                  className="text-xs px-3 py-1 font-medium data-[state=active]:font-semibold data-[state=active]:text-foreground whitespace-nowrap"
+                >
+                  Selesai ({completedCount})
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </Tabs>
         </div>
 
@@ -195,9 +368,13 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                 <Calendar className="size-6" aria-hidden="true" />
               </div>
               <div className="flex flex-col gap-1 max-w-sm">
-                <p className="text-sm font-semibold">Belum Ada Sesi pada Kategori Ini</p>
+                <p className="text-sm font-semibold text-foreground">Tidak Ada Sesi pada Status Ini</p>
                 <p className="text-xs text-muted-foreground">
-                  Pastikan Anda telah membuka slot jadwal praktik agar pasien dapat memesan sesi konseling.
+                  {filter === "pending_payment"
+                    ? "Tidak ada pasien yang sedang menunggu proses pembayaran."
+                    : filter === "in_session"
+                    ? "Saat ini tidak ada sesi yang sedang berlangsung."
+                    : "Belum ada sesi pada kategori ini. Anda dapat membuka slot praktik baru."}
                 </p>
               </div>
               <Button asChild size="sm" className="mt-2 text-xs">
@@ -208,24 +385,42 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
         ) : (
           <div className="flex flex-col gap-3.5">
             {filteredSessions.map((session) => {
-              const isConfirmed = session.status === "confirmed"
-              const isCompleted = session.status === "completed"
               const isSessionToday = isToday(session.date)
+              const isOngoing = session.operationalStatus === "in_session"
+              const isPendingPayment = session.operationalStatus === "pending_payment"
+              const isConfirmed = session.operationalStatus === "confirmed"
+              const isCompleted = session.operationalStatus === "completed"
 
               return (
                 <Card
                   key={session.id}
                   id={`session-card-${session.id}`}
                   className={cn(
-                    "border border-border/80 shadow-xs hover:border-foreground/20 hover:shadow-xs transition-all",
-                    isSessionToday && isConfirmed && "border-primary/40 ring-1 ring-primary/10"
+                    "border shadow-2xs transition-all relative overflow-hidden",
+                    isOngoing && "border-emerald-500/50 ring-2 ring-emerald-500/20 bg-emerald-500/[0.02]",
+                    isSessionToday && isConfirmed && "border-primary/40 ring-1 ring-primary/15",
+                    isPendingPayment && "border-amber-500/35 bg-amber-500/[0.015]",
+                    !isOngoing && !isPendingPayment && !(isSessionToday && isConfirmed) && "border-border/80 bg-card hover:border-foreground/20"
                   )}
                 >
+                  {/* Subtle top indicator bar for ongoing sessions */}
+                  {isOngoing && (
+                    <div className="h-1 w-full bg-emerald-500" aria-hidden="true" />
+                  )}
+
                   <CardContent className="p-5 sm:p-6 flex flex-col gap-4">
-                    {/* Top Row: Time/Date & Status Badges */}
+                    {/* Top Row: Date, Time & Uniform Status Badges */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-border/60">
                       <div className="flex items-center gap-2 flex-wrap text-xs">
-                        {isSessionToday && (
+                        {isOngoing && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border-emerald-500/30 font-bold py-0.5 px-2 animate-pulse"
+                          >
+                            Live Sekarang
+                          </Badge>
+                        )}
+                        {isSessionToday && !isOngoing && (
                           <Badge
                             variant="outline"
                             className="text-xs bg-primary/10 text-primary border-primary/25 font-semibold py-0.5 px-2"
@@ -244,37 +439,42 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                       </div>
 
                       <div className="flex items-center gap-2 flex-wrap">
-                        {isConfirmed && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 gap-1.5 py-0.5 px-2.5 font-medium"
-                          >
-                            <CheckCircle2 className="size-3.5" aria-hidden="true" />
-                            Terkonfirmasi
-                          </Badge>
-                        )}
+                        {/* Standard Session Status Badge (Uniform across Solulu) */}
+                        <SessionStatusBadge
+                          status={session.operationalStatus}
+                          roomName={session.zoomMeetingId ? `Ruang #${session.zoomMeetingId.slice(-3)}` : undefined}
+                        />
+
+                        {/* Additional status for Completed: Clinical Report Status */}
                         {isCompleted && (
                           <Badge
                             variant="outline"
                             className={cn(
-                              "text-xs gap-1.5 py-0.5 px-2.5 font-medium",
+                              "text-xs gap-1.5 py-0.5 px-2.5 font-medium shadow-2xs",
                               session.hasReport
                                 ? "bg-muted text-muted-foreground border-border/70"
-                                : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+                                : "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30"
                             )}
                           >
                             <ClipboardList className="size-3.5" aria-hidden="true" />
-                            <span>{session.hasReport ? "Selesai • Laporan Tersimpan" : "Selesai • Perlu Laporan"}</span>
+                            <span>{session.hasReport ? "Laporan Lengkap" : "Perlu Catatan Klinis"}</span>
                           </Badge>
                         )}
                       </div>
                     </div>
 
-                    {/* Patient Identity & Contact */}
+                    {/* Patient Identity & Contact Details */}
                     <div className="flex items-start justify-between gap-4 flex-wrap">
                       <div className="flex items-center gap-3">
                         <div
-                          className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 border border-primary/20"
+                          className={cn(
+                            "size-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border",
+                            isOngoing
+                              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                              : isPendingPayment
+                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                              : "bg-primary/10 text-primary border-primary/20"
+                          )}
                           aria-hidden="true"
                         >
                           {session.patientName.charAt(0)}
@@ -304,6 +504,25 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                         </span>
                       )}
                     </div>
+
+                    {/* Notice for Pending Payment (Belum Bayar) */}
+                    {isPendingPayment && (
+                      <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs flex items-center justify-between gap-3 text-amber-800 dark:text-amber-300">
+                        <div className="flex items-center gap-2.5">
+                          <Clock className="size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                          <span className="leading-relaxed">
+                            Slot ini telah di-booking oleh pasien dan sedang menunggu verifikasi pembayaran. Tautan
+                            Zoom akan terbuka otomatis setelah transaksi terkonfirmasi lunas.
+                          </span>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className="text-[11px] border-amber-500/30 bg-amber-500/20 text-amber-800 dark:text-amber-300 shrink-0 font-semibold"
+                        >
+                          Menunggu Pembayaran
+                        </Badge>
+                      </div>
+                    )}
 
                     {/* Clinical Alert: Suicidal Ideation / Bypass Recommendation */}
                     {(session.hasSuicidalThoughts || session.bypassedRecommendation) && (
@@ -342,13 +561,30 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
 
                     {/* Actions Row */}
                     <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/60 flex-wrap">
+                      {/* Left: Zoom Action */}
                       <div>
-                        {session.zoomStartUrl && isConfirmed && (
+                        {isPendingPayment ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                            className="gap-2 text-xs h-9 opacity-70 cursor-not-allowed border-amber-500/30 bg-amber-500/5 text-amber-800 dark:text-amber-300"
+                            id={`btn-zoom-locked-${session.id}`}
+                          >
+                            <Lock className="size-3.5" aria-hidden="true" />
+                            <span>Tautan Zoom Terkunci (Belum Bayar)</span>
+                          </Button>
+                        ) : (isConfirmed || isOngoing) && session.zoomStartUrl ? (
                           <Button
                             asChild
                             variant="default"
                             size="sm"
-                            className="gap-2 text-xs h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            className={cn(
+                              "gap-2 text-xs h-9 font-semibold shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                              isOngoing
+                                ? "bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-500/30 animate-pulse"
+                                : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                            )}
                             id={`btn-zoom-${session.id}`}
                           >
                             <a
@@ -358,19 +594,41 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                               aria-label="Mulai Sesi Zoom di tab baru"
                             >
                               <Video className="size-3.5" aria-hidden="true" />
-                              <span>Mulai Sesi Zoom</span>
+                              <span>{isOngoing ? "Masuk Ruang Zoom (Sesi Aktif)" : "Mulai Sesi Zoom"}</span>
                               <span className="sr-only">(buka di tab baru)</span>
                             </a>
                           </Button>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {isConfirmed && (
+                        ) : (isConfirmed || isOngoing) ? (
                           <Button
                             variant="outline"
                             size="sm"
-                            className="gap-2 text-xs h-9 border-border hover:bg-muted font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            disabled
+                            className="gap-2 text-xs h-9 text-muted-foreground"
+                          >
+                            <Video className="size-3.5" aria-hidden="true" />
+                            <span>Menunggu Alokasi Ruang Zoom</span>
+                          </Button>
+                        ) : isCompleted ? (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
+                            <CheckCircle2 className="size-3.5 text-muted-foreground/70" aria-hidden="true" />
+                            <span>Sesi Konseling Selesai</span>
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {/* Right: Operational Actions (Complete & Report Form) */}
+                      <div className="flex items-center gap-2">
+                        {isPendingPayment && (
+                          <span className="text-xs text-muted-foreground italic">
+                            Menunggu verifikasi admin
+                          </span>
+                        )}
+
+                        {(isConfirmed || isOngoing) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 text-xs h-9 border-border hover:bg-muted font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none cursor-pointer"
                             disabled={completingId === session.id}
                             onClick={() => setConfirmSession(session)}
                             id={`btn-complete-${session.id}`}
@@ -392,9 +650,12 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                         {isCompleted && (
                           <Button
                             asChild
-                            variant="outline"
+                            variant={session.hasReport ? "outline" : "default"}
                             size="sm"
-                            className="gap-2 text-xs h-9 font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            className={cn(
+                              "gap-2 text-xs h-9 font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                              !session.hasReport && "bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+                            )}
                             id={`btn-report-${session.id}`}
                           >
                             <Link href={`/counselor/reports/${session.id}`}>

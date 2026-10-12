@@ -98,7 +98,7 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
         .where(
           and(
             eq(bookings.counselorId, counselorId),
-            sql`${bookings.status} IN ('confirmed', 'completed')`,
+            sql`${bookings.status} IN ('pending_payment', 'confirmed', 'completed', 'cancelled')`,
             sql`${schedules.date} >= ${todayStr} AND ${schedules.date} <= ${sevenDaysLaterStr}`
           )
         )
