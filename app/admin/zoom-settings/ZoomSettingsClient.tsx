@@ -27,6 +27,18 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { AdminPageHeader, AdminMetricCard } from "@/components/admin"
+import { Label } from "@/components/ui/label"
 import {
   saveZoomAccountAction,
   updateZoomAccountAction,
@@ -431,42 +443,60 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
       )}
 
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/80 pb-5">
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              Pengaturan Akun Zoom Pro
-            </h1>
-            <Badge variant="outline" className="text-xs font-mono font-medium">
-              Pool: {accounts.length}/2 Akun
-            </Badge>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-2xl">
-            Manajemen kredensial 2 akun Zoom Pro terenkripsi <strong>AES-256-GCM</strong> dengan proteksi otomatis{" "}
-            <strong>Safety Lock</strong> untuk mencegah pemutusan ruang telekonseling pasien aktif.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
+      <AdminPageHeader
+        title="Pengaturan Akun Zoom Pro"
+        description="Manajemen kredensial 2 akun Zoom Pro terenkripsi AES-256-GCM dengan proteksi otomatis Safety Lock untuk mencegah pemutusan ruang telekonseling pasien aktif."
+        icon={Video}
+        badge={`Pool: ${accounts.length}/2 Akun`}
+        badgeVariant="outline"
+        actions={
           <Button
             size="sm"
             onClick={() => setIsAddingOpen(true)}
             disabled={!canAddMore}
-            className="text-xs h-9 font-medium"
+            className="gap-1.5 font-medium shadow-xs"
             title={
               canAddMore
                 ? "Daftarkan akun Zoom Pro baru ke pool alokasi"
                 : "Batas platform tercapai: Maksimal 2 akun Zoom Pro aktif"
             }
           >
-            <Plus className="size-4 mr-1.5" />
+            <Plus className="size-3.5" />
             <span>Tambah Akun Zoom</span>
           </Button>
-        </div>
+        }
+      />
+
+      {/* Metric Cards Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <AdminMetricCard
+          title="Kapasitas Pool Zoom"
+          value={`${accounts.length}/2 Akun`}
+          status={accounts.length === 2 ? "success" : accounts.length === 1 ? "warning" : "destructive"}
+          trendLabel={
+            accounts.length === 2
+              ? "Kapasitas penuh 2 sesi simultan"
+              : accounts.length === 1
+              ? "1 slot aktif, siap tambah slot #2"
+              : "Belum ada akun Zoom terdaftar"
+          }
+        />
+        <AdminMetricCard
+          title="Proteksi Safety Lock"
+          value={`${accounts.filter((a) => a.safetyLock.isLocked).length} Akun Terikat`}
+          status="success"
+          trendLabel="AES-256-GCM S2S OAuth aktif"
+        />
+        <AdminMetricCard
+          title="Sesi Terjadwal"
+          value={`${timelineSessions.length} Sesi`}
+          status="neutral"
+          trendLabel={formatIndonesianDate(selectedDate)}
+        />
       </div>
 
       {/* Dynamic Concurrency Timeline (Auto-Scale + Date Picker) */}
-      <div className="bg-card border border-border rounded-2xl p-5 flex flex-col gap-4 shadow-xs">
+      <Card className="p-5 flex flex-col gap-4 shadow-xs">
         {/* Timeline Header Toolbar */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 border-b border-border/60 pb-3.5">
           <div className="flex items-center gap-2.5">
@@ -774,11 +804,11 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
             {overlapWindows.length > 0 ? "OVERLAP PROTECTED" : "CAPACITY NORMAL"}
           </span>
         </div>
-      </div>
+      </Card>
 
       {/* Empty State: If no Zoom accounts are configured in DB yet */}
       {accounts.length === 0 && (
-        <div className="bg-card border border-dashed border-border rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-4 shadow-xs">
+        <Card className="border-dashed p-10 flex flex-col items-center justify-center text-center gap-4 shadow-xs">
           <div className="size-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
             <Video className="size-6" />
           </div>
@@ -794,12 +824,12 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
           <Button
             onClick={() => setIsAddingOpen(true)}
             size="sm"
-            className="text-xs h-9 font-medium mt-1"
+            className="gap-1.5 font-medium mt-1 shadow-xs"
           >
-            <Plus className="size-4 mr-1.5" />
+            <Plus className="size-3.5" />
             <span>Daftarkan Akun Zoom Pro #1</span>
           </Button>
-        </div>
+        </Card>
       )}
 
       {/* 2 Zoom Accounts Grid */}
@@ -811,9 +841,9 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
             const activeSession = acc.safetyLock.lockedSessions[0]
 
             return (
-              <div
+              <Card
                 key={acc.id}
-                className="bg-card border border-border rounded-2xl p-6 flex flex-col gap-5 shadow-xs transition-colors h-full"
+                className="p-6 flex flex-col gap-5 shadow-xs transition-colors h-full"
               >
                 {/* Card Header: Slot & Identity */}
                 <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-4">
@@ -1069,13 +1099,13 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
                     </Button>
                   </div>
                 </div>
-              </div>
+              </Card>
             )
           })}
 
           {/* If only 1 account exists, show the second slot invitation card */}
           {accounts.length === 1 && (
-            <div className="bg-card/50 border border-dashed border-border rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-4 h-full">
+            <Card className="bg-card/50 border-dashed p-6 flex flex-col items-center justify-center text-center gap-4 h-full shadow-xs">
               <div className="size-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
                 <Plus className="size-5" />
               </div>
@@ -1091,18 +1121,18 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
                 variant="outline"
                 size="sm"
                 onClick={() => setIsAddingOpen(true)}
-                className="text-xs h-8"
+                className="gap-1.5 font-medium"
               >
-                <Plus className="size-3.5 mr-1.5" />
+                <Plus className="size-3.5" />
                 <span>Tambah Akun #2</span>
               </Button>
-            </div>
+            </Card>
           )}
         </div>
       )}
 
       {/* Capacity Guard Info: Executive Architectural Note */}
-      <div className="p-4 rounded-xl bg-card border border-border flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+      <Card className="p-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground shadow-xs">
         <div className="flex items-center gap-2.5 min-w-0">
           <Server className="size-4 text-primary shrink-0" />
           <span>
@@ -1112,379 +1142,347 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
         <Badge variant="outline" className="font-mono text-[10px] shrink-0">
           KAPASITAS POOL: {accounts.length}/2
         </Badge>
-      </div>
+      </Card>
 
       {/* Modal 1: Inspeksi Sesi Terikat & Kepatuhan Safety Lock */}
-      {inspectingAccount && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 flex flex-col gap-5 shadow-2xl">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between gap-3 border-b border-border pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
+      <Dialog
+        open={!!inspectingAccount}
+        onOpenChange={(open) => !open && setInspectingAccountId(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          {inspectingAccount && (
+            <div className="flex flex-col gap-4">
+              <DialogHeader>
+                <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
                   <ShieldAlert className="size-5 text-destructive" />
-                  <h3 className="font-bold text-foreground text-base">
-                    Audit Safety Lock: {inspectingAccount.name}
-                  </h3>
-                </div>
-                <p className="text-xs text-muted-foreground">
+                  <span>Audit Safety Lock: {inspectingAccount.name}</span>
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
                   Daftar reservasi sesi aktif dan mendatang yang mengunci kredensial akun ini.
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Explanation Alert */}
+              <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/25 text-xs text-destructive flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 font-semibold">
+                  <Lock className="size-4 shrink-0" />
+                  <span>Kredensial Terkunci Demi Kelancaran Sesi Pasien</span>
+                </div>
+                <p className="text-foreground/90 leading-relaxed text-xs">
+                  Perubahan kredensial saat sesi telah terjadwal akan membatalkan tautan rapat Zoom pasien.
+                  Kredensial hanya dapat diperbarui atau dihapus setelah seluruh sesi di bawah ini selesai.
                 </p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setInspectingAccountId(null)}
-                aria-label="Tutup dialog"
-                className="size-7 text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
 
-            {/* Explanation Alert */}
-            <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/25 text-xs text-destructive flex flex-col gap-1.5">
-              <div className="flex items-center gap-2 font-semibold">
-                <Lock className="size-4 shrink-0" />
-                <span>Kredensial Terkunci Demi Kelancaran Sesi Pasien</span>
-              </div>
-              <p className="text-foreground/90 leading-relaxed text-xs">
-                Perubahan kredensial saat sesi telah terjadwal akan membatalkan tautan rapat Zoom pasien.
-                Kredensial hanya dapat diperbarui atau dihapus setelah seluruh sesi di bawah ini selesai.
-              </p>
-            </div>
-
-            {/* Bound Sessions List */}
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-semibold text-foreground">
-                Sesi Terikat ({inspectingSessions.length} Sesi):
-              </span>
-              <div className="rounded-xl border border-border divide-y divide-border/60 max-h-56 overflow-y-auto bg-muted/20">
-                {inspectingSessions.length > 0 ? (
-                  inspectingSessions.map((ses) => (
-                    <div key={ses.bookingId} className="p-3 flex items-center justify-between gap-3 text-xs">
-                      <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground font-mono">
-                            {ses.bookingId.slice(0, 7).toUpperCase()}
+              {/* Bound Sessions List */}
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-semibold text-foreground">
+                  Sesi Terikat ({inspectingSessions.length} Sesi):
+                </span>
+                <div className="rounded-xl border border-border divide-y divide-border/60 max-h-56 overflow-y-auto bg-muted/20">
+                  {inspectingSessions.length > 0 ? (
+                    inspectingSessions.map((ses) => (
+                      <div key={ses.bookingId} className="p-3 flex items-center justify-between gap-3 text-xs">
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground font-mono">
+                              {ses.bookingId.slice(0, 7).toUpperCase()}
+                            </span>
+                            <Badge
+                              variant={ses.status === "confirmed" ? "outline" : "secondary"}
+                              className="text-[10px] py-0 px-1.5"
+                            >
+                              {ses.status === "confirmed" ? "Terkonfirmasi" : "Menunggu Pembayaran"}
+                            </Badge>
+                          </div>
+                          <span className="text-muted-foreground">
+                            {ses.patientName} → {ses.counselorName || "Mitra Konselor"}
                           </span>
-                          <Badge
-                            variant={ses.status === "confirmed" ? "outline" : "secondary"}
-                            className="text-[10px] py-0 px-1.5"
-                          >
-                            {ses.status === "confirmed" ? "Terkonfirmasi" : "Menunggu Pembayaran"}
-                          </Badge>
                         </div>
-                        <span className="text-muted-foreground">
-                          {ses.patientName} → {ses.counselorName || "Mitra Konselor"}
-                        </span>
-                      </div>
 
-                      <div className="text-right shrink-0">
-                        <span className="font-medium text-foreground tabular-nums text-[11px]">
-                          {ses.date}, {ses.startTime.slice(0, 5)} - {ses.endTime.slice(0, 5)} WIB
-                        </span>
+                        <div className="text-right shrink-0">
+                          <span className="font-medium text-foreground tabular-nums text-[11px]">
+                            {ses.date}, {ses.startTime.slice(0, 5)} - {ses.endTime.slice(0, 5)} WIB
+                          </span>
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-xs text-muted-foreground">
+                      Tidak ada sesi mendatang yang terikat pada akun ini.
                     </div>
-                  ))
-                ) : (
-                  <div className="p-4 text-center text-xs text-muted-foreground">
-                    Tidak ada sesi mendatang yang terikat pada akun ini.
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Modal Footer */}
-            <div className="flex items-center justify-between pt-2 border-t border-border text-xs">
-              <span className="text-muted-foreground text-[11px]">
-                Kepatuhan Kebijakan: Telekonseling Bebas Biaya Tambahan
-              </span>
-              <Button
-                size="sm"
-                onClick={() => setInspectingAccountId(null)}
-                className="h-8 text-xs font-medium"
-              >
-                Tutup
-              </Button>
+              <DialogFooter className="pt-2 border-t border-border">
+                <Button
+                  size="sm"
+                  onClick={() => setInspectingAccountId(null)}
+                  className="font-medium"
+                >
+                  Tutup
+                </Button>
+              </DialogFooter>
             </div>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Modal 2: Edit Kredensial S2S OAuth */}
-      {editingAccount && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 flex flex-col gap-5 shadow-2xl">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between gap-3 border-b border-border pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <Key className="size-5 text-primary" />
-                  <h3 className="font-bold text-foreground text-base">
-                    Ubah Kredensial Zoom
-                  </h3>
-                </div>
-                <p className="text-xs text-muted-foreground">
+      <Dialog
+        open={!!editingAccount}
+        onOpenChange={(open) => !open && setEditingAccount(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          {editingAccount && (
+            <form onSubmit={handleSaveCredentials} className="flex flex-col gap-4">
+              <DialogHeader>
+                <DialogTitle className="text-base font-bold flex items-center gap-2">
+                  <Key className="size-4 text-primary" />
+                  <span>Ubah Kredensial Zoom</span>
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
                   Perbarui data akun untuk {editingAccount.name}.
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setEditingAccount(null)}
-                aria-label="Tutup form edit"
-                className="size-7 text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
+                </DialogDescription>
+              </DialogHeader>
 
-            {/* Form Fields */}
-            <form onSubmit={handleSaveCredentials} className="flex flex-col gap-3.5 text-xs">
-              <div className="flex flex-col gap-1">
-                <label className="font-medium text-foreground">Nama Akun / Label</label>
-                <input
-                  type="text"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  required
-                  className="bg-background border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary"
-                />
-              </div>
+              <div className="flex flex-col gap-3.5 text-xs py-1">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-name" className="font-medium text-foreground">Nama Akun / Label</Label>
+                  <Input
+                    id="edit-name"
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    required
+                    className="h-9 text-xs"
+                  />
+                </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-medium text-foreground">Email Akun Zoom</label>
-                <input
-                  type="email"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  required
-                  className="bg-background border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary"
-                />
-              </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-email" className="font-medium text-foreground">Email Akun Zoom</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    required
+                    className="h-9 text-xs"
+                  />
+                </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-medium text-foreground">Zoom Account ID</label>
-                <input
-                  type="text"
-                  value={editForm.accountId}
-                  onChange={(e) => setEditForm({ ...editForm, accountId: e.target.value })}
-                  required
-                  className="bg-background border border-border rounded-xl px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-primary"
-                />
-              </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-accountId" className="font-medium text-foreground">Zoom Account ID</Label>
+                  <Input
+                    id="edit-accountId"
+                    type="text"
+                    value={editForm.accountId}
+                    onChange={(e) => setEditForm({ ...editForm, accountId: e.target.value })}
+                    required
+                    className="h-9 text-xs font-mono"
+                  />
+                </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-medium text-foreground">Zoom Client ID</label>
-                <input
-                  type="text"
-                  value={editForm.clientId}
-                  onChange={(e) => setEditForm({ ...editForm, clientId: e.target.value })}
-                  required
-                  className="bg-background border border-border rounded-xl px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-primary"
-                />
-              </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-clientId" className="font-medium text-foreground">Zoom Client ID</Label>
+                  <Input
+                    id="edit-clientId"
+                    type="text"
+                    value={editForm.clientId}
+                    onChange={(e) => setEditForm({ ...editForm, clientId: e.target.value })}
+                    required
+                    className="h-9 text-xs font-mono"
+                  />
+                </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-medium text-foreground">
-                  Zoom Client Secret{" "}
-                  <span className="text-muted-foreground font-normal">(Opsional)</span>
-                </label>
-                <input
-                  type="password"
-                  placeholder="Biarkan kosong jika tidak ingin mengubah secret"
-                  value={editForm.clientSecret}
-                  onChange={(e) => setEditForm({ ...editForm, clientSecret: e.target.value })}
-                  className="bg-background border border-border rounded-xl px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-primary"
-                />
-                <span className="text-[10px] text-muted-foreground mt-0.5">
-                  Jika diisi, secret baru otomatis dienkripsi dengan standar AES-256-GCM.
-                </span>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="edit-clientSecret" className="font-medium text-foreground">
+                    Zoom Client Secret <span className="text-muted-foreground font-normal">(Opsional)</span>
+                  </Label>
+                  <Input
+                    id="edit-clientSecret"
+                    type="password"
+                    placeholder="Biarkan kosong jika tidak ingin mengubah secret"
+                    value={editForm.clientSecret}
+                    onChange={(e) => setEditForm({ ...editForm, clientSecret: e.target.value })}
+                    className="h-9 text-xs font-mono"
+                  />
+                  <span className="text-[10px] text-muted-foreground">
+                    Jika diisi, secret baru otomatis dienkripsi dengan standar AES-256-GCM.
+                  </span>
+                </div>
               </div>
 
-              {/* Form Buttons */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-2">
+              <DialogFooter className="gap-2 sm:gap-0 pt-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setEditingAccount(null)}
-                  className="h-8 text-xs font-normal"
                 >
                   Batal
                 </Button>
-                <Button type="submit" size="sm" disabled={isPending} className="h-8 text-xs font-medium">
-                  {isPending ? "Menyimpan..." : "Simpan Kredensial"}
+                <Button type="submit" size="sm" disabled={isPending} className="gap-1.5">
+                  {isPending && <Loader2 className="size-3.5 animate-spin" />}
+                  <span>{isPending ? "Menyimpan..." : "Simpan Kredensial"}</span>
                 </Button>
-              </div>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Modal 3: Konfirmasi Hapus Akun Zoom */}
-      {deletingAccount && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 flex flex-col gap-5 shadow-2xl">
-            <div className="flex items-start justify-between gap-3 border-b border-border pb-4">
-              <div className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="size-5 shrink-0" />
-                <h3 className="font-bold text-base">Hapus Akun Zoom</h3>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setDeletingAccount(null)}
-                aria-label="Tutup modal konfirmasi"
-                className="size-7 text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
+      <Dialog
+        open={!!deletingAccount}
+        onOpenChange={(open) => !open && setDeletingAccount(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          {deletingAccount && (
+            <div className="flex flex-col gap-4">
+              <DialogHeader>
+                <DialogTitle className="text-base font-bold flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="size-4 shrink-0" />
+                  <span>Hapus Akun Zoom</span>
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                  Apakah Anda yakin ingin menghapus akun <strong>{deletingAccount.name}</strong> ({deletingAccount.email}) dari pool Zoom Solulu? Tindakan ini akan menghapus kredensial S2S OAuth dari database.
+                </DialogDescription>
+              </DialogHeader>
 
-            <p className="text-xs text-foreground leading-relaxed">
-              Apakah Anda yakin ingin menghapus akun <strong>{deletingAccount.name}</strong> ({deletingAccount.email}) dari pool Zoom Solulu? Tindakan ini akan menghapus kredensial S2S OAuth dari database.
-            </p>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setDeletingAccount(null)}
-                className="h-8 text-xs font-normal"
-              >
-                Batal
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                disabled={isPending}
-                onClick={handleDeleteAccount}
-                className="h-8 text-xs font-medium"
-              >
-                {isPending ? "Menghapus..." : "Hapus Akun"}
-              </Button>
+              <DialogFooter className="gap-2 sm:gap-0 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDeletingAccount(null)}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={handleDeleteAccount}
+                  className="gap-1.5"
+                >
+                  {isPending && <Loader2 className="size-3.5 animate-spin" />}
+                  <span>{isPending ? "Menghapus..." : "Hapus Akun"}</span>
+                </Button>
+              </DialogFooter>
             </div>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Modal 4: Pendaftaran Akun Zoom Baru */}
-      {isAddingOpen && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 flex flex-col gap-5 shadow-2xl">
-            <div className="flex items-start justify-between gap-3 border-b border-border pb-4">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <Plus className="size-5 text-primary" />
-                  <h3 className="font-bold text-foreground text-base">
-                    Daftarkan Akun Zoom Pro
-                  </h3>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Masukkan kredensial Server-to-Server OAuth dari Zoom App Marketplace.
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsAddingOpen(false)}
-                className="size-7 text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-4" />
-              </Button>
-            </div>
+      <Dialog open={isAddingOpen} onOpenChange={setIsAddingOpen}>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleCreateAccount} className="flex flex-col gap-4">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold flex items-center gap-2">
+                <Plus className="size-4 text-primary" />
+                <span>Daftarkan Akun Zoom Pro</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Masukkan kredensial Server-to-Server OAuth dari Zoom App Marketplace.
+              </DialogDescription>
+            </DialogHeader>
 
-            <form onSubmit={handleCreateAccount} className="flex flex-col gap-3.5 text-xs">
-              <div className="flex flex-col gap-1">
-                <label className="font-medium text-foreground">Nama Akun / Label</label>
-                <input
+            <div className="flex flex-col gap-3.5 text-xs py-1">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="add-name" className="font-medium text-foreground">Nama Akun / Label</Label>
+                <Input
+                  id="add-name"
                   type="text"
                   placeholder="e.g. Akun Zoom Pro 1"
                   value={addForm.name}
                   onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
                   required
-                  className="bg-background border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary"
+                  className="h-9 text-xs"
                 />
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-medium text-foreground">Email Terdaftar di Zoom</label>
-                <input
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="add-email" className="font-medium text-foreground">Email Terdaftar di Zoom</Label>
+                <Input
+                  id="add-email"
                   type="email"
                   placeholder="e.g. admin.zoom1@solulu.id"
                   value={addForm.email}
                   onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
                   required
-                  className="bg-background border border-border rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary"
+                  className="h-9 text-xs"
                 />
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-medium text-foreground">Account ID</label>
-                <input
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="add-accountId" className="font-medium text-foreground">Account ID</Label>
+                <Input
+                  id="add-accountId"
                   type="text"
                   placeholder="zm_acc_..."
                   value={addForm.accountId}
                   onChange={(e) => setAddForm({ ...addForm, accountId: e.target.value })}
                   required
-                  className="bg-background border border-border rounded-xl px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-primary"
+                  className="h-9 text-xs font-mono"
                 />
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-medium text-foreground">Client ID</label>
-                <input
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="add-clientId" className="font-medium text-foreground">Client ID</Label>
+                <Input
+                  id="add-clientId"
                   type="text"
                   placeholder="zm_cli_..."
                   value={addForm.clientId}
                   onChange={(e) => setAddForm({ ...addForm, clientId: e.target.value })}
                   required
-                  className="bg-background border border-border rounded-xl px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-primary"
+                  className="h-9 text-xs font-mono"
                 />
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-medium text-foreground">Client Secret</label>
-                <input
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="add-clientSecret" className="font-medium text-foreground">Client Secret</Label>
+                <Input
+                  id="add-clientSecret"
                   type="password"
                   placeholder="••••••••••••••••"
                   value={addForm.clientSecret}
                   onChange={(e) => setAddForm({ ...addForm, clientSecret: e.target.value })}
                   required
-                  className="bg-background border border-border rounded-xl px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:border-primary"
+                  className="h-9 text-xs font-mono"
                 />
-                <span className="text-[10px] text-muted-foreground mt-0.5">
+                <span className="text-[10px] text-muted-foreground">
                   Client secret otomatis dienkripsi dengan standar AES-256-GCM sebelum disimpan.
                 </span>
               </div>
+            </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border mt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsAddingOpen(false)}
-                  className="h-8 text-xs font-normal"
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={isPending}
-                  className="h-8 text-xs font-medium"
-                >
-                  {isPending ? "Menyimpan..." : "Simpan Akun"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <DialogFooter className="gap-2 sm:gap-0 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddingOpen(false)}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isPending}
+                className="gap-1.5"
+              >
+                {isPending && <Loader2 className="size-3.5 animate-spin" />}
+                <span>{isPending ? "Menyimpan..." : "Simpan Akun"}</span>
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

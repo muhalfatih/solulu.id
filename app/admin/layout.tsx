@@ -59,16 +59,12 @@ const NAV_SECTIONS: NavSection[] = [
         href: "/admin",
         label: "Ringkasan",
         icon: LayoutDashboard,
-        badge: "2 Berjalan",
-        badgeVariant: "secondary",
         description: "Ikhtisar jadwal dan tugas penting hari ini",
       },
       {
         href: "/admin/sessions",
         label: "Jadwal",
         icon: Calendar,
-        badge: "8 Sesi",
-        badgeVariant: "outline",
         description: "Daftar janji temu dan kalender konsultasi",
       },
     ],
@@ -80,8 +76,6 @@ const NAV_SECTIONS: NavSection[] = [
         href: "/admin/counselors",
         label: "Konselor",
         icon: Users,
-        badge: "2 Baru",
-        badgeVariant: "destructive",
         description: "Verifikasi berkas dan daftar konselor aktif",
       },
       {
@@ -106,8 +100,6 @@ const NAV_SECTIONS: NavSection[] = [
         href: "/admin/testimonials",
         label: "Testimoni",
         icon: MessageSquareQuote,
-        badge: "3 Baru",
-        badgeVariant: "secondary",
         description: "Kurasi ulasan klien dan testimoni website",
       },
     ],
@@ -119,8 +111,6 @@ const NAV_SECTIONS: NavSection[] = [
         href: "/admin/zoom-settings",
         label: "Akun Zoom",
         icon: Video,
-        badge: "2/2 Siap",
-        badgeVariant: "outline",
         description: "Integrasi akun Zoom dan kunci konkurensi",
       },
       {
@@ -144,34 +134,40 @@ const EXTRA_SEARCH_ITEMS: NavItem[] = [
 
 const QUICK_ACTIONS = [
   {
-    title: "Sesi SL-9281 (Anindya Putri, Psikolog Klinis)",
-    category: "Sesi Aktif",
+    title: "Kalender & Jadwal Konseling",
+    category: "Operasional",
     href: "/admin/sessions",
-    hint: "19:00 WIB",
+    hint: "Kalender",
   },
   {
-    title: "Sesi SL-9282 (Dimas Arya, Konselor Sebaya)",
-    category: "Jadwal Konseling",
-    href: "/admin/sessions",
-    hint: "19:30 WIB",
-  },
-  {
-    title: "Profil Saya (Pengaturan Akun)",
-    category: "Akun Operator",
-    href: "/admin/profile",
-    hint: "Akun",
-  },
-  {
-    title: "Verifikasi Berkas Sarah Annisa & Budi Prasetyo",
-    category: "Pendaftar Konselor",
+    title: "Verifikasi Berkas Calon Konselor",
+    category: "Kemitraan",
     href: "/admin/counselors",
-    hint: "2 Berkas",
+    hint: "Konselor",
   },
   {
-    title: "Status Ruang Telekonseling 1 & 2",
-    category: "Infrastruktur Zoom",
+    title: "Status Ruang & Akun Zoom",
+    category: "Infrastruktur",
     href: "/admin/zoom-settings",
-    hint: "2/2 Siap",
+    hint: "Zoom",
+  },
+  {
+    title: "Kelola Paket Tarif & Voucher Promo",
+    category: "Keuangan",
+    href: "/admin/pricing",
+    hint: "Tarif",
+  },
+  {
+    title: "Konfigurasi Layanan & SRQ-20",
+    category: "Sistem",
+    href: "/admin/settings",
+    hint: "Konfigurasi",
+  },
+  {
+    title: "Pengaturan Akun Operator",
+    category: "Akun",
+    href: "/admin/profile",
+    hint: "Profil",
   },
 ]
 
@@ -498,12 +494,14 @@ export default function DistilledAdminLayout({
                         </div>
 
                         {/* Expanded Badge */}
-                        {!collapsed && item.badge && (
+                        {!collapsed && (item.badge || item.href === "/admin/zoom-settings") && (
                           <Badge
                             variant={item.badgeVariant || "outline"}
                             className="text-xs px-1.5 py-0 h-4 font-normal shrink-0"
                           >
-                            {item.badge}
+                            {item.href === "/admin/zoom-settings"
+                              ? zoomTelemetry.statusText
+                              : item.badge}
                           </Badge>
                         )}
 

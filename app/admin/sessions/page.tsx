@@ -28,6 +28,8 @@ import {
   Plus,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
+import { AdminPageHeader, SessionStatusBadge } from "@/components/admin"
 import { ManualPaymentModal, ManualPaymentDetails } from "./components/manual-payment-modal"
 import { AdminManualBookingModal } from "./components/admin-manual-booking-modal"
 import { confirmManualPaymentAction, rejectManualPaymentAction, getBookingsAdminAction } from "./actions"
@@ -559,60 +561,55 @@ export default function DistilledSessionsPage() {
       )}
 
       {/* Page Header with View Switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Jadwal Konseling Pasien
-          </h1>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Daftar seluruh jadwal konsultasi aktif, tautan temu video, dan riwayat sesi selesai.
-          </p>
-        </div>
-
-        {/* View Mode Toggle & Manual Booking Trigger */}
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            onClick={() => setIsManualBookingModalOpen(true)}
-            className="text-xs h-8 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1.5 rounded-md"
-          >
-            <Plus className="size-3.5" />
-            <span>Buat Booking Manual</span>
-          </Button>
-
-          <div className="flex items-center h-8 rounded-lg border border-border p-0.5 bg-muted/40 text-xs">
-            <button
-              type="button"
-              onClick={() => setViewMode("calendar")}
-              className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                viewMode === "calendar"
-                  ? "bg-card text-foreground shadow-xs font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <LayoutGrid className="size-3.5" />
-              <span>Tampilan Kalender</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("list")}
-              className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                viewMode === "list"
-                  ? "bg-card text-foreground shadow-xs font-semibold"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <List className="size-3.5" />
-              <span>Tampilan Daftar</span>
-            </button>
-          </div>
-
-          <Badge variant="outline" className="h-8 text-xs px-3 font-medium hidden sm:inline-flex items-center">
+      <AdminPageHeader
+        title="Jadwal Konseling Pasien"
+        description="Daftar seluruh jadwal konsultasi aktif, tautan temu video, dan riwayat sesi selesai."
+        badge={
+          <Badge variant="outline" className="text-xs px-2.5 font-medium hidden sm:inline-flex items-center">
             <span>Durasi:</span>
             <span className="text-foreground font-semibold ml-1.5">90 Menit per Sesi</span>
           </Badge>
-        </div>
-      </div>
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => setIsManualBookingModalOpen(true)}
+              className="gap-1.5"
+            >
+              <Plus className="size-3.5" />
+              <span>Booking Manual</span>
+            </Button>
+
+            <div className="flex items-center h-8 rounded-lg border border-border p-0.5 bg-muted/40 text-xs">
+              <button
+                type="button"
+                onClick={() => setViewMode("calendar")}
+                className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                  viewMode === "calendar"
+                    ? "bg-card text-foreground shadow-xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <LayoutGrid className="size-3.5" />
+                <span>Kalender</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                  viewMode === "list"
+                    ? "bg-card text-foreground shadow-xs font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <List className="size-3.5" />
+                <span>Daftar</span>
+              </button>
+            </div>
+          </div>
+        }
+      />
 
       {/* Policy Notice Strip */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-muted/40 text-xs">
@@ -630,13 +627,12 @@ export default function DistilledSessionsPage() {
       {viewMode === "calendar" && (
         <div className="flex flex-col gap-4">
           {/* Calendar Toolbar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 rounded-2xl bg-card border border-border shadow-xs">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 rounded-xl bg-card border border-border shadow-xs">
             {/* Left: Navigation & Period Label */}
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                size="xs"
-                className="h-8 text-xs font-medium"
+                size="sm"
                 onClick={handleToday}
               >
                 Hari Ini
@@ -1095,23 +1091,21 @@ export default function DistilledSessionsPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* ========================================================================= */}
+      )}      {/* ========================================================================= */}
       {/* VIEW MODE 2: LIST VIEW (TABLE) */}
       {/* ========================================================================= */}
       {viewMode === "list" && (
-        <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs">
+        <Card className="overflow-hidden shadow-xs">
           {/* Integrated Toolbar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-border bg-muted/20">
             <div className="relative flex-1 min-w-[220px] max-w-xs">
-              <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Cari kode sesi, nama pasien, atau konselor..."
+                placeholder="Cari kode sesi, pasien, atau konselor..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 pr-8 h-8 text-xs bg-card"
+                className="pl-8 pr-8 h-8 text-xs bg-background"
                 aria-label="Cari jadwal sesi"
               />
               {searchQuery && (
@@ -1119,7 +1113,7 @@ export default function DistilledSessionsPage() {
                   type="button"
                   onClick={() => setSearchQuery("")}
                   aria-label="Bersihkan pencarian"
-                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   <X className="size-3.5" />
                 </button>
@@ -1175,7 +1169,7 @@ export default function DistilledSessionsPage() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Menunggu Sesi
+                  Mendatang
                 </button>
                 <button
                   type="button"
@@ -1196,10 +1190,10 @@ export default function DistilledSessionsPage() {
             </div>
           </div>
 
-          {/* Desktop Table */}
-          <div className="hidden sm:block">
-            <Table className="text-xs">
-              <TableHeader className="bg-muted/40">
+          {/* Desktop & Mobile Table with horizontal scroll */}
+          <div className="overflow-x-auto">
+            <Table className="text-xs min-w-[760px]">
+              <TableHeader className="bg-muted/40 border-b border-border">
                 <TableRow className="border-border/60">
                   <TableHead className="py-2.5 px-3 font-semibold text-foreground w-[150px]">Sesi & Jadwal</TableHead>
                   <TableHead className="py-2.5 px-3 font-semibold text-foreground w-[210px]">Pasien & Kondisi</TableHead>
@@ -1207,7 +1201,7 @@ export default function DistilledSessionsPage() {
                   <TableHead className="py-2.5 px-3 font-semibold text-foreground w-[110px]">Ruang Video</TableHead>
                   <TableHead className="py-2.5 px-3 font-semibold text-foreground w-[140px]">Status</TableHead>
                   <TableHead className="py-2.5 px-3 font-semibold text-foreground w-[150px]">Batas Ubah Jadwal</TableHead>
-                  <TableHead className="py-2.5 px-3 font-semibold text-foreground text-right w-[130px] sticky right-0 bg-muted/90 backdrop-blur-xs z-10">
+                  <TableHead className="py-2.5 px-3 font-semibold text-foreground text-right w-[130px] sticky right-0 bg-muted/95 backdrop-blur-xs z-10 shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">
                     Tindakan
                   </TableHead>
                 </TableRow>
@@ -1238,7 +1232,7 @@ export default function DistilledSessionsPage() {
                         <Skeleton className="h-3.5 w-24" />
                       </TableCell>
                       <TableCell className="py-3 px-3 text-right sticky right-0 bg-card/90">
-                        <Skeleton className="h-7 w-20 ml-auto rounded-md" />
+                        <Skeleton className="h-8 w-20 ml-auto rounded-md" />
                       </TableCell>
                     </TableRow>
                   ))
@@ -1255,107 +1249,88 @@ export default function DistilledSessionsPage() {
                 ) : (
                   filteredSessions.map((ses) => {
                     const isLive = ses.status === "in_session"
-                  const isCompleted = ses.status === "completed"
-                  const isLocked = ses.hoursUntilSession > 0 && ses.hoursUntilSession < 12
+                    const isCompleted = ses.status === "completed"
+                    const isLocked = ses.hoursUntilSession > 0 && ses.hoursUntilSession < 12
 
-                  return (
-                    <TableRow key={ses.id} className="hover:bg-muted/30 transition-colors border-border/60">
-                      <TableCell className="py-3 px-3">
-                        <span className="font-semibold text-primary font-mono">{ses.code}</span>
-                        <div className="text-foreground font-medium mt-0.5">{ses.timeRange}</div>
-                        <div className="text-[11px] text-muted-foreground">{ses.date}</div>
-                      </TableCell>
+                    return (
+                      <TableRow key={ses.id} className="hover:bg-muted/30 transition-colors border-border/60">
+                        <TableCell className="py-3 px-3">
+                          <span className="font-semibold text-primary font-mono">{ses.code}</span>
+                          <div className="text-foreground font-medium mt-0.5">{ses.timeRange}</div>
+                          <div className="text-[11px] text-muted-foreground">{ses.date}</div>
+                        </TableCell>
 
-                      <TableCell className="py-3 px-3">
-                        <div className="text-foreground font-medium">{ses.patientName}</div>
-                        <div className="text-[11px] text-muted-foreground">{ses.patientContact}</div>
-                        {ses.hasSuicidalThoughts && (
-                          <Badge variant="destructive" className="text-[10px] py-0 px-1 font-medium mt-1">
-                            Kondisi Mendesak
+                        <TableCell className="py-3 px-3">
+                          <div className="text-foreground font-medium">{ses.patientName}</div>
+                          <div className="text-[11px] text-muted-foreground">{ses.patientContact}</div>
+                          {ses.hasSuicidalThoughts && (
+                            <Badge variant="destructive" className="text-[10px] py-0 px-1 font-medium mt-1">
+                              Kondisi Mendesak
+                            </Badge>
+                          )}
+                        </TableCell>
+
+                        <TableCell className="py-3 px-3">
+                          <div className="text-foreground font-medium">{ses.counselorName}</div>
+                          <div className="text-[11px] text-muted-foreground">{ses.counselorType}</div>
+                        </TableCell>
+
+                        <TableCell className="py-3 px-3">
+                          <Badge variant="outline" className="text-xs py-0.5 px-1.5 font-medium">
+                            {ses.zoomSlotNumber === 1
+                              ? "Ruang 1 (Zoom 1)"
+                              : ses.zoomSlotNumber === 2
+                              ? "Ruang 2 (Zoom 2)"
+                              : ses.zoomRoom === "Ruang Rapat Manual"
+                              ? "Ruang Manual"
+                              : ses.zoomRoom.replace("Zoom Pro ", "Ruang ")}
                           </Badge>
-                        )}
-                      </TableCell>
+                        </TableCell>
 
-                      <TableCell className="py-3 px-3">
-                        <div className="text-foreground font-medium">{ses.counselorName}</div>
-                        <div className="text-[11px] text-muted-foreground">{ses.counselorType}</div>
-                      </TableCell>
+                        <TableCell className="py-3 px-3">
+                          <SessionStatusBadge status={ses.status} />
+                        </TableCell>
 
-                      <TableCell className="py-3 px-3">
-                        <Badge variant="outline" className="text-xs py-0.5 px-1.5 font-medium">
-                          {ses.zoomSlotNumber === 1
-                            ? "Ruang 1 (Zoom 1)"
-                            : ses.zoomSlotNumber === 2
-                            ? "Ruang 2 (Zoom 2)"
-                            : ses.zoomRoom === "Ruang Rapat Manual"
-                            ? "Ruang Manual"
-                            : ses.zoomRoom.replace("Zoom Pro ", "Ruang ")}
-                        </Badge>
-                      </TableCell>
+                        <TableCell className="py-3 px-3">
+                          {isCompleted ? (
+                            <span className="text-xs text-muted-foreground">Sesi Selesai</span>
+                          ) : isLocked ? (
+                            <span className="text-xs text-destructive font-medium">Terkunci (&lt;12 jam)</span>
+                          ) : (
+                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Bisa Diubah</span>
+                          )}
+                        </TableCell>
 
-                      <TableCell className="py-3 px-3">
-                        {ses.status === "pending_payment" ? (
-                          <Badge variant="outline" className="text-xs py-0.5 px-1.5 font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 gap-1">
-                            <Clock className="size-3" />
-                            <span>Menunggu Bayar</span>
-                          </Badge>
-                        ) : isLive ? (
-                          <Badge variant="default" className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1 py-0.5 px-1.5">
-                            <span className="size-1.5 rounded-full bg-white animate-pulse" />
-                            <span>Sedang Berjalan</span>
-                          </Badge>
-                        ) : isCompleted ? (
-                          <Badge variant="outline" className="text-xs py-0.5 px-1.5 text-muted-foreground">
-                            Selesai
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs py-0.5 px-1.5">
-                            Menunggu Sesi
-                          </Badge>
-                        )}
-                      </TableCell>
-
-                      <TableCell className="py-3 px-3">
-                        {isCompleted ? (
-                          <span className="text-xs text-muted-foreground">Sesi Selesai</span>
-                        ) : isLocked ? (
-                          <span className="text-xs text-destructive font-medium">Terkunci (&lt;12 jam)</span>
-                        ) : (
-                          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Bisa Diubah</span>
-                        )}
-                      </TableCell>
-
-                      <TableCell className="py-3 px-3 text-right sticky right-0 bg-card/90 backdrop-blur-xs">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {ses.status === "pending_payment" && (
+                        <TableCell className="py-3 px-3 text-right sticky right-0 bg-card/90 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {ses.status === "pending_payment" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setManualPaymentSession(ses)}
+                                className="font-semibold border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 gap-1 cursor-pointer"
+                              >
+                                <CreditCard className="size-3.5" />
+                                <span>Konfirmasi</span>
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setManualPaymentSession(ses)}
-                              className="h-8 px-2.5 text-xs font-medium border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 gap-1 cursor-pointer"
+                              onClick={() => handleOpenSession(ses)}
                             >
-                              <CreditCard className="size-3" />
-                              <span>Konfirmasi</span>
+                              Rincian
                             </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenSession(ses)}
-                            className="h-8 px-3 text-xs font-normal"
-                          >
-                            Rincian
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* ========================================================================= */}
@@ -1388,16 +1363,7 @@ export default function DistilledSessionsPage() {
                     <span className="text-base font-bold text-primary font-mono">
                       {selectedSession.code}
                     </span>
-                    <Badge
-                      variant={selectedSession.status === "in_session" ? "default" : "secondary"}
-                      className="text-xs py-0.5 px-2"
-                    >
-                      {selectedSession.status === "in_session"
-                        ? "Sedang Berjalan"
-                        : selectedSession.status === "completed"
-                        ? "Selesai"
-                        : "Menunggu Sesi"}
-                    </Badge>
+                    <SessionStatusBadge status={selectedSession.status} />
                   </div>
                   <span className="text-xs text-muted-foreground">
                     Janji Temu Konseling 90 Menit

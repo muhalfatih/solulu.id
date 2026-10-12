@@ -37,8 +37,10 @@ import {
 } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { AdminPageHeader, AdminMetricCard } from "@/components/admin"
 import {
   Table,
   TableHeader,
@@ -377,100 +379,96 @@ export default function DistilledCounselorsPage() {
         </div>
       )}
 
-      {/* KPI Telemetry Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-        <div className="p-4 rounded-2xl border border-border bg-card flex flex-col gap-1.5 shadow-2xs">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium">Psikolog Klinis</span>
-            <GraduationCap className="size-4 text-purple-600 dark:text-purple-400" />
-          </div>
-          <div className="text-2xl font-bold tracking-tight text-foreground font-heading">
-            {isLoading ? <Skeleton className="h-7 w-12 my-0.5" /> : totalPsychologists}
-          </div>
-          <span className="text-[11px] text-muted-foreground">Berizin STR Kemenkes</span>
-        </div>
-
-        <div className="p-4 rounded-2xl border border-border bg-card flex flex-col gap-1.5 shadow-2xs">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium">Konselor Sebaya</span>
-            <UserCheck className="size-4 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <div className="text-2xl font-bold tracking-tight text-foreground font-heading">
-            {isLoading ? <Skeleton className="h-7 w-12 my-0.5" /> : totalPeers}
-          </div>
-          <span className="text-[11px] text-muted-foreground">Partner Cerita Terlatih</span>
-        </div>
-
-        <div className="p-4 rounded-2xl border border-border bg-card flex flex-col gap-1.5 shadow-2xs">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium">Slot Jadwal Aktif</span>
-            <Calendar className="size-4 text-primary" />
-          </div>
-          <div className="text-2xl font-bold tracking-tight text-foreground font-heading">
-            {isLoading ? <Skeleton className="h-7 w-12 my-0.5" /> : totalActiveSlots}
-          </div>
-          <span className="text-[11px] text-muted-foreground">Sesi 90 menit tersedia</span>
-        </div>
-
-        <div className="p-4 rounded-2xl border border-border bg-card flex flex-col gap-1.5 shadow-2xs">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-medium">Pendaftar Baru</span>
-            <ShieldCheck className="size-4 text-amber-500" />
-          </div>
-          <div className="text-2xl font-bold tracking-tight text-foreground font-heading">
-            {isLoading ? <Skeleton className="h-7 w-12 my-0.5" /> : pendingApplicants.length}
-          </div>
-          <span className="text-[11px] text-muted-foreground">Menunggu verifikasi berkas</span>
-        </div>
-      </div>
-
-      {/* Page Header & Tab Controls */}
-      <Tabs defaultValue="active" className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Data Konselor
-            </h1>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Kelola daftar konselor aktif dan periksa kelengkapan berkas pendaftar baru.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button asChild size="sm" className="text-xs h-9 bg-primary text-primary-foreground hover:bg-primary/90">
+      {/* 1. Header: Standardized Admin Page Header */}
+      <AdminPageHeader
+        title="Data Konselor"
+        description="Kelola daftar konselor aktif dan periksa kelengkapan berkas pendaftar baru."
+        actions={
+          <div className="flex items-center gap-2.5">
+            <Button asChild size="sm" className="gap-1.5">
               <Link href="/admin/counselors/new">
-                <Plus className="size-3.5 mr-1.5" />
+                <Plus className="size-3.5" />
                 <span>Tambah Konselor</span>
               </Link>
             </Button>
-            <Button asChild size="sm" variant="outline" className="text-xs h-9">
-              <a href="/admin/counselors/applications">
-                <FileText className="size-3.5 mr-1.5 text-primary" />
-                Portal Verifikasi R2
-              </a>
+            <Button asChild size="sm" variant="outline" className="gap-1.5">
+              <Link href="/admin/counselors/applications">
+                <FileText className="size-3.5 text-primary" />
+                <span>Portal Verifikasi R2</span>
+              </Link>
             </Button>
-            <TabsList className="bg-muted p-1 rounded-xl shrink-0 h-9">
-              <TabsTrigger value="applicants" className="flex items-center gap-2 text-xs px-3">
-                <span>Pendaftar Baru</span>
-                {isLoading ? (
-                  <Skeleton className="h-4 w-5 rounded-full" />
-                ) : pendingApplicants.length > 0 && (
-                  <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">
-                    {pendingApplicants.length}
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="active" className="flex items-center gap-2 text-xs px-3">
-                <span>Konselor Aktif</span>
-                {isLoading ? (
-                  <Skeleton className="h-4 w-5 rounded-full" />
-                ) : (
-                  <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.5 rounded-full bg-muted-foreground/20 text-muted-foreground">
-                    {activeCounselors.length}
-                  </span>
-                )}
-              </TabsTrigger>
-            </TabsList>
+          </div>
+        }
+      />
+
+      {/* 2. KPI Telemetry Cards: Standardized AdminMetricCards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <AdminMetricCard
+          title="Psikolog Klinis"
+          icon={GraduationCap}
+          value={totalPsychologists}
+          description="Berizin STR Kemenkes"
+          loading={isLoading}
+        />
+
+        <AdminMetricCard
+          title="Konselor Sebaya"
+          icon={UserCheck}
+          value={totalPeers}
+          description="Partner Cerita Terlatih"
+          loading={isLoading}
+        />
+
+        <AdminMetricCard
+          title="Slot Jadwal Aktif"
+          icon={Calendar}
+          value={totalActiveSlots}
+          description="Sesi 90 menit tersedia"
+          loading={isLoading}
+        />
+
+        <AdminMetricCard
+          title="Pendaftar Baru"
+          icon={ShieldCheck}
+          value={pendingApplicants.length}
+          variant={pendingApplicants.length > 0 ? "warning" : "default"}
+          badge={
+            pendingApplicants.length > 0 ? (
+              <span className="size-2 rounded-full bg-amber-500 ring-2 ring-amber-500/20" />
+            ) : undefined
+          }
+          description="Menunggu verifikasi berkas"
+          loading={isLoading}
+        />
+      </div>
+
+      {/* 3. Main Tabs Navigation */}
+      <Tabs defaultValue="active" className="flex flex-col gap-6">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <TabsList className="bg-muted p-1 rounded-lg shrink-0 h-9 border border-border/50">
+            <TabsTrigger value="active" className="flex items-center gap-2 text-xs px-3 data-[state=active]:font-semibold">
+              <span>Konselor Aktif</span>
+              {isLoading ? (
+                <Skeleton className="h-4 w-5 rounded-full" />
+              ) : (
+                <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.2 rounded-full bg-muted-foreground/15 text-muted-foreground">
+                  {activeCounselors.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="applicants" className="flex items-center gap-2 text-xs px-3 data-[state=active]:font-semibold">
+              <span>Pendaftar Baru</span>
+              {isLoading ? (
+                <Skeleton className="h-4 w-5 rounded-full" />
+              ) : pendingApplicants.length > 0 && (
+                <span className="text-[10px] tabular-nums font-semibold px-1.5 py-0.2 rounded-full bg-primary text-primary-foreground">
+                  {pendingApplicants.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+          <div className="text-xs text-muted-foreground font-medium hidden sm:block">
+            Total {activeCounselors.length} mitra konselor terdaftar
           </div>
         </div>
 
@@ -535,7 +533,7 @@ export default function DistilledCounselorsPage() {
               applicants.map((app) => (
               <div
                 key={app.id}
-                className={`rounded-2xl border bg-card p-6 flex flex-col justify-between gap-6 transition-all ${
+                className={`rounded-xl border bg-card p-6 flex flex-col justify-between gap-6 transition-all ${
                   app.status === "approved"
                     ? "border-primary/40 bg-primary/5"
                     : app.status === "rejected"
@@ -608,7 +606,7 @@ export default function DistilledCounselorsPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         variant="outline"
-                        size="xs"
+                        size="sm"
                         disabled={!app.documents.ktp}
                         onClick={() =>
                           handleOpenPreviewDoc(
@@ -618,7 +616,7 @@ export default function DistilledCounselorsPage() {
                             "KTP Elektronik (WNI)"
                           )
                         }
-                        className="h-8 justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5 cursor-pointer"
+                        className="justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5 cursor-pointer"
                       >
                         <span className="flex items-center gap-2 truncate">
                           <FileText className="size-3.5 text-primary shrink-0" />
@@ -629,7 +627,7 @@ export default function DistilledCounselorsPage() {
 
                       <Button
                         variant="outline"
-                        size="xs"
+                        size="sm"
                         disabled={!app.documents.diploma}
                         onClick={() =>
                           handleOpenPreviewDoc(
@@ -639,7 +637,7 @@ export default function DistilledCounselorsPage() {
                             "Ijazah Profesi / Akademik"
                           )
                         }
-                        className="h-8 justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5 cursor-pointer"
+                        className="justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5 cursor-pointer"
                       >
                         <span className="flex items-center gap-2 truncate">
                           <FileText className="size-3.5 text-primary shrink-0" />
@@ -650,7 +648,7 @@ export default function DistilledCounselorsPage() {
 
                       <Button
                         variant="outline"
-                        size="xs"
+                        size="sm"
                         disabled={!app.documents.cv}
                         onClick={() =>
                           handleOpenPreviewDoc(
@@ -660,7 +658,7 @@ export default function DistilledCounselorsPage() {
                             "Curriculum Vitae"
                           )
                         }
-                        className="h-8 justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5 cursor-pointer"
+                        className="justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5 cursor-pointer"
                       >
                         <span className="flex items-center gap-2 truncate">
                           <FileText className="size-3.5 text-primary shrink-0" />
@@ -671,7 +669,7 @@ export default function DistilledCounselorsPage() {
 
                       <Button
                         variant="outline"
-                        size="xs"
+                        size="sm"
                         disabled={!app.documents.str}
                         onClick={() =>
                           app.documents.str &&
@@ -682,7 +680,7 @@ export default function DistilledCounselorsPage() {
                             "Surat Izin Praktik Konselor (STR/SIP)"
                           )
                         }
-                        className="h-8 justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5 cursor-pointer"
+                        className="justify-between text-xs font-normal bg-background hover:bg-muted/60 px-2.5 cursor-pointer"
                       >
                         <span className="flex items-center gap-2 truncate">
                           <Award className="size-3.5 text-primary shrink-0" />
@@ -739,17 +737,17 @@ export default function DistilledCounselorsPage() {
 
         {/* TAB 2: REGISTERED COUNSELORS DIRECTORY (Unified Surface) */}
         <TabsContent value="active" className="flex flex-col gap-0 mt-0">
-          <div className="border border-border rounded-2xl bg-card overflow-hidden shadow-xs">
+          <Card className="overflow-hidden shadow-xs">
             {/* Integrated Toolbar Header: Filter + Search + Stats in one surface */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-border bg-muted/20">
               <div className="relative flex-1 min-w-[220px] max-w-xs">
-                <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Cari nama konselor atau spesialisasi..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 h-8 text-xs bg-card"
+                  className="pl-8 h-8 text-xs bg-background"
                   aria-label="Cari nama konselor"
                 />
               </div>
@@ -841,209 +839,211 @@ export default function DistilledCounselorsPage() {
               </div>
             </div>
 
-            {/* Table Body */}
-            <Table className="text-xs">
-              <TableHeader className="bg-muted/40">
-                <TableRow className="border-border/60">
-                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Konselor</TableHead>
-                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Kualifikasi</TableHead>
-                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Kontak</TableHead>
-                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Total Sesi</TableHead>
-                  <TableHead className="py-3 px-3.5 font-semibold text-foreground text-center">Slot Jadwal</TableHead>
-                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Fokus Layanan</TableHead>
-                  <TableHead className="py-3 px-3.5 font-semibold text-foreground text-center">Homepage</TableHead>
-                  <TableHead className="py-3 px-3.5 font-semibold text-foreground">Status</TableHead>
-                  <TableHead className="py-3 px-3.5 font-semibold text-foreground text-right">Tindakan</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <TableRow key={`counselor-skeleton-${i}`} className="border-border/60">
-                      <TableCell className="py-3.5 px-3.5">
-                        <Skeleton className="h-4 w-32 mb-1.5" />
-                        <Skeleton className="h-3 w-24 mb-1" />
-                        <Skeleton className="h-2.5 w-20" />
-                      </TableCell>
-                      <TableCell className="py-3.5 px-3.5">
-                        <Skeleton className="h-4 w-24 mb-1 rounded-full" />
-                        <Skeleton className="h-2.5 w-28" />
-                      </TableCell>
-                      <TableCell className="py-3.5 px-3.5">
-                        <Skeleton className="h-3.5 w-36 mb-1" />
-                        <Skeleton className="h-3 w-28" />
-                      </TableCell>
-                      <TableCell className="py-3.5 px-3.5">
-                        <Skeleton className="h-4 w-12" />
-                      </TableCell>
-                      <TableCell className="py-3.5 px-3.5 text-center">
-                        <Skeleton className="h-7 w-20 mx-auto rounded-lg" />
-                      </TableCell>
-                      <TableCell className="py-3.5 px-3.5">
-                        <div className="flex flex-wrap gap-1">
-                          <Skeleton className="h-4 w-12 rounded" />
-                          <Skeleton className="h-4 w-14 rounded" />
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3.5 px-3.5 text-center">
-                        <Skeleton className="h-5 w-9 mx-auto rounded-full" />
-                      </TableCell>
-                      <TableCell className="py-3.5 px-3.5">
-                        <div className="flex items-center gap-1.5">
-                          <Skeleton className="size-2 rounded-full" />
-                          <Skeleton className="h-3.5 w-16" />
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3.5 px-3.5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Skeleton className="h-8 w-16 rounded-md" />
-                          <Skeleton className="h-8 w-12 rounded-md" />
-                          <Skeleton className="h-8 w-16 rounded-md" />
-                        </div>
+            {/* Table Body with horizontal scroll */}
+            <div className="overflow-x-auto">
+              <Table className="text-xs min-w-[850px]">
+                <TableHeader className="bg-muted/40">
+                  <TableRow className="border-border/60">
+                    <TableHead className="py-3 px-3.5 font-semibold text-foreground">Konselor</TableHead>
+                    <TableHead className="py-3 px-3.5 font-semibold text-foreground">Kualifikasi</TableHead>
+                    <TableHead className="py-3 px-3.5 font-semibold text-foreground">Kontak</TableHead>
+                    <TableHead className="py-3 px-3.5 font-semibold text-foreground">Total Sesi</TableHead>
+                    <TableHead className="py-3 px-3.5 font-semibold text-foreground text-center">Slot Jadwal</TableHead>
+                    <TableHead className="py-3 px-3.5 font-semibold text-foreground">Fokus Layanan</TableHead>
+                    <TableHead className="py-3 px-3.5 font-semibold text-foreground text-center">Homepage</TableHead>
+                    <TableHead className="py-3 px-3.5 font-semibold text-foreground">Status</TableHead>
+                    <TableHead className="py-3 px-3.5 font-semibold text-foreground text-right sticky right-0 bg-muted/95 backdrop-blur-xs z-10 shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">Tindakan</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 4 }).map((_, i) => (
+                      <TableRow key={`counselor-skeleton-${i}`} className="border-border/60">
+                        <TableCell className="py-3.5 px-3.5">
+                          <Skeleton className="h-4 w-32 mb-1.5" />
+                          <Skeleton className="h-3 w-24 mb-1" />
+                          <Skeleton className="h-2.5 w-20" />
+                        </TableCell>
+                        <TableCell className="py-3.5 px-3.5">
+                          <Skeleton className="h-4 w-24 mb-1 rounded-full" />
+                          <Skeleton className="h-2.5 w-28" />
+                        </TableCell>
+                        <TableCell className="py-3.5 px-3.5">
+                          <Skeleton className="h-3.5 w-36 mb-1" />
+                          <Skeleton className="h-3 w-28" />
+                        </TableCell>
+                        <TableCell className="py-3.5 px-3.5">
+                          <Skeleton className="h-4 w-12" />
+                        </TableCell>
+                        <TableCell className="py-3.5 px-3.5 text-center">
+                          <Skeleton className="h-7 w-20 mx-auto rounded-lg" />
+                        </TableCell>
+                        <TableCell className="py-3.5 px-3.5">
+                          <div className="flex flex-wrap gap-1">
+                            <Skeleton className="h-4 w-12 rounded" />
+                            <Skeleton className="h-4 w-14 rounded" />
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3.5 px-3.5 text-center">
+                          <Skeleton className="h-5 w-9 mx-auto rounded-full" />
+                        </TableCell>
+                        <TableCell className="py-3.5 px-3.5">
+                          <div className="flex items-center gap-1.5">
+                            <Skeleton className="size-2 rounded-full" />
+                            <Skeleton className="h-3.5 w-16" />
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3.5 px-3.5 text-right sticky right-0 bg-card/90">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <Skeleton className="h-8 w-16 rounded-md" />
+                            <Skeleton className="h-8 w-12 rounded-md" />
+                            <Skeleton className="h-8 w-16 rounded-md" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : filteredCounselors.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="py-12 text-center text-muted-foreground">
+                        <p className="text-sm font-medium">Tidak ada data konselor yang cocok</p>
+                        <p className="text-xs text-muted-foreground mt-1">Coba sesuaikan kata kunci pencarian atau filter status.</p>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : filteredCounselors.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="py-12 text-center text-muted-foreground">
-                      <p className="text-sm font-medium">Tidak ada data konselor yang cocok</p>
-                      <p className="text-xs text-muted-foreground mt-1">Coba sesuaikan kata kunci pencarian atau filter status.</p>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredCounselors.map((c) => (
-                  <TableRow key={c.id} className="hover:bg-muted/30 transition-colors border-border/60">
-                    <TableCell className="py-3.5 px-3.5">
-                      <div className="font-semibold text-foreground">{c.name}</div>
-                      <div className="text-[11px] text-muted-foreground">{c.title}</div>
-                      {c.education && (
-                        <div className="text-[10px] text-muted-foreground/80 mt-0.5 max-w-[220px] truncate" title={c.education}>
-                          {c.education}
-                        </div>
-                      )}
-                    </TableCell>
+                  ) : (
+                    filteredCounselors.map((c) => (
+                    <TableRow key={c.id} className="hover:bg-muted/30 transition-colors border-border/60">
+                      <TableCell className="py-3.5 px-3.5">
+                        <div className="font-semibold text-foreground">{c.name}</div>
+                        <div className="text-[11px] text-muted-foreground">{c.title}</div>
+                        {c.education && (
+                          <div className="text-[10px] text-muted-foreground/80 mt-0.5 max-w-[220px] truncate" title={c.education}>
+                            {c.education}
+                          </div>
+                        )}
+                      </TableCell>
 
-                    <TableCell className="py-3.5 px-3.5">
-                      <Badge variant="outline" className="text-[10px] font-normal">
-                        {c.type}
-                      </Badge>
-                      {c.strNumber && (
-                        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                          Izin Praktik: {c.strNumber}
-                        </div>
-                      )}
-                    </TableCell>
+                      <TableCell className="py-3.5 px-3.5">
+                        <Badge variant="outline" className="text-[10px] font-normal">
+                          {c.type}
+                        </Badge>
+                        {c.strNumber && (
+                          <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                            Izin Praktik: {c.strNumber}
+                          </div>
+                        )}
+                      </TableCell>
 
-                    <TableCell className="py-3.5 px-3.5 text-[11px]">
-                      <div className="text-foreground font-mono">{c.email}</div>
-                      <div className="text-muted-foreground font-mono">{c.phone}</div>
-                    </TableCell>
+                      <TableCell className="py-3.5 px-3.5 text-[11px]">
+                        <div className="text-foreground font-mono">{c.email}</div>
+                        <div className="text-muted-foreground font-mono">{c.phone}</div>
+                      </TableCell>
 
-                    <TableCell className="py-3.5 px-3.5 tabular-nums font-semibold text-foreground">
-                      {c.totalSessions} sesi
-                    </TableCell>
+                      <TableCell className="py-3.5 px-3.5 tabular-nums font-semibold text-foreground">
+                        {c.totalSessions} sesi
+                      </TableCell>
 
-                    <TableCell className="py-3.5 px-3.5 text-center">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setScheduleModalCounselor({ id: c.id, name: c.name, title: c.title, type: c.type })}
-                        className="h-7 px-2.5 text-xs gap-1.5 font-medium cursor-pointer hover:border-primary/50 shadow-2xs"
-                        title={`Kelola slot jadwal untuk ${c.name}`}
-                      >
-                        <Calendar className="size-3 text-primary" />
-                        <span className="tabular-nums font-mono">{c.activeSlots} Slot</span>
-                      </Button>
-                    </TableCell>
-
-                    <TableCell className="py-3.5 px-3.5">
-                      <div className="flex flex-wrap gap-1 max-w-xs">
-                        {c.specializations?.map((spec: string) => (
-                          <span
-                            key={spec}
-                            className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium"
-                          >
-                            {spec}
-                          </span>
-                        ))}
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="py-3.5 px-3.5 text-center">
-                      <div className="flex items-center justify-center">
-                        <Switch
-                          checked={Boolean(c.isFeatured)}
-                          onCheckedChange={(checked) => handleToggleFeatured(c.id, checked)}
-                          aria-label={`Tampilkan ${c.name} di homepage`}
-                        />
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="py-3.5 px-3.5">
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${
-                          c.isActive
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        <span
-                          className={`size-1.5 rounded-full ${
-                            c.isActive ? "bg-emerald-500" : "bg-muted-foreground/40"
-                          }`}
-                        />
-                        <span>{c.isActive ? "Praktik Aktif" : "Ditangguhkan"}</span>
-                      </span>
-                    </TableCell>
-
-                    <TableCell className="py-3.5 px-3.5 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <TableCell className="py-3.5 px-3.5 text-center">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setScheduleModalCounselor({ id: c.id, name: c.name, title: c.title, type: c.type })}
-                          className="h-8 px-2.5 text-xs font-normal gap-1 cursor-pointer"
-                          title={`Atur jadwal sesi untuk ${c.name}`}
+                          className="h-8 px-2.5 text-xs gap-1.5 font-medium cursor-pointer hover:border-primary/50 shadow-2xs"
+                          title={`Kelola slot jadwal untuk ${c.name}`}
                         >
-                          <Clock className="size-3 text-muted-foreground" />
-                          <span>Jadwal</span>
+                          <Calendar className="size-3.5 text-primary" />
+                          <span className="tabular-nums font-mono">{c.activeSlots} Slot</span>
                         </Button>
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="sm"
-                          className="h-8 px-2.5 text-xs font-normal"
+                      </TableCell>
+
+                      <TableCell className="py-3.5 px-3.5">
+                        <div className="flex flex-wrap gap-1 max-w-xs">
+                          {c.specializations?.map((spec: string) => (
+                            <span
+                              key={spec}
+                              className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium"
+                            >
+                              {spec}
+                            </span>
+                          ))}
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="py-3.5 px-3.5 text-center">
+                        <div className="flex items-center justify-center">
+                          <Switch
+                            checked={Boolean(c.isFeatured)}
+                            onCheckedChange={(checked) => handleToggleFeatured(c.id, checked)}
+                            aria-label={`Tampilkan ${c.name} di homepage`}
+                          />
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="py-3.5 px-3.5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${
+                            c.isActive
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-muted-foreground"
+                          }`}
                         >
-                          <Link href={`/admin/counselors/${c.id}/edit`}>
-                            <Pencil className="size-3 mr-1 text-muted-foreground" />
-                            <span>Edit</span>
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleCounselorStatus(c.id)}
-                          className="h-8 px-2.5 text-xs font-normal"
-                        >
-                          {c.isActive ? "Tangguhkan" : "Aktifkan"}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteCounselor(c.id, c.name)}
-                          className="h-8 px-2 text-xs font-normal text-destructive hover:bg-destructive/10"
-                          title="Hapus Konselor"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                          <span
+                            className={`size-1.5 rounded-full ${
+                              c.isActive ? "bg-emerald-500" : "bg-muted-foreground/40"
+                            }`}
+                          />
+                          <span>{c.isActive ? "Praktik Aktif" : "Ditangguhkan"}</span>
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="py-3.5 px-3.5 text-right sticky right-0 bg-card/90 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setScheduleModalCounselor({ id: c.id, name: c.name, title: c.title, type: c.type })}
+                            className="h-8 px-2.5 text-xs font-normal gap-1 cursor-pointer"
+                            title={`Atur jadwal sesi untuk ${c.name}`}
+                          >
+                            <Clock className="size-3 text-muted-foreground" />
+                            <span>Jadwal</span>
+                          </Button>
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-2.5 text-xs font-normal"
+                          >
+                            <Link href={`/admin/counselors/${c.id}/edit`}>
+                              <Pencil className="size-3 mr-1 text-muted-foreground" />
+                              <span>Edit</span>
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleCounselorStatus(c.id)}
+                            className="h-8 px-2.5 text-xs font-normal"
+                          >
+                            {c.isActive ? "Tangguhkan" : "Aktifkan"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteCounselor(c.id, c.name)}
+                            className="size-8 p-0 text-destructive hover:bg-destructive/10"
+                            title="Hapus Konselor"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
         </TabsContent>
       </Tabs>
 

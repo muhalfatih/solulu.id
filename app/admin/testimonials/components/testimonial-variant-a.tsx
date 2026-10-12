@@ -12,11 +12,16 @@ import {
   Quote,
   Filter,
   Sparkles,
+  X,
+  AlertCircle,
+  MessageSquareQuote,
+  Plus,
 } from "lucide-react"
 import type { TestimonialItem } from "@/lib/types/admin"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import {
@@ -27,7 +32,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export const DEFAULT_SPECIALIZATION_TOPICS = [
@@ -71,7 +83,7 @@ export function TestimonialVariantA({
     return Array.from(set)
   }, [availableTopics, items])
 
-  // Composer Form State (Subjek, Isi, Nama Anonim, Topik Masalah)
+  // Composer Form State
   const [subject, setSubject] = React.useState("")
   const [comment, setComment] = React.useState("")
   const [clientName, setClientName] = React.useState("")
@@ -92,6 +104,9 @@ export function TestimonialVariantA({
   const [editClientName, setEditClientName] = React.useState("")
   const [editTopic, setEditTopic] = React.useState("")
   const [editIsActive, setEditIsActive] = React.useState(true)
+
+  // Delete Confirmation State
+  const [deleteTarget, setDeleteTarget] = React.useState<TestimonialItem | null>(null)
 
   // Filter & Search State
   const [searchQuery, setSearchQuery] = React.useState("")
@@ -151,6 +166,13 @@ export function TestimonialVariantA({
     setEditingId(null)
   }
 
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      onDeletePost(deleteTarget.id)
+      setDeleteTarget(null)
+    }
+  }
+
   // Filtered post feed
   const filteredPosts = React.useMemo(() => {
     return items.filter((item) => {
@@ -180,22 +202,23 @@ export function TestimonialVariantA({
   const inactiveCount = items.filter((i) => !i.isActive).length
 
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-6 w-full font-sans">
       {/* 1. DIRECT COMPOSER BOX: Subjek, Isi, Nama Anonim, Topik Masalah */}
       <section
+        id="composer-form"
         aria-label="Formulir tulis testimoni baru"
-        className="rounded-2xl border border-border bg-card p-5 shadow-2xs flex flex-col gap-4"
+        className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs flex flex-col gap-4"
       >
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-border">
+        <div className="flex flex-wrap items-center justify-between gap-2 pb-3.5 border-b border-border/60">
           <div className="flex items-center gap-2">
             <Quote className="size-4 text-primary" />
-            <h2 className="text-base font-semibold text-foreground tracking-tight">
-              Tulis Testimoni Baru
+            <h2 className="text-sm font-bold text-foreground tracking-tight">
+              Tulis Testimoni Klien Baru
             </h2>
           </div>
           <span className="text-xs text-muted-foreground flex items-center gap-1.5">
             <Sparkles className="size-3 text-primary" />
-            Format mandiri sesuai homepage (Subjek, Isi, Nama Anonim, Topik Spesialisasi)
+            Format sesuai etalase publik (Subjek, Isi, Nama Anonim, Topik Spesialisasi)
           </span>
         </div>
 
@@ -203,14 +226,14 @@ export function TestimonialVariantA({
           {/* Row 1: Subjek Testimoni */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="post-subject" className="text-xs font-medium text-foreground">
-              Subjek / Judul Testimoni <span className="text-destructive">*</span>
+              Subjek / Inti Testimoni <span className="text-destructive">*</span>
             </Label>
             <Input
               id="post-subject"
               required
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              placeholder="Contoh: Tidak merasa sendirian lagi / Punya arah keluar dari masalah"
+              placeholder="Contoh: Tidak merasa sendirian lagi / Punya langkah nyata ke depan"
               className="h-9 w-full text-xs bg-background"
             />
           </div>
@@ -218,16 +241,16 @@ export function TestimonialVariantA({
           {/* Row 2: Isi Ulasan / Pengalaman */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="post-comment" className="text-xs font-medium text-foreground">
-              Isi Ulasan <span className="text-destructive">*</span>
+              Isi Ulasan Pengalaman <span className="text-destructive">*</span>
             </Label>
-            <textarea
+            <Textarea
               id="post-comment"
               rows={3}
               required
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Tuliskan pengalaman atau kutipan ulasan klien di sini... Contoh: 'Awalnya sempat ragu mau cerita karena takut dinilai lebay. Tapi konselornya sangat menenangkan sejak menit awal, dan durasi 90 menit beneran bikin lega tanpa rasa diburu-buru.'"
-              className="w-full rounded-xl border border-input bg-background p-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring leading-relaxed resize-y min-h-[76px]"
+              placeholder="Tuliskan kutipan pengalaman klien... Contoh: 'Awalnya sempat ragu mau cerita karena takut dinilai lebay. Tapi konselornya sangat menenangkan sejak menit awal, dan durasi 90 menit beneran bikin lega tanpa rasa diburu-buru.'"
+              className="text-xs resize-none bg-background leading-relaxed min-h-[80px]"
             />
           </div>
 
@@ -236,19 +259,19 @@ export function TestimonialVariantA({
             {/* Nama (Sebagai Anonim) */}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="client-name" className="text-xs font-medium text-foreground">
-                Nama (Sebagai Anonim) <span className="text-destructive">*</span>
+                Nama Tampilan (Sebagai Anonim) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="client-name"
                 required
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
-                placeholder="Contoh: Mahasiswa, 21 tahun / Karyawan Swasta, 26 tahun / Klien Anonim"
+                placeholder="Contoh: Mahasiswa, 21 tahun / Karyawan Swasta, 26 tahun"
                 className="h-9 w-full text-xs bg-background"
               />
             </div>
 
-            {/* Topik Masalah (dari database spesialisasi & fokus) */}
+            {/* Topik Masalah */}
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-medium text-foreground">
                 Topik Masalah (Fokus &amp; Spesialisasi) <span className="text-destructive">*</span>
@@ -271,13 +294,14 @@ export function TestimonialVariantA({
           </div>
 
           {/* Bottom Row: Status Aktif Toggle & Submit Button */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-border">
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-3.5 border-t border-border/60">
             {/* Status Aktif / Tidak Aktif Switch */}
-            <div className="flex items-center gap-2 h-8">
+            <div className="flex items-center gap-2.5 h-8">
               <Switch
                 id="active-toggle"
                 checked={isActive}
                 onCheckedChange={setIsActive}
+                size="sm"
               />
               <Label
                 htmlFor="active-toggle"
@@ -291,7 +315,7 @@ export function TestimonialVariantA({
                       : "text-muted-foreground"
                   }
                 >
-                  {isActive ? "Aktif (Tampil di Website)" : "Tidak Aktif"}
+                  {isActive ? "Aktif (Tayang di Homepage)" : "Draft (Tidak Aktif)"}
                 </span>
               </Label>
             </div>
@@ -299,9 +323,10 @@ export function TestimonialVariantA({
             <Button
               type="submit"
               size="sm"
-              className="h-8 text-xs font-medium gap-1.5 cursor-pointer"
+              disabled={!subject.trim() || !comment.trim() || !clientName.trim()}
+              className="gap-1.5 font-medium shadow-xs"
             >
-              <Send className="size-3.5" data-icon="inline-start" />
+              <Send className="size-3.5" />
               <span>Simpan Testimoni</span>
             </Button>
           </div>
@@ -310,19 +335,29 @@ export function TestimonialVariantA({
 
       {/* 2. FILTER & SEARCH BAR */}
       <section
-        aria-label="Penyaring postingan testimoni"
-        className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl border border-border bg-card shadow-2xs"
+        aria-label="Penyaring ulasan testimoni"
+        className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl border border-border bg-card shadow-xs"
       >
         <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
           {/* Search Box */}
           <div className="relative w-full sm:w-64">
-            <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari subjek, nama anonim, isi..."
-              className="pl-8 h-8 text-xs bg-background"
+              className="pl-8 pr-7 h-8 text-xs bg-background"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                aria-label="Hapus kata kunci pencarian"
+              >
+                <X className="size-3" />
+              </button>
+            )}
           </div>
 
           {/* Topic Filter */}
@@ -371,13 +406,13 @@ export function TestimonialVariantA({
         </div>
       </section>
 
-      {/* 3. TESTIMONIAL FEED LIST (Format Visual Kartu Front End Homepage) */}
+      {/* 3. TESTIMONIAL FEED LIST */}
       <div className="flex flex-col gap-4">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
             <article
               key={`testimoni-skel-${i}`}
-              className="p-5 sm:p-6 rounded-2xl border border-border bg-card shadow-2xs flex flex-col justify-between gap-4 animate-pulse"
+              className="p-5 sm:p-6 rounded-2xl border border-border bg-card shadow-xs flex flex-col justify-between gap-4 animate-pulse"
             >
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
@@ -402,8 +437,20 @@ export function TestimonialVariantA({
             </article>
           ))
         ) : filteredPosts.length === 0 ? (
-          <div className="py-16 text-center text-xs text-muted-foreground rounded-2xl border border-dashed border-border bg-card">
-            Tidak ada ulasan testimoni yang cocok dengan pencarian atau filter.
+          <div className="py-16 text-center text-xs text-muted-foreground rounded-2xl border border-dashed border-border bg-card flex flex-col items-center justify-center gap-2.5 px-4 shadow-xs">
+            <MessageSquareQuote className="size-8 text-muted-foreground/30 mb-1" />
+            <p className="text-sm font-semibold text-foreground">
+              {searchQuery || topicFilter !== "all" || statusFilter !== "all"
+                ? "Tidak ada ulasan yang sesuai filter"
+                : "Belum ada testimoni terdaftar"}
+            </p>
+            <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
+              {searchQuery
+                ? `Tidak ditemukan ulasan dengan kata kunci "${searchQuery}". Coba gunakan kata kunci pencarian lain.`
+                : topicFilter !== "all"
+                ? `Tidak ada ulasan dengan topik "${topicFilter}".`
+                : "Gunakan formulir di atas untuk menambahkan testimoni klien pertama Anda."}
+            </p>
           </div>
         ) : (
           filteredPosts.map((post) => {
@@ -412,11 +459,11 @@ export function TestimonialVariantA({
             return (
               <article
                 key={post.id}
-                className="p-5 sm:p-6 rounded-2xl border border-border bg-card shadow-2xs flex flex-col justify-between gap-4 hover:border-border/80 transition-colors"
+                className="p-5 sm:p-6 rounded-2xl border border-border bg-card shadow-xs flex flex-col justify-between gap-4 hover:border-border/80 transition-colors"
               >
                 {isEditing ? (
                   /* Form Edit Mode */
-                  <div className="flex flex-col gap-3 p-4 rounded-xl bg-muted/20 border border-border">
+                  <div className="flex flex-col gap-3.5 p-4 rounded-xl bg-muted/20 border border-border">
                     <div className="flex flex-col gap-1.5">
                       <Label className="text-xs font-medium text-foreground">Subjek Testimoni</Label>
                       <Input
@@ -429,11 +476,11 @@ export function TestimonialVariantA({
 
                     <div className="flex flex-col gap-1.5">
                       <Label className="text-xs font-medium text-foreground">Isi Ulasan</Label>
-                      <textarea
+                      <Textarea
                         rows={3}
                         value={editComment}
                         onChange={(e) => setEditComment(e.target.value)}
-                        className="w-full rounded-md border border-input bg-background p-2.5 text-xs text-foreground leading-relaxed resize-y"
+                        className="text-xs bg-background leading-relaxed min-h-[72px]"
                       />
                     </div>
 
@@ -467,16 +514,17 @@ export function TestimonialVariantA({
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border/60">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-border/60">
                       <div className="flex items-center gap-2">
                         <Switch
                           id={`edit-active-${post.id}`}
                           checked={editIsActive}
                           onCheckedChange={setEditIsActive}
+                          size="sm"
                         />
                         <Label
                           htmlFor={`edit-active-${post.id}`}
-                          className="text-xs text-foreground cursor-pointer"
+                          className="text-xs text-foreground cursor-pointer select-none"
                         >
                           {editIsActive ? "Status: Aktif" : "Status: Tidak Aktif"}
                         </Label>
@@ -484,19 +532,20 @@ export function TestimonialVariantA({
 
                       <div className="flex items-center gap-2">
                         <Button
+                          type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => setEditingId(null)}
-                          className="h-8 text-xs cursor-pointer"
                         >
                           Batal
                         </Button>
                         <Button
+                          type="button"
                           size="sm"
                           onClick={() => saveEdit(post.id)}
-                          className="h-8 text-xs font-medium gap-1 cursor-pointer"
+                          className="gap-1 font-medium shadow-xs"
                         >
-                          <Check className="size-3.5" data-icon="inline-start" />
+                          <Check className="size-3.5" />
                           <span>Simpan Perubahan</span>
                         </Button>
                       </div>
@@ -568,14 +617,13 @@ export function TestimonialVariantA({
                         >
                           {post.isActive ? (
                             <>
-                              <EyeOff className="size-3.5 text-muted-foreground" data-icon="inline-start" />
+                              <EyeOff className="size-3.5 text-muted-foreground" />
                               <span className="text-muted-foreground">Nonaktifkan</span>
                             </>
                           ) : (
                             <>
                               <Eye
                                 className="size-3.5 text-emerald-600 dark:text-emerald-400"
-                                data-icon="inline-start"
                               />
                               <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                                 Aktifkan
@@ -598,7 +646,7 @@ export function TestimonialVariantA({
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          onClick={() => onDeletePost(post.id)}
+                          onClick={() => setDeleteTarget(post)}
                           className="size-8 text-muted-foreground hover:text-destructive cursor-pointer"
                           title="Hapus testimoni"
                           aria-label="Hapus testimoni"
@@ -614,6 +662,45 @@ export function TestimonialVariantA({
           })
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-destructive flex items-center gap-2">
+              <AlertCircle className="size-4" />
+              <span>Hapus Ulasan Testimoni</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Apakah Anda yakin ingin menghapus ulasan dari &quot;{deleteTarget?.anonymousDisplay || deleteTarget?.clientName}&quot; ini? Tindakan ini akan menghapusnya dari basis data dan beranda publik.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setDeleteTarget(null)}
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={confirmDelete}
+              className="gap-1.5 font-medium shadow-xs"
+            >
+              <Trash2 className="size-3.5" />
+              <span>Hapus Sekarang</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

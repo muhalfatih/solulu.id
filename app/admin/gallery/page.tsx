@@ -2,12 +2,21 @@
 
 import * as React from "react"
 import type { GalleryItem } from "@/lib/types/admin"
-import { Skeleton } from "@/components/ui/skeleton"
 import { GalleryGrid } from "./components/gallery-grid"
 import { GalleryUploadDialog } from "./components/gallery-upload-dialog"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Check, X, Plus } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import { AdminPageHeader, AdminMetricCard } from "@/components/admin"
+import {
+  Check,
+  X,
+  Plus,
+  Images,
+  Search,
+  ShieldCheck,
+  AlertCircle,
+} from "lucide-react"
 import {
   getGalleryAdminAction,
   createGalleryAdminAction,
@@ -18,7 +27,9 @@ export default function GalleryAdminPage() {
   const [items, setItems] = React.useState<GalleryItem[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [isUploadOpen, setIsUploadOpen] = React.useState(false)
+  const [searchQuery, setSearchQuery] = React.useState("")
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -26,63 +37,83 @@ export default function GalleryAdminPage() {
   }
 
   // Fetch real gallery items from database on mount
-  React.useEffect(() => {
-    async function loadGallery() {
-      setIsLoading(true)
-      try {
-        const res = await getGalleryAdminAction()
-        if (res.success && res.data && res.data.length > 0) {
-          const mapped: GalleryItem[] = res.data.map((r: any) => ({
-            id: r.id,
-            imageUrl: r.imageUrl || r.r2Url,
-            aspectRatio: "16:9",
-            dimensions: "1920 × 1080",
-            fileSize: "920 KB",
-            date: new Date(r.createdAt).toLocaleDateString("id-ID", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            }),
-            isCensoredAndConsented: true,
-            uploadedBy: "Admin",
-          }))
-          setItems(mapped)
-        } else {
-          setItems([])
-        }
-      } catch (err) {
-        console.error("Failed to load real gallery from database:", err)
+  const loadGallery = React.useCallback(async () => {
+    setIsLoading(true)
+    setErrorMessage(null)
+    try {
+      const res = await getGalleryAdminAction()
+      if (res.success && res.data && res.data.length > 0) {
+        const mapped: GalleryItem[] = res.data.map((r: any) => ({
+          id: r.id,
+          imageUrl: r.imageUrl || r.r2Url,
+          title: r.caption || "Dokumentasi Kegiatan",
+          caption: r.caption || "Dokumentasi Kegiatan",
+          aspectRatio: "16:9",
+          dimensions: "1920 × 1080",
+          fileSize: "920 KB",
+          date: new Date(r.createdAt).toLocaleDateString("id-ID", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }),
+          isCensoredAndConsented: r.isCensoredAndConsented ?? true,
+          uploadedBy: "Admin",
+        }))
+        setItems(mapped)
+      } else {
         setItems([])
-      } finally {
-        setIsLoading(false)
       }
+    } catch (err: any) {
+      setErrorMessage(err.message || "Gagal memuat galeri dari database.")
+      setItems([])
+    } finally {
+      setIsLoading(false)
     }
-    loadGallery()
   }, [])
 
-  const handleUpload = async (newItem: GalleryItem) => {
-    setItems((prev) => [newItem, ...prev])
+  React.useEffect(() => {
+    loadGallery()
+  }, [loadGallery])
+
+  const handleUpload = async (newItem: GalleryItem, captionText: string) => {
+    setErrorMessage(null)
     try {
-      await createGalleryAdminAction({
-        title: "Dokumentasi Solulu",
+      const res = await createGalleryAdminAction({
+        title: captionText || "Dokumentasi Solulu",
         category: "general",
         r2Url: newItem.imageUrl,
-        caption: "Dokumentasi sesi/kegiatan Solulu",
+        caption: captionText || "Dokumentasi sesi/kegiatan Solulu",
       })
-    } catch (err) {
-      console.error("Failed to persist gallery item:", err)
+
+      if (res.success && res.data) {
+        const created: GalleryItem = {
+          ...newItem,
+          id: res.data.id || newItem.id,
+          caption: res.data.caption || captionText,
+        }
+        setItems((prev) => [created, ...prev])
+        showToast("Foto berhasil ditambahkan ke galeri dan disimpan ke database.")
+      } else {
+        throw new Error(res.error || "Gagal menyimpan foto ke database.")
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || "Gagal menyimpan foto ke database.")
     }
-    showToast("Foto berhasil ditambahkan ke galeri dan disimpan ke database.")
   }
 
   const handleDelete = async (id: string) => {
+    setErrorMessage(null)
+    const prevItems = [...items]
     setItems((prev) => prev.filter((item) => item.id !== id))
+
     try {
-      await deleteGalleryAdminAction(id)
-    } catch (err) {
-      console.error("Failed to delete gallery item:", err)
+      const res = await deleteGalleryAdminAction(id)
+      if (!res.success) throw new Error(res.error)
+      showToast("Foto telah dihapus dari galeri.")
+    } catch (err: any) {
+      setItems(prevItems)
+      setErrorMessage(err.message || "Gagal menghapus foto dari database.")
     }
-    showToast("Foto telah dihapus dari galeri.")
   }
 
   const handleCopyCDN = (id: string) => {
@@ -92,8 +123,17 @@ export default function GalleryAdminPage() {
     showToast("Tautan CDN foto berhasil disalin ke papan klip.")
   }
 
+  const filteredItems = items.filter((item) => {
+    const q = searchQuery.toLowerCase().trim()
+    if (!q) return true
+    return (
+      (item.caption && item.caption.toLowerCase().includes(q)) ||
+      item.id.toLowerCase().includes(q)
+    )
+  })
+
   return (
-    <div className="w-full max-w-7xl mx-auto flex flex-col gap-5 pb-16">
+    <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 pb-20 font-sans">
       {/* Toast Notification */}
       {toastMessage && (
         <div
@@ -103,9 +143,10 @@ export default function GalleryAdminPage() {
         >
           <div className="flex items-center gap-2">
             <Check className="size-4 text-primary shrink-0" />
-            <span>{toastMessage}</span>
+            <span className="leading-relaxed">{toastMessage}</span>
           </div>
           <Button
+            type="button"
             variant="ghost"
             size="icon-xs"
             onClick={() => setToastMessage(null)}
@@ -117,36 +158,104 @@ export default function GalleryAdminPage() {
         </div>
       )}
 
-      {/* Clean Minimal Header: Pure Image Focus */}
-      <header className="flex items-center justify-between gap-4 border-b border-border pb-4">
-        <div className="flex items-center gap-2.5">
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Galeri Foto
-          </h1>
-          {isLoading ? (
-            <Skeleton className="h-5 w-16 rounded-full" />
-          ) : (
-            <Badge variant="secondary" className="font-mono text-xs py-0.5">
-              {items.length} Foto
-            </Badge>
+      {/* Page Header */}
+      <AdminPageHeader
+        title="Galeri & Dokumentasi Visual"
+        description="Manajemen dokumentasi visual kegiatan, workshop, dan foto edukasi Solulu untuk portofolio publik."
+        icon={Images}
+        badge={isLoading ? undefined : `${items.length} Foto`}
+        badgeVariant="outline"
+        actions={
+          <Button
+            size="sm"
+            onClick={() => setIsUploadOpen(true)}
+            className="gap-1.5 font-medium shadow-xs"
+          >
+            <Plus className="size-3.5" />
+            <span>Unggah Foto Baru</span>
+          </Button>
+        }
+      />
+
+      {/* Error Feedback Banner */}
+      {errorMessage && (
+        <Alert variant="destructive" className="animate-in fade-in">
+          <AlertCircle className="size-4" />
+          <div className="flex items-center justify-between w-full">
+            <div className="flex flex-col gap-0.5">
+              <AlertTitle className="text-xs font-semibold">Terjadi Kesalahan</AlertTitle>
+              <AlertDescription className="text-xs">{errorMessage}</AlertDescription>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => setErrorMessage(null)}
+              className="text-destructive hover:bg-destructive/10 shrink-0"
+              aria-label="Tutup pesan error"
+            >
+              <X className="size-3.5" />
+            </Button>
+          </div>
+        </Alert>
+      )}
+
+      {/* Metric Cards Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <AdminMetricCard
+          title="Total Dokumentasi"
+          value={items.length}
+          isLoading={isLoading}
+          trendLabel="Foto tersimpan di Cloudflare R2"
+        />
+        <AdminMetricCard
+          title="Persetujuan Privasi"
+          value="100% Consent"
+          isLoading={isLoading}
+          status="success"
+          trendLabel="Audit privasi & consent legal"
+        />
+        <AdminMetricCard
+          title="Rasio Aspek Visual"
+          value="16:9 / 4:3"
+          isLoading={isLoading}
+          status="neutral"
+          trendLabel="Format optimal etalase publik"
+        />
+      </div>
+
+      {/* Search Bar Toolbar */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Cari keterangan atau kata kunci foto..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8.5 pr-8 h-8 text-xs bg-background"
+            aria-label="Cari foto galeri"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+              aria-label="Hapus pencarian"
+            >
+              <X className="size-3.5" />
+            </button>
           )}
         </div>
 
-        {/* Quick Upload Action */}
-        <Button
-          size="sm"
-          onClick={() => setIsUploadOpen(true)}
-          className="h-8 text-xs font-medium gap-1.5 cursor-pointer"
-        >
-          <Plus className="size-3.5" />
-          <span>Unggah Foto</span>
-        </Button>
-      </header>
+        <span className="text-xs text-muted-foreground hidden sm:inline font-mono">
+          Menampilkan {filteredItems.length} dari {items.length} foto
+        </span>
+      </div>
 
-      {/* Main Pure Visual Grid (Opsi 1) */}
+      {/* Main Visual Grid */}
       <main className="w-full">
         <GalleryGrid
-          items={items}
+          items={filteredItems}
           isLoading={isLoading}
           onUploadClick={() => setIsUploadOpen(true)}
           onDelete={handleDelete}
@@ -154,7 +263,7 @@ export default function GalleryAdminPage() {
         />
       </main>
 
-      {/* Upload Dialog: Minimal Pure Image Drop/Pick */}
+      {/* Upload Dialog: Standard Shadcn Vega Modal */}
       <GalleryUploadDialog
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}

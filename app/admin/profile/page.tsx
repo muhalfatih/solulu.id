@@ -20,7 +20,10 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { AdminPageHeader } from "@/components/admin"
 
 export default function AdminProfilePage() {
   // Contact state
@@ -75,19 +78,24 @@ export default function AdminProfilePage() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col gap-6 pb-16">
+    <div className="w-full max-w-4xl mx-auto flex flex-col gap-6 pb-16 font-sans">
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md"
+        >
           <div className="flex items-center gap-2">
             <CheckCircle2 className="size-4 text-primary shrink-0" />
-            <span>{toastMessage}</span>
+            <span className="leading-relaxed">{toastMessage}</span>
           </div>
           <Button
+            type="button"
             variant="ghost"
             size="icon-xs"
             onClick={() => setToastMessage(null)}
-            className="size-6 text-muted-foreground hover:text-foreground"
+            className="size-6 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
             aria-label="Tutup notifikasi"
           >
             <X className="size-3.5" />
@@ -96,20 +104,13 @@ export default function AdminProfilePage() {
       )}
 
       {/* Page Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Profil Saya
-          </h1>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Kelola data kontak operasional, preferensi pemberitahuan, dan kata sandi login Anda.
-          </p>
-        </div>
-
-        <Badge variant="outline" className="text-xs py-0.5 px-2 font-medium">
-          Akun Terverifikasi
-        </Badge>
-      </div>
+      <AdminPageHeader
+        title="Profil Saya"
+        description="Kelola data kontak operasional, preferensi pemberitahuan, dan kata sandi login Anda."
+        icon={User}
+        badge="Akun Terverifikasi"
+        badgeVariant="outline"
+      />
 
       {/* Locked Official Identity Card */}
       <div className="rounded-2xl border border-border bg-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5 shadow-xs">
@@ -147,10 +148,10 @@ export default function AdminProfilePage() {
       {/* Tab Navigation: 1. Kontak & Informasi Akun | 2. Keamanan */}
       <Tabs defaultValue="contact" className="w-full flex flex-col gap-6">
         <TabsList className="grid w-full max-w-md grid-cols-2 p-1 bg-muted/40 border border-border">
-          <TabsTrigger value="contact" className="text-xs font-medium">
+          <TabsTrigger value="contact" className="text-xs font-medium cursor-pointer">
             Kontak & Informasi Akun
           </TabsTrigger>
-          <TabsTrigger value="security" className="text-xs font-medium">
+          <TabsTrigger value="security" className="text-xs font-medium cursor-pointer">
             Keamanan & Kata Sandi
           </TabsTrigger>
         </TabsList>
@@ -158,7 +159,7 @@ export default function AdminProfilePage() {
         {/* TAB 1: KONTAK & INFORMASI AKUN */}
         <TabsContent value="contact" className="mt-0">
           <form onSubmit={handleSaveContact} className="rounded-2xl border border-border bg-card p-6 flex flex-col gap-6 shadow-xs">
-            <div className="flex items-center gap-2 border-b border-border pb-3">
+            <div className="flex items-center gap-2 border-b border-border/60 pb-3">
               <Phone className="size-4 text-primary shrink-0" />
               <h2 className="text-sm font-bold text-foreground">
                 Kontak Operasional Staf
@@ -168,10 +169,11 @@ export default function AdminProfilePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               {/* WhatsApp Number */}
               <div className="flex flex-col gap-1.5">
-                <label className="font-medium text-foreground">
+                <Label htmlFor="adminPhone" className="font-medium text-foreground">
                   Nomor WhatsApp Operasional
-                </label>
+                </Label>
                 <Input
+                  id="adminPhone"
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -186,10 +188,11 @@ export default function AdminProfilePage() {
 
               {/* Email Address */}
               <div className="flex flex-col gap-1.5">
-                <label className="font-medium text-foreground">
+                <Label htmlFor="adminEmail" className="font-medium text-foreground">
                   Alamat Email Masuk
-                </label>
+                </Label>
                 <Input
+                  id="adminEmail"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -204,9 +207,9 @@ export default function AdminProfilePage() {
 
               {/* Timezone */}
               <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <label className="font-medium text-foreground">
+                <Label className="font-medium text-foreground">
                   Zona Waktu Operasional
-                </label>
+                </Label>
                 <div className="p-2.5 rounded-lg border border-border bg-muted/20 text-xs flex items-center justify-between text-muted-foreground">
                   <span>Waktu Indonesia Barat (WIB / UTC+7)</span>
                   <Badge variant="outline" className="text-[10px]">Standar Platform</Badge>
@@ -215,7 +218,7 @@ export default function AdminProfilePage() {
             </div>
 
             {/* Notification Preferences */}
-            <div className="flex flex-col gap-3 pt-4 border-t border-border">
+            <div className="flex flex-col gap-3 pt-4 border-t border-border/60">
               <div className="flex items-center gap-2">
                 <Bell className="size-4 text-primary shrink-0" />
                 <h3 className="text-sm font-bold text-foreground">
@@ -226,7 +229,7 @@ export default function AdminProfilePage() {
               <div className="flex flex-col divide-y divide-border/60 text-xs">
                 {/* Switch 1 */}
                 <div className="py-3 flex items-center justify-between gap-4">
-                  <div className="flex flex-col">
+                  <div className="flex flex-col gap-0.5">
                     <span className="font-semibold text-foreground">
                       Pemberitahuan Pasien Kondisi Mendesak
                     </span>
@@ -234,17 +237,17 @@ export default function AdminProfilePage() {
                       Munculkan peringatan langsung ketika pasien mencatat indikasi tekanan emosional tinggi.
                     </span>
                   </div>
-                  <input
-                    type="checkbox"
+                  <Switch
                     checked={notifyUrgent}
-                    onChange={(e) => setNotifyUrgent(e.target.checked)}
-                    className="size-4 accent-primary rounded cursor-pointer"
+                    onCheckedChange={setNotifyUrgent}
+                    size="sm"
+                    aria-label="Pemberitahuan Pasien Kondisi Mendesak"
                   />
                 </div>
 
                 {/* Switch 2 */}
                 <div className="py-3 flex items-center justify-between gap-4">
-                  <div className="flex flex-col">
+                  <div className="flex flex-col gap-0.5">
                     <span className="font-semibold text-foreground">
                       Notifikasi Pendaftar Konselor Baru
                     </span>
@@ -252,17 +255,17 @@ export default function AdminProfilePage() {
                       Beri tanda saat ada mitra psikolog yang baru saja mengajukan berkas.
                     </span>
                   </div>
-                  <input
-                    type="checkbox"
+                  <Switch
                     checked={notifyCounselor}
-                    onChange={(e) => setNotifyCounselor(e.target.checked)}
-                    className="size-4 accent-primary rounded cursor-pointer"
+                    onCheckedChange={setNotifyCounselor}
+                    size="sm"
+                    aria-label="Notifikasi Pendaftar Konselor Baru"
                   />
                 </div>
 
                 {/* Switch 3 */}
                 <div className="py-3 flex items-center justify-between gap-4">
-                  <div className="flex flex-col">
+                  <div className="flex flex-col gap-0.5">
                     <span className="font-semibold text-foreground">
                       Pengingat Sesi Konseling
                     </span>
@@ -270,18 +273,18 @@ export default function AdminProfilePage() {
                       Tampilkan notifikasi 15 menit sebelum sesi temu tatap muka dimulai.
                     </span>
                   </div>
-                  <input
-                    type="checkbox"
+                  <Switch
                     checked={notifySession}
-                    onChange={(e) => setNotifySession(e.target.checked)}
-                    className="size-4 accent-primary rounded cursor-pointer"
+                    onCheckedChange={setNotifySession}
+                    size="sm"
+                    aria-label="Pengingat Sesi Konseling"
                   />
                 </div>
               </div>
             </div>
 
             <div className="flex justify-end pt-2">
-              <Button type="submit" size="sm" className="h-9 text-xs font-semibold px-5">
+              <Button type="submit" size="sm" className="font-medium px-4 shadow-xs">
                 <Save className="size-3.5 mr-1.5" />
                 <span>Simpan Perubahan Kontak</span>
               </Button>
@@ -292,7 +295,7 @@ export default function AdminProfilePage() {
         {/* TAB 2: KEAMANAN & KATA SANDI */}
         <TabsContent value="security" className="mt-0">
           <form onSubmit={handleUpdatePassword} className="rounded-2xl border border-border bg-card p-6 flex flex-col gap-6 shadow-xs">
-            <div className="flex items-center gap-2 border-b border-border pb-3">
+            <div className="flex items-center gap-2 border-b border-border/60 pb-3">
               <KeyRound className="size-4 text-primary shrink-0" />
               <h2 className="text-sm font-bold text-foreground">
                 Perbarui Kata Sandi Akun
@@ -309,11 +312,12 @@ export default function AdminProfilePage() {
             <div className="flex flex-col gap-4 max-w-md text-xs">
               {/* Current Password */}
               <div className="flex flex-col gap-1.5">
-                <label className="font-medium text-foreground">
+                <Label htmlFor="currentPassword" className="font-medium text-foreground">
                   Kata Sandi Saat Ini
-                </label>
+                </Label>
                 <div className="relative">
                   <Input
+                    id="currentPassword"
                     type={showCurrentPass ? "text" : "password"}
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
@@ -324,7 +328,8 @@ export default function AdminProfilePage() {
                   <button
                     type="button"
                     onClick={() => setShowCurrentPass(!showCurrentPass)}
-                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    aria-label={showCurrentPass ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                   >
                     {showCurrentPass ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
@@ -333,11 +338,12 @@ export default function AdminProfilePage() {
 
               {/* New Password */}
               <div className="flex flex-col gap-1.5">
-                <label className="font-medium text-foreground">
+                <Label htmlFor="newPassword" className="font-medium text-foreground">
                   Kata Sandi Baru
-                </label>
+                </Label>
                 <div className="relative">
                   <Input
+                    id="newPassword"
                     type={showNewPass ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
@@ -348,7 +354,8 @@ export default function AdminProfilePage() {
                   <button
                     type="button"
                     onClick={() => setShowNewPass(!showNewPass)}
-                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    aria-label={showNewPass ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                   >
                     {showNewPass ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
@@ -360,10 +367,11 @@ export default function AdminProfilePage() {
 
               {/* Confirm Password */}
               <div className="flex flex-col gap-1.5">
-                <label className="font-medium text-foreground">
+                <Label htmlFor="confirmPassword" className="font-medium text-foreground">
                   Ulangi Kata Sandi Baru
-                </label>
+                </Label>
                 <Input
+                  id="confirmPassword"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -374,8 +382,8 @@ export default function AdminProfilePage() {
               </div>
             </div>
 
-            <div className="flex justify-end pt-2 border-t border-border">
-              <Button type="submit" size="sm" className="h-9 text-xs font-semibold px-5">
+            <div className="flex justify-end pt-2 border-t border-border/60">
+              <Button type="submit" size="sm" className="font-medium px-4 shadow-xs">
                 <KeyRound className="size-3.5 mr-1.5" />
                 <span>Perbarui Kata Sandi</span>
               </Button>
