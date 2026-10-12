@@ -27,6 +27,7 @@ import {
   AlertCircle,
   RefreshCw,
   Download,
+  MoreHorizontal,
 } from "lucide-react"
 import { CounselorSchedulesModal } from "./components/counselor-schedules-modal"
 import {
@@ -41,6 +42,13 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { AdminPageHeader, AdminMetricCard } from "@/components/admin"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Table,
   TableHeader,
@@ -73,6 +81,7 @@ export default function DistilledCounselorsPage() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [applicants, setApplicants] = React.useState<CounselorApplicant[]>([])
   const [activeCounselors, setActiveCounselors] = React.useState<any[]>([])
+  const [activeTab, setActiveTab] = React.useState<"active" | "applicants">("active")
   const [previewDoc, setPreviewDoc] = React.useState<{
     name: string
     type: "cv" | "ktp" | "diploma" | "str"
@@ -262,6 +271,13 @@ export default function DistilledCounselorsPage() {
     showToast(`Berkas atas nama ${name} ditolak.`)
   }
 
+  const handleReconsider = (id: string, name: string) => {
+    setApplicants((prev) =>
+      prev.map((app) => (app.id === id ? { ...app, status: "pending" as const } : app))
+    )
+    showToast(`Berkas atas nama ${name} dikembalikan ke antrean peninjauan.`)
+  }
+
   const handleToggleFeatured = async (counselorId: string, nextState: boolean) => {
     const previousState = !nextState
     setActiveCounselors((prev) =>
@@ -443,7 +459,7 @@ export default function DistilledCounselorsPage() {
       </div>
 
       {/* 3. Main Tabs Navigation */}
-      <Tabs defaultValue="active" className="flex flex-col gap-6">
+      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="flex flex-col gap-6">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <TabsList className="bg-muted p-1 rounded-lg shrink-0 h-9 border border-border/50">
             <TabsTrigger value="active" className="flex items-center gap-2 text-xs px-3 data-[state=active]:font-semibold">
@@ -553,6 +569,10 @@ export default function DistilledCounselorsPage() {
                         <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-medium">
                           {app.type}
                         </Badge>
+                        <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 px-1.5 py-0.2 rounded-full border border-emerald-500/20" title="Persetujuan Etik: Pelamar telah menyetujui kode etik konseling Solulu">
+                          <CheckCircle2 className="size-2.5" />
+                          <span>Etik ✓</span>
+                        </span>
                       </div>
 
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -718,14 +738,36 @@ export default function DistilledCounselorsPage() {
                       </Button>
                     </div>
                   ) : app.status === "approved" ? (
-                    <div className="w-full py-2 rounded-xl bg-primary/10 text-primary text-xs font-medium flex items-center justify-center gap-2">
-                      <CheckCircle2 className="size-4" />
-                      <span>Mitra Disetujui & Diundang</span>
+                    <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                        <span className="font-medium">Mitra Disetujui & Diundang</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setActiveTab("active")}
+                        className="h-7 text-xs font-semibold border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 cursor-pointer"
+                      >
+                        <span>Lihat di Konselor Aktif</span>
+                        <ExternalLink className="size-3 ml-1" />
+                      </Button>
                     </div>
                   ) : (
-                    <div className="w-full py-2 rounded-xl bg-destructive/10 text-destructive text-xs font-medium flex items-center justify-center gap-2">
-                      <XCircle className="size-4" />
-                      <span>Berkas Ditolak</span>
+                    <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-destructive/10 text-destructive border border-destructive/20 text-xs">
+                      <div className="flex items-center gap-2">
+                        <XCircle className="size-4 shrink-0" />
+                        <span>Berkas Ditolak</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleReconsider(app.id, app.name)}
+                        className="h-7 text-xs font-semibold border-destructive/30 hover:bg-destructive/10 text-destructive cursor-pointer"
+                      >
+                        <RefreshCw className="size-3 mr-1" />
+                        <span>Tinjau Ulang</span>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -839,20 +881,15 @@ export default function DistilledCounselorsPage() {
               </div>
             </div>
 
-            {/* Table Body with horizontal scroll */}
-            <div className="overflow-x-auto">
-              <Table className="text-xs min-w-[850px]">
+            {/* Table Body - Fluid Zero Horizontal Scroll */}
+            <div className="w-full overflow-hidden">
+              <Table className="w-full text-xs">
                 <TableHeader className="bg-muted/40">
                   <TableRow className="border-border/60">
-                    <TableHead className="py-3 px-3.5 font-semibold text-foreground">Konselor</TableHead>
-                    <TableHead className="py-3 px-3.5 font-semibold text-foreground">Kualifikasi</TableHead>
-                    <TableHead className="py-3 px-3.5 font-semibold text-foreground">Kontak</TableHead>
-                    <TableHead className="py-3 px-3.5 font-semibold text-foreground">Total Sesi</TableHead>
-                    <TableHead className="py-3 px-3.5 font-semibold text-foreground text-center">Slot Jadwal</TableHead>
-                    <TableHead className="py-3 px-3.5 font-semibold text-foreground">Fokus Layanan</TableHead>
-                    <TableHead className="py-3 px-3.5 font-semibold text-foreground text-center">Homepage</TableHead>
-                    <TableHead className="py-3 px-3.5 font-semibold text-foreground">Status</TableHead>
-                    <TableHead className="py-3 px-3.5 font-semibold text-foreground text-right sticky right-0 bg-muted/95 backdrop-blur-xs z-10 shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">Tindakan</TableHead>
+                    <TableHead className="py-3 px-3.5 font-semibold text-foreground">Konselor & Kualifikasi</TableHead>
+                    <TableHead className="py-3 px-3.5 font-semibold text-foreground w-[220px]">Kinerja & Jadwal</TableHead>
+                    <TableHead className="py-3 px-3.5 font-semibold text-foreground w-[160px]">Status & Tampilan</TableHead>
+                    <TableHead className="py-3 px-3.5 font-semibold text-foreground text-right w-[120px]">Tindakan</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -860,181 +897,191 @@ export default function DistilledCounselorsPage() {
                     Array.from({ length: 4 }).map((_, i) => (
                       <TableRow key={`counselor-skeleton-${i}`} className="border-border/60">
                         <TableCell className="py-3.5 px-3.5">
-                          <Skeleton className="h-4 w-32 mb-1.5" />
-                          <Skeleton className="h-3 w-24 mb-1" />
-                          <Skeleton className="h-2.5 w-20" />
+                          <Skeleton className="h-4 w-36 mb-1.5" />
+                          <Skeleton className="h-3 w-28 mb-1" />
+                          <Skeleton className="h-2.5 w-44" />
                         </TableCell>
                         <TableCell className="py-3.5 px-3.5">
-                          <Skeleton className="h-4 w-24 mb-1 rounded-full" />
-                          <Skeleton className="h-2.5 w-28" />
+                          <Skeleton className="h-4 w-28 mb-1.5" />
+                          <Skeleton className="h-3 w-32" />
                         </TableCell>
                         <TableCell className="py-3.5 px-3.5">
-                          <Skeleton className="h-3.5 w-36 mb-1" />
-                          <Skeleton className="h-3 w-28" />
+                          <Skeleton className="h-4 w-24 mb-1.5" />
+                          <Skeleton className="h-4 w-16" />
                         </TableCell>
-                        <TableCell className="py-3.5 px-3.5">
-                          <Skeleton className="h-4 w-12" />
-                        </TableCell>
-                        <TableCell className="py-3.5 px-3.5 text-center">
-                          <Skeleton className="h-7 w-20 mx-auto rounded-lg" />
-                        </TableCell>
-                        <TableCell className="py-3.5 px-3.5">
-                          <div className="flex flex-wrap gap-1">
-                            <Skeleton className="h-4 w-12 rounded" />
-                            <Skeleton className="h-4 w-14 rounded" />
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3.5 px-3.5 text-center">
-                          <Skeleton className="h-5 w-9 mx-auto rounded-full" />
-                        </TableCell>
-                        <TableCell className="py-3.5 px-3.5">
-                          <div className="flex items-center gap-1.5">
-                            <Skeleton className="size-2 rounded-full" />
-                            <Skeleton className="h-3.5 w-16" />
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3.5 px-3.5 text-right sticky right-0 bg-card/90">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Skeleton className="h-8 w-16 rounded-md" />
-                            <Skeleton className="h-8 w-12 rounded-md" />
-                            <Skeleton className="h-8 w-16 rounded-md" />
-                          </div>
+                        <TableCell className="py-3.5 px-3.5 text-right">
+                          <Skeleton className="h-7 w-16 ml-auto rounded-md" />
                         </TableCell>
                       </TableRow>
                     ))
                   ) : filteredCounselors.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="py-12 text-center text-muted-foreground">
+                      <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
                         <p className="text-sm font-medium">Tidak ada data konselor yang cocok</p>
                         <p className="text-xs text-muted-foreground mt-1">Coba sesuaikan kata kunci pencarian atau filter status.</p>
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredCounselors.map((c) => (
-                    <TableRow key={c.id} className="hover:bg-muted/30 transition-colors border-border/60">
-                      <TableCell className="py-3.5 px-3.5">
-                        <div className="font-semibold text-foreground">{c.name}</div>
-                        <div className="text-[11px] text-muted-foreground">{c.title}</div>
-                        {c.education && (
-                          <div className="text-[10px] text-muted-foreground/80 mt-0.5 max-w-[220px] truncate" title={c.education}>
-                            {c.education}
-                          </div>
-                        )}
-                      </TableCell>
-
-                      <TableCell className="py-3.5 px-3.5">
-                        <Badge variant="outline" className="text-[10px] font-normal">
-                          {c.type}
-                        </Badge>
-                        {c.strNumber && (
+                    <TableRow
+                      key={c.id}
+                      onClick={() => setScheduleModalCounselor({ id: c.id, name: c.name, title: c.title, type: c.type })}
+                      className="hover:bg-muted/30 transition-colors border-border/60 cursor-pointer"
+                    >
+                      {/* Konselor & Kualifikasi */}
+                      <TableCell className="py-3.5 px-3.5 align-top">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-foreground">{c.name}</span>
+                          <span className="text-xs text-muted-foreground">{c.title}</span>
+                          <Badge variant="outline" className="text-[10px] font-normal py-0 px-1.5">
+                            {c.type}
+                          </Badge>
+                        </div>
+                        {c.strNumber ? (
                           <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
                             Izin Praktik: {c.strNumber}
                           </div>
+                        ) : c.education ? (
+                          <div className="text-[10px] text-muted-foreground/80 mt-0.5 truncate max-w-[260px]" title={c.education}>
+                            {c.education}
+                          </div>
+                        ) : null}
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono mt-1">
+                          <span>{c.email}</span>
+                          <span>•</span>
+                          <span>{c.phone}</span>
+                        </div>
+                      </TableCell>
+
+                      {/* Kinerja & Jadwal */}
+                      <TableCell className="py-3.5 px-3.5 align-top">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="tabular-nums font-semibold text-foreground">{c.totalSessions} sesi</span>
+                          <span>•</span>
+                          <span className="font-mono text-primary font-medium">{c.activeSlots} slot aktif</span>
+                        </div>
+                        {c.specializations && c.specializations.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5 max-w-[210px]">
+                            {c.specializations.slice(0, 2).map((spec: string) => (
+                              <span
+                                key={spec}
+                                className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium truncate max-w-[100px]"
+                                title={spec}
+                              >
+                                {spec}
+                              </span>
+                            ))}
+                            {c.specializations.length > 2 && (
+                              <span
+                                className="text-[10px] px-1 py-0.5 rounded bg-muted/80 text-muted-foreground font-medium"
+                                title={c.specializations.slice(2).join(", ")}
+                              >
+                                +{c.specializations.length - 2}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </TableCell>
 
-                      <TableCell className="py-3.5 px-3.5 text-[11px]">
-                        <div className="text-foreground font-mono">{c.email}</div>
-                        <div className="text-muted-foreground font-mono">{c.phone}</div>
-                      </TableCell>
-
-                      <TableCell className="py-3.5 px-3.5 tabular-nums font-semibold text-foreground">
-                        {c.totalSessions} sesi
-                      </TableCell>
-
-                      <TableCell className="py-3.5 px-3.5 text-center">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setScheduleModalCounselor({ id: c.id, name: c.name, title: c.title, type: c.type })}
-                          className="h-8 px-2.5 text-xs gap-1.5 font-medium cursor-pointer hover:border-primary/50 shadow-2xs"
-                          title={`Kelola slot jadwal untuk ${c.name}`}
-                        >
-                          <Calendar className="size-3.5 text-primary" />
-                          <span className="tabular-nums font-mono">{c.activeSlots} Slot</span>
-                        </Button>
-                      </TableCell>
-
-                      <TableCell className="py-3.5 px-3.5">
-                        <div className="flex flex-wrap gap-1 max-w-xs">
-                          {c.specializations?.map((spec: string) => (
-                            <span
-                              key={spec}
-                              className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium"
-                            >
-                              {spec}
-                            </span>
-                          ))}
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="py-3.5 px-3.5 text-center">
-                        <div className="flex items-center justify-center">
-                          <Switch
-                            checked={Boolean(c.isFeatured)}
-                            onCheckedChange={(checked) => handleToggleFeatured(c.id, checked)}
-                            aria-label={`Tampilkan ${c.name} di homepage`}
-                          />
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="py-3.5 px-3.5">
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${
-                            c.isActive
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : "text-muted-foreground"
-                          }`}
-                        >
+                      {/* Status & Homepage */}
+                      <TableCell className="py-3.5 px-3.5 align-top">
+                        <div className="flex items-center gap-1.5 text-[11px] font-medium">
                           <span
                             className={`size-1.5 rounded-full ${
                               c.isActive ? "bg-emerald-500" : "bg-muted-foreground/40"
                             }`}
                           />
-                          <span>{c.isActive ? "Praktik Aktif" : "Ditangguhkan"}</span>
-                        </span>
+                          <span className={c.isActive ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}>
+                            {c.isActive ? "Praktik Aktif" : "Ditangguhkan"}
+                          </span>
+                        </div>
+                        <div
+                          className="flex items-center gap-2 mt-1.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Switch
+                            checked={Boolean(c.isFeatured)}
+                            onCheckedChange={(checked) => handleToggleFeatured(c.id, checked)}
+                            aria-label={`Tampilkan ${c.name} di homepage`}
+                            className="scale-75 origin-left"
+                            id={`feat-${c.id}`}
+                          />
+                          <label htmlFor={`feat-${c.id}`} className="text-[10px] text-muted-foreground cursor-pointer select-none">
+                            {c.isFeatured ? "Beranda" : "Reguler"}
+                          </label>
+                        </div>
                       </TableCell>
 
-                      <TableCell className="py-3.5 px-3.5 text-right sticky right-0 bg-card/90 backdrop-blur-xs shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.08)]">
-                        <div className="flex items-center justify-end gap-1.5">
+                      {/* Tindakan */}
+                      <TableCell className="py-3.5 px-3.5 text-right align-top">
+                        <div
+                          className="flex items-center justify-end gap-1.5"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setScheduleModalCounselor({ id: c.id, name: c.name, title: c.title, type: c.type })}
-                            className="h-8 px-2.5 text-xs font-normal gap-1 cursor-pointer"
-                            title={`Atur jadwal sesi untuk ${c.name}`}
+                            className="h-7 px-2 text-xs font-medium gap-1 cursor-pointer hover:border-primary/50"
+                            title={`Kelola slot jadwal untuk ${c.name}`}
                           >
-                            <Clock className="size-3 text-muted-foreground" />
-                            <span>Jadwal</span>
+                            <Calendar className="size-3 text-primary" />
+                            <span className="hidden sm:inline">Jadwal</span>
                           </Button>
-                          <Button
-                            asChild
-                            variant="outline"
-                            size="sm"
-                            className="h-8 px-2.5 text-xs font-normal"
-                          >
-                            <Link href={`/admin/counselors/${c.id}/edit`}>
-                              <Pencil className="size-3 mr-1 text-muted-foreground" />
-                              <span>Edit</span>
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleCounselorStatus(c.id)}
-                            className="h-8 px-2.5 text-xs font-normal"
-                          >
-                            {c.isActive ? "Tangguhkan" : "Aktifkan"}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteCounselor(c.id, c.name)}
-                            className="size-8 p-0 text-destructive hover:bg-destructive/10"
-                            title="Hapus Konselor"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground cursor-pointer"
+                                aria-label={`Menu tindakan untuk ${c.name}`}
+                              >
+                                <MoreHorizontal className="size-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/admin/counselors/${c.id}/edit`} className="cursor-pointer">
+                                  <Pencil className="size-3.5 mr-2" />
+                                  <span>Edit Profil</span>
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setScheduleModalCounselor({ id: c.id, name: c.name, title: c.title, type: c.type })}
+                                className="cursor-pointer"
+                              >
+                                <Clock className="size-3.5 mr-2" />
+                                <span>Atur Slot Jadwal</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => toggleCounselorStatus(c.id)}
+                                className="cursor-pointer"
+                              >
+                                <RefreshCw className="size-3.5 mr-2" />
+                                <span>{c.isActive ? "Tangguhkan Praktik" : "Aktifkan Praktik"}</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`${c.name} (${c.email} / ${c.phone})`)
+                                  showToast(`Kontak ${c.name} berhasil disalin`)
+                                }}
+                                className="cursor-pointer"
+                              >
+                                <Phone className="size-3.5 mr-2" />
+                                <span>Salin Kontak</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteCounselor(c.id, c.name)}
+                                className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                              >
+                                <Trash2 className="size-3.5 mr-2" />
+                                <span>Hapus Konselor</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import {
   getApplicationDocumentUrlAction,
   reviewCounselorApplicationAction,
@@ -419,58 +420,66 @@ export function ApplicationsClient({
       </Card>
 
       {/* Applications Table */}
-      <Card className="border-border">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="w-64">Nama & Kategori</TableHead>
-                <TableHead className="w-56">Kontak</TableHead>
-                <TableHead className="min-w-64">Berkas Kualifikasi &amp; Izin Praktik</TableHead>
-                <TableHead className="w-32">Persetujuan Etik</TableHead>
-                <TableHead className="w-28">Status</TableHead>
-                <TableHead className="w-40 text-right">Tindakan</TableHead>
+      <Card className="border-border overflow-hidden shadow-xs">
+        <div className="w-full overflow-hidden">
+          <Table className="w-full text-xs">
+            <TableHeader className="bg-muted/40">
+              <TableRow className="border-border/60 hover:bg-transparent">
+                <TableHead className="py-3 px-3.5 font-semibold text-foreground">Nama &amp; Kategori</TableHead>
+                <TableHead className="py-3 px-3.5 font-semibold text-foreground w-[210px]">Kontak</TableHead>
+                <TableHead className="py-3 px-3.5 font-semibold text-foreground w-[230px]">Berkas Dokumen</TableHead>
+                <TableHead className="py-3 px-3.5 font-semibold text-foreground w-[130px]">Status</TableHead>
+                <TableHead className="py-3 px-3.5 font-semibold text-foreground text-right w-[140px]">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredApplications.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground text-sm">
+                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground text-sm">
                     Tidak ada data pendaftaran yang sesuai kriteria pencarian.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredApplications.map((app) => (
-                  <TableRow key={app.id} className="hover:bg-muted/30">
-                    <TableCell className="align-top py-4">
+                  <TableRow key={app.id} className="hover:bg-muted/30 transition-colors border-border/60">
+                    <TableCell className="align-top py-3.5 px-3.5">
                       <div className="flex flex-col gap-1">
-                        <span className="font-semibold text-foreground text-sm">
-                          {app.fullName}
-                        </span>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-foreground text-sm">
+                            {app.fullName}
+                          </span>
                           <Badge
                             variant={app.counselorType === "psychologist" ? "default" : "secondary"}
-                            className="text-[10px] py-0"
+                            className="text-[10px] py-0 px-1.5 font-medium"
                           >
                             {app.counselorType === "psychologist"
                               ? "Psikolog Klinis"
                               : "Konselor Sebaya"}
                           </Badge>
+                          <span
+                            className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 px-1.5 py-0.2 rounded-full border border-emerald-500/20"
+                            title={`Persetujuan Etik: Pelamar telah menyetujui kode etik (${new Date(app.agreedToTermsAt).toLocaleDateString("id-ID")})`}
+                          >
+                            <CheckCircle2 className="size-2.5" />
+                            <span>Etik ✓</span>
+                          </span>
                         </div>
-                        <span className="text-[11px] text-muted-foreground line-clamp-2 mt-1">
-                          {app.bio}
-                        </span>
+                        {app.bio ? (
+                          <span className="text-[11px] text-muted-foreground line-clamp-2 italic leading-relaxed">
+                            &ldquo;{app.bio}&rdquo;
+                          </span>
+                        ) : null}
                       </div>
                     </TableCell>
 
-                    <TableCell className="align-top py-4">
+                    <TableCell className="align-top py-3.5 px-3.5">
                       <div className="flex flex-col gap-1 text-xs">
                         <a
                           href={`mailto:${app.email}`}
                           className="flex items-center gap-1.5 text-foreground hover:underline text-xs"
                         >
                           <Mail className="size-3 text-muted-foreground shrink-0" />
-                          <span className="truncate max-w-[180px]">{app.email}</span>
+                          <span className="truncate max-w-[170px]">{app.email}</span>
                         </a>
                         <a
                           href={`https://wa.me/${app.phone.replace(/[^0-9]/g, "")}`}
@@ -481,122 +490,122 @@ export function ApplicationsClient({
                           <Phone className="size-3 shrink-0" />
                           <span>{app.phone}</span>
                         </a>
-                        <span className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
-                          <Calendar className="size-3" />
-                          {new Date(app.createdAt).toLocaleDateString("id-ID", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
+                        <span className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                          <Calendar className="size-3 text-muted-foreground/80" />
+                          <span>
+                            {new Date(app.createdAt).toLocaleDateString("id-ID", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </span>
                         </span>
                       </div>
                     </TableCell>
 
-                    <TableCell className="align-top py-4">
+                    <TableCell className="align-top py-3.5 px-3.5">
                       <div className="flex flex-wrap gap-1.5">
                         {/* CV */}
                         <Button
                           variant="outline"
-                          size="xs"
+                          size="sm"
                           onClick={() => handleViewDocument(app.id, "cv")}
                           disabled={docLoading}
-                          className="text-[11px] h-7"
+                          className="text-xs h-7 px-2 cursor-pointer font-normal bg-background hover:bg-muted/60"
                           id={`view-cv-${app.id}`}
+                          title="Lihat Curriculum Vitae"
                         >
-                          <FileText className="size-3 mr-1 text-primary" />
-                          CV
+                          <FileText className="size-3 mr-1 text-primary shrink-0" />
+                          <span>CV</span>
                         </Button>
 
                         {/* KTP */}
                         <Button
                           variant="outline"
-                          size="xs"
+                          size="sm"
                           onClick={() => handleViewDocument(app.id, "ktp")}
                           disabled={docLoading}
-                          className="text-[11px] h-7"
+                          className="text-xs h-7 px-2 cursor-pointer font-normal bg-background hover:bg-muted/60"
                           id={`view-ktp-${app.id}`}
+                          title="Lihat KTP"
                         >
-                          <FileText className="size-3 mr-1 text-primary" />
-                          KTP
+                          <FileText className="size-3 mr-1 text-primary shrink-0" />
+                          <span>KTP</span>
                         </Button>
 
                         {/* Ijazah */}
                         <Button
                           variant="outline"
-                          size="xs"
+                          size="sm"
                           onClick={() => handleViewDocument(app.id, "diploma")}
                           disabled={docLoading}
-                          className="text-[11px] h-7"
+                          className="text-xs h-7 px-2 cursor-pointer font-normal bg-background hover:bg-muted/60"
                           id={`view-diploma-${app.id}`}
+                          title="Lihat Ijazah"
                         >
-                          <FileText className="size-3 mr-1 text-primary" />
-                          Ijazah
+                          <FileText className="size-3 mr-1 text-primary shrink-0" />
+                          <span>Ijazah</span>
                         </Button>
 
                         {/* Izin Praktik / STR */}
                         {app.strR2Key ? (
                           <Button
                             variant="secondary"
-                            size="xs"
+                            size="sm"
                             onClick={() => handleViewDocument(app.id, "str")}
                             disabled={docLoading}
-                            className="text-[11px] h-7 bg-primary/10 text-primary hover:bg-primary/20"
+                            className="text-xs h-7 px-2 cursor-pointer font-medium bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
                             id={`view-str-${app.id}`}
+                            title="Lihat Surat Izin Praktik (STR/SIP)"
                           >
-                            <ShieldCheck className="size-3 mr-1" />
-                            Izin Praktik Aktif
+                            <ShieldCheck className="size-3 mr-1 text-primary shrink-0" />
+                            <span>STR</span>
                           </Button>
                         ) : app.counselorType === "psychologist" ? (
-                          <Badge variant="destructive" className="text-[10px] h-7 px-2">
-                            Izin Praktik Tidak Ada
-                          </Badge>
+                          <span className="inline-flex items-center text-[10px] text-destructive bg-destructive/10 border border-destructive/20 rounded px-1.5 py-0.5 self-center font-medium" title="STR tidak dilampirkan">
+                            STR Kosong
+                          </span>
                         ) : (
                           <span className="text-[10px] text-muted-foreground self-center px-1">
-                            (Tanpa Izin Praktik)
+                            (Tanpa STR)
                           </span>
                         )}
                       </div>
                     </TableCell>
 
-                    <TableCell className="align-top py-4">
-                      <div className="flex flex-col gap-0.5 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1 text-emerald-600 font-medium text-[11px]">
-                          <CheckCircle2 className="size-3.5" />
-                          Disetujui
-                        </span>
-                        <span className="text-[10px]">
-                          {new Date(app.agreedToTermsAt).toLocaleTimeString("id-ID", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell className="align-top py-4">
+                    <TableCell className="align-top py-3.5 px-3.5">
                       {app.status === "pending" && (
-                        <Badge variant="outline" className="border-amber-500/40 text-amber-600 bg-amber-500/10 text-xs">
+                        <Badge variant="outline" className="border-amber-500/40 text-amber-600 bg-amber-500/10 text-xs font-medium">
                           Menunggu
                         </Badge>
                       )}
                       {app.status === "approved" && (
-                        <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 bg-emerald-500/10 text-xs">
-                          Disetujui
-                        </Badge>
+                        <div className="flex flex-col gap-0.5">
+                          <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 bg-emerald-500/10 text-xs font-medium w-fit">
+                            <CheckCircle2 className="size-3 mr-1 text-emerald-600 shrink-0" />
+                            Disetujui
+                          </Badge>
+                        </div>
                       )}
                       {app.status === "rejected" && (
-                        <Badge variant="destructive" className="text-xs">
-                          Ditolak
-                        </Badge>
-                      )}
-                      {app.rejectionReason && (
-                        <span className="block text-[10px] text-muted-foreground mt-1 italic">
-                          Alasan: {app.rejectionReason}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <Badge variant="destructive" className="text-xs font-medium">
+                            <XCircle className="size-3 mr-1 shrink-0" />
+                            Ditolak
+                          </Badge>
+                          {app.rejectionReason && (
+                            <span
+                              className="text-[10px] text-muted-foreground/80 line-clamp-2 max-w-[120px] italic leading-tight"
+                              title={`Alasan: ${app.rejectionReason}`}
+                            >
+                              {app.rejectionReason}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </TableCell>
 
-                    <TableCell className="align-top py-4 text-right">
+                    <TableCell className="align-top py-3.5 px-3.5 text-right">
                       {app.status === "pending" ? (
                         <div className="flex items-center justify-end gap-1.5">
                           <Button
@@ -611,9 +620,9 @@ export function ApplicationsClient({
                               )
                             }}
                             id={`approve-btn-${app.id}`}
-                            className="h-8 text-xs font-medium"
+                            className="h-7 text-xs font-medium px-2.5 cursor-pointer"
                           >
-                            <ShieldCheck className="size-3.5 mr-1" />
+                            <ShieldCheck className="size-3 mr-1" />
                             Setujui
                           </Button>
                           <Button
@@ -624,21 +633,45 @@ export function ApplicationsClient({
                               setRejectionReason("")
                             }}
                             id={`reject-btn-${app.id}`}
-                            className="h-8 text-xs text-destructive hover:bg-destructive/10"
+                            className="h-7 text-xs text-destructive hover:bg-destructive/10 px-2 cursor-pointer"
                           >
-                            <XCircle className="size-3.5 mr-1" />
+                            <XCircle className="size-3 mr-1" />
                             Tolak
                           </Button>
                         </div>
                       ) : app.status === "approved" ? (
-                        <span className="text-xs text-muted-foreground flex items-center justify-end gap-1">
-                          <UserCheck className="size-3.5 text-emerald-600" />
-                          Terdaftar
-                        </span>
+                        <div className="flex items-center justify-end">
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs font-medium border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+                          >
+                            <Link href="/admin/counselors">
+                              <UserCheck className="size-3 mr-1 text-emerald-600" />
+                              <span>Profil Konselor</span>
+                            </Link>
+                          </Button>
+                        </div>
                       ) : (
-                        <span className="text-xs text-muted-foreground">
-                          Ditolak
-                        </span>
+                        <div className="flex items-center justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setApproveModal(app)
+                              setCounselorTitle(
+                                app.counselorType === "psychologist"
+                                  ? "M.Psi., Psikolog"
+                                  : "S.Psi"
+                              )
+                            }}
+                            className="h-7 text-xs font-medium border-destructive/30 hover:bg-destructive/10 text-destructive cursor-pointer"
+                          >
+                            <RefreshCw className="size-3 mr-1" />
+                            <span>Tinjau Ulang</span>
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
@@ -646,7 +679,7 @@ export function ApplicationsClient({
               )}
             </TableBody>
           </Table>
-        </CardContent>
+        </div>
       </Card>
 
       {/* Document Viewer Modal with Presigned URL notice */}
