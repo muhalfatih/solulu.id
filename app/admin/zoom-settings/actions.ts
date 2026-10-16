@@ -46,17 +46,17 @@ async function getAuthenticatedAdmin(
   if (customUser !== undefined) {
     if (!customUser) return null
     const role = customUser.app_metadata?.role || customUser.user_metadata?.role
-    return role === "admin" ? customUser : null
+    return (role === "admin" || role === "superadmin") ? customUser : null
   }
 
   try {
     const cookieStore = await cookies()
     const demoRole = cookieStore.get("solulu_demo_role")?.value
-    if (demoRole === "admin") {
+    if (demoRole === "admin" || demoRole === "superadmin") {
       return {
-        id: "demo-admin-id",
-        app_metadata: { role: "admin" },
-        user_metadata: { role: "admin" },
+        id: `demo-${demoRole}-id`,
+        app_metadata: { role: demoRole },
+        user_metadata: { role: demoRole },
       }
     }
 
@@ -67,7 +67,7 @@ async function getAuthenticatedAdmin(
 
     if (!user) return null
     const role = user.app_metadata?.role || user.user_metadata?.role
-    if (role !== "admin") return null
+    if (role !== "admin" && role !== "superadmin") return null
 
     return {
       id: user.id,
@@ -401,46 +401,57 @@ export async function testZoomConnectionAction(
   return result
 }
 
-export async function getZoomAccountsAction(): Promise<{
+export async function getZoomAccountsAction(options?: {
+  currentUser?: AuthContext | null
+}): Promise<{
   success: boolean
   accounts?: ZoomAccountView[]
+  isSuperadmin?: boolean
   error?: string
 }> {
-  const admin = await getAuthenticatedAdmin()
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
   if (!admin) {
     return {
       success: false,
       error:
-        "Akses ditolak: Diperlukan role Admin untuk melihat pengaturan Zoom.",
+        "Akses ditolak: Diperlukan role Admin atau Superadmin untuk melihat pengaturan Zoom.",
     }
   }
 
-  const rows = await db.select().from(zoomAccounts)
+  const role = admin.app_metadata?.role || admin.user_metadata?.role
+  const userIsSuperadmin = role === "superadmin"
+
+  const rows = await db
+    .select()
+    .from(zoomAccounts)
+    .orderBy(zoomAccounts.accountNumber)
 
   const accounts: ZoomAccountView[] = await Promise.all(
     rows.map(async (acc) => {
       let rawSecret = ""
-      try {
-        rawSecret = decrypt(acc.clientSecretEncrypted)
-      } catch {
-        rawSecret = "error_decrypting"
+      if (userIsSuperadmin) {
+        try {
+          rawSecret = decrypt(acc.clientSecretEncrypted)
+        } catch {
+          rawSecret = "error_decrypting"
+        }
       }
 
-      const masked =
-        rawSecret.length > 8
-          ? `${rawSecret.slice(0, 4)}••••••••${rawSecret.slice(-4)}`
-          : "••••••••••••"
+      const masked = "••••••••••••"
 
       const safetyLock = await checkZoomSafetyLock(acc.id)
 
       return {
         id: acc.id,
+        accountNumber: acc.accountNumber ?? 1,
         name: acc.name,
         email: acc.email,
         accountId: acc.accountId,
         clientId: acc.clientId,
         maskedClientSecret: masked,
-        decryptedSecret: rawSecret,
+        decryptedSecret: userIsSuperadmin && rawSecret ? rawSecret : undefined,
+        tokenExpiresAt: acc.tokenExpiresAt ? acc.tokenExpiresAt.toISOString() : null,
+        hostKey: acc.hostKey || null,
         isActive: acc.isActive,
         createdAt: acc.createdAt.toISOString(),
         safetyLock,
@@ -448,8 +459,44 @@ export async function getZoomAccountsAction(): Promise<{
     })
   )
 
-  return { success: true, accounts }
+  return { success: true, accounts, isSuperadmin: userIsSuperadmin }
 }
+
+export async function revealZoomClientSecretAction(
+  accountId: string,
+  options?: { currentUser?: AuthContext | null }
+): Promise<{ success: boolean; secret?: string; error?: string }> {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return { success: false, error: "Akses ditolak: Silakan login terlebih dahulu." }
+  }
+
+  const role = admin.app_metadata?.role || admin.user_metadata?.role
+  if (role !== "superadmin") {
+    return {
+      success: false,
+      error: "Akses ditolak: Hanya peran Superadmin yang berwenang melihat Client Secret akun Zoom.",
+    }
+  }
+
+  const [acc] = await db
+    .select({ clientSecretEncrypted: zoomAccounts.clientSecretEncrypted })
+    .from(zoomAccounts)
+    .where(eq(zoomAccounts.id, accountId))
+    .limit(1)
+
+  if (!acc) {
+    return { success: false, error: "Akun Zoom tidak ditemukan." }
+  }
+
+  try {
+    const decrypted = decrypt(acc.clientSecretEncrypted)
+    return { success: true, secret: decrypted }
+  } catch (err: any) {
+    return { success: false, error: "Gagal mendekripsi Client Secret: " + err.message }
+  }
+}
+
 
 export interface TimelineSessionView {
   bookingId: string

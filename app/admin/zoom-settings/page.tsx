@@ -3,23 +3,29 @@ import type { ZoomAccountView } from "./schema"
 import { ZoomSettingsClient } from "./ZoomSettingsClient"
 
 export const metadata = {
-  title: "Pengaturan Akun Zoom | Solulu Admin",
+  title: "4 Akun Zoom Pro | Solulu Admin",
   description:
-    "Manajemen kredensial 2 akun Zoom Pro terenkripsi AES-256-GCM dengan proteksi Safety Lock otomatis.",
+    "Manajemen infrastruktur 4 akun Zoom Pro terenkripsi AES-256-GCM, Host Key 6-digit, dan proteksi Safety Lock otomatis.",
 }
 
 export default async function ZoomSettingsPage() {
   let initialAccounts: ZoomAccountView[] = []
+  let isSuperadmin = false
 
   try {
     const res = await getZoomAccountsAction()
     if (res.success && res.accounts) {
       initialAccounts = res.accounts
+      isSuperadmin = Boolean(res.isSuperadmin)
     }
-  } catch (error) {
-    // If DB is offline or table is empty during local dev, initialize with empty accounts list
+  } catch {
     initialAccounts = []
   }
 
-  return <ZoomSettingsClient initialAccounts={initialAccounts} />
+  return (
+    <ZoomSettingsClient
+      initialAccounts={initialAccounts}
+      isSuperadmin={isSuperadmin}
+    />
+  )
 }

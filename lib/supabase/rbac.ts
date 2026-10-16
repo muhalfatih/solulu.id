@@ -49,7 +49,7 @@ export function evaluateRbac(
 
   // 2. Admin routes
   if (isAdminRoute) {
-    if (role === "admin") {
+    if (role === "admin" || role === "superadmin") {
       return { type: "allow" };
     }
     if (role === "counselor") {
@@ -63,7 +63,7 @@ export function evaluateRbac(
     if (role === "counselor") {
       return { type: "allow" };
     }
-    if (role === "admin") {
+    if (role === "admin" || role === "superadmin") {
       return { type: "redirect", destination: "/admin/dashboard" };
     }
     return { type: "redirect", destination: "/unauthorized" };
@@ -71,3 +71,22 @@ export function evaluateRbac(
 
   return { type: "allow" };
 }
+
+/**
+ * Checks if a user has the 'superadmin' role.
+ */
+export function isSuperadmin(user: UserWithRoles): boolean {
+  if (!user) return false;
+  const role = user.app_metadata?.role || user.user_metadata?.role;
+  return role === "superadmin";
+}
+
+/**
+ * Checks if a user has 'admin' or 'superadmin' role.
+ */
+export function isAdminOrSuperadmin(user: UserWithRoles): boolean {
+  if (!user) return false;
+  const role = user.app_metadata?.role || user.user_metadata?.role;
+  return role === "admin" || role === "superadmin";
+}
+

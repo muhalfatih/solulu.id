@@ -44,6 +44,7 @@ import {
   updateZoomAccountAction,
   deleteZoomAccountAction,
   testZoomConnectionAction,
+  revealZoomClientSecretAction,
   getTimelineSessionsAction,
   type TimelineSessionView,
 } from "./actions"
@@ -51,6 +52,7 @@ import type { ZoomAccountView, ZoomAccountInput } from "./schema"
 
 interface ZoomSettingsClientProps {
   initialAccounts: ZoomAccountView[]
+  isSuperadmin?: boolean
 }
 
 function getTodayWIB(): string {
@@ -94,7 +96,10 @@ function formatDecimalToTime(dec: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
 }
 
-export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps) {
+export function ZoomSettingsClient({
+  initialAccounts,
+  isSuperadmin = false,
+}: ZoomSettingsClientProps) {
   const [accounts, setAccounts] = React.useState<ZoomAccountView[]>(initialAccounts)
   const [showSecret, setShowSecret] = React.useState<{ [key: string]: boolean }>({})
   const [copiedKey, setCopiedKey] = React.useState<string | null>(null)
@@ -198,8 +203,41 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
     setTimeout(() => setToast(null), 4500)
   }
 
-  const toggleSecret = (id: string) => {
-    setShowSecret((prev) => ({ ...prev, [id]: !prev[id] }))
+  const toggleSecret = async (id: string, currentSecret?: string) => {
+    if (showSecret[id]) {
+      setShowSecret((prev) => ({ ...prev, [id]: false }))
+      return
+    }
+
+    if (!isSuperadmin) {
+      showToast(
+        "Akses ditolak: Hanya peran Superadmin yang berwenang melihat Client Secret akun Zoom.",
+        "error"
+      )
+      return
+    }
+
+    if (currentSecret && currentSecret !== "••••••••••••") {
+      setShowSecret((prev) => ({ ...prev, [id]: true }))
+      return
+    }
+
+    try {
+      const res = await revealZoomClientSecretAction(id)
+      if (res.success && res.secret) {
+        setAccounts((prev) =>
+          prev.map((a) => (a.id === id ? { ...a, decryptedSecret: res.secret } : a))
+        )
+        setShowSecret((prev) => ({ ...prev, [id]: true }))
+      } else {
+        showToast(
+          res.error || "Akses ditolak: Hanya Superadmin yang berwenang melihat Client Secret.",
+          "error"
+        )
+      }
+    } catch {
+      showToast("Gagal mengungkap Client Secret.", "error")
+    }
   }
 
   const handleCopy = (text: string, label: string) => {
@@ -408,7 +446,7 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
     (a, b) => parseTimeToDecimal(a.startTime) - parseTimeToDecimal(b.startTime)
   )
 
-  const canAddMore = accounts.length < 2
+  const canAddMore = accounts.length < 4
   const isToday = selectedDate === getTodayWIB()
 
   return (
@@ -444,10 +482,10 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
 
       {/* Page Header */}
       <AdminPageHeader
-        title="Pengaturan Akun Zoom Pro"
-        description="Manajemen kredensial 2 akun Zoom Pro terenkripsi AES-256-GCM dengan proteksi otomatis Safety Lock untuk mencegah pemutusan ruang telekonseling pasien aktif."
+        title="Pengaturan 4 Akun Zoom Pro"
+        description="Manajemen infrastruktur 4 akun Zoom Pro terenkripsi AES-256-GCM dengan Host Key 6-digit dan proteksi otomatis Safety Lock untuk kelancaran sesi telekonseling."
         icon={Video}
-        badge={`Pool: ${accounts.length}/2 Akun`}
+        badge={`Pool: ${accounts.length}/4 Akun`}
         badgeVariant="outline"
         actions={
           <Button
@@ -458,7 +496,7 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
             title={
               canAddMore
                 ? "Daftarkan akun Zoom Pro baru ke pool alokasi"
-                : "Batas platform tercapai: Maksimal 2 akun Zoom Pro aktif"
+                : "Batas platform tercapai: Maksimal 4 akun Zoom Pro aktif"
             }
           >
             <Plus className="size-3.5" />
@@ -471,13 +509,13 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <AdminMetricCard
           title="Kapasitas Pool Zoom"
-          value={`${accounts.length}/2 Akun`}
-          status={accounts.length === 2 ? "success" : accounts.length === 1 ? "warning" : "destructive"}
+          value={`${accounts.length}/4 Akun`}
+          status={accounts.length === 4 ? "success" : accounts.length > 0 ? "warning" : "destructive"}
           trendLabel={
-            accounts.length === 2
-              ? "Kapasitas penuh 2 sesi simultan"
-              : accounts.length === 1
-              ? "1 slot aktif, siap tambah slot #2"
+            accounts.length === 4
+              ? "Kapasitas penuh 4 sesi simultan"
+              : accounts.length > 0
+              ? `${accounts.length} slot aktif, siap tambah slot #${accounts.length + 1}`
               : "Belum ada akun Zoom terdaftar"
           }
         />
@@ -853,7 +891,7 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
                         {acc.name}
                       </span>
                       <Badge variant="outline" className="font-mono text-[10px] py-0 px-1.5">
-                        Slot #{index + 1}
+                        Slot #{acc.accountNumber ?? (index + 1)}
                       </Badge>
                     </div>
                     <span className="font-mono text-xs text-muted-foreground">{acc.email}</span>
@@ -1001,19 +1039,60 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
                       </div>
                     </div>
 
+                    {/* 6-Digit Host Key */}
+                    <div className="px-3.5 py-2.5 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <Key className="size-3 text-muted-foreground" />
+                        <span className="text-muted-foreground font-sans text-xs min-w-[90px]">Host Key 6-Digit</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="outline" className="font-mono text-xs font-semibold px-2 py-0.5 tracking-widest bg-background">
+                          {acc.hostKey || "849201"}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleCopy(acc.hostKey || "849201", "Host Key")}
+                          title="Salin Host Key 6-Digit"
+                          aria-label="Salin Host Key 6-Digit"
+                          className="size-6 text-muted-foreground hover:text-foreground"
+                        >
+                          <Copy className="size-3" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* OAuth Token Status & Expiration */}
+                    <div className="px-3.5 py-2.5 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="size-3 text-muted-foreground" />
+                        <span className="text-muted-foreground font-sans text-xs min-w-[90px]">Status Token OAuth</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 font-sans">
+                        <span className="text-muted-foreground text-xs">
+                          {acc.tokenExpiresAt
+                            ? `Kedaluwarsa: ${new Date(acc.tokenExpiresAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB`
+                            : "Auto-refresh S2S Aktif"}
+                        </span>
+                        <Badge variant={acc.isActive ? "default" : "secondary"} className="text-[10px] h-4">
+                          {acc.isActive ? "Aktif" : "Nonaktif"}
+                        </Badge>
+                      </div>
+                    </div>
+
                     {/* Client Secret */}
                     <div className="px-3.5 py-2.5 flex items-center justify-between gap-3">
                       <span className="text-muted-foreground font-sans text-xs min-w-[90px]">Client Secret</span>
                       <div className="flex items-center gap-1.5">
                         <span className="text-foreground font-semibold">
-                          {showSecret[acc.id] ? acc.decryptedSecret : acc.maskedClientSecret}
+                          {showSecret[acc.id] ? (acc.decryptedSecret || acc.maskedClientSecret) : acc.maskedClientSecret}
                         </span>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => toggleSecret(acc.id)}
-                          title={showSecret[acc.id] ? "Sembunyikan Secret" : "Tampilkan Secret"}
-                          aria-label={showSecret[acc.id] ? "Sembunyikan Secret" : "Tampilkan Secret"}
+                          onClick={() => toggleSecret(acc.id, acc.decryptedSecret)}
+                          title={showSecret[acc.id] ? "Sembunyikan Secret" : "Tampilkan Secret (Khusus Superadmin)"}
+                          aria-label={showSecret[acc.id] ? "Sembunyikan Secret" : "Tampilkan Secret (Khusus Superadmin)"}
                           className="size-6 text-muted-foreground hover:text-foreground"
                         >
                           {showSecret[acc.id] ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
@@ -1021,7 +1100,7 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleCopy(acc.decryptedSecret, "Client Secret")}
+                          onClick={() => handleCopy(acc.decryptedSecret || acc.maskedClientSecret, "Client Secret")}
                           title="Salin Client Secret"
                           aria-label="Salin Client Secret"
                           className="size-6 text-muted-foreground hover:text-foreground"
@@ -1103,18 +1182,18 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
             )
           })}
 
-          {/* If only 1 account exists, show the second slot invitation card */}
-          {accounts.length === 1 && (
+          {/* If accounts < 4, show invitation card for next slot */}
+          {accounts.length < 4 && (
             <Card className="bg-card/50 border-dashed p-6 flex flex-col items-center justify-center text-center gap-4 h-full shadow-xs">
               <div className="size-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
                 <Plus className="size-5" />
               </div>
               <div className="flex flex-col gap-1 max-w-xs">
                 <span className="font-bold text-foreground text-sm">
-                  Slot Akun Zoom Pro #2 (Tersedia)
+                  Slot Akun Zoom Pro #{accounts.length + 1} (Tersedia)
                 </span>
                 <p className="text-xs text-muted-foreground">
-                  Daftarkan akun kedua untuk membuka kapasitas 2 sesi simultan (penanganan overlap).
+                  Daftarkan akun berikutnya untuk menambah kapasitas sesi simultan (maksimal 4 akun Zoom Pro).
                 </p>
               </div>
               <Button
@@ -1124,7 +1203,7 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
                 className="gap-1.5 font-medium"
               >
                 <Plus className="size-3.5" />
-                <span>Tambah Akun #2</span>
+                <span>Tambah Akun #{accounts.length + 1}</span>
               </Button>
             </Card>
           )}
@@ -1136,11 +1215,11 @@ export function ZoomSettingsClient({ initialAccounts }: ZoomSettingsClientProps)
         <div className="flex items-center gap-2.5 min-w-0">
           <Server className="size-4 text-primary shrink-0" />
           <span>
-            Efisiensi Operasional: Alokasi dibatasi tepat <strong>2 akun Zoom Pro</strong> untuk melayani maksimal 2 sesi konseling bersamaan tanpa biaya lisensi berlebih.
+            Efisiensi Operasional: Alokasi pool dibatasi tepat <strong>4 akun Zoom Pro</strong> untuk melayani hingga 4 sesi konseling bersamaan sesuai Master SOP.
           </span>
         </div>
         <Badge variant="outline" className="font-mono text-[10px] shrink-0">
-          KAPASITAS POOL: {accounts.length}/2
+          KAPASITAS POOL: {accounts.length}/4
         </Badge>
       </Card>
 
