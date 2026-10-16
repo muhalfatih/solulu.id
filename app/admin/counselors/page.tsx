@@ -3,6 +3,7 @@
 import * as React from "react"
 import type { CounselorApplicant } from "@/lib/types/admin"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   CheckCircle2,
   XCircle,
@@ -25,6 +26,7 @@ import {
   Trash2,
   Loader2,
   AlertCircle,
+  AlertTriangle,
   RefreshCw,
   Download,
   MoreHorizontal,
@@ -78,6 +80,7 @@ function getDocButtonLabel(docKey: string | null | undefined, fallback: string) 
 }
 
 export default function DistilledCounselorsPage() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = React.useState(true)
   const [applicants, setApplicants] = React.useState<CounselorApplicant[]>([])
   const [activeCounselors, setActiveCounselors] = React.useState<any[]>([])
@@ -152,7 +155,7 @@ export default function DistilledCounselorsPage() {
   }
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
   const [searchQuery, setSearchQuery] = React.useState("")
-  const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "suspended">("all")
+  const [statusFilter, setStatusFilter] = React.useState<"all" | "verified" | "pending" | "radar" | "active" | "suspended">("all")
 
   // Fetch real counselors and applications from database on mount, keeping resilient fallback
   const loadData = React.useCallback(async () => {
@@ -174,11 +177,16 @@ export default function DistilledCounselorsPage() {
           phone: row.phone || "-",
           specializations: row.specializations || [],
           isActive: row.isActive,
+          verificationStatus: row.verificationStatus || "verified",
           totalSessions: row.completedSessionsCount ?? 0,
           activeSlots: row.activeSlotsCount ?? 0,
           avatarR2Url: row.avatarR2Url,
           education: row.education,
           strNumber: row.strNumber,
+          strExpiresAt: row.strExpiresAt,
+          sippNumber: row.sippNumber,
+          sippExpiresAt: row.sippExpiresAt,
+          radar: row.radar,
           isFeatured: row.isFeatured ?? false,
         }))
         setActiveCounselors(mapped)
@@ -357,14 +365,32 @@ export default function DistilledCounselorsPage() {
     0
   )
 
+  const radarAlertCounselors = activeCounselors.filter((c) => c.radar?.hasRadarAlert)
+  const radarAlertCount = radarAlertCounselors.length
+  const pendingCounselorsCount = activeCounselors.filter((c) => c.verificationStatus === "pending").length
+  const verifiedCounselorsCount = activeCounselors.filter((c) => c.verificationStatus === "verified").length
+  const activeCount = activeCounselors.filter((c) => c.isActive).length
+  const suspendedCount = activeCounselors.filter((c) => !c.isActive).length
+
   const filteredCounselors = activeCounselors.filter((c) => {
     const matchesSearch =
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (c.strNumber && c.strNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (c.sippNumber && c.sippNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (c.education && c.education.toLowerCase().includes(searchQuery.toLowerCase())) ||
       c.specializations?.some((s: string) => s.toLowerCase().includes(searchQuery.toLowerCase()))
     const matchesStatus =
-      statusFilter === "all" ? true : statusFilter === "active" ? c.isActive : !c.isActive
+      statusFilter === "all"
+        ? true
+        : statusFilter === "verified"
+        ? c.verificationStatus === "verified"
+        : statusFilter === "pending"
+        ? c.verificationStatus === "pending"
+        : statusFilter === "radar"
+        ? Boolean(c.radar?.hasRadarAlert)
+        : statusFilter === "active"
+        ? c.isActive
+        : !c.isActive
     const matchesRole =
       roleFilter === "all"
         ? true
@@ -457,6 +483,39 @@ export default function DistilledCounselorsPage() {
           loading={isLoading}
         />
       </div>
+
+      {/* STR / SIPP Expiry Radar Automated Alert Banner (< 60 Days) */}
+      {radarAlertCount > 0 && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-950 dark:text-amber-200">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 shrink-0">
+              <AlertTriangle className="size-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold flex items-center gap-2">
+                <span>Radar Peringatan STR / SIPP</span>
+                <Badge variant="warning" className="text-[10px] py-0 px-1.5 font-bold">
+                  {radarAlertCount} Psikolog Mendekati / Lewat Jatuh Tempo
+                </Badge>
+              </p>
+              <p className="text-[11px] opacity-90 mt-0.5">
+                Kredensial izin praktik resmi kedaluwarsa atau tersisa kurang dari 60 hari. Harap evaluasi perpanjangan berkas.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setActiveTab("active")
+              setStatusFilter("radar")
+            }}
+            className="text-xs font-semibold h-8 bg-background/80 hover:bg-background border-amber-500/40 cursor-pointer shrink-0"
+          >
+            Filter Radar ({radarAlertCount})
+          </Button>
+        </div>
+      )}
 
       {/* 3. Main Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="flex flex-col gap-6">
@@ -839,7 +898,7 @@ export default function DistilledCounselorsPage() {
                 </div>
 
                 {/* Status Filter Button Group */}
-                <div className="flex items-center h-8 rounded-lg border border-border p-0.5 bg-background text-xs">
+                <div className="flex items-center h-8 rounded-lg border border-border p-0.5 bg-background text-xs overflow-x-auto">
                   <button
                     type="button"
                     onClick={() => setStatusFilter("all")}
@@ -853,19 +912,58 @@ export default function DistilledCounselorsPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setStatusFilter("active")}
-                    className={`h-7 px-2.5 flex items-center rounded-md text-xs font-medium transition-colors cursor-pointer ${
-                      statusFilter === "active"
+                    onClick={() => setStatusFilter("verified")}
+                    className={`h-7 px-2 flex items-center gap-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                      statusFilter === "verified"
                         ? "bg-primary text-primary-foreground font-medium"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    Aktif
+                    <span>Terverifikasi</span>
+                    <span className="text-[10px] tabular-nums font-mono px-1 py-0.2 rounded-full bg-muted-foreground/20">
+                      {verifiedCounselorsCount}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("pending")}
+                    className={`h-7 px-2 flex items-center gap-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                      statusFilter === "pending"
+                        ? "bg-primary text-primary-foreground font-medium"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span>Pending</span>
+                    {pendingCounselorsCount > 0 && (
+                      <span className="text-[10px] tabular-nums font-mono px-1 py-0.2 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold">
+                        {pendingCounselorsCount}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter("radar")}
+                    className={`h-7 px-2 flex items-center gap-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                      statusFilter === "radar"
+                        ? "bg-amber-600 text-white font-semibold"
+                        : radarAlertCount > 0
+                        ? "text-amber-600 dark:text-amber-400 hover:text-amber-700 font-semibold bg-amber-500/10"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    title="Konselor dengan STR/SIPP kedaluwarsa atau berakhir < 60 hari"
+                  >
+                    <AlertTriangle className="size-3" />
+                    <span>Radar &lt; 60H</span>
+                    {radarAlertCount > 0 && (
+                      <span className="text-[10px] tabular-nums font-mono px-1 py-0.2 rounded-full bg-destructive text-white font-bold">
+                        {radarAlertCount}
+                      </span>
+                    )}
                   </button>
                   <button
                     type="button"
                     onClick={() => setStatusFilter("suspended")}
-                    className={`h-7 px-2.5 flex items-center rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                    className={`h-7 px-2 flex items-center rounded-md text-xs font-medium transition-colors cursor-pointer ${
                       statusFilter === "suspended"
                         ? "bg-primary text-primary-foreground font-medium"
                         : "text-muted-foreground hover:text-foreground"
@@ -925,27 +1023,79 @@ export default function DistilledCounselorsPage() {
                     filteredCounselors.map((c) => (
                     <TableRow
                       key={c.id}
-                      onClick={() => setScheduleModalCounselor({ id: c.id, name: c.name, title: c.title, type: c.type })}
+                      onClick={() => router.push(`/admin/counselors/${c.id}`)}
                       className="hover:bg-muted/30 transition-colors border-border/60 cursor-pointer"
                     >
                       {/* Konselor & Kualifikasi */}
                       <TableCell className="py-3.5 px-3.5 align-top">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-foreground">{c.name}</span>
+                          <Link
+                            href={`/admin/counselors/${c.id}`}
+                            className="font-semibold text-foreground hover:text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {c.name}
+                          </Link>
                           <span className="text-xs text-muted-foreground">{c.title}</span>
-                          <Badge variant="outline" className="text-[10px] font-normal py-0 px-1.5">
+                          <Badge
+                            variant={c.counselorType === "psychologist" ? "default" : "secondary"}
+                            className="text-[10px] font-normal py-0 px-1.5"
+                          >
                             {c.type}
                           </Badge>
+                          {c.verificationStatus === "pending" && (
+                            <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] py-0 px-1.5 font-medium">
+                              Pending Verifikasi
+                            </Badge>
+                          )}
+                          {c.verificationStatus === "rejected" && (
+                            <Badge variant="destructive" className="text-[10px] py-0 px-1.5 font-medium">
+                              Ditolak
+                            </Badge>
+                          )}
                         </div>
-                        {c.strNumber ? (
-                          <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                            Izin Praktik: {c.strNumber}
+
+                        {/* Automated High-Visibility STR / SIPP Expiry Radar Badge (< 60 Days) */}
+                        {c.radar?.hasRadarAlert && (
+                          <div className="mt-1 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            <Badge
+                              variant={c.radar.alertSeverity === "critical" ? "destructive" : "warning"}
+                              className="text-[10px] font-bold gap-1 py-0.5 px-2 animate-pulse"
+                            >
+                              <AlertTriangle className="size-3" />
+                              Radar: {c.radar.alertMessage}
+                            </Badge>
+                          </div>
+                        )}
+
+                        {/* License Credential Information (STR & SIPP) */}
+                        {c.counselorType === "psychologist" ? (
+                          <div className="flex flex-col gap-0.5 mt-1 text-[10px] text-muted-foreground font-mono">
+                            <div className="flex items-center gap-1.5">
+                              <span>STR: {c.strNumber || "Belum ada"}</span>
+                              {c.radar?.strStatus?.daysRemaining !== null && (
+                                <span className={c.radar?.strStatus?.isExpired ? "text-destructive font-bold" : c.radar?.strStatus?.isExpiringSoon ? "text-amber-600 dark:text-amber-400 font-bold" : "text-muted-foreground"}>
+                                  ({c.radar.strStatus.label})
+                                </span>
+                              )}
+                            </div>
+                            {c.sippNumber && (
+                              <div className="flex items-center gap-1.5">
+                                <span>SIPP: {c.sippNumber}</span>
+                                {c.radar?.sippStatus?.daysRemaining !== null && (
+                                  <span className={c.radar?.sippStatus?.isExpired ? "text-destructive font-bold" : c.radar?.sippStatus?.isExpiringSoon ? "text-amber-600 dark:text-amber-400 font-bold" : "text-muted-foreground"}>
+                                    ({c.radar.sippStatus.label})
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ) : c.education ? (
                           <div className="text-[10px] text-muted-foreground/80 mt-0.5 truncate max-w-[260px]" title={c.education}>
                             {c.education}
                           </div>
                         ) : null}
+
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono mt-1">
                           <span>{c.email}</span>
                           <span>•</span>
@@ -1019,6 +1169,19 @@ export default function DistilledCounselorsPage() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Button
+                            asChild
+                            variant="default"
+                            size="sm"
+                            className="h-7 px-2.5 text-xs font-semibold gap-1 cursor-pointer"
+                            title={`Periksa 21 data dan 8 berkas untuk ${c.name}`}
+                          >
+                            <Link href={`/admin/counselors/${c.id}`}>
+                              <Eye className="size-3" />
+                              <span className="hidden sm:inline">Detail</span>
+                            </Link>
+                          </Button>
+
+                          <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setScheduleModalCounselor({ id: c.id, name: c.name, title: c.title, type: c.type })}
@@ -1040,7 +1203,13 @@ export default function DistilledCounselorsPage() {
                                 <MoreHorizontal className="size-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuContent align="end" className="w-52">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/admin/counselors/${c.id}`} className="cursor-pointer">
+                                  <Eye className="size-3.5 mr-2 text-primary" />
+                                  <span>Lihat 21 Data & 8 Berkas</span>
+                                </Link>
+                              </DropdownMenuItem>
                               <DropdownMenuItem asChild>
                                 <Link href={`/admin/counselors/${c.id}/edit`} className="cursor-pointer">
                                   <Pencil className="size-3.5 mr-2" />

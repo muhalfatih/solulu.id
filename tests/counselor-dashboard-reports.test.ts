@@ -118,7 +118,7 @@ describe("Issue #11: Counselor Dashboard, Session Reports & Profile", () => {
     })
 
     it("returns upcoming sessions with SRQ-20 score, suicidal thoughts, and Zoom link", async () => {
-      const mockSessions = [
+      const mockSessions: any = [
         {
           id: "b-101",
           accessToken: "token-101",

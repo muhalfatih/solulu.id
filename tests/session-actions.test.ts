@@ -14,6 +14,11 @@ describe("Session Data Fetching Action (Issue #8)", () => {
       status: "confirmed",
       zoomJoinUrl: "https://zoom.us/j/123456789",
       zoomMeetingId: "123 456 789",
+      bookingCode: "SL-1001",
+      isExtended: false,
+      extensionMinutes: 0,
+      extensionFee: 0,
+      extensionPaymentStatus: "NONE",
       createdAt: new Date().toISOString(),
     },
     counselor: {

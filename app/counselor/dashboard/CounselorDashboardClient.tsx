@@ -19,7 +19,11 @@ import {
   Activity,
   AlertCircle,
   CalendarCheck,
+  Timer,
+  KeyRound,
+  Copy,
 } from "lucide-react"
+import { toast } from "sonner"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -33,8 +37,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { completeSessionAndOpenReportAction } from "@/app/counselor/actions"
-import type { CounselorUpcomingSessionView } from "@/lib/counselor/types"
+import { completeSessionAndOpenReportAction, getSessionReportAction } from "@/app/counselor/actions"
+import { ClinicalReportForm } from "@/components/counselor/clinical-report-form"
+import { FloatingTimer } from "@/components/counselor/FloatingTimer"
+import type { CounselorUpcomingSessionView, SessionReportDetailView } from "@/lib/counselor/types"
 import {
   SessionStatusBadge,
   resolveSessionTimingAndStatus,
@@ -59,7 +65,37 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
   const [filter, setFilter] = React.useState<CounselorDashboardFilter>("all")
   const [completingId, setCompletingId] = React.useState<string | null>(null)
   const [confirmSession, setConfirmSession] = React.useState<CounselorUpcomingSessionView | null>(null)
+  const [activeTimerSession, setActiveTimerSession] = React.useState<CounselorUpcomingSessionView | null>(null)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+  const [reportModalSession, setReportModalSession] = React.useState<CounselorUpcomingSessionView | null>(null)
+  const [reportModalData, setReportModalData] = React.useState<SessionReportDetailView | null>(null)
+  const [loadingReportDataId, setLoadingReportDataId] = React.useState<string | null>(null)
+
+  const handleOpenReportModal = React.useCallback(async (session: CounselorUpcomingSessionView) => {
+    setLoadingReportDataId(session.id)
+    try {
+      const res = await getSessionReportAction(session.id)
+      if (res.success && res.data) {
+        setReportModalData(res.data)
+        setReportModalSession(session)
+      } else {
+        toast.error(res.error || "Gagal memuat data formulir laporan sesi.")
+      }
+    } catch {
+      toast.error("Terjadi kesalahan saat memuat formulir laporan.")
+    } finally {
+      setLoadingReportDataId(null)
+    }
+  }, [])
+
+  const handleCopyText = React.useCallback(async (text: string, successLabel = "Tersalin ke clipboard") => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success(successLabel)
+    } catch {
+      toast.error("Gagal menyalin ke clipboard.")
+    }
+  }, [])
 
   const isToday = React.useCallback((dateStr: string) => {
     const today = new Date().toISOString().split("T")[0]
@@ -164,6 +200,50 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
               <Calendar className="size-3.5" aria-hidden="true" />
               <span>Kelola Slot Praktik</span>
             </Link>
+          </Button>
+        </div>
+      </div>
+
+      {/* 6-Digit Zoom Host Key Clinical Access Banner (Ticket 4) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-primary/25 bg-primary/5 dark:bg-primary/10 gap-3">
+        <div className="flex items-center gap-3">
+          <div className="size-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
+            <KeyRound className="size-4" aria-hidden="true" />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-bold text-foreground flex items-center gap-2">
+              6-Digit Host Key Zoom Konselor
+              <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 font-semibold">
+                Klaim Host Zoom
+              </Badge>
+            </span>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Gunakan 6-digit Host Key ini untuk mengklaim hak kendali Host di aplikasi Zoom client (Menu <em>Participants &gt; Claim Host</em>).
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
+          <div
+            className="px-3.5 py-1.5 rounded-lg bg-background border border-border/80 font-mono font-bold text-base text-foreground tracking-widest shadow-2xs"
+            id="counselor-global-host-key-display"
+          >
+            {sessions.find((s) => s.zoomHostKey)?.zoomHostKey || "849201"}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1.5 text-xs font-semibold border-border/80"
+            onClick={() =>
+              handleCopyText(
+                sessions.find((s) => s.zoomHostKey)?.zoomHostKey || "849201",
+                "Host Key disalin ke clipboard"
+              )
+            }
+            id="btn-copy-global-host-key"
+          >
+            <Copy className="size-3.5" aria-hidden="true" />
+            <span>Salin Host Key</span>
           </Button>
         </div>
       </div>
@@ -561,8 +641,8 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
 
                     {/* Actions Row */}
                     <div className="flex items-center justify-between gap-3 pt-3 border-t border-border/60 flex-wrap">
-                      {/* Left: Zoom Action */}
-                      <div>
+                      {/* Left: Zoom & Timer Actions */}
+                      <div className="flex items-center gap-2 flex-wrap">
                         {isPendingPayment ? (
                           <Button
                             variant="outline"
@@ -574,40 +654,82 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                             <Lock className="size-3.5" aria-hidden="true" />
                             <span>Tautan Zoom Terkunci (Belum Bayar)</span>
                           </Button>
-                        ) : (isConfirmed || isOngoing) && session.zoomStartUrl ? (
-                          <Button
-                            asChild
-                            variant="default"
-                            size="sm"
-                            className={cn(
-                              "gap-2 text-xs h-9 font-semibold shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                              isOngoing
-                                ? "bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-500/30 animate-pulse"
-                                : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                            )}
-                            id={`btn-zoom-${session.id}`}
-                          >
-                            <a
-                              href={session.zoomStartUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label="Mulai Sesi Zoom di tab baru"
-                            >
-                              <Video className="size-3.5" aria-hidden="true" />
-                              <span>{isOngoing ? "Masuk Ruang Zoom (Sesi Aktif)" : "Mulai Sesi Zoom"}</span>
-                              <span className="sr-only">(buka di tab baru)</span>
-                            </a>
-                          </Button>
                         ) : (isConfirmed || isOngoing) ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled
-                            className="gap-2 text-xs h-9 text-muted-foreground"
-                          >
-                            <Video className="size-3.5" aria-hidden="true" />
-                            <span>Menunggu Alokasi Ruang Zoom</span>
-                          </Button>
+                          <>
+                            {session.zoomStartUrl ? (
+                              <Button
+                                asChild
+                                variant="default"
+                                size="sm"
+                                className={cn(
+                                  "gap-2 text-xs h-9 font-semibold shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+                                  isOngoing
+                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-500/30 animate-pulse"
+                                    : "bg-emerald-600 hover:bg-emerald-700 text-white"
+                                )}
+                                id={`btn-zoom-${session.id}`}
+                              >
+                                <a
+                                  href={session.zoomStartUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label="Mulai Sesi Zoom di tab baru"
+                                >
+                                  <Video className="size-3.5" aria-hidden="true" />
+                                  <span>{isOngoing ? "Masuk Zoom (Aktif)" : "Mulai Zoom"}</span>
+                                  <span className="sr-only">(buka di tab baru)</span>
+                                </a>
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled
+                                className="gap-2 text-xs h-9 text-muted-foreground"
+                              >
+                                <Video className="size-3.5" aria-hidden="true" />
+                                <span>Menunggu Ruang Zoom</span>
+                              </Button>
+                            )}
+
+                            {/* Ticket 4: "Mulai Sesi (Timer)" button */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                "gap-2 text-xs h-9 font-semibold shadow-xs transition-colors border-emerald-500/40",
+                                activeTimerSession?.id === session.id
+                                  ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500 ring-2 ring-emerald-500/20"
+                                  : "hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                              )}
+                              onClick={() => setActiveTimerSession(session)}
+                              id={`btn-start-timer-${session.id}`}
+                            >
+                              <Timer className="size-3.5 text-emerald-600" aria-hidden="true" />
+                              <span>
+                                {activeTimerSession?.id === session.id ? "Lihat Timer Aktif" : "Mulai Sesi (Timer)"}
+                              </span>
+                            </Button>
+
+                            {/* Ticket 4: 6-Digit Host Key Badge */}
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/80 border border-border/80 text-xs">
+                              <KeyRound className="size-3 text-primary shrink-0" aria-hidden="true" />
+                              <span className="text-muted-foreground font-medium text-[11px]">Host Key:</span>
+                              <span className="font-mono font-bold text-foreground tracking-wider text-xs">
+                                {session.zoomHostKey || "849201"}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyText(session.zoomHostKey || "849201", "Host Key disalin")}
+                                className="ml-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                                aria-label="Salin 6-digit Host Key Zoom"
+                                title="Salin 6-digit Host Key Zoom"
+                                id={`btn-copy-card-host-key-${session.id}`}
+                              >
+                                <Copy className="size-3" aria-hidden="true" />
+                              </button>
+                            </div>
+                          </>
                         ) : isCompleted ? (
                           <span className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
                             <CheckCircle2 className="size-3.5 text-muted-foreground/70" aria-hidden="true" />
@@ -648,22 +770,46 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                         )}
 
                         {isCompleted && (
-                          <Button
-                            asChild
-                            variant={session.hasReport ? "outline" : "default"}
-                            size="sm"
-                            className={cn(
-                              "gap-2 text-xs h-9 font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-                              !session.hasReport && "bg-amber-600 hover:bg-amber-700 text-white font-semibold"
-                            )}
-                            id={`btn-report-${session.id}`}
-                          >
-                            <Link href={`/counselor/reports/${session.id}`}>
-                              <FileEdit className="size-3.5" aria-hidden="true" />
-                              <span>{session.hasReport ? "Lihat / Edit Catatan Sesi" : "Tulis Catatan Sesi"}</span>
-                              <ArrowRight className="size-3" aria-hidden="true" />
-                            </Link>
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant={session.hasReport ? "outline" : "default"}
+                              size="sm"
+                              className={cn(
+                                "gap-2 text-xs h-9 font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none cursor-pointer",
+                                !session.hasReport && "bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+                              )}
+                              id={`btn-report-${session.id}`}
+                              onClick={() => handleOpenReportModal(session)}
+                              disabled={loadingReportDataId === session.id}
+                            >
+                              {loadingReportDataId === session.id ? (
+                                <>
+                                  <Loader2 className="size-3.5 animate-spin" data-icon="inline-start" aria-hidden="true" />
+                                  <span>Memuat...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <FileEdit className="size-3.5" data-icon="inline-start" aria-hidden="true" />
+                                  <span>{session.hasReport ? "Lihat / Edit Catatan Sesi" : "Tulis Catatan Sesi"}</span>
+                                </>
+                              )}
+                            </Button>
+
+                            <Button
+                              asChild
+                              variant="ghost"
+                              size="sm"
+                              className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
+                              title="Buka Formulir Laporan di Halaman Penuh"
+                              id={`btn-report-page-${session.id}`}
+                            >
+                              <Link href={`/counselor/sessions/${session.id}/report`}>
+                                <ArrowRight className="size-3.5" data-icon="inline-start" aria-hidden="true" />
+                                <span className="sr-only">Buka di halaman penuh</span>
+                              </Link>
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -729,6 +875,64 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Ticket 5: Modal Launcher for Clinical Report Form */}
+      <Dialog
+        open={!!reportModalSession}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReportModalSession(null)
+            setReportModalData(null)
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-3xl max-h-[92vh] overflow-y-auto p-4 sm:p-6">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Formulir Laporan Sesi Klinis</DialogTitle>
+            <DialogDescription>
+              Catatan rekam medis sesi konseling dan formulir privasi klinis.
+            </DialogDescription>
+          </DialogHeader>
+
+          {reportModalData && (
+            <ClinicalReportForm
+              initialData={reportModalData}
+              isModal={true}
+              onCancel={() => {
+                setReportModalSession(null)
+                setReportModalData(null)
+              }}
+              onSuccess={(reportId) => {
+                if (reportModalSession) {
+                  const bookingId = reportModalSession.id
+                  setSessions((prev) =>
+                    prev.map((s) =>
+                      s.id === bookingId
+                        ? { ...s, hasReport: true, reportId, status: "completed" as const }
+                        : s
+                    )
+                  )
+                }
+                setReportModalSession(null)
+                setReportModalData(null)
+                router.refresh()
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Ticket 4: Sticky Floating Timer Widget in viewport bottom-right corner */}
+      {activeTimerSession && (
+        <FloatingTimer
+          session={activeTimerSession}
+          onClose={() => setActiveTimerSession(null)}
+          onCompleteSession={(s) => {
+            setActiveTimerSession(null)
+            setConfirmSession(s)
+          }}
+        />
+      )}
     </div>
   )
 }

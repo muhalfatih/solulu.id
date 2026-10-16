@@ -5,7 +5,14 @@ import { cookies } from "next/headers"
 import { eq, desc, sql, and, not, inArray } from "drizzle-orm"
 import { db } from "@/db"
 import { counselors, schedules, bookings } from "@/db/schema"
-import { generatePresignedPutUrl, generateR2Key, getPublicR2Url, getR2Config } from "@/lib/r2"
+import {
+  generatePresignedPutUrl,
+  generatePresignedGetUrl,
+  generateR2Key,
+  getPublicR2Url,
+  getR2Config,
+} from "@/lib/r2"
+import { getCounselorRadarAlert, type CounselorRadarAlert } from "@/lib/counselor/credentials"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import {
@@ -96,10 +103,20 @@ export async function getCounselorsAdminAction(options?: {
         c.title,
         c.education,
         c.str_number as "strNumber",
+        c.str_expires_at as "strExpiresAt",
+        c.sipp_number as "sippNumber",
+        c.sipp_expires_at as "sippExpiresAt",
         c.counselor_type as "counselorType",
         c.bio,
         c.specializations,
         c.avatar_r2_url as "avatarR2Url",
+        c.domicile,
+        c.experience_years as "experienceYears",
+        c.himpsi_number as "himpsiNumber",
+        c.custom_fee_rate as "customFeeRate",
+        c.counselor_commission_rate as "counselorCommissionRate",
+        c.verification_status as "verificationStatus",
+        c.weekly_slot_target as "weeklySlotTarget",
         c.is_active as "isActive",
         c.is_featured as "isFeatured",
         c.created_at as "createdAt",
@@ -107,7 +124,9 @@ export async function getCounselorsAdminAction(options?: {
         u.phone as "phone"
       FROM counselors c
       LEFT JOIN auth.users u ON c.user_id = u.id
-      ORDER BY c.created_at DESC
+      ORDER BY 
+        CASE WHEN c.verification_status = 'pending' THEN 0 ELSE 1 END,
+        c.created_at DESC
     `)
 
     const rows = (rawRows as any[]) || []
@@ -129,9 +148,17 @@ export async function getCounselorsAdminAction(options?: {
       } catch {}
     }
 
-    // Augment with counts and real email
+    // Augment with counts, real email, and automated STR/SIPP radar
     const augmented = await Promise.all(
       rows.map(async (c) => {
+        const radar = getCounselorRadarAlert({
+          counselorType: c.counselorType,
+          strNumber: c.strNumber,
+          strExpiresAt: c.strExpiresAt,
+          sippNumber: c.sippNumber,
+          sippExpiresAt: c.sippExpiresAt,
+        })
+
         try {
           const [activeSlots] = await db
             .select({ count: sql<number>`count(*)` })
@@ -149,6 +176,7 @@ export async function getCounselorsAdminAction(options?: {
 
           return {
             ...c,
+            radar,
             email: c.email || "-",
             phone: c.phone || "-",
             activeSlotsCount: Number(activeSlots?.count || 0),
@@ -157,6 +185,7 @@ export async function getCounselorsAdminAction(options?: {
         } catch {
           return {
             ...c,
+            radar,
             email: c.email || "-",
             phone: c.phone || "-",
             activeSlotsCount: 0,
@@ -251,6 +280,289 @@ export async function getCounselorByIdAction(
     return {
       success: false,
       error: err.message || "Gagal mengambil data konselor.",
+    }
+  }
+}
+
+/**
+ * Fetches comprehensive counselor profile with all 21 data fields and
+ * secure presigned URLs for all 8 Cloudflare R2 compliance attachments.
+ */
+export async function getCounselorDetailAdminAction(
+  counselorId: string,
+  options?: {
+    currentUser?: AdminAuthContext | null
+    fetchFn?: (id: string) => Promise<any>
+    presigner?: typeof generatePresignedGetUrl
+  }
+) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return {
+      success: false,
+      error: "Akses ditolak: Diperlukan role Admin untuk melihat detail profil konselor.",
+    }
+  }
+
+  try {
+    if (options?.fetchFn) {
+      const data = await options.fetchFn(counselorId)
+      return { success: true, data }
+    }
+
+    const rawRows = await db.execute(sql`
+      SELECT 
+        c.id,
+        c.user_id as "userId",
+        c.full_name as "fullName",
+        c.title,
+        c.email,
+        c.phone,
+        c.domicile,
+        c.counselor_type as "counselorType",
+        c.education,
+        c.experience_years as "experienceYears",
+        c.bio,
+        c.specializations,
+        c.himpsi_number as "himpsiNumber",
+        c.custom_fee_rate as "customFeeRate",
+        c.counselor_commission_rate as "counselorCommissionRate",
+        c.sipp_number as "sippNumber",
+        c.sipp_expires_at as "sippExpiresAt",
+        c.str_number as "strNumber",
+        c.str_expires_at as "strExpiresAt",
+        c.avatar_r2_url as "avatarR2Url",
+        c.ktp_r2_key as "ktpR2Key",
+        c.cv_r2_key as "cvR2Key",
+        c.diploma_s1_r2_key as "diplomaS1R2Key",
+        c.diploma_profesi_r2_key as "diplomaProfesiR2Key",
+        c.str_r2_key as "strR2Key",
+        c.sipp_r2_key as "sippR2Key",
+        c.certificate_r2_key as "certificateR2Key",
+        c.verification_status as "verificationStatus",
+        c.weekly_slot_target as "weeklySlotTarget",
+        c.is_active as "isActive",
+        c.is_featured as "isFeatured",
+        c.created_at as "createdAt",
+        u.email as "authEmail",
+        u.phone as "authPhone"
+      FROM counselors c
+      LEFT JOIN auth.users u ON c.user_id = u.id
+      WHERE c.id = ${counselorId}::uuid
+      LIMIT 1
+    `)
+
+    const rows = (rawRows as any[]) || []
+    if (!rows.length) {
+      return { success: false, error: "Mitra konselor tidak ditemukan." }
+    }
+
+    const c = rows[0]
+    let resolvedEmail = c.email || c.authEmail || ""
+    if (!resolvedEmail && c.userId) {
+      try {
+        const supabaseAdmin = createAdminClient()
+        const { data } = await supabaseAdmin.auth.admin.getUserById(c.userId)
+        if (data?.user?.email) {
+          resolvedEmail = data.user.email
+        }
+      } catch {}
+    }
+
+    const radar = getCounselorRadarAlert({
+      counselorType: c.counselorType,
+      strNumber: c.strNumber,
+      strExpiresAt: c.strExpiresAt,
+      sippNumber: c.sippNumber,
+      sippExpiresAt: c.sippExpiresAt,
+    })
+
+    const presigner = options?.presigner || generatePresignedGetUrl
+
+    // Generate secure pre-signed GET URLs for 8 Cloudflare R2 attachments (15 min TTL)
+    const [
+      ktpUrl,
+      cvUrl,
+      diplomaS1Url,
+      diplomaProfesiUrl,
+      strUrl,
+      sippUrl,
+      certificateUrl,
+    ] = await Promise.all([
+      c.ktpR2Key ? presigner({ key: c.ktpR2Key, expiresIn: 900 }).catch(() => null) : null,
+      c.cvR2Key ? presigner({ key: c.cvR2Key, expiresIn: 900 }).catch(() => null) : null,
+      c.diplomaS1R2Key ? presigner({ key: c.diplomaS1R2Key, expiresIn: 900 }).catch(() => null) : null,
+      c.diplomaProfesiR2Key ? presigner({ key: c.diplomaProfesiR2Key, expiresIn: 900 }).catch(() => null) : null,
+      c.strR2Key ? presigner({ key: c.strR2Key, expiresIn: 900 }).catch(() => null) : null,
+      c.sippR2Key ? presigner({ key: c.sippR2Key, expiresIn: 900 }).catch(() => null) : null,
+      c.certificateR2Key ? presigner({ key: c.certificateR2Key, expiresIn: 900 }).catch(() => null) : null,
+    ])
+
+    const attachments = [
+      {
+        type: "avatar",
+        name: "Foto Profil Formal",
+        category: "Identitas",
+        url: c.avatarR2Url || null,
+        r2Key: c.avatarR2Url || null,
+        isUploaded: Boolean(c.avatarR2Url),
+        isPublic: true,
+      },
+      {
+        type: "ktp",
+        name: "Kartu Tanda Penduduk (KTP)",
+        category: "Kepatuhan Hukum",
+        url: ktpUrl,
+        r2Key: c.ktpR2Key || null,
+        isUploaded: Boolean(c.ktpR2Key),
+        isPublic: false,
+      },
+      {
+        type: "cv",
+        name: "Curriculum Vitae (CV) Terkini",
+        category: "Kualifikasi Profesional",
+        url: cvUrl,
+        r2Key: c.cvR2Key || null,
+        isUploaded: Boolean(c.cvR2Key),
+        isPublic: false,
+      },
+      {
+        type: "diplomaS1",
+        name: "Ijazah S1 Psikologi",
+        category: "Pendidikan",
+        url: diplomaS1Url,
+        r2Key: c.diplomaS1R2Key || null,
+        isUploaded: Boolean(c.diplomaS1R2Key),
+        isPublic: false,
+      },
+      {
+        type: "diplomaProfesi",
+        name: "Ijazah Profesi Psikolog",
+        category: "Pendidikan",
+        url: diplomaProfesiUrl,
+        r2Key: c.diplomaProfesiR2Key || null,
+        isUploaded: Boolean(c.diplomaProfesiR2Key),
+        isPublic: false,
+      },
+      {
+        type: "str",
+        name: "Surat Tanda Registrasi (STR)",
+        category: "Izin Praktik Kemenkes",
+        url: strUrl,
+        r2Key: c.strR2Key || null,
+        isUploaded: Boolean(c.strR2Key),
+        isPublic: false,
+      },
+      {
+        type: "sipp",
+        name: "Surat Izin Praktik Psikologi (SIPP/SILP)",
+        category: "Izin Praktik Kemenkes",
+        url: sippUrl,
+        r2Key: c.sippR2Key || null,
+        isUploaded: Boolean(c.sippR2Key),
+        isPublic: false,
+      },
+      {
+        type: "certificate",
+        name: "Sertifikat Pelatihan / Dokumen Pendukung",
+        category: "Kompetensi Tambahan",
+        url: certificateUrl,
+        r2Key: c.certificateR2Key || null,
+        isUploaded: Boolean(c.certificateR2Key),
+        isPublic: false,
+      },
+    ]
+
+    return {
+      success: true,
+      data: {
+        ...c,
+        email: resolvedEmail || "-",
+        phone: c.phone || c.authPhone || "-",
+        radar,
+        attachments,
+      },
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal mengambil detail lengkap profil konselor.",
+    }
+  }
+}
+
+/**
+ * Updates counselor verification status: 'verified', 'rejected', or 'pending'.
+ * Persists immediately to PostgreSQL database and syncs active status.
+ */
+export async function updateCounselorVerificationStatusAction(
+  counselorId: string,
+  newStatus: "verified" | "rejected" | "pending",
+  options?: {
+    currentUser?: AdminAuthContext | null
+    updateStatusFn?: (id: string, status: string) => Promise<any>
+  }
+) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return {
+      success: false,
+      error: "Akses ditolak: Diperlukan role Admin.",
+    }
+  }
+
+  try {
+    let updatedRecord: any = null
+    const shouldActivate = newStatus === "verified"
+    const shouldDeactivate = newStatus === "rejected"
+
+    const setPayload: any = {
+      verificationStatus: newStatus,
+    }
+    if (shouldActivate) {
+      setPayload.isActive = true
+    } else if (shouldDeactivate) {
+      setPayload.isActive = false
+    }
+
+    if (options?.updateStatusFn) {
+      updatedRecord = await options.updateStatusFn(counselorId, newStatus)
+    } else {
+      const [updated] = await db
+        .update(counselors)
+        .set(setPayload)
+        .where(eq(counselors.id, counselorId))
+        .returning()
+      updatedRecord = updated
+    }
+
+    if (shouldActivate || shouldDeactivate) {
+      toggleStoreCounselorActive(counselorId, shouldActivate)
+    }
+
+    try {
+      revalidatePath("/admin/counselors")
+      revalidatePath(`/admin/counselors/${counselorId}`)
+      revalidatePath("/counselors")
+    } catch {
+      // safe fallback in unit test environments
+    }
+
+    const statusLabels = {
+      verified: "Terverifikasi (Praktik Diaktifkan)",
+      rejected: "Ditolak (Praktik Ditangguhkan)",
+      pending: "Menunggu Verifikasi",
+    }
+
+    return {
+      success: true,
+      message: `Status verifikasi konselor berhasil diperbarui menjadi ${statusLabels[newStatus]}.`,
+      data: updatedRecord,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal memperbarui status verifikasi konselor.",
     }
   }
 }
@@ -597,6 +909,7 @@ export async function toggleCounselorActiveAction(
 
     try {
       revalidatePath("/admin/counselors")
+      revalidatePath(`/admin/counselors/${counselorId}`)
       revalidatePath("/counselors")
     } catch {
       // safe fallback

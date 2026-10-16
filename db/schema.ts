@@ -17,7 +17,12 @@ import { relations } from "drizzle-orm";
 // =============================================================================
 // ENUMS
 // =============================================================================
-export const roleEnum = pgEnum("role_enum", ["admin", "counselor"]);
+export const roleEnum = pgEnum("role_enum", [
+  "superadmin",
+  "admin",
+  "operator",
+  "counselor",
+]);
 export const counselorTypeEnum = pgEnum("counselor_type_enum", ["peer", "psychologist"]);
 export const scheduleStatusEnum = pgEnum("schedule_status_enum", [
   "available",
@@ -44,10 +49,11 @@ export const applicationStatusEnum = pgEnum("application_status_enum", [
 ]);
 
 // =============================================================================
-// 1. ZOOM ACCOUNTS (MANAGED IN-APP WITH SAFETY LOCK)
+// 1. ZOOM ACCOUNTS (4 PRO ACCOUNTS MANAGED IN-APP)
 // =============================================================================
 export const zoomAccounts = pgTable("zoom_accounts", {
   id: uuid("id").defaultRandom().primaryKey(),
+  accountNumber: integer("account_number").default(1).notNull(), // 1, 2, 3, or 4
   name: text("name").notNull(), // e.g., "Akun Zoom Pro 1"
   email: text("email").notNull().unique(),
   accountId: text("account_id").notNull(),
@@ -55,6 +61,7 @@ export const zoomAccounts = pgTable("zoom_accounts", {
   clientSecretEncrypted: text("client_secret_encrypted").notNull(), // AES-256-GCM encrypted
   cachedAccessToken: text("cached_access_token"), // Cache token S2S OAuth (TTL 3500s)
   tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+  hostKey: text("host_key"), // 6-digit Host Key for Counselors to claim host
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -76,6 +83,17 @@ export const platformPricing = pgTable("platform_pricing", {
 export const platformSettings = pgTable("platform_settings", {
   id: text("id").primaryKey().default("default"),
   isScreeningRequired: boolean("is_screening_required").default(false).notNull(),
+  bookingCutoffHours: integer("booking_cutoff_hours").default(4).notNull(), // Cutoff H-4 jam pemesanan
+  rescheduleCutoffHours: integer("reschedule_cutoff_hours").default(4).notNull(), // Cutoff H-4 jam reschedule
+  paymentHoldMinutes: integer("payment_hold_minutes").default(15).notNull(), // Kunci jadwal 15-30 menit
+  maxSlotQuota: integer("max_slot_quota").default(10).notNull(), // Maks. 10 sesi per slot
+  minCounselorWeeklySlots: integer("min_counselor_weekly_slots").default(10).notNull(), // Min 10 sesi / minggu
+  noShowTimeoutMinutes: integer("no_show_timeout_minutes").default(30).notNull(), // Batas tunggu hadir 30 menit
+  basePrice: numeric("base_price", { precision: 12, scale: 2 }).default("150000").notNull(),
+  counselorExtendFeePer30Min: numeric("counselor_extend_fee_per_30_min", { precision: 12, scale: 2 }).default("35000").notNull(), // Rp 35k/30m
+  psychologistExtendFeePer30Min: numeric("psychologist_extend_fee_per_30_min", { precision: 12, scale: 2 }).default("50000").notNull(), // Rp 50k/30m
+  isManualPaymentEnabled: boolean("is_manual_payment_enabled").default(true).notNull(),
+  manualPaymentInstructions: text("manual_payment_instructions").default("Transfer ke Rekening BCA: 123-456-7890 a.n. Solulu Mental Health. Sertakan Kode Booking pada berita transfer."),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -104,7 +122,7 @@ export const screenings = pgTable("screenings", {
 });
 
 // =============================================================================
-// 4. COUNSELOR APPLICATION & VERIFIED COUNSELORS
+// 4. COUNSELOR APPLICATION & VERIFIED COUNSELORS (21 DATA & 8 BERKAS)
 // =============================================================================
 export const counselorApplications = pgTable("counselor_applications", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -129,14 +147,39 @@ export const counselorApplications = pgTable("counselor_applications", {
 export const counselors = pgTable("counselors", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().unique(), // Linked to Supabase Auth UID
-  fullName: text("full_name").notNull(),
-  title: text("title").notNull(), // e.g. "S.Psi", "M.Psi., Psikolog"
-  education: text("education"), // e.g. "S2 Magister Profesi Psikologi Universitas Indonesia"
-  strNumber: text("str_number"), // Surat Tanda Registrasi / Lisensi Praktik
+  fullName: text("full_name").notNull(), // (1) Nama & Gelar
+  title: text("title").notNull(), // Gelar e.g. "S.Psi", "M.Psi., Psikolog"
+  email: text("email"), // (2) Email
+  phone: text("phone"), // (3) Nomor WhatsApp
+  domicile: text("domicile"), // (4) Domisili
+  specializations: text("specializations").array(), // (5) Area Fokus & Spesialisasi
+  education: text("education"), // (6) Riwayat Pendidikan
+  experienceYears: integer("experience_years").default(1), // (7) Pengalaman (tahun)
+  bio: text("bio").notNull(), // (8) Bio & Pendekatan Konseling
+  himpsiNumber: text("himpsi_number"), // (9) Keanggotaan HIMPSI
+  customFeeRate: numeric("custom_fee_rate", { precision: 12, scale: 2 }), // Tarif Khusus
+  counselorCommissionRate: numeric("counselor_commission_rate", { precision: 12, scale: 2 }), // Komisi Konselor
+
+  // Izin Praktik (4 Data)
+  sippNumber: text("sipp_number"), // (10) Nomor SIPP / SILP / SIPPK
+  sippExpiresAt: date("sipp_expires_at"), // (11) Tanggal Kadaluarsa SIPP
+  strNumber: text("str_number"), // (12) Nomor STR / SSP
+  strExpiresAt: date("str_expires_at"), // (13) Tanggal Kadaluarsa STR
+
+  // Lampiran Berkas (8 File R2 Keys)
+  avatarR2Url: text("avatar_r2_url"), // (14) Foto Formal (Bucket: solulu-public)
+  ktpR2Key: text("ktp_r2_key"), // (15) Berkas KTP (Bucket: solulu-private)
+  cvR2Key: text("cv_r2_key"), // (16) Berkas CV Terbaru (Bucket: solulu-private)
+  diplomaS1R2Key: text("diploma_s1_r2_key"), // (17) Berkas Ijazah S1 Psikologi
+  diplomaProfesiR2Key: text("diploma_profesi_r2_key"), // (18) Berkas Ijazah Profesi Psikolog
+  strR2Key: text("str_r2_key"), // (19) Berkas STR / SSP
+  sippR2Key: text("sipp_r2_key"), // (20) Berkas SIPP / SILP / SIPPK
+  certificateR2Key: text("certificate_r2_key"), // (21) Berkas Sertifikat / Dokumen Pendukung (opsional)
+
+  // Status & Operasional
   counselorType: counselorTypeEnum("counselor_type").notNull(),
-  bio: text("bio").notNull(),
-  specializations: text("specializations").array(),
-  avatarR2Url: text("avatar_r2_url"), // Bucket: solulu-public
+  verificationStatus: text("verification_status").default("verified").notNull(), // 'pending' | 'verified' | 'rejected'
+  weeklySlotTarget: integer("weekly_slot_target").default(10).notNull(), // Min 10 sesi/minggu
   isActive: boolean("is_active").default(true).notNull(),
   isFeatured: boolean("is_featured").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -156,7 +199,7 @@ export const specializations = pgTable("specializations", {
 });
 
 // =============================================================================
-// 5. SCHEDULES (SLOT MANAGEMENT - 90-MINUTE SESSIONS)
+// 5. SCHEDULES (7 FIXED 2-HOUR SLOTS DAILY)
 // =============================================================================
 export const schedules = pgTable(
   "schedules",
@@ -166,30 +209,39 @@ export const schedules = pgTable(
       .references(() => counselors.id, { onDelete: "cascade" })
       .notNull(),
     date: date("date").notNull(),
-    startTime: time("start_time").notNull(),
-    endTime: time("end_time").notNull(), // Auto-computed startTime + 90 minutes
+    slotIndex: integer("slot_index").default(1).notNull(), // 1 s/d 7
+    startTime: time("start_time").notNull(), // 08:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00
+    endTime: time("end_time").notNull(), // 10:00, 12:00, 14:00, 16:00, 18:00, 20:00, 22:00
     status: scheduleStatusEnum("status").default("available").notNull(),
-    reservedUntil: timestamp("reserved_until", { withTimezone: true }), // 17-minute hold window
+    isLeave: boolean("is_leave").default(false).notNull(), // Cuti / izin mingguan
+    leaveReason: text("leave_reason"),
+    reservedUntil: timestamp("reserved_until", { withTimezone: true }), // 15-30 menit hold window
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    index("idx_schedule_lookup").on(table.date, table.startTime, table.status),
+    index("idx_schedule_lookup").on(table.date, table.slotIndex, table.status),
     index("idx_schedule_counselor").on(table.counselorId, table.date),
   ]
 );
 
 // =============================================================================
-// 6. BOOKINGS (GUEST SESSIONS)
+// 6. BOOKINGS (GUEST SESSIONS WITH 8 CLIENT DATA & ZOOM ALLOCATION)
 // =============================================================================
 export const bookings = pgTable("bookings", {
   id: uuid("id").defaultRandom().primaryKey(),
   accessToken: text("access_token").notNull().unique(), // Nanoid(32) for URL /session/[token]
+  bookingCode: text("booking_code").notNull().default("SL-1001"), // e.g. "SL-4821" for Zoom display name
 
-  // Patient Identity (Guest Checkout)
-  patientName: text("patient_name").notNull(),
-  patientEmail: text("patient_email").notNull(),
-  patientPhone: text("patient_phone").notNull(),
-  initialNotes: text("initial_notes"),
+  // Client Identity (8 Data + Informed Consent)
+  patientName: text("patient_name").notNull(), // (1) Nama Lengkap / Panggilan
+  patientEmail: text("patient_email").notNull(), // (2) Email
+  patientPhone: text("patient_phone").notNull(), // (3) Nomor WhatsApp
+  gender: text("gender").default("Lainnya"), // (4) Jenis Kelamin
+  age: integer("age").default(25), // (5) Umur
+  domicile: text("domicile"), // (6) Domisili
+  religion: text("religion"), // (7) Agama
+  initialNotes: text("initial_notes"), // (8) Catatan / Keluhan Awal
+  informedConsentAcceptedAt: timestamp("informed_consent_accepted_at", { withTimezone: true }), // Checkbox Persetujuan
 
   scheduleId: uuid("schedule_id")
     .references(() => schedules.id)
@@ -197,47 +249,75 @@ export const bookings = pgTable("bookings", {
   counselorId: uuid("counselor_id")
     .references(() => counselors.id)
     .notNull(),
-  screeningId: uuid("screening_id").references(() => screenings.id), // Informative clinical screening
+  screeningId: uuid("screening_id").references(() => screenings.id),
 
   // Triage / Screening Audit (Informative)
   bypassedRecommendation: boolean("bypassed_recommendation").default(false),
   waiverAcceptedAt: timestamp("waiver_accepted_at", { withTimezone: true }),
 
-  // Zoom Meeting Info
+  // 4 Zoom Pro Accounts Dispatcher Info
   zoomAccountId: uuid("zoom_account_id").references(() => zoomAccounts.id),
+  zoomAccountNumber: integer("zoom_account_number").default(1), // 1, 2, 3, or 4
+  zoomAllocationMode: text("zoom_allocation_mode").default("standalone"), // 'standalone' | 'breakout_room'
   zoomMeetingId: text("zoom_meeting_id"),
-  zoomJoinUrl: text("zoom_join_url"), // For Patient
-  zoomStartUrl: text("zoom_start_url"), // For Counselor
+  zoomJoinUrl: text("zoom_join_url"), // Permanent Link for Client
+  zoomStartUrl: text("zoom_start_url"), // Link for Counselor / Host
+  zoomHostKey: text("zoom_host_key"), // 6-digit Host Key for Counselor
+  breakoutRoomName: text("breakout_room_name"), // e.g. "SL-4821 - Dimas (Konselor)"
+  operatorAdmittedAt: timestamp("operator_admitted_at", { withTimezone: true }), // Time admitted to breakout room
 
+  // Payment Method & Manual Verification (Booking Awal)
+  paymentMethod: text("payment_method").default("xendit").notNull(), // 'xendit' | 'manual_bank_transfer'
+  manualPaymentProofR2Key: text("manual_payment_proof_r2_key"),
+  manualPaymentStatus: text("manual_payment_status").default("NONE"), // 'NONE' | 'PENDING' | 'VERIFIED' | 'REJECTED'
+
+  // Extend Session (>90 Menit: Rp 35k Sebaya / Rp 50k Psikolog per 30 Menit)
+  isExtended: boolean("is_extended").default(false).notNull(),
+  extensionMinutes: integer("extension_minutes").default(0).notNull(), // 0, 30, 60
+  extensionFee: numeric("extension_fee", { precision: 12, scale: 2 }).default("0").notNull(),
+  extensionPaymentStatus: text("extension_payment_status").default("NONE").notNull(), // 'NONE' | 'PENDING' | 'PAID'
+  extensionPaymentMethod: text("extension_payment_method"), // 'xendit' | 'manual_bank_transfer'
+  extensionProofR2Key: text("extension_proof_r2_key"),
+
+  // Lifecycle & Reschedule
   status: bookingStatusEnum("status").default("pending_payment").notNull(),
+  rescheduleCount: integer("reschedule_count").default(0).notNull(), // Maksimal 1 kali
+  isFollowedUp: boolean("is_followed_up").default(false).notNull(), // Ditandai setelah Admin kirim WA link laporan
+  followedUpAt: timestamp("followed_up_at", { withTimezone: true }),
+  isNoShow: boolean("is_no_show").default(false).notNull(), // Toleransi hadir 30 menit
+  noShowMarkedAt: timestamp("no_show_marked_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // =============================================================================
-// 7. TRANSACTIONS (XENDIT INTEGRATION)
+// 7. TRANSACTIONS (XENDIT & MANUAL INTEGRATION)
 // =============================================================================
 export const transactions = pgTable("transactions", {
   id: uuid("id").defaultRandom().primaryKey(),
   bookingId: uuid("booking_id")
     .references(() => bookings.id)
     .notNull(),
-  voucherId: uuid("voucher_id").references(() => vouchers.id), // Nullable FK for voucher tracking and rollback
-  xenditInvoiceId: text("xendit_invoice_id").unique(), // Nullable for Manual Bank Transfer
-  xenditPaymentUrl: text("xendit_payment_url"), // Nullable for Manual Bank Transfer
-  paymentProvider: text("payment_provider").default("xendit").notNull(), // 'xendit' | 'manual'
-  paymentMethod: text("payment_method"), // e.g. 'BCA Manual', 'Mandiri Manual', 'QRIS Statis'
-  referenceNumber: text("reference_number"), // Manual transfer ref or Xendit external ID
+  voucherId: uuid("voucher_id").references(() => vouchers.id),
+  xenditInvoiceId: text("xendit_invoice_id").unique(),
+  xenditPaymentUrl: text("xendit_payment_url"),
+  paymentProvider: text("payment_provider").default("xendit").notNull(), // 'xendit' | 'manual_bank_transfer'
+  paymentMethod: text("payment_method"),
+  referenceNumber: text("reference_number"),
   adminNotes: text("admin_notes"),
   grossAmount: numeric("gross_amount", { precision: 12, scale: 2 }).notNull(),
   discountAmount: numeric("discount_amount", { precision: 12, scale: 2 }).default("0").notNull(),
   netAmount: numeric("net_amount", { precision: 12, scale: 2 }).notNull(),
   status: transactionStatusEnum("status").default("PENDING").notNull(),
+  manualProofR2Key: text("manual_proof_r2_key"),
+  isManualVerification: boolean("is_manual_verification").default(false).notNull(),
+  manualVerifiedBy: uuid("manual_verified_by"),
+  manualVerifiedAt: timestamp("manual_verified_at", { withTimezone: true }),
   paidAt: timestamp("paid_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 // =============================================================================
-// 8. CLINICAL SESSION REPORTS
+// 8. CLINICAL SESSION REPORTS (STRICT SEPARATION: CLIENT vs INTERNAL vs ADMIN)
 // =============================================================================
 export const sessionReports = pgTable("session_reports", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -248,10 +328,24 @@ export const sessionReports = pgTable("session_reports", {
   counselorId: uuid("counselor_id")
     .references(() => counselors.id)
     .notNull(),
-  summary: text("summary").notNull(),
-  actionPlan: text("action_plan").notNull(),
+
+  // Client-Visible Fields (Tampil di Web & Cetak PDF Klien)
+  mainIssue: text("main_issue").notNull().default("Konsultasi Emosional & Stres"), // Permasalahan Utama
+  summary: text("summary").notNull(), // Ringkasan Dinamika Sesi
+  actionPlan: text("action_plan"), // Saran / Tindak Lanjut (Opsional)
   followUpRecommendation: text("follow_up_recommendation"),
+
+  // Confidential Fields (RAHASIA: Disembunyikan dari Klien & Admin)
+  internalNotes: text("internal_notes"), // Catatan Internal Konselor
+
+  // Internal Documentation Proof (>1 Foto Dokumentasi Bukti Sesi, Bukan untuk PDF Klien)
   attachmentR2Keys: text("attachment_r2_keys").array(), // Bucket: solulu-private
+
+  // Floating Timer Metadata (Durasi riil sesi 0-120 menit)
+  actualDurationMinutes: integer("actual_duration_minutes").default(90),
+  timerStartedAt: timestamp("timer_started_at", { withTimezone: true }),
+  timerStoppedAt: timestamp("timer_stopped_at", { withTimezone: true }),
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

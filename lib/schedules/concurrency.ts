@@ -240,8 +240,16 @@ export function isSlotBookable(
   startTime: string,
   now: Date = new Date(),
   leadTimeMinutes: number = MIN_BOOKING_LEAD_TIME_MINUTES,
-  maxHorizonDays: number = MAX_BOOKING_HORIZON_DAYS
+  maxHorizonDays: number = MAX_BOOKING_HORIZON_DAYS,
+  isLeave: boolean = false
 ): { bookable: boolean; reason?: string } {
+  if (isLeave) {
+    return {
+      bookable: false,
+      reason: "Mitra konselor sedang izin/cuti praktik pada jadwal ini.",
+    }
+  }
+
   const wib = getNowWIB(now)
   const maxDate = getMaxBookableDateString(now, maxHorizonDays)
 

@@ -19,6 +19,32 @@ export const createScheduleSlotsSchema = z.object({
 
 export type CreateScheduleSlotsInput = z.infer<typeof createScheduleSlotsSchema>
 
+export const toggleScheduleSlotSchema = z.object({
+  date: z.string().regex(dateRegex, "Format tanggal harus YYYY-MM-DD"),
+  slotIndex: z.number().int().min(1, "Index slot minimal 1").max(7, "Index slot maksimal 7"),
+})
+
+export type ToggleScheduleSlotInput = z.infer<typeof toggleScheduleSlotSchema>
+
+export const leaveRequestSchema = z
+  .object({
+    startDate: z.string().regex(dateRegex, "Format tanggal mulai harus YYYY-MM-DD"),
+    endDate: z.string().regex(dateRegex, "Format tanggal selesai harus YYYY-MM-DD"),
+    leaveReason: z.string().min(3, "Alasan cuti/izin minimal 3 karakter"),
+    slotIndices: z.array(z.number().int().min(1).max(7)).optional(),
+  })
+  .refine(
+    (data) => {
+      return data.startDate <= data.endDate
+    },
+    {
+      message: "Tanggal selesai cuti tidak boleh mendahului tanggal mulai",
+      path: ["endDate"],
+    }
+  )
+
+export type LeaveRequestInput = z.infer<typeof leaveRequestSchema>
+
 export const cancelScheduleSlotSchema = z.object({
   scheduleId: z.string().uuid("ID slot harus berupa UUID yang valid"),
 })
@@ -31,3 +57,4 @@ export const catalogFilterSchema = z.object({
 })
 
 export type CatalogFilterInput = z.input<typeof catalogFilterSchema>
+

@@ -15,6 +15,7 @@ export interface CounselorActionResponse<T = any> {
 export interface CounselorUpcomingSessionView {
   id: string
   accessToken: string
+  bookingCode: string
   patientName: string
   patientEmail: string
   patientPhone: string
@@ -26,11 +27,24 @@ export interface CounselorUpcomingSessionView {
   status: "pending_payment" | "confirmed" | "completed" | "cancelled" | "rescheduled"
   zoomStartUrl: string | null
   zoomMeetingId: string | null
+  zoomHostKey: string | null
+  zoomAccountNumber: number | null
+  zoomAllocationMode: "standalone" | "breakout_room" | string | null
+  breakoutRoomName: string | null
+  counselorType: "peer" | "psychologist"
+  counselorName: string
+  isExtended: boolean
+  extensionMinutes: number
+  extensionFee: string | number
+  extensionPaymentStatus: string
   srqScore: number | null
   hasSuicidalThoughts: boolean
   bypassedRecommendation: boolean
   hasReport: boolean
   reportId: string | null
+  actualDurationMinutes: number | null
+  timerStartedAt: string | null
+  timerStoppedAt: string | null
 }
 
 export interface CounselorProfileView {
@@ -50,10 +64,15 @@ export interface SessionReportDetailView {
   id: string
   bookingId: string
   counselorId: string
+  mainIssue?: string
   summary: string
-  actionPlan: string
+  actionPlan: string | null
+  internalNotes?: string | null
   followUpRecommendation: string | null
   attachmentR2Keys: string[]
+  actualDurationMinutes?: number | null
+  timerStartedAt?: string | null
+  timerStoppedAt?: string | null
   createdAt: string
   booking: {
     id: string

@@ -15,6 +15,7 @@ import {
   MAX_PLATFORM_CONCURRENCY,
   isSlotBookable,
   getWIBDateString,
+  MIN_BOOKING_LEAD_TIME_MINUTES,
 } from "@/lib/schedules/concurrency"
 import {
   validateVoucherSchema,
@@ -193,6 +194,7 @@ export interface BookingDependencies {
   checkExistingPendingHold?: (patientEmail: string, patientPhone: string) => Promise<boolean>
   getZoomCapacity?: () => Promise<number>
   now?: () => Date
+  leadTimeMinutes?: number
 }
 
 /**
@@ -373,13 +375,25 @@ export async function executeGetBookingContext(
       }
     }
 
-    const bookableCheck = isSlotBookable(schedule.date, schedule.startTime, now)
+    if (schedule.isLeave) {
+      return {
+        success: false,
+        error: `Slot jadwal ini tidak tersedia karena mitra konselor sedang izin/cuti praktik${
+          schedule.leaveReason ? ` (${schedule.leaveReason})` : ""
+        }.`,
+      }
+    }
+
+    const leadTime = deps?.leadTimeMinutes ?? MIN_BOOKING_LEAD_TIME_MINUTES
+    const bookableCheck = isSlotBookable(schedule.date, schedule.startTime, now, leadTime)
     if (!bookableCheck.bookable) {
       return {
         success: false,
         error:
           bookableCheck.reason ||
-          "Slot jadwal ini sudah tidak dapat dipesan (batas minimal pemesanan 2 jam sebelum sesi dimulai atau jadwal sudah terlewat).",
+          `Slot jadwal ini sudah tidak dapat dipesan (batas minimal pemesanan ${Math.round(
+            leadTime / 60
+          )} jam sebelum sesi dimulai atau jadwal sudah terlewat).`,
       }
     }
 
@@ -529,7 +543,17 @@ export async function executeCreateGuestBooking(
       return { success: false, error: "Slot jadwal tidak ditemukan" }
     }
 
-    const bookableCheck = isSlotBookable(schedule.date, schedule.startTime, now)
+    if (schedule.isLeave) {
+      return {
+        success: false,
+        error: `Slot jadwal ini tidak tersedia karena mitra konselor sedang izin/cuti praktik${
+          schedule.leaveReason ? ` (${schedule.leaveReason})` : ""
+        }.`,
+      }
+    }
+
+    const leadTime = deps?.leadTimeMinutes ?? MIN_BOOKING_LEAD_TIME_MINUTES
+    const bookableCheck = isSlotBookable(schedule.date, schedule.startTime, now, leadTime)
     if (!bookableCheck.bookable) {
       return {
         success: false,

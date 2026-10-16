@@ -15,6 +15,11 @@ describe("Guest Patient Session Page (Issue #8 / Solulu v1)", () => {
       status: "confirmed",
       zoomJoinUrl: "https://zoom.us/j/9876543210?pwd=test_secret_zoom",
       zoomMeetingId: "987 654 3210",
+      bookingCode: "SL-1001",
+      isExtended: false,
+      extensionMinutes: 0,
+      extensionFee: 0,
+      extensionPaymentStatus: "NONE",
       createdAt: "2026-09-28T08:00:00.000Z",
     },
     counselor: {

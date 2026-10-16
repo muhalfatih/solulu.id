@@ -4,6 +4,7 @@ import "./globals.css"
 import { Suspense } from "react"
 import { ThemeProvider } from "@/components/theme-provider"
 import { NavigationProgress } from "@/components/navigation-progress"
+import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 
 import type { Metadata } from "next"
@@ -86,6 +87,7 @@ export default function RootLayout({
             <NavigationProgress />
           </Suspense>
           {children}
+          <Toaster position="top-right" richColors />
         </ThemeProvider>
       </body>
     </html>

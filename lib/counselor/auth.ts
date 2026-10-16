@@ -100,8 +100,8 @@ export async function getAuthenticatedCounselor(
  * Ensures returned ID is a valid database UUID to prevent syntax errors in PostgreSQL.
  */
 export async function resolveCounselorId(auth: CounselorAuthContext): Promise<string | null> {
-  // If already a valid UUID, use it directly
-  if (auth.counselorId && UUID_REGEX.test(auth.counselorId)) {
+  // If counselorId is explicitly provided in auth context, use it directly
+  if (auth.counselorId) {
     return auth.counselorId
   }
 

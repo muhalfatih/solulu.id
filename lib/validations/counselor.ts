@@ -2,7 +2,12 @@ import { z } from "zod"
 
 export const sessionReportSchema = z.object({
   bookingId: z.string().uuid("ID booking tidak valid"),
-  attendanceStatus: z.enum(["attended", "no_show"]).optional(),
+  attendanceStatus: z.enum(["attended", "no_show"]).optional().default("attended"),
+  mainIssue: z
+    .string()
+    .trim()
+    .min(3, "Permasalahan utama wajib diisi (minimal 3 karakter)")
+    .default("Konsultasi Emosional & Stres"),
   summary: z
     .string()
     .trim()
@@ -10,12 +15,19 @@ export const sessionReportSchema = z.object({
   actionPlan: z
     .string()
     .trim()
-    .min(20, "Rencana aksi/tindak lanjut minimal harus berisi 20 karakter"),
+    .refine(
+      (val) => !val || val.length >= 20,
+      "Rencana aksi/tindak lanjut minimal harus berisi 20 karakter jika diisi"
+    )
+    .optional()
+    .nullable(),
+  internalNotes: z.string().trim().optional().nullable(),
   followUpRecommendation: z.string().trim().optional().nullable(),
-  attachmentR2Keys: z.array(z.string().min(1)).optional(),
+  attachmentR2Keys: z.array(z.string().min(1)).optional().default([]),
 })
 
-export type SessionReportInput = z.infer<typeof sessionReportSchema>
+export type SessionReportInput = z.input<typeof sessionReportSchema>
+export type SessionReportOutput = z.output<typeof sessionReportSchema>
 
 export const counselorProfileSchema = z.object({
   title: z

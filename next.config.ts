@@ -4,11 +4,6 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: "/admin/zoom",
-        destination: "/admin/zoom-settings",
-        permanent: true,
-      },
-      {
         source: "/admin/setting",
         destination: "/admin/settings",
         permanent: true,
