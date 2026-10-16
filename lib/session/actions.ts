@@ -14,7 +14,6 @@ import { formatTimeRange } from "@/lib/schedules/concurrency"
 import { formatIndonesianDate } from "@/lib/session/time"
 import { normalizeIndonesianPhone, extensionPaymentSchema } from "@/lib/validations/session"
 import {
-  DEMO_SESSIONS,
   formatRupiah,
   type ActionResponse,
   type SessionPageData,
@@ -81,53 +80,7 @@ export async function getSessionByTokenAction(
       }
     }
 
-    // 2. Demo fallback
-    if (DEMO_SESSIONS[cleanToken]) {
-      const demo = DEMO_SESSIONS[cleanToken]
-      if (cleanToken === "demo-session-ready") {
-        const now = new Date()
-        const start = new Date(now.getTime() + 5 * 60 * 1000)
-        const end = new Date(now.getTime() + 95 * 60 * 1000)
-        const fmtDate = new Intl.DateTimeFormat("en-CA", {
-          timeZone: "Asia/Jakarta",
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        })
-        const fmtTime = new Intl.DateTimeFormat("en-GB", {
-          timeZone: "Asia/Jakarta",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        })
-        const dateStr = fmtDate.format(start)
-        const startTime = fmtTime.format(start)
-        const endTime = fmtTime.format(end)
-
-        return {
-          success: true,
-          data: {
-            ...demo,
-            schedule: {
-              ...demo.schedule,
-              date: dateStr,
-              startTime,
-              endTime,
-              timeRange: `${startTime.slice(0, 5)} – ${endTime.slice(0, 5)} WIB`,
-              formattedDate: formatIndonesianDate(dateStr),
-            },
-          },
-        }
-      }
-
-      return {
-        success: true,
-        data: demo,
-      }
-    }
-
-    // 3. Database query (Zero-Mock Policy & Strict Confidentiality Guard)
+    // 2. Database query (Zero-Mock Policy & Strict Confidentiality Guard)
     const [rows, settingsRows] = await Promise.all([
       db
         .select({
@@ -311,40 +264,7 @@ export async function getClientSessionReportAction(
     }
   }
 
-  // 2. Demo fallback
-  if (DEMO_SESSIONS[cleanToken]) {
-    const demo = DEMO_SESSIONS[cleanToken]
-    const cleanInput = normalizeIndonesianPhone(verificationPhone)
-    const cleanBooking = normalizeIndonesianPhone(demo.booking.patientPhone)
-    if (cleanInput !== cleanBooking && !cleanBooking.endsWith(cleanInput) && !cleanInput.endsWith(cleanBooking)) {
-      return {
-        success: false,
-        error: "Nomor WhatsApp verifikasi tidak cocok dengan data pendaftaran sesi.",
-      }
-    }
-
-    const demoReport: ClientSessionReportView = {
-      id: "demo-rep-1",
-      mainIssue: "Quarter-life Crisis & Kecemasan Regulasi Diri",
-      summary:
-        "Klien mengeksplorasi ketakutan akan pilihan karir, ekspektasi keluarga, serta kebiasaan overthinking di malam hari. Diskusi berjalan reflektif dengan identifikasi akar ketegangan emosional.",
-      actionPlan:
-        "Mempraktikkan teknik mindfulness pernapasan 4-7-8, menyusun batas waktu kerja tanpa layar pada malam hari, dan latihan journaling harian.",
-      followUpRecommendation: "Sesi konseling tindak lanjut disarankan 2 minggu ke depan.",
-      createdAt: new Date().toISOString(),
-    }
-
-    return {
-      success: true,
-      data: {
-        report: demoReport,
-        patientName: demo.booking.patientName,
-        counselorName: demo.counselor.fullName,
-      },
-    }
-  }
-
-  // 3. Real Database Query
+  // 2. Real Database Query
   try {
     const rows = await db
       .select({
@@ -471,34 +391,7 @@ export async function submitExtensionPaymentAction(
       }
     }
 
-    // 2. Demo fallback
-    if (DEMO_SESSIONS[accessToken]) {
-      const demo = DEMO_SESSIONS[accessToken]
-      if (paymentMethod === "manual_bank_transfer") {
-        demo.booking.extensionPaymentStatus = "PENDING"
-        demo.booking.extensionPaymentMethod = "manual_bank_transfer"
-        demo.booking.extensionProofR2Key = proofR2Key || null
-        return {
-          success: true,
-          data: {
-            status: "PENDING",
-            message: "Bukti transfer perpanjangan sesi berhasil dikirim. Menunggu verifikasi admin.",
-          },
-        }
-      } else {
-        demo.booking.extensionPaymentMethod = "xendit"
-        return {
-          success: true,
-          data: {
-            status: "PENDING",
-            message: "Silakan lanjutkan pembayaran melalui gerbang pembayaran Xendit.",
-            paymentUrl: "https://checkout.xendit.co/web/mock_extend_invoice",
-          },
-        }
-      }
-    }
-
-    // 3. Real Database Update
+    // 2. Real Database Update
     const bookingRows = await db
       .select({ id: bookings.id })
       .from(bookings)

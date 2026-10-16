@@ -29,7 +29,7 @@ describe("Drizzle ORM Schema & Migrations", () => {
     expect(schema.transactionStatusEnum).toBeDefined();
     expect(schema.applicationStatusEnum).toBeDefined();
 
-    expect(schema.roleEnum.enumValues).toEqual(["admin", "counselor"]);
+    expect(schema.roleEnum.enumValues).toEqual(["superadmin", "admin", "operator", "counselor"]);
     expect(schema.counselorTypeEnum.enumValues).toEqual(["peer", "psychologist"]);
     expect(schema.scheduleStatusEnum.enumValues).toEqual([
       "available",

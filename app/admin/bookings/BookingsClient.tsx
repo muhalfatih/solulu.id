@@ -71,6 +71,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Spinner } from "@/components/ui/spinner"
+import { FIXED_SLOTS } from "@/lib/operator/types"
 import {
   type AdminBookingItem,
   type BookingCounselorOption,
@@ -86,13 +87,10 @@ interface BookingsClientProps {
 
 const SLOT_OPTIONS = [
   { value: "0", label: "Semua Slot (1-7)" },
-  { value: "1", label: "Slot 1 (08:00 - 10:00)" },
-  { value: "2", label: "Slot 2 (10:00 - 12:00)" },
-  { value: "3", label: "Slot 3 (12:00 - 14:00)" },
-  { value: "4", label: "Slot 4 (14:00 - 16:00)" },
-  { value: "5", label: "Slot 5 (16:00 - 18:00)" },
-  { value: "6", label: "Slot 6 (18:00 - 20:00)" },
-  { value: "7", label: "Slot 7 (20:00 - 22:00)" },
+  ...FIXED_SLOTS.map((slot) => ({
+    value: String(slot.slotIndex),
+    label: `Slot ${slot.slotIndex} (${slot.startTime} - ${slot.endTime})`,
+  })),
 ]
 
 const STATUS_OPTIONS = [

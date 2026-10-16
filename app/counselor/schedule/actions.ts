@@ -352,14 +352,14 @@ export async function toggleSlotAvailabilityAction(
       if (existing.booking?.id || existing.status === "booked") {
         return {
           success: false,
-          error: "Slot ini sudah dipesan oleh pasien dan tidak dapat dinonaktifkan langsung. Silakan hubungi admin operasional untuk bantuan penjadwalan ulang.",
+          error: "Slot ini sudah dipesan oleh klien dan tidak dapat dinonaktifkan langsung. Silakan hubungi admin operasional untuk bantuan penjadwalan ulang.",
         }
       }
 
       if (existing.status === "reserved") {
         return {
           success: false,
-          error: "Slot ini sedang dalam hold proses pembayaran pasien dan tidak dapat dinonaktifkan.",
+          error: "Slot ini sedang dalam hold proses pembayaran klien dan tidak dapat dinonaktifkan.",
         }
       }
 

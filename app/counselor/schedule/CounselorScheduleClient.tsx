@@ -389,14 +389,14 @@ export default function CounselorScheduleClient({
             <div className="flex items-start gap-2">
               <Info className="size-4 shrink-0 text-primary mt-0.5" />
               <span>
-                <strong>Aturan Batas Waktu Pemesanan (H-4):</strong> Pasien hanya dapat memesan slot
+                <strong>Aturan Batas Waktu Pemesanan (H-4):</strong> Klien hanya dapat memesan slot
                 konsultasi dengan jeda waktu minimal 4 jam sebelum jam sesi dimulai.
               </span>
             </div>
             <div className="flex items-start gap-2">
               <Lock className="size-4 shrink-0 text-muted-foreground mt-0.5" />
               <span>
-                <strong>Proteksi Sesi Terpesan:</strong> Slot yang telah dipesan oleh pasien dikunci
+                <strong>Proteksi Sesi Terpesan:</strong> Slot yang telah dipesan oleh klien dikunci
                 secara permanen dan tidak dapat dimatikan langsung oleh konselor.
               </span>
             </div>
@@ -565,7 +565,7 @@ export default function CounselorScheduleClient({
                                   Alasan: {cell.leaveReason || "Tidak ada keterangan"}
                                 </p>
                                 <p className="text-[10px] text-muted-foreground mt-1">
-                                  Pasien tidak dapat memesan jadwal ini.
+                                  Klien tidak dapat memesan jadwal ini.
                                 </p>
                               </TooltipContent>
                             </Tooltip>
@@ -624,12 +624,12 @@ export default function CounselorScheduleClient({
                               <TooltipTrigger asChild>
                                 <div className="flex flex-col items-center justify-center p-2 rounded-lg border border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300 gap-1 text-center cursor-not-allowed">
                                   <Lock className="size-3.5 text-blue-600 shrink-0" />
-                                  <span className="text-xs font-bold">Hold Pasien</span>
+                                  <span className="text-xs font-bold">Hold Klien</span>
                                   <span className="text-[10px] text-muted-foreground">Transaksi</span>
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent side="top" className="text-xs">
-                                <p>Sedang dalam hold proses pembayaran pasien (15-30 menit).</p>
+                                <p>Sedang dalam hold proses pembayaran klien (15-30 menit).</p>
                               </TooltipContent>
                             </Tooltip>
                           </td>
@@ -747,7 +747,7 @@ export default function CounselorScheduleClient({
             </DialogTitle>
             <DialogDescription>
               Tandai tanggal di mana Anda tidak dapat melayani sesi konseling. Sistem akan secara
-              otomatis menutup slot dan mencegah pasien memesan jadwal tersebut.
+              otomatis menutup slot dan mencegah klien memesan jadwal tersebut.
             </DialogDescription>
           </DialogHeader>
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { getSessionByTokenAction } from "@/lib/session/actions"
-import { DEMO_SESSIONS, type SessionPageData } from "@/lib/session/types"
+import type { SessionPageData } from "@/lib/session/types"
 
 describe("Session Data Fetching Action (Issue #8)", () => {
   const mockSessionData: SessionPageData = {
@@ -87,14 +87,18 @@ describe("Session Data Fetching Action (Issue #8)", () => {
     expect(res.error).toContain("tidak ditemukan")
   })
 
-  it("resolves built-in demo tokens for testing and preview", async () => {
-    const resUpcoming = await getSessionByTokenAction("demo-session-upcoming")
-    expect(resUpcoming.success).toBe(true)
-    expect(resUpcoming.data?.booking.accessToken).toBe("demo-session-upcoming")
-    expect(resUpcoming.data?.counselor.fullName).toBe("Sarah Annisa, M.Psi., Psikolog")
-
-    const resPendingZoom = await getSessionByTokenAction("demo-session-pending-zoom")
-    expect(resPendingZoom.success).toBe(true)
-    expect(resPendingZoom.data?.booking.zoomJoinUrl).toBeNull()
+  it("resolves sessions with null zoom link correctly when pending", async () => {
+    const pendingSession = {
+      ...mockSessionData,
+      booking: {
+        ...mockSessionData.booking,
+        zoomJoinUrl: null,
+      },
+    }
+    const res = await getSessionByTokenAction("valid-test-token-1234567890123456", {
+      findBookingByAccessToken: async () => pendingSession,
+    })
+    expect(res.success).toBe(true)
+    expect(res.data?.booking.zoomJoinUrl).toBeNull()
   })
 })

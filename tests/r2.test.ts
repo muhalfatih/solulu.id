@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterAll } from "vitest"
 import {
   getR2Config,
   generateR2Key,
@@ -8,6 +8,17 @@ import {
 } from "../lib/r2"
 
 describe("R2 Cloudflare S3 Client (lib/r2.ts)", () => {
+  const originalEnv = { ...process.env }
+
+  beforeEach(() => {
+    delete process.env.R2_PUBLIC_BUCKET_NAME
+    delete process.env.R2_PRIVATE_BUCKET_NAME
+  })
+
+  afterAll(() => {
+    process.env = originalEnv
+  })
+
   it("resolves default configuration and endpoints", () => {
     const config = getR2Config()
     expect(config.publicBucketName).toBe("solulu-public")

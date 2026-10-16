@@ -267,7 +267,7 @@ export default function AdminSettingsPage() {
         {/* Banner Hak Akses Superadmin */}
         {!isLoading && (
           <Alert
-            variant={isSuperadmin ? "default" : "secondary"}
+            variant="default"
             className={`border ${
               isSuperadmin
                 ? "bg-primary/5 border-primary/20"

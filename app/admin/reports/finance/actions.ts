@@ -27,7 +27,7 @@ export type { FinanceLedgerItem, FinanceReportMetrics, FinanceReportFilters }
  */
 export async function getFinanceReportDataAction(params?: {
   filters?: FinanceReportFilters
-  currentUser?: AdminAuthContext["user"]
+  currentUser?: AdminAuthContext | null
   fetchFn?: () => Promise<FinanceLedgerItem[]>
 }) {
   const admin = await getAuthenticatedAdmin(params?.currentUser)

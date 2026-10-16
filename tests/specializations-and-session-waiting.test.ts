@@ -5,7 +5,7 @@ import {
   updateSpecializationAction,
   toggleSpecializationAction,
 } from "@/app/admin/specializations/actions"
-import { DEMO_SESSIONS } from "@/lib/session/types"
+import { DEMO_SESSIONS } from "./fixtures/demo-sessions"
 
 describe("Revision Features: R2 Domain, Specializations, and Payment Waiting Room", () => {
   describe("1. R2 Custom Domain URL Resolution", () => {

@@ -44,7 +44,7 @@ describe("Ticket 1: Core App Shell & Navigation", () => {
       // Mandatory items from Ticket 1 acceptance criteria:
       // Dashboard (Today's Sessions), Weekly Schedule, Counselor Profile
       expect(hrefs).toContain("/counselor/dashboard")
-      expect(hrefs).toContain("/counselor/schedules")
+      expect(hrefs).toContain("/counselor/schedule")
       expect(hrefs).toContain("/counselor/profile")
     })
 
