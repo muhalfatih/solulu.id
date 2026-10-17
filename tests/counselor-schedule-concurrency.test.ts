@@ -10,6 +10,7 @@ import {
   filterSlotsByConcurrencyGuard,
   MAX_PLATFORM_CONCURRENCY,
   SESSION_DURATION_MINUTES,
+  getWIBDateString,
 } from "../lib/schedules/concurrency"
 import {
   createScheduleSlotsSchema,
@@ -398,11 +399,15 @@ describe("Issue #5: Counselor Schedule Management & Concurrency Guard", () => {
     })
 
     it("hides slots when platform concurrency capacity >= 2 and filters by date", async () => {
+      const testDate = new Date()
+      testDate.setDate(testDate.getDate() + 2)
+      const testDateStr = getWIBDateString(testDate)
+
       const candidateSlots = [
         {
           id: "slot-1",
           counselorId: "c-1",
-          date: "2026-10-15",
+          date: testDateStr,
           startTime: "19:00",
           endTime: "20:30",
           status: "available",
@@ -410,23 +415,23 @@ describe("Issue #5: Counselor Schedule Management & Concurrency Guard", () => {
         {
           id: "slot-2",
           counselorId: "c-2",
-          date: "2026-10-15",
+          date: testDateStr,
           startTime: "10:00",
           endTime: "11:30",
           status: "available",
         },
       ]
 
-      // Active sessions on 2026-10-15: 2 sessions running at 19:00!
+      // Active sessions on testDate: 2 sessions running at 19:00!
       const activeSessions: Record<string, any[]> = {
-        "2026-10-15": [
+        [testDateStr]: [
           { startTime: "19:00", endTime: "20:30", status: "confirmed" },
           { startTime: "19:30", endTime: "21:00", status: "reserved" },
         ],
       }
 
       const res = await getCounselorsCatalogAction(
-        { date: "2026-10-15" },
+        { date: testDateStr },
         {
           getCounselors: async () => mockCounselors,
           getPricing: async () => mockPricing,

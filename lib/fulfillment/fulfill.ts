@@ -1,57 +1,115 @@
-import { eq } from "drizzle-orm"
+import { eq, and, inArray, asc } from "drizzle-orm"
 import { db } from "@/db"
-import { bookings, counselors, schedules, transactions, zoomAccounts } from "@/db/schema"
-import { allocateZoomAccount } from "./allocate-zoom"
+import { bookings, counselors, schedules, zoomAccounts } from "@/db/schema"
 import { getZoomAccessToken, createZoomMeeting } from "@/lib/zoom/client"
 import { formatTimeRange } from "@/lib/schedules/concurrency"
 import { formatIndonesianDate } from "@/lib/session/time"
+import {
+  dispatchZoomForSession,
+  formatBreakoutRoomName,
+} from "@/lib/operator/dispatcher"
 import {
   sendPatientConfirmationEmail,
   sendCounselorNotificationEmail,
 } from "./emails"
 
-export interface FulfillBookingDependencies {
+export interface FulfillSessionOptions {
+  source?: "xendit" | "manual_bank" | "admin_bypass"
+  manualMeetingUrl?: string
+  skipEmails?: boolean
+}
+
+export interface FulfillSessionAdapters {
+  zoomClient?: {
+    getAccessToken?: typeof getZoomAccessToken
+    createMeeting?: typeof createZoomMeeting
+  }
+  notifier?: {
+    sendPatientEmail?: typeof sendPatientConfirmationEmail
+    sendCounselorEmail?: typeof sendCounselorNotificationEmail
+  }
+  // Internal test shims for isolated environments
   fetchBookingData?: (bookingId: string) => Promise<any>
-  allocateAccount?: typeof allocateZoomAccount
+  getZoomAccount?: (accountNumber: number) => Promise<any>
+}
+
+// Backward compatibility alias for legacy test callers
+export type FulfillBookingDependencies = FulfillSessionAdapters & {
+  allocateAccount?: (date: string, startTime: string, endTime: string) => Promise<any>
   getAccessToken?: typeof getZoomAccessToken
   createMeeting?: typeof createZoomMeeting
   sendPatientEmail?: typeof sendPatientConfirmationEmail
   sendCounselorEmail?: typeof sendCounselorNotificationEmail
+  dispatchZoom?: typeof dispatchZoomForSession
 }
 
-export interface FulfillBookingResult {
+export type FulfillSessionDependencies = FulfillBookingDependencies
+
+export interface FulfillSessionResult {
   success: boolean
   bookingId: string
   zoomJoinUrl?: string | null
   zoomStartUrl?: string | null
   zoomMeetingId?: string | null
   zoomAccountId?: string | null
+  zoomAccountNumber?: number
+  zoomAllocationMode?: "standalone" | "breakout_room"
+  breakoutRoomName?: string | null
+  zoomRoom?: string
   error?: string
 }
 
+export type FulfillBookingResult = FulfillSessionResult
+
 /**
- * Executes decoupled fulfillment for a booked session:
- * 1. Allocates available Zoom Pro account dynamically
- * 2. Creates 90-minute Zoom meeting room
- * 3. Persists join/start URLs to bookings table
- * 4. Sends confirmation emails to both patient and counselor
+ * Deep Module: Pemenuhan Sesi (Session Fulfillment)
+ *
+ * Canonical, unified post-payment execution for Solulu consultation sessions:
+ * 1. Single Seam: Handles Xendit Webhooks, Admin Manual Bank Transfer, and Admin Rp0 Bypass.
+ * 2. Idempotency Invariant: Returns existing meeting URLs if already fulfilled.
+ * 3. Master SOP 4-Zoom Hybrid Dispatcher (ADR-0005):
+ *    - Ranks 1..3: Zoom 1, 2, 3 (standalone)
+ *    - Rank 4: Zoom 4 (standalone if total <= 4; breakout if total > 4)
+ *    - Ranks 5..10: Zoom 4 in Breakout Room guided by Operator.
+ * 4. External URL Override: Seamlessly records manual meeting URLs (e.g. Google Meet fallback)
+ *    without invoking Zoom S2S APIs.
+ * 5. Payment Resilience Invariant (CONTEXT.md): On Zoom API error, locks booking to 'confirmed'
+ *    and schedule to 'booked' so patient payment is never lost.
+ * 6. Transactional Notifications: Asynchronously notifies Klien and Mitra Konselor via Resend.
  */
-export async function fulfillBooking(
+export async function fulfillSession(
   bookingId: string,
-  deps: FulfillBookingDependencies = {}
-): Promise<FulfillBookingResult> {
+  optionsOrDeps: FulfillSessionOptions | FulfillSessionDependencies = {},
+  maybeAdapters: FulfillSessionAdapters = {}
+): Promise<FulfillSessionResult> {
   try {
     if (!bookingId) {
       return { success: false, bookingId: "", error: "Booking ID wajib diisi" }
     }
 
-    // 1. Fetch Booking, Counselor, Schedule, and Counselor User record
+    // Resolve unified options vs legacy callback bag
+    const isLegacyBag =
+      "fetchBookingData" in optionsOrDeps ||
+      "createMeeting" in optionsOrDeps ||
+      "sendPatientEmail" in optionsOrDeps ||
+      "allocateAccount" in optionsOrDeps ||
+      "getAccessToken" in optionsOrDeps
+
+    const options: FulfillSessionOptions = isLegacyBag
+      ? {}
+      : (optionsOrDeps as FulfillSessionOptions)
+
+    const adapters: FulfillSessionAdapters = isLegacyBag
+      ? (optionsOrDeps as FulfillSessionDependencies)
+      : maybeAdapters
+
+    // 1. Fetch Booking, Counselor, and Schedule
     let bookingRow: any
     let counselorRow: any
     let scheduleRow: any
 
-    if (deps.fetchBookingData) {
-      const data = await deps.fetchBookingData(bookingId)
+    if (adapters.fetchBookingData) {
+      const data = await adapters.fetchBookingData(bookingId)
       if (!data) {
         return {
           success: false,
@@ -88,7 +146,7 @@ export async function fulfillBooking(
       scheduleRow = rows[0].schedule
     }
 
-    // Check if Zoom room is already generated (idempotency)
+    // 2. Idempotency Guard: return existing room if already generated
     if (bookingRow.zoomJoinUrl && bookingRow.zoomStartUrl) {
       return {
         success: true,
@@ -97,30 +155,154 @@ export async function fulfillBooking(
         zoomStartUrl: bookingRow.zoomStartUrl,
         zoomMeetingId: bookingRow.zoomMeetingId,
         zoomAccountId: bookingRow.zoomAccountId,
+        zoomAccountNumber: bookingRow.zoomAccountNumber || 1,
+        zoomAllocationMode: bookingRow.zoomAllocationMode || "standalone",
+        breakoutRoomName: bookingRow.breakoutRoomName || null,
       }
     }
 
-    // 2. Allocate an available Zoom Pro account
-    const allocateFn = deps.allocateAccount ?? allocateZoomAccount
-    const allocation = await allocateFn(
-      scheduleRow.date,
-      scheduleRow.startTime,
-      scheduleRow.endTime
+    const breakoutName = formatBreakoutRoomName(
+      bookingRow.bookingCode || "SL-1001",
+      counselorRow.fullName
     )
 
-    if (!allocation.success || !allocation.account) {
+    // 3. Handle Manual Meeting URL Override (e.g. Google Meet Fallback)
+    const manualUrl = options.manualMeetingUrl || bookingRow.zoomJoinUrl
+    if (manualUrl && !manualUrl.includes("zoom.us")) {
+      if (!adapters.fetchBookingData) {
+        await db
+          .update(bookings)
+          .set({
+            status: "confirmed",
+            zoomJoinUrl: manualUrl,
+            zoomStartUrl: manualUrl,
+            zoomAllocationMode: "standalone",
+            breakoutRoomName: null,
+          })
+          .where(eq(bookings.id, bookingId))
+
+        await db
+          .update(schedules)
+          .set({ status: "booked" })
+          .where(eq(schedules.id, scheduleRow.id))
+      }
+
+      await dispatchNotifications({
+        bookingRow: { ...bookingRow, zoomJoinUrl: manualUrl },
+        counselorRow,
+        scheduleRow,
+        options,
+        adapters,
+      })
+
       return {
-        success: false,
+        success: true,
         bookingId,
-        error: allocation.error || "Gagal mengalokasikan akun Zoom",
+        zoomJoinUrl: manualUrl,
+        zoomStartUrl: manualUrl,
+        zoomAllocationMode: "standalone",
+        zoomRoom: "External Meeting Link",
       }
     }
 
-    const assignedAccount = allocation.account
+    // 4. Determine Zoom Account & Allocation Mode via Master SOP 4-Zoom Dispatcher
+    let targetAccountNumber = 1
+    let targetMode: "standalone" | "breakout_room" = "standalone"
+    let assignedAccount: any
 
-    // 3. Create Zoom Meeting via S2S OAuth
-    const getAccessTokenFn = deps.getAccessToken ?? getZoomAccessToken
-    const createMeetingFn = deps.createMeeting ?? createZoomMeeting
+    const legacyDeps = optionsOrDeps as FulfillBookingDependencies
+    if (legacyDeps.allocateAccount) {
+      const allocation = await legacyDeps.allocateAccount(
+        scheduleRow.date,
+        scheduleRow.startTime,
+        scheduleRow.endTime
+      )
+      if (!allocation.success || !allocation.account) {
+        return {
+          success: false,
+          bookingId,
+          error: allocation.error || "Gagal mengalokasikan akun Zoom",
+        }
+      }
+      assignedAccount = allocation.account
+      targetAccountNumber = (assignedAccount as any).accountNumber || 1
+      targetMode = targetAccountNumber === 4 ? "breakout_room" : "standalone"
+    } else {
+      // Deterministic slot ranking based on (date, slotIndex)
+      const slotIndex = scheduleRow.slotIndex || 1
+      let sessionRank = 1
+      let totalInSlot = 1
+
+      if (!adapters.fetchBookingData) {
+        const slotSessions = await db
+          .select({ id: bookings.id })
+          .from(bookings)
+          .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
+          .where(
+            and(
+              eq(schedules.date, scheduleRow.date),
+              eq(schedules.slotIndex, slotIndex),
+              inArray(bookings.status, ["confirmed", "pending_payment"])
+            )
+          )
+          .orderBy(asc(bookings.createdAt))
+
+        const existingIndex = slotSessions.findIndex((s) => s.id === bookingId)
+        sessionRank = existingIndex >= 0 ? existingIndex + 1 : slotSessions.length + 1
+        totalInSlot = Math.max(1, Math.max(slotSessions.length, sessionRank))
+      }
+
+      const dispatchFn = legacyDeps.dispatchZoom ?? dispatchZoomForSession
+      const dispatchResult = dispatchFn(sessionRank, totalInSlot)
+      targetAccountNumber = dispatchResult.accountNumber
+      targetMode = dispatchResult.mode
+
+      if (adapters.getZoomAccount) {
+        assignedAccount = await adapters.getZoomAccount(targetAccountNumber)
+      } else {
+        const matchingAccounts = await db
+          .select()
+          .from(zoomAccounts)
+          .where(
+            and(
+              eq(zoomAccounts.accountNumber, targetAccountNumber),
+              eq(zoomAccounts.isActive, true)
+            )
+          )
+          .limit(1)
+
+        if (matchingAccounts.length > 0) {
+          assignedAccount = matchingAccounts[0]
+        } else {
+          // Fallback to any active account
+          const anyActive = await db
+            .select()
+            .from(zoomAccounts)
+            .where(eq(zoomAccounts.isActive, true))
+            .limit(1)
+          assignedAccount = anyActive[0]
+        }
+      }
+
+      if (!assignedAccount) {
+        return {
+          success: false,
+          bookingId,
+          error: "Tidak ada akun Zoom Pro aktif yang terkonfigurasi di sistem.",
+        }
+      }
+    }
+
+    // 5. Create Zoom Meeting via S2S OAuth Client Port
+    const getAccessTokenFn =
+      adapters.zoomClient?.getAccessToken ??
+      legacyDeps.getAccessToken ??
+      getZoomAccessToken
+
+    const createMeetingFn =
+      adapters.zoomClient?.createMeeting ??
+      legacyDeps.createMeeting ??
+      createZoomMeeting
 
     let joinUrl: string
     let startUrl: string
@@ -138,9 +320,19 @@ export async function fulfillBooking(
       startUrl = meetingResult.startUrl
       meetingId = meetingResult.meetingId
     } catch (zoomErr: any) {
-      // If Zoom API fails, keep booking confirmed so money isn't lost (per CONTEXT.md)
-      // The session page displays "Zoom sedang disiapkan" (US-24)
-      console.error("Zoom API meeting creation error:", zoomErr)
+      console.error("[SESSION FULFILLMENT] Zoom API creation error:", zoomErr)
+      // Resilience Invariant (CONTEXT.md): Persist 'confirmed' so patient payment is never lost
+      if (!adapters.fetchBookingData) {
+        await db
+          .update(bookings)
+          .set({ status: "confirmed" })
+          .where(eq(bookings.id, bookingId))
+
+        await db
+          .update(schedules)
+          .set({ status: "booked" })
+          .where(eq(schedules.id, scheduleRow.id))
+      }
       return {
         success: false,
         bookingId,
@@ -148,58 +340,41 @@ export async function fulfillBooking(
       }
     }
 
-    // 4. Persist Zoom meeting info to database
-    if (!deps.fetchBookingData) {
+    // 6. Persist Confirmed Status & Zoom Details to Database
+    if (!adapters.fetchBookingData) {
       await db
         .update(bookings)
         .set({
+          status: "confirmed",
           zoomAccountId: assignedAccount.id,
+          zoomAccountNumber: targetAccountNumber,
+          zoomAllocationMode: targetMode,
           zoomMeetingId: meetingId,
           zoomJoinUrl: joinUrl,
           zoomStartUrl: startUrl,
-          status: "confirmed",
+          zoomHostKey: assignedAccount.hostKey || null,
+          breakoutRoomName: breakoutName,
         })
         .where(eq(bookings.id, bookingId))
 
-      // Also ensure schedule is booked
       await db
         .update(schedules)
         .set({ status: "booked" })
         .where(eq(schedules.id, scheduleRow.id))
     }
 
-    // 5. Send Transactional Emails (Patient & Counselor)
-    const formattedDate = formatIndonesianDate(scheduleRow.date)
-    const timeRange = formatTimeRange(
-      scheduleRow.startTime,
-      scheduleRow.endTime
-    )
-
-    const sendPatientFn =
-      deps.sendPatientEmail ?? sendPatientConfirmationEmail
-    const sendCounselorFn =
-      deps.sendCounselorEmail ?? sendCounselorNotificationEmail
-
-    // Non-blocking email dispatches
-    await Promise.allSettled([
-      sendPatientFn({
-        patientEmail: bookingRow.patientEmail,
-        patientName: bookingRow.patientName,
-        counselorName: counselorRow.fullName,
-        date: formattedDate,
-        timeRange,
+    // 7. Dispatch Transactional Confirmation Emails
+    await dispatchNotifications({
+      bookingRow: {
+        ...bookingRow,
+        zoomJoinUrl: joinUrl,
         accessToken: bookingRow.accessToken,
-      }),
-      // Counselor email (from counselor application or counselor record email)
-      sendCounselorFn({
-        counselorEmail: counselorRow.email || "counselor@solulu.id",
-        counselorName: counselorRow.fullName,
-        patientName: bookingRow.patientName,
-        date: formattedDate,
-        timeRange,
-        initialNotes: bookingRow.initialNotes,
-      }),
-    ])
+      },
+      counselorRow,
+      scheduleRow,
+      options,
+      adapters,
+    })
 
     return {
       success: true,
@@ -208,6 +383,10 @@ export async function fulfillBooking(
       zoomStartUrl: startUrl,
       zoomMeetingId: meetingId,
       zoomAccountId: assignedAccount.id,
+      zoomAccountNumber: targetAccountNumber,
+      zoomAllocationMode: targetMode,
+      breakoutRoomName: breakoutName,
+      zoomRoom: assignedAccount.name,
     }
   } catch (error: any) {
     return {
@@ -217,3 +396,57 @@ export async function fulfillBooking(
     }
   }
 }
+
+async function dispatchNotifications({
+  bookingRow,
+  counselorRow,
+  scheduleRow,
+  options,
+  adapters,
+}: {
+  bookingRow: any
+  counselorRow: any
+  scheduleRow: any
+  options: FulfillSessionOptions
+  adapters: FulfillSessionAdapters
+}) {
+  if (options.skipEmails) return
+
+  const legacyDeps = adapters as FulfillBookingDependencies
+  const sendPatientFn =
+    adapters.notifier?.sendPatientEmail ??
+    legacyDeps.sendPatientEmail ??
+    sendPatientConfirmationEmail
+
+  const sendCounselorFn =
+    adapters.notifier?.sendCounselorEmail ??
+    legacyDeps.sendCounselorEmail ??
+    sendCounselorNotificationEmail
+
+  const formattedDate = formatIndonesianDate(scheduleRow.date)
+  const timeRange = formatTimeRange(scheduleRow.startTime, scheduleRow.endTime)
+
+  await Promise.allSettled([
+    sendPatientFn({
+      patientEmail: bookingRow.patientEmail,
+      patientName: bookingRow.patientName,
+      counselorName: counselorRow.fullName,
+      date: formattedDate,
+      timeRange,
+      accessToken: bookingRow.accessToken,
+    }),
+    sendCounselorFn({
+      counselorEmail: counselorRow.email || "counselor@solulu.id",
+      counselorName: counselorRow.fullName,
+      patientName: bookingRow.patientName,
+      date: formattedDate,
+      timeRange,
+      initialNotes: bookingRow.initialNotes,
+    }),
+  ])
+}
+
+/**
+ * Backward compatibility alias for legacy callers
+ */
+export const fulfillBooking = fulfillSession

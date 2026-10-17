@@ -18,8 +18,7 @@ import {
   adminManualBookingSchema,
   type AdminManualBookingInput,
 } from "@/lib/validations/admin-manual-booking"
-import { allocateZoomAccount } from "@/lib/fulfillment/allocate-zoom"
-import { getZoomAccessToken, createZoomMeeting } from "@/lib/zoom/client"
+import { fulfillSession } from "@/lib/fulfillment/fulfill"
 import { getActiveZoomCapacity } from "@/lib/zoom/active-capacity"
 
 /**
@@ -242,9 +241,9 @@ export async function createAdminManualBookingAction(
     insertBookingFn?: (booking: any) => Promise<any>
     insertTransactionFn?: (tx: any) => Promise<any>
     sendEmailFn?: (payload: any) => Promise<any>
-    allocateZoomFn?: typeof allocateZoomAccount
-    getZoomAccessTokenFn?: typeof getZoomAccessToken
-    createZoomMeetingFn?: typeof createZoomMeeting
+    allocateZoomFn?: (date: string, start: string, end: string) => Promise<any>
+    getZoomAccessTokenFn?: (account: any) => Promise<string>
+    createZoomMeetingFn?: (token: string, input: any) => Promise<any>
   }
 ) {
   const admin = await getAuthenticatedAdmin(options?.currentUser)
@@ -398,59 +397,7 @@ export async function createAdminManualBookingAction(
     // 3. Generate 32-character Token Sesi
     const accessToken = generateSessionAccessToken()
 
-    // 4. Determine Meeting URL & Zoom details
-    let zoomJoinUrl: string | null = null
-    let zoomStartUrl: string | null = null
-    let zoomAccountId: string | null = null
-    let zoomMeetingId: string | null = null
-
-    if (data.createZoom && !data.manualMeetingUrl) {
-      try {
-        const allocateFn = options?.allocateZoomFn ?? allocateZoomAccount
-        const alloc = await allocateFn(scheduleDate, scheduleStartTime, scheduleEndTime)
-        if (alloc.success && alloc.account) {
-          zoomAccountId = alloc.account.id
-          const tokenFn = options?.getZoomAccessTokenFn ?? getZoomAccessToken
-          const token = await tokenFn(alloc.account)
-          const createMeetingFn = options?.createZoomMeetingFn ?? createZoomMeeting
-          const meeting = await createMeetingFn(token, {
-            topic: `Solulu Sesi Konseling - ${counselor.fullName}`,
-            startTime: `${scheduleDate}T${scheduleStartTime}:00`,
-            durationMinutes: 90,
-          })
-          zoomMeetingId = meeting.meetingId
-          zoomJoinUrl = meeting.joinUrl
-          zoomStartUrl = meeting.startUrl
-        } else if (process.env.NODE_ENV === "test") {
-          const testMeetingNum = "88812345678"
-          zoomMeetingId = testMeetingNum
-          zoomJoinUrl = `https://zoom.us/j/${testMeetingNum}`
-          zoomStartUrl = `https://zoom.us/s/${testMeetingNum}`
-        } else {
-          return {
-            success: false,
-            error: `Gagal alokasi akun Zoom: ${alloc.error || "Tidak ada akun Zoom Pro yang tersedia."}`,
-          }
-        }
-      } catch (zoomErr: any) {
-        if (process.env.NODE_ENV === "test") {
-          const testMeetingNum = "88812345678"
-          zoomMeetingId = testMeetingNum
-          zoomJoinUrl = `https://zoom.us/j/${testMeetingNum}`
-          zoomStartUrl = `https://zoom.us/s/${testMeetingNum}`
-        } else {
-          return {
-            success: false,
-            error: `Gagal membuat ruang meeting di Zoom API: ${zoomErr.message}`,
-          }
-        }
-      }
-    } else if (data.manualMeetingUrl) {
-      zoomJoinUrl = data.manualMeetingUrl
-      zoomStartUrl = data.manualMeetingUrl
-    }
-
-    // 5. Insert Booking
+    // 4. Insert Booking
     const bookingPayload = {
       accessToken,
       patientName: data.patientName,
@@ -460,10 +407,10 @@ export async function createAdminManualBookingAction(
       scheduleId: scheduleId!,
       counselorId: data.counselorId,
       status: "confirmed",
-      zoomAccountId,
-      zoomMeetingId,
-      zoomJoinUrl,
-      zoomStartUrl,
+      zoomAccountId: null,
+      zoomMeetingId: null,
+      zoomJoinUrl: data.manualMeetingUrl || null,
+      zoomStartUrl: data.manualMeetingUrl || null,
     }
 
     let bookingRecord: any = null
@@ -477,7 +424,7 @@ export async function createAdminManualBookingAction(
       bookingRecord = inserted
     }
 
-    // 6. Insert Rp0 Audit Transaction
+    // 5. Insert Rp0 Audit Transaction
     const normalPrice = counselor.counselorType === "psychologist" ? "130000.00" : "85000.00"
     const txPayload = {
       bookingId: bookingRecord.id,
@@ -503,21 +450,54 @@ export async function createAdminManualBookingAction(
       transactionRecord = insertedTx
     }
 
-    // 7. Optional Email Confirmation
-    if (data.sendConfirmationEmail && options?.sendEmailFn) {
-      try {
-        await options.sendEmailFn({
-          patientEmail: data.patientEmail,
-          patientName: data.patientName,
-          counselorName: counselor.fullName,
-          accessToken,
-          date: scheduleDate,
-          time: `${scheduleStartTime} – ${scheduleEndTime} WIB`,
-          zoomJoinUrl,
-        })
-      } catch (emailErr) {
-        console.error("Failed to send manual booking confirmation email:", emailErr)
+    // 6. Delegate technical fulfillment to the deep Session Fulfillment module
+    const fulfillResult = await fulfillSession(
+      bookingRecord.id,
+      {
+        source: "admin_bypass",
+        manualMeetingUrl: data.manualMeetingUrl || undefined,
+        skipEmails: !data.sendConfirmationEmail,
+      },
+      {
+        zoomClient: {
+          getAccessToken: options?.getZoomAccessTokenFn,
+          createMeeting: options?.createZoomMeetingFn,
+        },
+        notifier: {
+          sendPatientEmail: options?.sendEmailFn
+            ? async (p) => {
+                await options.sendEmailFn!({
+                  patientEmail: p.patientEmail,
+                  patientName: p.patientName,
+                  counselorName: p.counselorName,
+                  accessToken: p.accessToken,
+                  date: p.date,
+                  time: p.timeRange,
+                  zoomJoinUrl: bookingRecord.zoomJoinUrl,
+                })
+              }
+            : undefined,
+        },
+        allocateAccount: options?.allocateZoomFn,
+        fetchBookingData: options?.insertBookingFn
+          ? async () => ({
+              booking: bookingRecord,
+              counselor,
+              schedule: {
+                id: scheduleId,
+                date: scheduleDate,
+                startTime: scheduleStartTime,
+                endTime: scheduleEndTime,
+              },
+            })
+          : undefined,
       }
+    )
+
+    if (fulfillResult.zoomJoinUrl) {
+      bookingRecord.zoomJoinUrl = fulfillResult.zoomJoinUrl
+      bookingRecord.zoomStartUrl = fulfillResult.zoomStartUrl
+      bookingRecord.zoomMeetingId = fulfillResult.zoomMeetingId
     }
 
     try {

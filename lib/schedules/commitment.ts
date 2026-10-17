@@ -1,4 +1,4 @@
-import { FIXED_SLOTS, type FixedSlot } from "@/lib/operator/types"
+import { FIXED_SLOTS, type FixedSlot } from "@/lib/schedules/slots"
 import { getNowWIB, parseTimeToMinutes } from "@/lib/schedules/concurrency"
 
 export const MIN_WEEKLY_SLOTS_TARGET = 10

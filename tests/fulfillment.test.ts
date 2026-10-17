@@ -1,116 +1,86 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import { allocateZoomAccount } from "@/lib/fulfillment/allocate-zoom"
-import { fulfillBooking } from "@/lib/fulfillment/fulfill"
+import { describe, it, expect, vi } from "vitest"
+import { fulfillSession, fulfillBooking } from "@/lib/fulfillment/fulfill"
 import { confirmManualPayment } from "@/lib/fulfillment/manual"
 import { POST as xenditWebhookHandler } from "@/app/api/webhooks/xendit/route"
 import { POST as fulfillJobHandler } from "@/app/api/jobs/fulfill-booking/route"
 
-describe("Decoupled Fulfillment & Dynamic Zoom Allocation (Issue #8 / Solulu v1)", () => {
+describe("Deep Module: Session Fulfillment (Pemenuhan Sesi & Dispatcher 4 Zoom)", () => {
   const mockZoomAccounts = [
     {
       id: "zoom-acc-1",
       name: "Akun Zoom Pro 1",
+      accountNumber: 1,
       email: "zoom1@solulu.id",
       accountId: "acc-1",
       clientId: "client-1",
       clientSecretEncrypted: "encrypted-secret-1",
+      hostKey: "123456",
       isActive: true,
     },
     {
       id: "zoom-acc-2",
       name: "Akun Zoom Pro 2",
+      accountNumber: 2,
       email: "zoom2@solulu.id",
       accountId: "acc-2",
       clientId: "client-2",
       clientSecretEncrypted: "encrypted-secret-2",
+      hostKey: "234567",
+      isActive: true,
+    },
+    {
+      id: "zoom-acc-4",
+      name: "Akun Zoom Pro 4",
+      accountNumber: 4,
+      email: "zoom4@solulu.id",
+      accountId: "acc-4",
+      clientId: "client-4",
+      clientSecretEncrypted: "encrypted-secret-4",
+      hostKey: "456789",
       isActive: true,
     },
   ]
 
-  describe("allocateZoomAccount (ADR-0001 & ADR-0002 Concurrency Guard)", () => {
-    it("allocates the first available account when no active sessions overlap", async () => {
-      const result = await allocateZoomAccount("2026-09-29", "19:00:00", "20:30:00", {
-        fetchAccounts: async () => mockZoomAccounts,
-        fetchOverlappingBookings: async () => [],
-      })
+  const mockBookingData = {
+    booking: {
+      id: "b-12345",
+      bookingCode: "SL-1001",
+      accessToken: "tok_test_abc12345",
+      patientName: "Budi Santoso",
+      patientEmail: "budi@example.com",
+      initialNotes: "Perlu pendampingan stres kerja",
+      zoomJoinUrl: null,
+      zoomStartUrl: null,
+      zoomMeetingId: null,
+      zoomAccountId: null,
+    },
+    counselor: {
+      id: "c-12345",
+      fullName: "Sarah Annisa, M.Psi., Psikolog",
+      email: "sarah@solulu.id",
+    },
+    schedule: {
+      id: "s-12345",
+      date: "2026-09-29",
+      slotIndex: 1,
+      startTime: "08:00:00",
+      endTime: "10:00:00",
+    },
+  }
 
-      expect(result.success).toBe(true)
-      expect(result.account?.id).toBe("zoom-acc-1")
-    })
-
-    it("allocates account 2 when account 1 is occupied by an overlapping session", async () => {
-      const result = await allocateZoomAccount("2026-09-29", "19:00:00", "20:30:00", {
-        fetchAccounts: async () => mockZoomAccounts,
-        fetchOverlappingBookings: async () => [
-          { zoomAccountId: "zoom-acc-1" },
-        ],
-      })
-
-      expect(result.success).toBe(true)
-      expect(result.account?.id).toBe("zoom-acc-2")
-    })
-
-    it("rejects allocation when both Zoom Pro accounts are occupied during overlapping slot", async () => {
-      const result = await allocateZoomAccount("2026-09-29", "19:00:00", "20:30:00", {
-        fetchAccounts: async () => mockZoomAccounts,
-        fetchOverlappingBookings: async () => [
-          { zoomAccountId: "zoom-acc-1" },
-          { zoomAccountId: "zoom-acc-2" },
-        ],
-      })
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain("Semua akun Zoom Pro (maksimal 2) sedang digunakan")
-    })
-
-    it("returns error if no active Zoom accounts exist in the system", async () => {
-      const result = await allocateZoomAccount("2026-09-29", "19:00:00", "20:30:00", {
-        fetchAccounts: async () => [],
-      })
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain("Tidak ada akun Zoom Pro aktif")
-    })
-  })
-
-  describe("fulfillBooking (Decoupled Worker Engine)", () => {
-    const mockBookingData = {
-      booking: {
-        id: "b-12345",
-        accessToken: "tok_test_abc12345",
-        patientName: "Budi Santoso",
-        patientEmail: "budi@example.com",
-        initialNotes: "Perlu pendampingan stres kerja",
-        zoomJoinUrl: null,
-        zoomStartUrl: null,
-        zoomMeetingId: null,
-        zoomAccountId: null,
-      },
-      counselor: {
-        id: "c-12345",
-        fullName: "Sarah Annisa, M.Psi., Psikolog",
-        email: "sarah@solulu.id",
-      },
-      schedule: {
-        id: "s-12345",
-        date: "2026-09-29",
-        startTime: "19:00:00",
-        endTime: "20:30:00",
-      },
-    }
-
-    it("successfully creates Zoom meeting and dispatches confirmation emails", async () => {
+  // =========================================================================
+  // 1. Unified Fulfillment Seam & 4-Zoom Hybrid Dispatcher (ADR-0005)
+  // =========================================================================
+  describe("1. Canonical 4-Zoom Dispatcher & Meeting Generation", () => {
+    it("allocates Zoom 1 in standalone mode for initial booking in slot", async () => {
       let patientEmailSent = false
       let counselorEmailSent = false
 
-      const result = await fulfillBooking("b-12345", {
+      const result = await fulfillSession("b-12345", {
         fetchBookingData: async () => mockBookingData,
-        allocateAccount: async () => ({
-          success: true,
-          account: mockZoomAccounts[0],
-        }),
+        getZoomAccount: async (accNum) => mockZoomAccounts.find((a) => a.accountNumber === accNum),
         getAccessToken: async () => "mock_valid_access_token",
-        createMeeting: async (token, input) => ({
+        createMeeting: async () => ({
           meetingId: "91234567890",
           joinUrl: "https://zoom.us/j/91234567890",
           startUrl: "https://zoom.us/s/91234567890",
@@ -129,14 +99,78 @@ describe("Decoupled Fulfillment & Dynamic Zoom Allocation (Issue #8 / Solulu v1)
       })
 
       expect(result.success).toBe(true)
+      expect(result.zoomAccountNumber).toBe(1)
+      expect(result.zoomAllocationMode).toBe("standalone")
       expect(result.zoomMeetingId).toBe("91234567890")
       expect(result.zoomJoinUrl).toBe("https://zoom.us/j/91234567890")
-      expect(result.zoomStartUrl).toBe("https://zoom.us/s/91234567890")
+      expect(result.breakoutRoomName).toBe("SL-1001 - Sarah Annisa, M.Psi., Psikolog")
       expect(patientEmailSent).toBe(true)
       expect(counselorEmailSent).toBe(true)
     })
 
-    it("is idempotent: returns existing meeting details if booking is already fulfilled", async () => {
+    it("allocates Zoom 4 in breakout_room mode when slot session rank > 4", async () => {
+      const highRankBooking = {
+        ...mockBookingData,
+        booking: {
+          ...mockBookingData.booking,
+          id: "b-high-5",
+          bookingCode: "SL-1005",
+        },
+      }
+
+      const result = await fulfillSession("b-high-5", {
+        fetchBookingData: async () => highRankBooking,
+        dispatchZoom: () => ({ accountNumber: 4, mode: "breakout_room" }),
+        getZoomAccount: async () => mockZoomAccounts[2], // Zoom 4
+        getAccessToken: async () => "mock_token_zoom4",
+        createMeeting: async () => ({
+          meetingId: "94444444444",
+          joinUrl: "https://zoom.us/j/94444444444",
+          startUrl: "https://zoom.us/s/94444444444",
+        }),
+        sendPatientEmail: async () => ({ success: true }),
+        sendCounselorEmail: async () => ({ success: true }),
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.zoomAccountNumber).toBe(4)
+      expect(result.zoomAllocationMode).toBe("breakout_room")
+      expect(result.breakoutRoomName).toBe("SL-1005 - Sarah Annisa, M.Psi., Psikolog")
+    })
+
+    it("handles manual meeting URL override without calling Zoom S2S API", async () => {
+      let createMeetingCalled = false
+
+      const result = await fulfillSession(
+        "b-12345",
+        {
+          source: "admin_bypass",
+          manualMeetingUrl: "https://meet.google.com/abc-defg-hij",
+          skipEmails: true,
+        },
+        {
+          fetchBookingData: async () => mockBookingData,
+          zoomClient: {
+            createMeeting: async () => {
+              createMeetingCalled = true
+              return { meetingId: "", joinUrl: "", startUrl: "" }
+            },
+          },
+        }
+      )
+
+      expect(result.success).toBe(true)
+      expect(result.zoomJoinUrl).toBe("https://meet.google.com/abc-defg-hij")
+      expect(result.zoomAllocationMode).toBe("standalone")
+      expect(createMeetingCalled).toBe(false)
+    })
+  })
+
+  // =========================================================================
+  // 2. Invariants: Idempotency & Failure Resilience
+  // =========================================================================
+  describe("2. Invariants: Idempotency & Failure Resilience", () => {
+    it("is strictly idempotent: returns existing room without recreating Zoom URLs", async () => {
       const alreadyFulfilledBooking = {
         ...mockBookingData,
         booking: {
@@ -162,12 +196,31 @@ describe("Decoupled Fulfillment & Dynamic Zoom Allocation (Issue #8 / Solulu v1)
       expect(result.zoomJoinUrl).toBe("https://zoom.us/j/already_fulfilled")
       expect(createMeetingCalled).toBe(false)
     })
+
+    it("enforces payment resilience: returns error on Zoom failure without rolling back payment", async () => {
+      const result = await fulfillSession("b-12345", {
+        fetchBookingData: async () => mockBookingData,
+        getZoomAccount: async () => mockZoomAccounts[0],
+        getAccessToken: async () => "mock_token",
+        createMeeting: async () => {
+          throw new Error("Zoom S2S API Rate Limit Exceeded")
+        },
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.error).toContain("Gagal membuat ruang Zoom")
+      expect(result.error).toContain("Rate Limit Exceeded")
+    })
   })
 
-  describe("confirmManualPayment (Admin Path B Fulfillment)", () => {
+  // =========================================================================
+  // 3. Admin Manual Bank Transfer Verification (US-42 Delegation)
+  // =========================================================================
+  describe("3. confirmManualPayment (Admin Path B Delegation)", () => {
     const mockManualSession = {
       booking: {
         id: "b-manual-1",
+        bookingCode: "SL-1042",
         accessToken: "tok_manual_999",
         patientName: "Citra Lestari",
         patientEmail: "citra@example.com",
@@ -179,8 +232,9 @@ describe("Decoupled Fulfillment & Dynamic Zoom Allocation (Issue #8 / Solulu v1)
       schedule: {
         id: "s-manual-1",
         date: "2026-09-30",
-        startTime: "14:00:00",
-        endTime: "15:30:00",
+        slotIndex: 2,
+        startTime: "10:00:00",
+        endTime: "12:00:00",
       },
       transaction: {
         id: "t-manual-1",
@@ -188,7 +242,7 @@ describe("Decoupled Fulfillment & Dynamic Zoom Allocation (Issue #8 / Solulu v1)
       },
     }
 
-    it("executes dynamic Zoom host allocation and sends emails upon confirmation", async () => {
+    it("verifies transaction and delegates host allocation to fulfillSession", async () => {
       let patientEmailSent = false
 
       const result = await confirmManualPayment(
@@ -200,10 +254,7 @@ describe("Decoupled Fulfillment & Dynamic Zoom Allocation (Issue #8 / Solulu v1)
         },
         {
           fetchBookingData: async () => mockManualSession,
-          allocateAccount: async () => ({
-            success: true,
-            account: mockZoomAccounts[1],
-          }),
+          getZoomAccount: async () => mockZoomAccounts[1],
           getAccessToken: async () => "mock_token",
           createMeeting: async () => ({
             meetingId: "88887777",
@@ -260,7 +311,10 @@ describe("Decoupled Fulfillment & Dynamic Zoom Allocation (Issue #8 / Solulu v1)
     })
   })
 
-  describe("API Handlers: Xendit Webhook & QStash Worker", () => {
+  // =========================================================================
+  // 4. API Handlers: Xendit Webhook & QStash Worker
+  // =========================================================================
+  describe("4. API Handlers: Xendit Webhook & QStash Worker", () => {
     it("rejects Xendit webhook request with missing or invalid callback token (HTTP 403)", async () => {
       const req = new Request("http://localhost:3000/api/webhooks/xendit", {
         method: "POST",

@@ -237,24 +237,30 @@ describe("Booking Limits, Lead-Time Buffer & Past Slots Prevention", () => {
     it("marks past slots as isPast: true with disabled cancellation in getCounselorSchedulesAction", async () => {
       const res = await getCounselorSchedulesAction("all", {
         currentUser: counselorAuth,
-        getSchedules: async () => [
-          {
-            id: "past-slot-1",
-            counselorId: counselorAuth.counselorId,
-            date: "2026-10-08",
-            startTime: "19:00",
-            endTime: "20:30",
-            status: "available",
-          },
-          {
-            id: "future-slot-1",
-            counselorId: counselorAuth.counselorId,
-            date: "2026-10-15",
-            startTime: "09:00",
-            endTime: "10:30",
-            status: "available",
-          },
-        ],
+        getSchedules: async () => {
+          const futureDate = new Date()
+          futureDate.setDate(futureDate.getDate() + 3)
+          const futureDateStr = getWIBDateString(futureDate)
+
+          return [
+            {
+              id: "past-slot-1",
+              counselorId: counselorAuth.counselorId,
+              date: "2026-10-08",
+              startTime: "19:00",
+              endTime: "20:30",
+              status: "available",
+            },
+            {
+              id: "future-slot-1",
+              counselorId: counselorAuth.counselorId,
+              date: futureDateStr,
+              startTime: "09:00",
+              endTime: "10:30",
+              status: "available",
+            },
+          ]
+        },
       })
 
       expect(res.success).toBe(true)
