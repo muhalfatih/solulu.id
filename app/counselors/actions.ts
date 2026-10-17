@@ -315,12 +315,6 @@ export async function getCounselorsCatalogAction(
       data: catalog,
     }
   } catch (err: any) {
-    if (process.env.NODE_ENV === "test") {
-      const { getFallbackCounselors } = await import("./data")
-      const platformPricingData = await getPlatformPricing()
-      const fallback = getFallbackCounselors(typeFilter, dateFilter, platformPricingData)
-      return { success: true, data: fallback }
-    }
     return {
       success: false,
       error: err.message || "Gagal memuat katalog konselor dari database.",
@@ -343,24 +337,12 @@ export async function getCounselorByIdAction(
         }
       }
     }
-    if (process.env.NODE_ENV === "test") {
-      const { getFallbackCounselorById } = await import("./data")
-      const platformPricingData = await getPlatformPricing()
-      const fb = getFallbackCounselorById(counselorId, platformPricingData)
-      if (fb) return { success: true, data: fb }
-    }
     return {
       success: false,
       error: "Mitra konselor tidak ditemukan.",
       data: null,
     }
   } catch (err: any) {
-    if (process.env.NODE_ENV === "test") {
-      const { getFallbackCounselorById } = await import("./data")
-      const platformPricingData = await getPlatformPricing()
-      const fb = getFallbackCounselorById(counselorId, platformPricingData)
-      if (fb) return { success: true, data: fb }
-    }
     return {
       success: false,
       error: err.message || "Gagal mengambil data konselor.",

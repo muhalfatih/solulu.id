@@ -138,9 +138,17 @@ describe("Cron Cleanup & Auto-Archive Worker (Issue #10 / Solulu v1)", () => {
         },
       })
 
-      const res = await cleanupPostHandler(req)
-      // If DB is offline, route returns 500, but with handleCronRequest mock it verifies 200
-      expect([200, 500]).toContain(res.status)
+      const res = await cleanupPostHandler(req, {
+        cleanupFn: async () => ({
+          success: true,
+          releasedSlotsCount: 0,
+          cancelledBookingsCount: 0,
+          expiredTransactionsCount: 0,
+          vouchersRolledBackCount: 0,
+          autoArchivedSessionsCount: 0,
+        }),
+      })
+      expect(res.status).toBe(200)
     })
 
     it("returns HTTP 200 with data when cleanup executes successfully", async () => {

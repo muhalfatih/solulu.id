@@ -114,7 +114,11 @@ describe("Platform Pricing Synchronization & Admin Actions", () => {
   })
 
   it("synchronizes individual counselor detail view with platform pricing", async () => {
-    const detailRes = await getCounselorByIdAction("c-1")
+    const catalogRes = await getCounselorsCatalogAction({ type: "all" })
+    const targetCounselor = catalogRes.data?.[0]
+    expect(targetCounselor).toBeDefined()
+
+    const detailRes = await getCounselorByIdAction(targetCounselor!.id)
     expect(detailRes.success).toBe(true)
     expect(detailRes.data).toBeDefined()
 

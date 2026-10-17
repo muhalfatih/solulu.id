@@ -13,7 +13,17 @@ describe("Issue #13: Public Surfaces, SEO, Legal Pages & Branded Errors", () => 
       expect(Array.isArray(site)).toBe(true)
 
       const urls = site.map((item) => item.url)
-      expect(urls.some((u) => u === "https://solulu.id" || u === "https://solulu.id/" || u.endsWith("/"))).toBe(true)
+      const base = process.env.NEXT_PUBLIC_APP_URL || "https://solulu.id"
+      expect(
+        urls.some(
+          (u) =>
+            u === base ||
+            u === `${base}/` ||
+            u === "https://solulu.id" ||
+            u === "https://solulu.id/" ||
+            u.endsWith("/")
+        )
+      ).toBe(true)
       expect(urls.some((u) => u.endsWith("/counselors"))).toBe(true)
       expect(urls.some((u) => u.endsWith("/screening"))).toBe(true)
       expect(urls.some((u) => u.endsWith("/pricing"))).toBe(true)

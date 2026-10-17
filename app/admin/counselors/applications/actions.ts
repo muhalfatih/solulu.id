@@ -9,7 +9,6 @@ import { generatePresignedGetUrl } from "@/lib/r2"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import { reviewApplicationInputSchema, type ReviewApplicationInput } from "@/lib/validations/counselor-application"
-import { upsertStoreCounselor } from "@/lib/counselor/registry"
 import { sendCounselorWelcomeCredentialsEmail } from "@/lib/fulfillment/emails"
 
 export interface AdminAuthContext {
@@ -469,22 +468,6 @@ export async function reviewCounselorApplicationAction(
     // Update application status to approved
     await updateApplication(applicationId, {
       status: "approved",
-    })
-
-    // Synchronize to shared SSOT registry
-    upsertStoreCounselor({
-      id: newCounselor?.id || `c-${applicationId.slice(0, 8)}`,
-      fullName: application.fullName,
-      title: title?.trim() || defaultTitle,
-      education:
-        application.counselorType === "psychologist"
-          ? "S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi"
-          : "Sarjana Psikologi (S.Psi) • Peer Counselor Indonesia",
-      counselorType: application.counselorType,
-      bio: application.bio,
-      email: application.email,
-      phone: application.phone || "0812-3456-7890",
-      isActive: true,
     })
 
     // Dispatch welcome email with credentials via Resend

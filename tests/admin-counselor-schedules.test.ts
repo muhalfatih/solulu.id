@@ -5,7 +5,6 @@ import {
   deleteCounselorSlotAdminAction,
   type AdminAuthContext,
 } from "../app/admin/counselors/actions"
-import { DEMO_SCHEDULES } from "../lib/booking/checkout"
 
 describe("Admin Counselor Schedules Management", () => {
   const adminUser: AdminAuthContext = {
@@ -23,13 +22,40 @@ describe("Admin Counselor Schedules Management", () => {
   const testCounselorId = "counselor-sch-test-1"
   const testDate = "2026-10-15"
 
+  let mockSchedules: Record<string, any> = {}
+
   beforeEach(() => {
-    // Clean up test slots in DEMO_SCHEDULES
-    Object.keys(DEMO_SCHEDULES).forEach((key) => {
-      if (DEMO_SCHEDULES[key].counselorId === testCounselorId) {
-        delete DEMO_SCHEDULES[key]
-      }
-    })
+    mockSchedules = {}
+  })
+
+  const getAdminOptions = () => ({
+    currentUser: adminUser,
+    fetchSlotsFn: async (counselorId: string, dateFilter?: string) => {
+      return Object.values(mockSchedules).filter(
+        (s: any) =>
+          s.counselorId === counselorId &&
+          (!dateFilter || dateFilter === "all" || s.date === dateFilter)
+      )
+    },
+    fetchExistingSlotsFn: async (counselorId: string, date: string) => {
+      return Object.values(mockSchedules).filter(
+        (s: any) => s.counselorId === counselorId && s.date === date
+      )
+    },
+    insertSlotsFn: async (slots: any[]) => {
+      return slots.map((s, idx) => {
+        const id = `s-${Date.now()}-${idx}`
+        const record = { id, ...s }
+        mockSchedules[id] = record
+        return record
+      })
+    },
+    fetchSlotByIdFn: async (slotId: string) => {
+      return mockSchedules[slotId] || null
+    },
+    deleteSlotFn: async (slotId: string) => {
+      delete mockSchedules[slotId]
+    },
   })
 
   // ===========================================================================
@@ -82,14 +108,14 @@ describe("Admin Counselor Schedules Management", () => {
     it("validates input payload completeness and formatting", async () => {
       const invalidDate = await createCounselorSlotsAdminAction(
         { counselorId: testCounselorId, date: "15-10-2026", startTimes: ["09:00"] },
-        { currentUser: adminUser }
+        getAdminOptions()
       )
       expect(invalidDate.success).toBe(false)
       expect(invalidDate.error).toContain("Format tanggal tidak valid")
 
       const invalidTime = await createCounselorSlotsAdminAction(
         { counselorId: testCounselorId, date: testDate, startTimes: ["25:00"] },
-        { currentUser: adminUser }
+        getAdminOptions()
       )
       expect(invalidTime.success).toBe(false)
       expect(invalidTime.error).toContain("Format jam mulai tidak valid")
@@ -99,7 +125,7 @@ describe("Admin Counselor Schedules Management", () => {
       // 09:00 + 90m = 10:30. A slot at 10:00 overlaps with 09:00-10:30.
       const res = await createCounselorSlotsAdminAction(
         { counselorId: testCounselorId, date: testDate, startTimes: ["09:00", "10:00"] },
-        { currentUser: adminUser }
+        getAdminOptions()
       )
       expect(res.success).toBe(false)
       expect(res.error).toContain("Slot bentrok internal")
@@ -110,7 +136,7 @@ describe("Admin Counselor Schedules Management", () => {
       // 09:00 - 10:30, 11:00 - 12:30, 14:00 - 15:30
       const res = await createCounselorSlotsAdminAction(
         { counselorId: testCounselorId, date: testDate, startTimes: ["09:00", "11:00", "14:00"] },
-        { currentUser: adminUser }
+        getAdminOptions()
       )
       expect(res.success).toBe(true)
       expect(res.count).toBe(3)
@@ -130,7 +156,7 @@ describe("Admin Counselor Schedules Management", () => {
 
     it("rejects creation if a slot overlaps with an existing counselor slot on the same date", async () => {
       // Seed existing slot 13:00 - 14:30
-      DEMO_SCHEDULES["seed-slot-1"] = {
+      mockSchedules["seed-slot-1"] = {
         id: "seed-slot-1",
         counselorId: testCounselorId,
         date: testDate,
@@ -142,7 +168,7 @@ describe("Admin Counselor Schedules Management", () => {
       // Trying to add 13:30 - 15:00 should fail
       const res = await createCounselorSlotsAdminAction(
         { counselorId: testCounselorId, date: testDate, startTimes: ["13:30"] },
-        { currentUser: adminUser }
+        getAdminOptions()
       )
       expect(res.success).toBe(false)
       expect(res.error).toContain("Jadwal bentrok")
@@ -155,7 +181,7 @@ describe("Admin Counselor Schedules Management", () => {
   // ===========================================================================
   describe("3. Slot Retrieval & Date Filtering", () => {
     it("returns formatted slot list for counselor", async () => {
-      DEMO_SCHEDULES["seed-slot-a"] = {
+      mockSchedules["seed-slot-a"] = {
         id: "seed-slot-a",
         counselorId: testCounselorId,
         date: testDate,
@@ -163,7 +189,7 @@ describe("Admin Counselor Schedules Management", () => {
         endTime: "10:30",
         status: "available",
       }
-      DEMO_SCHEDULES["seed-slot-b"] = {
+      mockSchedules["seed-slot-b"] = {
         id: "seed-slot-b",
         counselorId: testCounselorId,
         date: "2026-10-16",
@@ -172,15 +198,19 @@ describe("Admin Counselor Schedules Management", () => {
         status: "booked",
       }
 
-      const allSlots = await getCounselorSlotsAdminAction(testCounselorId, undefined, {
-        currentUser: adminUser,
-      })
+      const allSlots = await getCounselorSlotsAdminAction(
+        testCounselorId,
+        undefined,
+        getAdminOptions()
+      )
       expect(allSlots.success).toBe(true)
       expect(allSlots.data.length).toBeGreaterThanOrEqual(2)
 
-      const filtered = await getCounselorSlotsAdminAction(testCounselorId, testDate, {
-        currentUser: adminUser,
-      })
+      const filtered = await getCounselorSlotsAdminAction(
+        testCounselorId,
+        testDate,
+        getAdminOptions()
+      )
       expect(filtered.success).toBe(true)
       const found = filtered.data.find((s) => s.id === "seed-slot-a")
       expect(found).toBeDefined()
@@ -195,7 +225,7 @@ describe("Admin Counselor Schedules Management", () => {
   describe("4. Slot Deletion Guard & Policy", () => {
     it("allows deletion of available slot", async () => {
       const slotId = "slot-to-delete-1"
-      DEMO_SCHEDULES[slotId] = {
+      mockSchedules[slotId] = {
         id: slotId,
         counselorId: testCounselorId,
         date: testDate,
@@ -204,17 +234,15 @@ describe("Admin Counselor Schedules Management", () => {
         status: "available",
       }
 
-      const res = await deleteCounselorSlotAdminAction(slotId, {
-        currentUser: adminUser,
-      })
+      const res = await deleteCounselorSlotAdminAction(slotId, getAdminOptions())
       expect(res.success).toBe(true)
       expect(res.message).toContain("berhasil dihapus")
-      expect(DEMO_SCHEDULES[slotId]).toBeUndefined()
+      expect(mockSchedules[slotId]).toBeUndefined()
     })
 
     it("rejects deletion of a booked slot and points to clinical sessions module", async () => {
       const bookedSlotId = "slot-booked-1"
-      DEMO_SCHEDULES[bookedSlotId] = {
+      mockSchedules[bookedSlotId] = {
         id: bookedSlotId,
         counselorId: testCounselorId,
         date: testDate,
@@ -223,18 +251,16 @@ describe("Admin Counselor Schedules Management", () => {
         status: "booked",
       }
 
-      const res = await deleteCounselorSlotAdminAction(bookedSlotId, {
-        currentUser: adminUser,
-      })
+      const res = await deleteCounselorSlotAdminAction(bookedSlotId, getAdminOptions())
       expect(res.success).toBe(false)
       expect(res.error).toContain("sudah dikonfirmasi dan dipesan")
       expect(res.error).toContain("modul Sesi")
-      expect(DEMO_SCHEDULES[bookedSlotId]).toBeDefined()
+      expect(mockSchedules[bookedSlotId]).toBeDefined()
     })
 
     it("rejects deletion of a reserved (locked checkout) slot", async () => {
       const reservedSlotId = "slot-reserved-1"
-      DEMO_SCHEDULES[reservedSlotId] = {
+      mockSchedules[reservedSlotId] = {
         id: reservedSlotId,
         counselorId: testCounselorId,
         date: testDate,
@@ -243,12 +269,10 @@ describe("Admin Counselor Schedules Management", () => {
         status: "reserved",
       }
 
-      const res = await deleteCounselorSlotAdminAction(reservedSlotId, {
-        currentUser: adminUser,
-      })
+      const res = await deleteCounselorSlotAdminAction(reservedSlotId, getAdminOptions())
       expect(res.success).toBe(false)
       expect(res.error).toContain("sedang dalam proses pembayaran/reservasi aktif")
-      expect(DEMO_SCHEDULES[reservedSlotId]).toBeDefined()
+      expect(mockSchedules[reservedSlotId]).toBeDefined()
     })
   })
 })

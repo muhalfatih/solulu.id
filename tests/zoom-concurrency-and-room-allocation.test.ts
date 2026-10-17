@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { getActiveZoomCapacity } from "../lib/zoom/active-capacity"
-import { executeCreateGuestBooking, DEMO_COUNSELORS } from "../lib/booking/checkout"
+import { executeCreateGuestBooking } from "../lib/booking/checkout"
+import { DEMO_COUNSELORS } from "./fixtures/demo-sessions"
 import { getCounselorsCatalogAction } from "../app/counselors/actions"
 import { getWIBDateString } from "../lib/schedules/concurrency"
 

@@ -1,5 +1,4 @@
 import { getCounselorsCatalogAction, type CatalogCounselorView } from "./actions"
-import { getFallbackCounselors } from "./data"
 import { getPlatformSettings } from "@/lib/settings/platform"
 import CounselorsCatalogClient from "./CounselorsCatalogClient"
 
@@ -25,13 +24,8 @@ export default async function CounselorsCatalogPage({
     type: recommendedType,
   })
 
-  let initialCounselors: CatalogCounselorView[] = []
-
-  if (result.success && result.data && result.data.length > 0) {
-    initialCounselors = result.data
-  } else {
-    initialCounselors = getFallbackCounselors(recommendedType)
-  }
+  const initialCounselors: CatalogCounselorView[] =
+    result.success && result.data ? result.data : []
 
   const settings = await getPlatformSettings()
 

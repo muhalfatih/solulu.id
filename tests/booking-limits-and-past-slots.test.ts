@@ -14,9 +14,11 @@ import {
 import {
   executeGetBookingContext,
   executeCreateGuestBooking,
+} from "../lib/booking/checkout"
+import {
   DEMO_SCHEDULES,
   DEMO_COUNSELORS,
-} from "../lib/booking/checkout"
+} from "./fixtures/demo-sessions"
 import {
   createScheduleSlotsAction,
   getCounselorSchedulesAction,

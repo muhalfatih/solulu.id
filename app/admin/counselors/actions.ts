@@ -22,12 +22,6 @@ import {
   type UpdateCounselorAdminInput,
 } from "@/lib/validations/counselor-admin"
 import {
-  getStoreCounselorById,
-  upsertStoreCounselor,
-  toggleStoreCounselorActive,
-  removeStoreCounselor,
-} from "@/lib/counselor/registry"
-import {
   computeEndTime,
   formatTimeRange,
   checkSelfOverlap,
@@ -536,10 +530,6 @@ export async function updateCounselorVerificationStatusAction(
       updatedRecord = updated
     }
 
-    if (shouldActivate || shouldDeactivate) {
-      toggleStoreCounselorActive(counselorId, shouldActivate)
-    }
-
     try {
       revalidatePath("/admin/counselors")
       revalidatePath(`/admin/counselors/${counselorId}`)
@@ -722,30 +712,9 @@ export async function createCounselorAction(
           .returning()
         insertedRecord = inserted
       } catch (dbErr) {
-        // Fallback for local demo or disconnected DB environment
-        insertedRecord = {
-          id: `c-${Date.now()}`,
-          ...recordPayload,
-        }
+        throw dbErr
       }
     }
-
-    // Synchronize to shared in-memory registry
-    upsertStoreCounselor({
-      id: insertedRecord?.id || `c-${Date.now()}`,
-      fullName: data.fullName,
-      title: data.title,
-      education: data.education || (data.counselorType === "psychologist" ? "S2 Profesi Psikologi • Izin Kemenkes STR Terverifikasi" : "Sarjana Psikologi (S.Psi) • Peer Counselor Indonesia"),
-      strNumber: data.strNumber || null,
-      counselorType: data.counselorType,
-      bio: data.bio,
-      specializations: data.specializations,
-      avatarR2Url: data.avatarR2Url || null,
-      email: data.email,
-      phone: "0812-3456-7890",
-      isActive: data.isActive,
-      isFeatured: data.isFeatured ?? false,
-    })
 
     try {
       revalidatePath("/admin/counselors")
@@ -836,21 +805,6 @@ export async function updateCounselorAction(
       updatedRecord = updated
     }
 
-    // Synchronize to shared in-memory registry
-    upsertStoreCounselor({
-      id: counselorId,
-      fullName: data.fullName,
-      title: data.title,
-      education: data.education || undefined,
-      strNumber: data.strNumber || null,
-      counselorType: data.counselorType,
-      bio: data.bio,
-      specializations: data.specializations,
-      avatarR2Url: data.avatarR2Url || null,
-      isActive: data.isActive,
-      isFeatured: data.isFeatured ?? false,
-    })
-
     try {
       revalidatePath("/admin/counselors")
       revalidatePath(`/admin/counselors/${counselorId}/edit`)
@@ -904,9 +858,6 @@ export async function toggleCounselorActiveAction(
       updatedRecord = updated
     }
 
-    // Synchronize active status to shared in-memory registry
-    toggleStoreCounselorActive(counselorId, newActiveState)
-
     try {
       revalidatePath("/admin/counselors")
       revalidatePath(`/admin/counselors/${counselorId}`)
@@ -952,12 +903,6 @@ export async function toggleFeaturedCounselorAction(
       .set({ isFeatured: newFeaturedState })
       .where(eq(counselors.id, counselorId))
       .returning()
-
-    // Sync in-memory store if present
-    const storeCounselor = getStoreCounselorById(counselorId)
-    if (storeCounselor) {
-      storeCounselor.isFeatured = newFeaturedState
-    }
 
     try {
       revalidatePath("/admin/counselors")
@@ -1064,9 +1009,6 @@ export async function deleteCounselorAction(
       console.warn("DB delete error or non-uuid id:", dbErr)
     }
 
-    // Remove from in-memory registry
-    removeStoreCounselor(counselorId)
-
     try {
       revalidatePath("/admin/counselors")
       revalidatePath("/counselors")
@@ -1106,7 +1048,10 @@ export interface AdminCounselorSlotView {
 export async function getCounselorSlotsAdminAction(
   counselorId: string,
   dateFilter?: string,
-  options?: { currentUser?: AdminAuthContext | null }
+  options?: {
+    currentUser?: AdminAuthContext | null
+    fetchSlotsFn?: (counselorId: string, dateFilter?: string) => Promise<any[]>
+  }
 ) {
   const admin = await getAuthenticatedAdmin(options?.currentUser)
   if (!admin) {
@@ -1114,40 +1059,19 @@ export async function getCounselorSlotsAdminAction(
   }
 
   try {
-    const conditions = [eq(schedules.counselorId, counselorId)]
-    if (dateFilter && dateFilter !== "all") {
-      conditions.push(eq(schedules.date, dateFilter))
-    }
     let rows: any[] = []
-    try {
+    if (options?.fetchSlotsFn) {
+      rows = await options.fetchSlotsFn(counselorId, dateFilter)
+    } else {
+      const conditions = [eq(schedules.counselorId, counselorId)]
+      if (dateFilter && dateFilter !== "all") {
+        conditions.push(eq(schedules.date, dateFilter))
+      }
       rows = await db
         .select()
         .from(schedules)
         .where(and(...conditions))
         .orderBy(desc(schedules.date), schedules.startTime)
-    } catch (dbErr) {
-      if (process.env.NODE_ENV === "test") {
-        const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
-        rows = Object.values(DEMO_SCHEDULES).filter(
-          (s: any) =>
-            s.counselorId === counselorId &&
-            (!dateFilter || dateFilter === "all" || s.date === dateFilter)
-        )
-      } else {
-        throw dbErr
-      }
-    }
-
-    if (rows.length === 0 && process.env.NODE_ENV === "test") {
-      const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
-      const demoMatches = Object.values(DEMO_SCHEDULES).filter(
-        (s: any) =>
-          s.counselorId === counselorId &&
-          (!dateFilter || dateFilter === "all" || s.date === dateFilter)
-      )
-      if (demoMatches.length > 0) {
-        rows = demoMatches
-      }
     }
 
     const slots: AdminCounselorSlotView[] = rows.map((r: any) => {
@@ -1242,9 +1166,10 @@ export async function createCounselorSlotsAdminAction(
 
   try {
     // 3. Fetch existing slots for self-overlap validation
-    // 3. Check for overlap against existing slots for this counselor on that date
     let existingSlots: any[] = []
-    try {
+    if (options?.fetchExistingSlotsFn) {
+      existingSlots = await options.fetchExistingSlotsFn(counselorId, date)
+    } else {
       existingSlots = await db
         .select({
           startTime: schedules.startTime,
@@ -1253,46 +1178,43 @@ export async function createCounselorSlotsAdminAction(
         })
         .from(schedules)
         .where(and(eq(schedules.counselorId, counselorId), eq(schedules.date, date)))
-    } catch (dbErr) {
-      if (process.env.NODE_ENV === "test") {
-        const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
-        existingSlots = Object.values(DEMO_SCHEDULES).filter(
-          (s: any) => s.counselorId === counselorId && s.date === date
-        )
-      } else {
-        throw dbErr
-      }
     }
 
-    if (process.env.NODE_ENV === "test") {
-      const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
-      const demoExisting = Object.values(DEMO_SCHEDULES).filter(
-        (s: any) => s.counselorId === counselorId && s.date === date
-      )
-      const allExisting = [...existingSlots, ...demoExisting]
-      for (const p of proposed) {
-        if (checkSelfOverlap(allExisting, p.startTime, p.endTime)) {
-          return {
-            success: false,
-            error: `Jadwal bentrok: Konselor sudah memiliki jadwal aktif yang tumpang tindih pada jam ${p.startTime} – ${p.endTime} WIB.`,
-          }
-        }
-      }
-    } else {
-      for (const p of proposed) {
-        if (checkSelfOverlap(existingSlots, p.startTime, p.endTime)) {
-          return {
-            success: false,
-            error: `Jadwal bentrok: Konselor sudah memiliki jadwal aktif yang tumpang tindih pada jam ${p.startTime} – ${p.endTime} WIB.`,
-          }
+    for (const p of proposed) {
+      if (checkSelfOverlap(existingSlots, p.startTime, p.endTime)) {
+        return {
+          success: false,
+          error: `Jadwal bentrok: Konselor sudah memiliki jadwal aktif yang tumpang tindih pada jam ${p.startTime} – ${p.endTime} WIB.`,
         }
       }
     }
 
     // 4. Insert into database
     const createdSlots: AdminCounselorSlotView[] = []
-    for (const p of proposed) {
-      try {
+    if (options?.insertSlotsFn) {
+      const insertedRows = await options.insertSlotsFn(
+        proposed.map((p) => ({
+          counselorId,
+          date,
+          startTime: p.startTime,
+          endTime: p.endTime,
+          status: "available",
+        }))
+      )
+      for (const ins of insertedRows) {
+        createdSlots.push({
+          id: ins.id,
+          counselorId: ins.counselorId,
+          date: ins.date,
+          startTime: ins.startTime,
+          endTime: ins.endTime,
+          timeRange: formatTimeRange(ins.startTime, ins.endTime),
+          status: ins.status || "available",
+          canDelete: true,
+        })
+      }
+    } else {
+      for (const p of proposed) {
         const [inserted] = await db
           .insert(schedules)
           .values({
@@ -1314,31 +1236,6 @@ export async function createCounselorSlotsAdminAction(
           status: inserted.status,
           canDelete: true,
         })
-      } catch (insertErr) {
-        if (process.env.NODE_ENV === "test") {
-          const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
-          const slotId = `s-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`
-          DEMO_SCHEDULES[slotId] = {
-            id: slotId,
-            counselorId,
-            date,
-            startTime: p.startTime,
-            endTime: p.endTime,
-            status: "available",
-          }
-          createdSlots.push({
-            id: slotId,
-            counselorId,
-            date,
-            startTime: p.startTime,
-            endTime: p.endTime,
-            timeRange: formatTimeRange(p.startTime, p.endTime),
-            status: "available",
-            canDelete: true,
-          })
-        } else {
-          throw insertErr
-        }
       }
     }
 
@@ -1377,7 +1274,9 @@ export async function deleteCounselorSlotAdminAction(
   try {
     // 1. Verify slot record
     let slotRecord: any = null
-    try {
+    if (options?.fetchSlotByIdFn) {
+      slotRecord = await options.fetchSlotByIdFn(slotId)
+    } else {
       const found = await db
         .select()
         .from(schedules)
@@ -1386,13 +1285,6 @@ export async function deleteCounselorSlotAdminAction(
       if (found.length > 0) {
         slotRecord = found[0]
       }
-    } catch (fetchErr) {
-      if (process.env.NODE_ENV !== "test") throw fetchErr
-    }
-
-    if (!slotRecord && process.env.NODE_ENV === "test") {
-      const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
-      slotRecord = DEMO_SCHEDULES[slotId] || null
     }
 
     if (!slotRecord) {
@@ -1410,17 +1302,10 @@ export async function deleteCounselorSlotAdminAction(
     }
 
     // 2. Delete slot
-    try {
+    if (options?.deleteSlotFn) {
+      await options.deleteSlotFn(slotId)
+    } else {
       await db.delete(schedules).where(eq(schedules.id, slotId))
-    } catch (delErr) {
-      if (process.env.NODE_ENV !== "test") throw delErr
-    }
-
-    if (process.env.NODE_ENV === "test") {
-      const { DEMO_SCHEDULES } = await import("@/lib/booking/checkout")
-      if (DEMO_SCHEDULES[slotId]) {
-        delete DEMO_SCHEDULES[slotId]
-      }
     }
 
     try {

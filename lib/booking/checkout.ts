@@ -37,7 +37,6 @@ import {
 } from "@/lib/booking/hold"
 import { createXenditInvoice, getXenditInvoice } from "@/lib/xendit"
 import { dispatchFulfillmentJob } from "@/lib/fulfillment/qstash"
-import { getStoreCounselorById } from "@/lib/counselor/registry"
 
 export interface ActionResponse<T = any> {
   success: boolean
@@ -52,81 +51,6 @@ export function formatRupiah(amount: number): string {
     maximumFractionDigits: 0,
   }).format(amount)
 }
-
-export const DEMO_COUNSELORS: Record<string, any> = {
-  "c-1": {
-    id: "c-1",
-    fullName: "Sarah Annisa, M.Psi., Psikolog",
-    title: "Psikolog Klinis Dewasa • No. STR: 1902837482910",
-    counselorType: "psychologist",
-    bio: "Praktisi psikologi klinis dengan fokus pada penanganan gangguan kecemasan, depresi, trauma masa lalu, dan manajemen stres kerja (burnout).",
-    specializations: ["Kecemasan", "Depresi", "Trauma", "Burnout"],
-    avatarR2Url: null,
-    isActive: true,
-  },
-  "c-2": {
-    id: "c-2",
-    fullName: "Rian Hidayat, S.Psi",
-    title: "Konselor Sebaya Senior • Tersertifikasi Konseling Pemuda",
-    counselorType: "peer",
-    bio: "Berpengalaman mendampingi mahasiswa dan pekerja muda dalam menghadapi tekanan perkuliahan, quarter-life crisis, serta dinamika relasi asmara dan keluarga.",
-    specializations: ["Stres Kuliah", "Quarter-Life Crisis", "Relasi Asmara", "Karir"],
-    avatarR2Url: null,
-    isActive: true,
-  },
-  "c-3": {
-    id: "c-3",
-    fullName: "Dr. Nadia Larasati, M.Psi",
-    title: "Psikolog Klinis Dewasa • No. STR: 1902837482999",
-    counselorType: "psychologist",
-    bio: "Pendekatan berbasis bukti ilmiah untuk penanganan depresi ringan hingga sedang, pemulihan luka masa kecil, serta peningkatan self-esteem dan penerimaan diri.",
-    specializations: ["Depresi Ringan-Sedang", "Insecurity", "Penerimaan Diri", "Regulasi Emosi"],
-    avatarR2Url: null,
-    isActive: true,
-  },
-  "c-4": {
-    id: "c-4",
-    fullName: "Nabila Safitri, S.Psi",
-    title: "Konselor Sebaya Remaja • Fasilitator Komunitas Sejiwa",
-    counselorType: "peer",
-    bio: "Fasilitator pendampingan emosional remaja dan dewasa awal dengan pendekatan empatik, mendengarkan aktif tanpa penghakiman, dan panduan regulasi emosi sehat.",
-    specializations: ["Manajemen Emosi", "Keluarga", "Kecemasan Sosial", "Self-Acceptance"],
-    avatarR2Url: null,
-    isActive: true,
-  },
-}
-
-function getDemoScheduleDates() {
-  const d1 = new Date()
-  d1.setDate(d1.getDate() + 1)
-  const d1Str = getWIBDateString(d1)
-
-  const d2 = new Date()
-  d2.setDate(d2.getDate() + 2)
-  const d2Str = getWIBDateString(d2)
-
-  return { d1Str, d2Str }
-}
-
-export function getDemoSchedules(): Record<string, any> {
-  const { d1Str, d2Str } = getDemoScheduleDates()
-  return {
-    "s-101": { id: "s-101", counselorId: "c-1", date: d1Str, startTime: "09:00", endTime: "10:30", status: "available" },
-    "s-102": { id: "s-102", counselorId: "c-1", date: d1Str, startTime: "19:00", endTime: "20:30", status: "available" },
-    "s-103": { id: "s-103", counselorId: "c-1", date: d2Str, startTime: "13:30", endTime: "15:00", status: "available" },
-    "s-201": { id: "s-201", counselorId: "c-2", date: d1Str, startTime: "11:00", endTime: "12:30", status: "available" },
-    "s-202": { id: "s-202", counselorId: "c-2", date: d1Str, startTime: "15:30", endTime: "17:00", status: "available" },
-    "s-203": { id: "s-203", counselorId: "c-2", date: d2Str, startTime: "19:00", endTime: "20:30", status: "available" },
-    "s-301": { id: "s-301", counselorId: "c-3", date: d1Str, startTime: "10:00", endTime: "11:30", status: "available" },
-    "s-302": { id: "s-302", counselorId: "c-3", date: d2Str, startTime: "14:00", endTime: "15:30", status: "available" },
-    "s-401": { id: "s-401", counselorId: "c-4", date: d1Str, startTime: "13:30", endTime: "15:00", status: "available" },
-    "s-402": { id: "s-402", counselorId: "c-4", date: d2Str, startTime: "16:00", endTime: "17:30", status: "available" },
-  }
-}
-
-export const DEMO_SCHEDULES: Record<string, any> = getDemoSchedules()
-
-export const DEMO_BOOKINGS_CACHE = new Map<string, any>()
 
 export interface BookingContextData {
   counselor: {
@@ -324,23 +248,13 @@ export async function executeGetBookingContext(
     let counselor: any
     if (deps?.getCounselor) {
       counselor = await deps.getCounselor(counselorId)
-    } else if (DEMO_COUNSELORS[counselorId]) {
-      counselor = DEMO_COUNSELORS[counselorId]
     } else {
-      try {
-        const rows = await db
-          .select()
-          .from(counselors)
-          .where(eq(counselors.id, counselorId))
-          .limit(1)
-        counselor = rows[0]
-      } catch {
-        counselor = DEMO_COUNSELORS[counselorId]
-      }
-    }
-
-    if (!counselor) {
-      counselor = getStoreCounselorById(counselorId)
+      const rows = await db
+        .select()
+        .from(counselors)
+        .where(eq(counselors.id, counselorId))
+        .limit(1)
+      counselor = rows[0] || null
     }
 
     if (!counselor || !counselor.isActive) {
@@ -353,19 +267,13 @@ export async function executeGetBookingContext(
     let schedule: any
     if (deps?.getSchedule) {
       schedule = await deps.getSchedule(scheduleId)
-    } else if (DEMO_SCHEDULES[scheduleId]) {
-      schedule = DEMO_SCHEDULES[scheduleId]
     } else {
-      try {
-        const rows = await db
-          .select()
-          .from(schedules)
-          .where(eq(schedules.id, scheduleId))
-          .limit(1)
-        schedule = rows[0]
-      } catch {
-        schedule = DEMO_SCHEDULES[scheduleId]
-      }
+      const rows = await db
+        .select()
+        .from(schedules)
+        .where(eq(schedules.id, scheduleId))
+        .limit(1)
+      schedule = rows[0] || null
     }
 
     if (!schedule) {
@@ -524,19 +432,13 @@ export async function executeCreateGuestBooking(
     let schedule: any
     if (deps?.getSchedule) {
       schedule = await deps.getSchedule(data.scheduleId)
-    } else if (DEMO_SCHEDULES[data.scheduleId]) {
-      schedule = DEMO_SCHEDULES[data.scheduleId]
     } else {
-      try {
-        const rows = await db
-          .select()
-          .from(schedules)
-          .where(eq(schedules.id, data.scheduleId))
-          .limit(1)
-        schedule = rows[0]
-      } catch {
-        schedule = DEMO_SCHEDULES[data.scheduleId]
-      }
+      const rows = await db
+        .select()
+        .from(schedules)
+        .where(eq(schedules.id, data.scheduleId))
+        .limit(1)
+      schedule = rows[0] || null
     }
 
     if (!schedule) {
@@ -615,46 +517,21 @@ export async function executeCreateGuestBooking(
               "Anda masih memiliki 1 transaksi pemesanan yang sedang berjalan. Silakan selesaikan pembayaran tersebut atau tunggu hingga batas waktu pembayaran (17 menit) berakhir sebelum memesan jadwal lain.",
           }
         }
-      } catch {
-        // Fallback for demo in-memory cache
-        for (const booking of DEMO_BOOKINGS_CACHE.values()) {
-          if (
-            (booking.patientEmail?.toLowerCase() === data.patientEmail.toLowerCase() ||
-              booking.patientPhone === data.patientPhone) &&
-            booking.status === "pending_payment" &&
-            booking.reservedUntil &&
-            new Date(booking.reservedUntil) > now
-          ) {
-            return {
-              success: false,
-              error:
-                "Anda masih memiliki 1 transaksi pemesanan yang sedang berjalan. Silakan selesaikan pembayaran tersebut atau tunggu hingga batas waktu pembayaran (17 menit) berakhir sebelum memesan jadwal lain.",
-            }
-          }
-        }
+      } catch (holdErr) {
+        console.error("[CHECKOUT] Hold check error:", holdErr)
       }
     }
 
     let counselor: any
     if (deps?.getCounselor) {
       counselor = await deps.getCounselor(data.counselorId)
-    } else if (DEMO_COUNSELORS[data.counselorId]) {
-      counselor = DEMO_COUNSELORS[data.counselorId]
     } else {
-      try {
-        const rows = await db
-          .select()
-          .from(counselors)
-          .where(eq(counselors.id, data.counselorId))
-          .limit(1)
-        counselor = rows[0]
-      } catch {
-        counselor = DEMO_COUNSELORS[data.counselorId]
-      }
-    }
-
-    if (!counselor) {
-      counselor = getStoreCounselorById(data.counselorId)
+      const rows = await db
+        .select()
+        .from(counselors)
+        .where(eq(counselors.id, data.counselorId))
+        .limit(1)
+      counselor = rows[0] || null
     }
 
     if (!counselor || !counselor.isActive) {
@@ -803,54 +680,6 @@ export async function executeCreateGuestBooking(
       })
       bookingId = res.bookingId
       transactionId = res.transactionId
-    } else if (DEMO_SCHEDULES[schedule.id] || DEMO_COUNSELORS[counselor.id]) {
-      bookingId = "demo-b-" + accessToken.slice(0, 8)
-      transactionId = "demo-tx-" + accessToken.slice(0, 8)
-      DEMO_BOOKINGS_CACHE.set(accessToken, {
-        booking: {
-          id: bookingId,
-          accessToken,
-          patientName: data.patientName,
-          patientEmail: data.patientEmail,
-          patientPhone: data.patientPhone,
-          initialNotes: data.initialNotes || null,
-          status: "pending_payment",
-          createdAt: now,
-        },
-        counselor: {
-          id: counselor.id,
-          fullName: counselor.fullName,
-          title: counselor.title,
-          counselorType: counselor.counselorType,
-          counselorTypeDisplay:
-            counselor.counselorType === "psychologist"
-              ? "Psikolog Klinis"
-              : "Konselor Sebaya",
-          avatarR2Url: counselor.avatarR2Url,
-        },
-        schedule: {
-          id: schedule.id,
-          date: schedule.date,
-          startTime: schedule.startTime,
-          endTime: schedule.endTime,
-          timeRange: formatTimeRange(schedule.startTime, schedule.endTime),
-        },
-        transaction: {
-          id: transactionId,
-          paymentProvider: data.paymentProvider,
-          paymentMethod:
-            data.paymentMethod ||
-            (data.paymentProvider === "xendit"
-              ? "Xendit Gateway"
-              : "Transfer Manual"),
-          referenceNumber,
-          grossAmount,
-          discountAmount,
-          netAmount,
-          netAmountFormatted: formatRupiah(netAmount),
-          status: "PENDING",
-        },
-      })
     } else {
       const txResult = await db.transaction(async (tx) => {
         await tx
@@ -1025,11 +854,6 @@ export async function executeGetBookingByToken(
       const res = await deps.getBookingWithDetails(accessToken)
       if (!res) return { success: false, error: "Data pemesanan tidak ditemukan" }
       return { success: true, data: res }
-    }
-
-    const demoCached = DEMO_BOOKINGS_CACHE.get(accessToken)
-    if (demoCached) {
-      return { success: true, data: demoCached }
     }
 
     const rows = await db
