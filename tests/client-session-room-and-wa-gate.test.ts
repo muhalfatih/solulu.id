@@ -175,6 +175,7 @@ describe("Ticket 06: Client Session Room, Dual Payments & WhatsApp Report Gate",
       expect(res.success).toBe(true)
       expect(res.data?.status).toBe("PENDING")
       expect(res.data?.paymentUrl).toBeDefined()
+      expect(res.data?.paymentUrl).not.toContain("mock_extend_invoice")
       expect(updateSpy).toHaveBeenCalledWith("b-client-601", {
         extensionPaymentMethod: "xendit",
       })
