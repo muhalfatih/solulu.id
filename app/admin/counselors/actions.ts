@@ -1111,13 +1111,19 @@ export async function getCounselorSlotsAdminAction(
   }
 }
 
+export interface CreateCounselorSlotsAdminOptions {
+  currentUser?: AdminAuthContext | null
+  fetchExistingSlotsFn?: (counselorId: string, date: string) => Promise<any[]>
+  insertSlotsFn?: (slots: any[]) => Promise<any[]>
+}
+
 /**
  * Allows Admin to create 90-minute schedule slots on behalf of a counselor.
  * Automatically computes endTime (+90 mins) and prevents self-overlapping slots.
  */
 export async function createCounselorSlotsAdminAction(
   input: { counselorId: string; date: string; startTimes: string[] },
-  options?: { currentUser?: AdminAuthContext | null }
+  options?: CreateCounselorSlotsAdminOptions
 ) {
   const admin = await getAuthenticatedAdmin(options?.currentUser)
   if (!admin) {
@@ -1258,13 +1264,19 @@ export async function createCounselorSlotsAdminAction(
   }
 }
 
+export interface DeleteCounselorSlotAdminOptions {
+  currentUser?: AdminAuthContext | null
+  fetchSlotByIdFn?: (slotId: string) => Promise<any | null>
+  deleteSlotFn?: (slotId: string) => Promise<void>
+}
+
 /**
  * Allows Admin to delete an available schedule slot.
  * Rejects deletion if slot is already reserved or booked.
  */
 export async function deleteCounselorSlotAdminAction(
   slotId: string,
-  options?: { currentUser?: AdminAuthContext | null }
+  options?: DeleteCounselorSlotAdminOptions
 ) {
   const admin = await getAuthenticatedAdmin(options?.currentUser)
   if (!admin) {

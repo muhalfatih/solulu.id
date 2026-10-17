@@ -138,7 +138,8 @@ describe("Cron Cleanup & Auto-Archive Worker (Issue #10 / Solulu v1)", () => {
         },
       })
 
-      const res = await cleanupPostHandler(req, {
+      const { handleCronRequest } = await import("@/lib/cron/handler")
+      const res = await handleCronRequest(req, {
         cleanupFn: async () => ({
           success: true,
           releasedSlotsCount: 0,

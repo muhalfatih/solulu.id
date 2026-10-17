@@ -475,10 +475,10 @@ export async function createAdminManualBookingAction(
                   time: p.timeRange,
                   zoomJoinUrl: bookingRecord.zoomJoinUrl,
                 })
+                return { success: true }
               }
             : undefined,
         },
-        allocateAccount: options?.allocateZoomFn,
         fetchBookingData: options?.insertBookingFn
           ? async () => ({
               booking: bookingRecord,
