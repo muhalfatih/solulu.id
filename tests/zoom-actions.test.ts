@@ -10,6 +10,11 @@ import { zoomAccountInputSchema } from "../app/admin/zoom-settings/schema"
 import { encrypt, decrypt } from "../lib/encryption"
 
 describe("Seam 3: Zoom Server Actions & RBAC (app/admin/zoom-settings/actions.ts)", () => {
+  const superadminUser = {
+    id: "superadmin-1",
+    app_metadata: { role: "superadmin" },
+  }
+
   const adminUser = {
     id: "admin-1",
     app_metadata: { role: "admin" },
@@ -45,7 +50,7 @@ describe("Seam 3: Zoom Server Actions & RBAC (app/admin/zoom-settings/actions.ts
   })
 
   describe("handleSaveZoomAccount", () => {
-    it("blocks non-admin users from adding accounts", async () => {
+    it("blocks non-superadmin users from adding accounts", async () => {
       const result = await handleSaveZoomAccount(
         {
           name: "Akun Zoom Pro 1",
@@ -58,33 +63,33 @@ describe("Seam 3: Zoom Server Actions & RBAC (app/admin/zoom-settings/actions.ts
       )
 
       expect(result.success).toBe(false)
-      expect(result.error).toContain("Akses ditolak: Diperlukan role Admin")
+      expect(result.error).toContain("Hanya peran Superadmin")
     })
 
-    it("blocks adding when max 2 accounts limit is reached", async () => {
+    it("blocks adding when max 4 accounts limit is reached", async () => {
       const mockCanAdd = vi.fn().mockResolvedValue({
         allowed: false,
-        currentCount: 2,
+        currentCount: 4,
         error:
-          "Batas platform tercapai: Solulu dibatasi maksimal 2 akun Zoom Pro aktif.",
+          "Batas platform tercapai: Solulu dibatasi maksimal 4 akun Zoom Pro aktif.",
       })
 
       const result = await handleSaveZoomAccount(
         {
-          name: "Akun Zoom Pro 3",
-          email: "zoom3@solulu.id",
+          name: "Akun Zoom Pro 5",
+          email: "zoom5@solulu.id",
           accountId: "zm_acc_999",
           clientId: "zm_cli_999",
           clientSecret: "zm_sec_999",
         },
         {
-          currentUser: adminUser,
+          currentUser: superadminUser,
           canAddCheck: mockCanAdd,
         }
       )
 
       expect(result.success).toBe(false)
-      expect(result.error).toContain("maksimal 2 akun Zoom")
+      expect(result.error).toContain("maksimal 4 akun Zoom")
     })
 
     it("encrypts clientSecret with AES-256-GCM before saving to database", async () => {
@@ -103,7 +108,7 @@ describe("Seam 3: Zoom Server Actions & RBAC (app/admin/zoom-settings/actions.ts
           clientSecret: "raw_secret_xyz_123",
         },
         {
-          currentUser: adminUser,
+          currentUser: superadminUser,
           canAddCheck: vi
             .fn()
             .mockResolvedValue({ allowed: true, currentCount: 0 }),
@@ -138,7 +143,7 @@ describe("Seam 3: Zoom Server Actions & RBAC (app/admin/zoom-settings/actions.ts
         "zoom-acc-1",
         { name: "Updated Name" },
         {
-          currentUser: adminUser,
+          currentUser: superadminUser,
           safetyLockCheck: mockSafetyLock,
           updateAccount: mockUpdate,
         }
@@ -165,7 +170,7 @@ describe("Seam 3: Zoom Server Actions & RBAC (app/admin/zoom-settings/actions.ts
         "zoom-acc-1",
         { name: "Safe Name" },
         {
-          currentUser: adminUser,
+          currentUser: superadminUser,
           safetyLockCheck: mockSafetyLock,
           updateAccount: mockUpdate,
         }
@@ -189,7 +194,7 @@ describe("Seam 3: Zoom Server Actions & RBAC (app/admin/zoom-settings/actions.ts
       const mockDelete = vi.fn()
 
       const result = await handleDeleteZoomAccount("zoom-acc-1", {
-        currentUser: adminUser,
+        currentUser: superadminUser,
         safetyLockCheck: mockSafetyLock,
         deleteAccount: mockDelete,
       })
@@ -210,7 +215,7 @@ describe("Seam 3: Zoom Server Actions & RBAC (app/admin/zoom-settings/actions.ts
       const mockDelete = vi.fn().mockResolvedValue(true)
 
       const result = await handleDeleteZoomAccount("zoom-acc-1", {
-        currentUser: adminUser,
+        currentUser: superadminUser,
         safetyLockCheck: mockSafetyLock,
         deleteAccount: mockDelete,
       })
@@ -221,17 +226,17 @@ describe("Seam 3: Zoom Server Actions & RBAC (app/admin/zoom-settings/actions.ts
   })
 
   describe("handleTestZoomConnection", () => {
-    it("blocks non-admin users from testing Zoom connection", async () => {
+    it("blocks non-superadmin users from testing Zoom connection", async () => {
       const result = await handleTestZoomConnection("zoom-acc-1", {
         currentUser: counselorUser,
       })
       expect(result.success).toBe(false)
-      expect(result.error).toContain("Akses ditolak")
+      expect(result.error).toContain("Hanya peran Superadmin")
     })
 
     it("returns error if account is not found", async () => {
       const result = await handleTestZoomConnection("zoom-acc-missing", {
-        currentUser: adminUser,
+        currentUser: superadminUser,
         getAccount: async () => null,
       })
       expect(result.success).toBe(false)
@@ -253,7 +258,7 @@ describe("Seam 3: Zoom Server Actions & RBAC (app/admin/zoom-settings/actions.ts
       const mockGetToken = vi.fn().mockResolvedValue("cached_new_token")
 
       const result = await handleTestZoomConnection("zoom-acc-1", {
-        currentUser: adminUser,
+        currentUser: superadminUser,
         getAccount: async () => mockAccount,
         verifyFn: mockVerify,
         getTokenFn: mockGetToken,
@@ -281,7 +286,7 @@ describe("Seam 3: Zoom Server Actions & RBAC (app/admin/zoom-settings/actions.ts
       })
 
       const result = await handleTestZoomConnection("zoom-acc-1", {
-        currentUser: adminUser,
+        currentUser: superadminUser,
         getAccount: async () => mockAccount,
         verifyFn: mockVerify,
       })

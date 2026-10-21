@@ -22,6 +22,7 @@ import {
   FastForward,
   Sparkles,
   Loader2,
+  UserCheck,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -36,7 +37,12 @@ import {
   getTimerProgressPercentage,
   type TimerStageInfo,
 } from "@/lib/counselor/timer"
-import { recordSessionExtensionAction, recordSessionTimerAction } from "@/app/counselor/actions"
+import {
+  recordSessionExtensionAction,
+  recordSessionTimerAction,
+  counselorAdmitClientAction,
+  counselorUnadmitClientAction,
+} from "@/app/counselor/actions"
 import type { CounselorUpcomingSessionView } from "@/lib/counselor/types"
 import { cn } from "@/lib/utils"
 
@@ -55,10 +61,53 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
   const [copiedKey, setCopiedKey] = React.useState<boolean>(false)
   const [isSavingExtension, setIsSavingExtension] = React.useState<boolean>(false)
   const [extensionRecorded, setExtensionRecorded] = React.useState<boolean>(session.isExtended)
+  const [isClientAdmitted, setIsClientAdmitted] = React.useState<boolean>(Boolean(session.operatorAdmittedAt))
+  const [isAdmittingClient, setIsAdmittingClient] = React.useState<boolean>(false)
+  const autoAdmittedOnceRef = React.useRef<boolean>(false)
 
   // Track stages for notification triggers
   const lastTriggeredStageRef = React.useRef<string>("normal")
   const startTimeRef = React.useRef<number>(Date.now())
+
+  // Auto-admit when timer mounts/starts if not already admitted
+  React.useEffect(() => {
+    if (!autoAdmittedOnceRef.current && !session.operatorAdmittedAt) {
+      autoAdmittedOnceRef.current = true
+      recordSessionTimerAction(session.id, {
+        actualDurationMinutes: 0,
+        timerStartedAt: new Date(startTimeRef.current).toISOString(),
+      })
+        .then(() => setIsClientAdmitted(true))
+        .catch(() => {})
+    }
+  }, [session.id, session.operatorAdmittedAt])
+
+  const handleToggleAdmitClient = async () => {
+    setIsAdmittingClient(true)
+    try {
+      if (!isClientAdmitted) {
+        const res = await counselorAdmitClientAction({ bookingId: session.id })
+        if (res.success) {
+          setIsClientAdmitted(true)
+          toast.success("Kehadiran klien berhasil dikonfirmasi.")
+        } else {
+          toast.error(res.error || "Gagal mengonfirmasi kehadiran klien.")
+        }
+      } else {
+        const res = await counselorUnadmitClientAction({ bookingId: session.id })
+        if (res.success) {
+          setIsClientAdmitted(false)
+          toast.info("Status kehadiran klien dibatalkan.")
+        } else {
+          toast.error(res.error || "Gagal membatalkan kehadiran klien.")
+        }
+      }
+    } catch {
+      toast.error("Terjadi kesalahan jaringan.")
+    } finally {
+      setIsAdmittingClient(false)
+    }
+  }
 
   // Current stage & fee calculation
   const currentStage: TimerStageInfo = React.useMemo(
@@ -410,6 +459,61 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+          </div>
+
+          {/* Client Attendance Confirmation Card */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/80">
+            <div className="flex items-center gap-2.5">
+              <div
+                className={cn(
+                  "size-8 rounded-lg flex items-center justify-center shrink-0",
+                  isClientAdmitted
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                )}
+              >
+                <UserCheck className="size-4" data-icon="inline-start" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[11px] font-semibold text-muted-foreground">
+                  Kehadiran Klien
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-[10px] py-0 px-1.5 font-bold",
+                      isClientAdmitted
+                        ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                        : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                    )}
+                  >
+                    {isClientAdmitted ? "Klien Hadir (Admitted)" : "Menunggu Klien"}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              variant="outline"
+              className={cn(
+                "h-8 gap-1.5 text-xs font-semibold",
+                isClientAdmitted
+                  ? "text-muted-foreground hover:text-destructive border-border/80"
+                  : "text-emerald-700 dark:text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/10"
+              )}
+              onClick={handleToggleAdmitClient}
+              disabled={isAdmittingClient}
+              id="btn-toggle-client-admit-timer"
+            >
+              {isAdmittingClient ? (
+                <Loader2 className="size-3 animate-spin" data-icon="inline-start" />
+              ) : (
+                <UserCheck className="size-3" data-icon="inline-start" />
+              )}
+              <span>{isClientAdmitted ? "Batal Hadir" : "Konfirmasi Hadir"}</span>
+            </Button>
           </div>
 
           {/* Extend Fee Section (Active when elapsedMinutes >= 96) */}

@@ -488,6 +488,7 @@ export async function reviewCounselorApplicationAction(
       revalidatePath("/admin/counselors/applications")
       revalidatePath("/admin/counselors")
       revalidatePath("/counselors")
+      revalidatePath("/")
     } catch {
       // Outside Next request lifecycle (e.g. unit tests)
     }

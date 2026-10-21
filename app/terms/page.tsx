@@ -57,17 +57,17 @@ export default function TermsOfServicePage() {
           <section className="flex flex-col gap-3">
             <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
               <Clock className="size-4 text-primary" />
-              <span>2. Kebijakan Perubahan Jadwal (Aturan H-12)</span>
+              <span>2. Kebijakan Perubahan Jadwal (Aturan H-4)</span>
             </h2>
             <p className="text-muted-foreground">
               Demi menghormati alokasi waktu mitra konselor dan menjaga kepastian ketersediaan ruang Zoom berlisensi:
             </p>
             <ul className="list-disc pl-5 flex flex-col gap-1.5 text-muted-foreground">
               <li>
-                Permohonan perubahan jadwal (*reschedule*) hanya dapat diproses apabila diajukan <strong>minimal 12 jam sebelum waktu sesi dimulai (Aturan H-12)</strong>.
+                Permohonan perubahan jadwal (*reschedule*) hanya dapat diproses apabila diajukan <strong>minimal 4 jam sebelum waktu sesi dimulai (Aturan H-4)</strong>.
               </li>
               <li>
-                Pengajuan perubahan jadwal kurang dari 12 jam sebelum sesi akan ditolak secara otomatis oleh sistem, dan biaya sesi tidak dapat dikembalikan (*non-refundable*).
+                Pengajuan perubahan jadwal kurang dari 4 jam sebelum sesi akan ditolak secara otomatis oleh sistem, dan biaya sesi tidak dapat dikembalikan (*non-refundable*).
               </li>
               <li>
                 Setiap pemesanan hanya diperkenankan melakukan perubahan jadwal sebanyak maksimal 1 (satu) kali.
@@ -78,10 +78,10 @@ export default function TermsOfServicePage() {
           {/* Section 3 */}
           <section className="flex flex-col gap-3">
             <h2 className="font-heading text-lg sm:text-xl font-bold text-foreground tracking-tight">
-              3. Ketepatan Waktu &amp; Toleransi Kehadiran
+              3. Ketepatan Waktu &amp; Toleransi Kehadiran (No-Show)
             </h2>
             <p className="text-muted-foreground">
-              Sesi berdurasi standar 90 menit. Klien diimbau untuk bergabung ke ruang Zoom 5 menit sebelum jadwal. Apabila klien terlambat, waktu sesi akan tetap berakhir sesuai jadwal semula guna mencegah tumpang tindih dengan sesi berikutnya. Mitra konselor akan menunggu di ruang Zoom maksimal 15 menit. Jika klien tidak hadir setelah 15 menit tanpa pemberitahuan, sesi dianggap selesai (*no-show*).
+              Sesi berdurasi standar 90 menit. Klien diimbau untuk bergabung ke ruang Zoom 5 menit sebelum jadwal. Apabila klien terlambat, waktu sesi akan tetap berakhir sesuai jadwal semula guna mencegah tumpang tindih dengan sesi berikutnya. Batas tunggu toleransi kehadiran konselor di ruang Zoom adalah maksimal 30 menit. Jika klien tidak hadir setelah 30 menit tanpa konfirmasi, sesi dianggap selesai (*no-show*) dan pembayaran tidak dapat dikembalikan.
             </p>
           </section>
 

@@ -14,7 +14,7 @@ import {
 import { getBreadcrumbTrail } from "@/lib/navigation"
 
 interface AppBreadcrumbsProps {
-  portal: "admin" | "counselor"
+  portal: "admin" | "counselor" | "operator"
   className?: string
 }
 

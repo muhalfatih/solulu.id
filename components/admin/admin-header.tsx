@@ -20,6 +20,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { logoutAction } from "@/app/(auth)/login/actions"
 import { getZoomTelemetryAction } from "@/app/admin/zoom-settings/actions"
+import { getAdminProfileDataAction, type AdminProfileView } from "@/app/admin/profile/actions"
 import {
   LogOut,
   User,
@@ -31,6 +32,7 @@ import {
 export function AdminHeader() {
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = React.useState(false)
+  const [adminProfile, setAdminProfile] = React.useState<AdminProfileView | null>(null)
   const [zoomStatus, setZoomStatus] = React.useState<{
     activeCount: number
     statusText: string
@@ -51,6 +53,15 @@ export function AdminHeader() {
         }
       })
       .catch(() => {})
+
+    getAdminProfileDataAction()
+      .then((res) => {
+        if (isMounted && res.success && res.data) {
+          setAdminProfile(res.data)
+        }
+      })
+      .catch(() => {})
+
     return () => {
       isMounted = false
     }
@@ -62,6 +73,11 @@ export function AdminHeader() {
     router.push("/login")
     router.refresh()
   }
+
+  const isSuperadmin = adminProfile?.role === "superadmin"
+  const roleName = isSuperadmin ? "Superadmin Solulu" : "Admin Pelayanan"
+  const roleEmail = adminProfile?.email || (isSuperadmin ? "superadmin@solulu.id" : "admin@solulu.id")
+  const roleInitial = isSuperadmin ? "SA" : "AD"
 
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/80 bg-background/95 px-3 sm:px-4 backdrop-blur-md transition-all">
@@ -104,7 +120,7 @@ export function AdminHeader() {
             >
               <Avatar className="size-8">
                 <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
-                  AD
+                  {roleInitial}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -113,10 +129,10 @@ export function AdminHeader() {
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-semibold leading-none text-foreground">
-                  Admin Pelayanan
+                  {roleName}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  admin@solulu.id
+                  {roleEmail}
                 </p>
               </div>
             </DropdownMenuLabel>
@@ -124,7 +140,7 @@ export function AdminHeader() {
             <DropdownMenuItem asChild>
               <Link href="/admin/profile" className="cursor-pointer">
                 <User className="size-4 mr-2" />
-                Profil Operator
+                Profil Admin
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>

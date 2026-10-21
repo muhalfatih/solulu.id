@@ -55,16 +55,57 @@ export async function getAuthenticatedCounselor(
         }
       }
 
-      return {
-        id: "demo-counselor-id",
-        counselorId: "e28eb17e-b7cd-43bc-8a30-d67a221342f3", // Sarah Annisa (DB UUID)
-        app_metadata: { role: "counselor" },
-        user_metadata: {
-          role: "counselor",
-          full_name: "Sarah Annisa, M.Psi., Psikolog",
-          email: "sarah.annisa@solulu.id",
-        },
+      try {
+        const sarahRows = await db
+          .select({
+            id: counselors.id,
+            fullName: counselors.fullName,
+            email: counselors.email,
+          })
+          .from(counselors)
+          .where(sql`${counselors.fullName} ILIKE '%Sarah Annisa%'`)
+          .limit(1)
+
+        if (sarahRows.length > 0) {
+          return {
+            id: `demo-${sarahRows[0].id}`,
+            counselorId: sarahRows[0].id,
+            app_metadata: { role: "counselor" },
+            user_metadata: {
+              role: "counselor",
+              full_name: sarahRows[0].fullName,
+              email: sarahRows[0].email || "sarah.annisa@solulu.id",
+            },
+          }
+        }
+
+        const activeRows = await db
+          .select({
+            id: counselors.id,
+            fullName: counselors.fullName,
+            email: counselors.email,
+          })
+          .from(counselors)
+          .where(eq(counselors.isActive, true))
+          .limit(1)
+
+        if (activeRows.length > 0) {
+          return {
+            id: `demo-${activeRows[0].id}`,
+            counselorId: activeRows[0].id,
+            app_metadata: { role: "counselor" },
+            user_metadata: {
+              role: "counselor",
+              full_name: activeRows[0].fullName,
+              email: activeRows[0].email || "sarah.annisa@solulu.id",
+            },
+          }
+        }
+      } catch {
+        // DB error or empty
       }
+
+      return null
     }
     if (options?.allowAdmin && demoRole === "admin") {
       return {

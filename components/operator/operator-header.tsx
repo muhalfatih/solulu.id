@@ -2,12 +2,43 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Radio, ArrowLeft, Clock, ShieldAlert } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Separator } from "@/components/ui/separator"
+import { AppBreadcrumbs } from "@/components/app-breadcrumbs"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { logoutAction } from "@/app/(auth)/login/actions"
+import {
+  Clock,
+  Radio,
+  LogOut,
+  ArrowLeft,
+  ExternalLink,
+  ShieldAlert,
+} from "lucide-react"
 
-export function OperatorHeader() {
+export function OperatorHeader({ isAdmin = false }: { isAdmin?: boolean }) {
+  const router = useRouter()
   const [currentTime, setCurrentTime] = React.useState<string>("")
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false)
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    await logoutAction()
+    router.push("/login")
+    router.refresh()
+  }
 
   React.useEffect(() => {
     const updateClock = () => {
@@ -30,57 +61,93 @@ export function OperatorHeader() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b bg-background/95 px-4 backdrop-blur sm:px-6">
-      {/* Brand & Title */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/operator"
-          className="flex items-center gap-2 font-semibold tracking-tight text-foreground transition-opacity hover:opacity-80"
-        >
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold shadow-xs">
-            S
-          </div>
-          <div className="flex flex-col">
-            <span className="text-base font-bold leading-tight">Solulu</span>
-            <span className="text-xs font-normal text-muted-foreground">
-              Mental Health Clinic
-            </span>
-          </div>
-        </Link>
-
-        <div className="hidden h-6 w-px bg-border sm:block" />
-
-        <div className="hidden items-center gap-2 sm:flex">
-          <Badge variant="outline" className="gap-1.5 font-medium py-1">
-            <Radio className="size-3 animate-pulse text-emerald-500" />
-            <span>Konsol Operator</span>
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            Matriks 7 Slot & Dispatcher Zoom
-          </span>
-        </div>
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/80 bg-background/95 px-3 sm:px-4 backdrop-blur-md transition-all">
+      {/* Left: Sidebar trigger, separator, breadcrumbs */}
+      <div className="flex items-center gap-2 min-w-0">
+        <SidebarTrigger
+          className="-ml-1"
+          aria-label="Buka atau tutup menu navigasi operator"
+        />
+        <Separator orientation="vertical" className="mr-1 h-4" />
+        <AppBreadcrumbs portal="operator" className="truncate" />
       </div>
 
-      {/* Clock & Action Links */}
-      <div className="flex items-center gap-2 sm:gap-4">
-        {/* Live Clock */}
-        <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-1.5 text-xs font-mono font-medium text-foreground">
+      {/* Right: Live Clock widget, Theme Toggle, User dropdown */}
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* Live Clock Pill */}
+        <div
+          className="flex items-center gap-2 rounded-full border border-border/80 bg-muted/40 px-2.5 py-1 text-xs font-mono font-medium text-foreground"
+          title="Waktu Operasional Real-Time Solulu (WIB)"
+        >
           <Clock className="size-3.5 text-muted-foreground" />
-          <span>{currentTime || "--:--:-- WIB"}</span>
+          <span className="text-[11px] font-semibold">{currentTime || "--:--:-- WIB"}</span>
           <span className="relative flex size-2">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
           </span>
         </div>
 
-        {/* Link back to Admin portal */}
-        <Button variant="ghost" size="sm" asChild className="text-xs">
-          <Link href="/admin">
-            <ArrowLeft className="mr-1 size-3.5" data-icon="inline-start" />
-            <span className="hidden md:inline">Portal Admin</span>
-            <span className="md:hidden">Admin</span>
-          </Link>
-        </Button>
+        {/* Theme mode switcher */}
+        <ThemeToggle variant="icon" />
+
+        {/* Operator Profile Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative size-8 rounded-full ring-1 ring-border/80 hover:ring-primary/40 focus-visible:ring-2 cursor-pointer"
+              aria-label="Menu akun operator"
+            >
+              <Avatar className="size-8">
+                <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                  OP
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56 rounded-lg">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-semibold leading-none text-foreground">
+                  Petugas Dispatcher Zoom
+                </p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {isAdmin ? "Akses Administrator Utama" : "Konsol Operasional Terisolasi"}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {isAdmin && (
+              <DropdownMenuItem asChild>
+                <Link href="/admin" className="cursor-pointer">
+                  <ArrowLeft className="size-4 mr-2" />
+                  Portal Admin
+                </Link>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem asChild>
+              <Link
+                href="/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="cursor-pointer"
+              >
+                <ExternalLink className="size-4 mr-2" />
+                Halaman Depan Solulu
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="text-destructive focus:text-destructive cursor-pointer"
+            >
+              <LogOut className="size-4 mr-2" />
+              {isLoggingOut ? "Keluar..." : "Keluar Sesi"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   )

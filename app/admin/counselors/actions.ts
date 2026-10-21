@@ -27,6 +27,7 @@ import {
   checkSelfOverlap,
   isTimeRangeOverlapping,
 } from "@/lib/schedules/concurrency"
+import { getSlotByStartTime } from "@/lib/schedules/slots"
 
 export interface AdminAuthContext {
   id: string
@@ -40,17 +41,17 @@ export async function getAuthenticatedAdmin(
   if (customUser !== undefined) {
     if (!customUser) return null
     const role = customUser.app_metadata?.role || customUser.user_metadata?.role
-    return role === "admin" ? customUser : null
+    return (role === "admin" || role === "superadmin") ? customUser : null
   }
 
   try {
     const cookieStore = await cookies()
     const demoRole = cookieStore.get("solulu_demo_role")?.value
-    if (demoRole === "admin") {
+    if (demoRole === "admin" || demoRole === "superadmin") {
       return {
-        id: "demo-admin-id",
-        app_metadata: { role: "admin" },
-        user_metadata: { role: "admin" },
+        id: `demo-${demoRole}-id`,
+        app_metadata: { role: demoRole },
+        user_metadata: { role: demoRole },
       }
     }
 
@@ -61,7 +62,7 @@ export async function getAuthenticatedAdmin(
 
     if (!user) return null
     const role = user.app_metadata?.role || user.user_metadata?.role
-    return role === "admin" ? user : null
+    return (role === "admin" || role === "superadmin") ? user : null
   } catch {
     return null
   }
@@ -534,6 +535,7 @@ export async function updateCounselorVerificationStatusAction(
       revalidatePath("/admin/counselors")
       revalidatePath(`/admin/counselors/${counselorId}`)
       revalidatePath("/counselors")
+      revalidatePath("/")
     } catch {
       // safe fallback in unit test environments
     }
@@ -719,6 +721,7 @@ export async function createCounselorAction(
     try {
       revalidatePath("/admin/counselors")
       revalidatePath("/counselors")
+      revalidatePath("/")
     } catch {
       // safe fallback in test environments
     }
@@ -808,7 +811,10 @@ export async function updateCounselorAction(
     try {
       revalidatePath("/admin/counselors")
       revalidatePath(`/admin/counselors/${counselorId}/edit`)
+      revalidatePath(`/admin/counselors/${counselorId}`)
       revalidatePath("/counselors")
+      revalidatePath(`/counselors/${counselorId}`)
+      revalidatePath("/")
     } catch {
       // safe fallback in test
     }
@@ -862,6 +868,7 @@ export async function toggleCounselorActiveAction(
       revalidatePath("/admin/counselors")
       revalidatePath(`/admin/counselors/${counselorId}`)
       revalidatePath("/counselors")
+      revalidatePath("/")
     } catch {
       // safe fallback
     }
@@ -1012,6 +1019,7 @@ export async function deleteCounselorAction(
     try {
       revalidatePath("/admin/counselors")
       revalidatePath("/counselors")
+      revalidatePath("/")
     } catch {}
 
     return {
@@ -1140,15 +1148,20 @@ export async function createCounselorSlotsAdminAction(
     return { success: false, error: "Format tanggal tidak valid (harus YYYY-MM-DD)." }
   }
 
-  // 1. Prepare proposed slots with auto-computed 90-minute end time
-  const proposed: Array<{ startTime: string; endTime: string }> = []
+  // 1. Prepare proposed slots with 7 Fixed Slots / 2-hour duration or fallback
+  const proposed: Array<{ startTime: string; endTime: string; slotIndex: number | null }> = []
   for (const st of startTimes) {
     if (!/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(st)) {
       return { success: false, error: `Format jam mulai tidak valid: ${st}` }
     }
     const cleanSt = st.slice(0, 5)
+    const fixedSlot = getSlotByStartTime(cleanSt)
     const et = computeEndTime(cleanSt)
-    proposed.push({ startTime: cleanSt, endTime: et })
+    proposed.push({
+      startTime: cleanSt,
+      endTime: et,
+      slotIndex: fixedSlot ? fixedSlot.slotIndex : null,
+    })
   }
 
   // 2. Validate internal overlap among proposed slots
@@ -1204,6 +1217,7 @@ export async function createCounselorSlotsAdminAction(
           date,
           startTime: p.startTime,
           endTime: p.endTime,
+          slotIndex: p.slotIndex ?? undefined,
           status: "available",
         }))
       )
@@ -1228,6 +1242,7 @@ export async function createCounselorSlotsAdminAction(
             date,
             startTime: p.startTime,
             endTime: p.endTime,
+            slotIndex: p.slotIndex ?? undefined,
             status: "available",
           })
           .returning()

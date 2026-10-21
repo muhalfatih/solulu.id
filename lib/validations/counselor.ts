@@ -24,6 +24,9 @@ export const sessionReportSchema = z.object({
   internalNotes: z.string().trim().optional().nullable(),
   followUpRecommendation: z.string().trim().optional().nullable(),
   attachmentR2Keys: z.array(z.string().min(1)).optional().default([]),
+  actualDurationMinutes: z.number().int().min(15).max(180).optional(),
+  timerStartedAt: z.string().optional().nullable(),
+  timerStoppedAt: z.string().optional().nullable(),
 })
 
 export type SessionReportInput = z.input<typeof sessionReportSchema>

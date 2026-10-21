@@ -285,7 +285,7 @@ export default function CounselorScheduleClient({
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="flex flex-col gap-6 p-4 md:p-8 max-w-7xl mx-auto w-full">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16">
       {/* 1. Header & Headline */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-5">
         <div className="flex flex-col gap-1.5">

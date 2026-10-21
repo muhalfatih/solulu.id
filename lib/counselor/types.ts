@@ -45,6 +45,7 @@ export interface CounselorUpcomingSessionView {
   actualDurationMinutes: number | null
   timerStartedAt: string | null
   timerStoppedAt: string | null
+  operatorAdmittedAt: string | null
 }
 
 export interface CounselorProfileView {
@@ -81,9 +82,12 @@ export interface SessionReportDetailView {
     patientPhone: string
     date: string
     timeRange: string
+    startTime?: string
+    endTime?: string
     initialNotes: string | null
     srqScore: number | null
     hasSuicidalThoughts: boolean
     bypassedRecommendation: boolean
+    operatorAdmittedAt?: string | null
   }
 }

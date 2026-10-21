@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import {
   Dialog,
   DialogContent,
@@ -49,6 +50,45 @@ import {
   type TimelineSessionView,
 } from "./actions"
 import type { ZoomAccountView, ZoomAccountInput } from "./schema"
+
+const ROOM_STYLES = [
+  {
+    name: "Ruang #1",
+    subtitle: "Host Mandiri 1",
+    dotColor: "bg-primary",
+    blockColor: "bg-primary/20 hover:bg-primary/30 border-primary/40 text-foreground",
+    ringColor: "ring-primary",
+    borderL: "border-l-primary",
+    badgeVariant: "default" as const,
+  },
+  {
+    name: "Ruang #2",
+    subtitle: "Host Mandiri 2",
+    dotColor: "bg-emerald-500",
+    blockColor: "bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/40 text-foreground",
+    ringColor: "ring-emerald-500",
+    borderL: "border-l-emerald-500",
+    badgeVariant: "secondary" as const,
+  },
+  {
+    name: "Ruang #3",
+    subtitle: "Host Mandiri 3",
+    dotColor: "bg-cyan-500",
+    blockColor: "bg-cyan-500/20 hover:bg-cyan-500/30 border-cyan-500/40 text-foreground",
+    ringColor: "ring-cyan-500",
+    borderL: "border-l-cyan-500",
+    badgeVariant: "outline" as const,
+  },
+  {
+    name: "Ruang #4",
+    subtitle: "Breakout Master",
+    dotColor: "bg-violet-500",
+    blockColor: "bg-violet-500/20 hover:bg-violet-500/30 border-violet-500/40 text-foreground",
+    ringColor: "ring-violet-500",
+    borderL: "border-l-violet-500",
+    badgeVariant: "secondary" as const,
+  },
+]
 
 interface ZoomSettingsClientProps {
   initialAccounts: ZoomAccountView[]
@@ -261,6 +301,10 @@ export function ZoomSettingsClient({
 
   const handleSaveCredentials = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isSuperadmin) {
+      showToast("Akses ditolak: Hanya peran Superadmin yang berwenang mengubah konfigurasi akun Zoom.", "error")
+      return
+    }
     if (!editingAccount) return
 
     setIsPending(true)
@@ -304,6 +348,10 @@ export function ZoomSettingsClient({
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isSuperadmin) {
+      showToast("Akses ditolak: Hanya peran Superadmin yang berwenang menambah akun Zoom.", "error")
+      return
+    }
     setIsPending(true)
     try {
       const res = await saveZoomAccountAction(addForm)
@@ -329,6 +377,10 @@ export function ZoomSettingsClient({
   }
 
   const handleDeleteAccount = async () => {
+    if (!isSuperadmin) {
+      showToast("Akses ditolak: Hanya peran Superadmin yang berwenang menghapus akun Zoom.", "error")
+      return
+    }
     if (!deletingAccount) return
     setIsPending(true)
     try {
@@ -348,6 +400,10 @@ export function ZoomSettingsClient({
   }
 
   const handleTestConnection = async (acc: ZoomAccountView) => {
+    if (!isSuperadmin) {
+      showToast("Akses ditolak: Hanya peran Superadmin yang berwenang menguji koneksi Zoom.", "error")
+      return
+    }
     setTestingAccountId(acc.id)
     try {
       const res = await testZoomConnectionAction(acc.id)
@@ -396,12 +452,6 @@ export function ZoomSettingsClient({
   const baseStartHour = 8
   const baseEndHour = 22
 
-  const room1Account = accounts[0]
-  const room2Account = accounts[1]
-
-  const room1Sessions = timelineSessions.filter((s) => s.zoomAccountId === room1Account?.id)
-  const room2Sessions = timelineSessions.filter((s) => s.zoomAccountId === room2Account?.id)
-
   let startHour = baseStartHour
   let endHour = baseEndHour
 
@@ -419,7 +469,7 @@ export function ZoomSettingsClient({
     hourTicks.push(h)
   }
 
-  // Detect Overlap Windows
+  // Detect Overlap Windows across any accounts
   const overlapWindows: Array<{
     start: number
     end: number
@@ -427,8 +477,10 @@ export function ZoomSettingsClient({
     s2: TimelineSessionView
   }> = []
 
-  for (const s1 of room1Sessions) {
-    for (const s2 of room2Sessions) {
+  for (let i = 0; i < timelineSessions.length; i++) {
+    for (let j = i + 1; j < timelineSessions.length; j++) {
+      const s1 = timelineSessions[i]
+      const s2 = timelineSessions[j]
       const s1Start = parseTimeToDecimal(s1.startTime)
       const s1End = parseTimeToDecimal(s1.endTime)
       const s2Start = parseTimeToDecimal(s2.startTime)
@@ -450,7 +502,7 @@ export function ZoomSettingsClient({
   const isToday = selectedDate === getTodayWIB()
 
   return (
-    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-16 font-sans">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16 font-sans">
       {/* Toast Notification */}
       {toast && (
         <div
@@ -485,16 +537,31 @@ export function ZoomSettingsClient({
         title="Pengaturan 4 Akun Zoom Pro"
         description="Manajemen infrastruktur 4 akun Zoom Pro terenkripsi AES-256-GCM dengan Host Key 6-digit dan proteksi otomatis Safety Lock untuk kelancaran sesi telekonseling."
         icon={Video}
-        badge={`Pool: ${accounts.length}/4 Akun`}
-        badgeVariant="outline"
+        badge={
+          isSuperadmin
+            ? `Superadmin: Akses Penuh (${accounts.length}/4 Akun)`
+            : `Mode Tinjau: Admin (${accounts.length}/4 Akun)`
+        }
+        badgeVariant={isSuperadmin ? "default" : "secondary"}
         actions={
           <Button
             size="sm"
-            onClick={() => setIsAddingOpen(true)}
-            disabled={!canAddMore}
+            onClick={() => {
+              if (!isSuperadmin) {
+                showToast(
+                  "Akses ditolak: Hanya peran Superadmin yang berwenang menambah akun Zoom.",
+                  "error"
+                )
+                return
+              }
+              setIsAddingOpen(true)
+            }}
+            disabled={!canAddMore || !isSuperadmin}
             className="gap-1.5 font-medium shadow-xs"
             title={
-              canAddMore
+              !isSuperadmin
+                ? "Hanya peran Superadmin yang berwenang menambah akun Zoom"
+                : canAddMore
                 ? "Daftarkan akun Zoom Pro baru ke pool alokasi"
                 : "Batas platform tercapai: Maksimal 4 akun Zoom Pro aktif"
             }
@@ -504,6 +571,34 @@ export function ZoomSettingsClient({
           </Button>
         }
       />
+
+      {/* Banner Hak Akses Superadmin vs Admin */}
+      <Alert
+        variant="default"
+        className={`border ${
+          isSuperadmin
+            ? "bg-primary/5 border-primary/20"
+            : "bg-muted/40 border-border/80"
+        }`}
+      >
+        {isSuperadmin ? (
+          <ShieldCheck className="size-4 text-primary shrink-0 mt-0.5" />
+        ) : (
+          <ShieldAlert className="size-4 text-muted-foreground shrink-0 mt-0.5" />
+        )}
+        <div className="flex flex-col gap-1 min-w-0">
+          <AlertTitle className="font-semibold text-xs">
+            {isSuperadmin
+              ? "Hak Akses Superadmin Dikonfirmasi"
+              : "Perhatian: Mode Hanya Baca (Role: Admin)"}
+          </AlertTitle>
+          <AlertDescription className="text-xs text-muted-foreground leading-relaxed">
+            {isSuperadmin
+              ? "Anda memiliki hak akses penuh untuk mendaftarkan akun baru, mengubah kredensial S2S OAuth, menguji koneksi API, dan menghapus akun Zoom dari pool alokasi."
+              : "Halaman ini dalam mode tinjau. Hanya akun dengan peran Superadmin yang berwenang menambah, mengubah, menguji koneksi, atau menghapus konfigurasi akun Zoom."}
+          </AlertDescription>
+        </div>
+      </Alert>
 
       {/* Metric Cards Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -611,18 +706,20 @@ export function ZoomSettingsClient({
 
         {/* Legend */}
         <div className="flex items-center justify-between flex-wrap gap-2 text-[11px] text-muted-foreground px-1">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-primary" />
-              <span>Ruang #1 (Host Utama)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="size-2 rounded-full bg-emerald-500" />
-              <span>Ruang #2 (Overlap)</span>
-            </div>
+          <div className="flex items-center flex-wrap gap-3">
+            {accounts.map((acc, idx) => {
+              const style = ROOM_STYLES[idx] || ROOM_STYLES[0]
+              const label = idx === 3 ? "Ruang #4 (Breakout)" : `Ruang #${idx + 1} (Mandiri)`
+              return (
+                <div key={acc.id} className="flex items-center gap-1.5">
+                  <span className={`size-2 rounded-full ${style.dotColor}`} />
+                  <span>{label}</span>
+                </div>
+              )
+            })}
             <div className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-amber-500" />
-              <span>Jendela Overlap (2/2 Terisi)</span>
+              <span>Jendela Overlap</span>
             </div>
           </div>
           <span className="text-[10px] font-mono">
@@ -630,7 +727,7 @@ export function ZoomSettingsClient({
           </span>
         </div>
 
-        {/* 1. Desktop & Tablet Adaptive View (Horizontal 2-Track Grid) */}
+        {/* 1. Desktop & Tablet Adaptive View (Horizontal Multi-Track Grid) */}
         <div className="hidden md:flex flex-col gap-2 pt-1">
           {/* Dynamic Hour Ticks Axis */}
           <div
@@ -644,87 +741,60 @@ export function ZoomSettingsClient({
             ))}
           </div>
 
-          {/* Track 1: Ruang #1 (Host Utama) */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className="w-20 shrink-0 font-medium text-foreground text-[11px] truncate">
-              Ruang #1:
-            </span>
-            <div className="relative flex-1 h-9 bg-muted/30 rounded-lg border border-border/60 overflow-hidden">
-              {room1Sessions.length > 0 ? (
-                room1Sessions.map((ses) => {
-                  const sStart = parseTimeToDecimal(ses.startTime)
-                  const sEnd = parseTimeToDecimal(ses.endTime)
-                  const left = Math.max(0, ((sStart - startHour) / totalHours) * 100)
-                  const width = Math.min(100 - left, ((sEnd - sStart) / totalHours) * 100)
-                  const isHovered = hoveredSession?.bookingId === ses.bookingId
+          {/* Dynamic Tracks for All Configured Zoom Accounts */}
+          {accounts.map((account, idx) => {
+            const style = ROOM_STYLES[idx] || ROOM_STYLES[0]
+            const roomSessions = timelineSessions.filter((s) => s.zoomAccountId === account.id)
+            const roomLabel = `Ruang #${idx + 1}`
+            const roleBadge = idx === 3 ? "Breakout" : "Mandiri"
 
-                  return (
-                    <div
-                      key={ses.bookingId}
-                      style={{ left: `${left}%`, width: `${width}%` }}
-                      onMouseEnter={() => setHoveredSession(ses)}
-                      onMouseLeave={() => setHoveredSession(null)}
-                      onClick={() => room1Account && setInspectingAccountId(room1Account.id)}
-                      className={`absolute top-1 bottom-1 bg-primary/20 hover:bg-primary/30 border border-primary/40 rounded-md px-2 flex items-center justify-between text-[10px] text-foreground font-medium cursor-pointer transition-all ${
-                        isHovered ? "ring-2 ring-primary ring-offset-1 z-20" : ""
-                      }`}
-                      title={`${ses.bookingId.slice(0, 7).toUpperCase()} (${ses.startTime.slice(0, 5)} - ${ses.endTime.slice(0, 5)} WIB): ${ses.patientName}`}
-                    >
-                      <span className="truncate font-mono">
-                        {ses.bookingId.slice(0, 7).toUpperCase()} ({ses.startTime.slice(0, 5)} - {ses.endTime.slice(0, 5)})
-                      </span>
-                      <span className="size-1.5 rounded-full bg-emerald-400 shrink-0 ml-1" />
-                    </div>
-                  )
-                })
-              ) : (
-                <div className="h-full flex items-center px-3 text-[10px] text-muted-foreground italic">
-                  {room1Account ? "Siaga — Belum ada sesi pada tanggal ini" : "Akun Zoom #1 belum dikonfigurasi"}
+            return (
+              <div key={account.id} className="flex items-center gap-2 text-xs">
+                <div className="w-32 shrink-0 flex items-center justify-between pr-2.5">
+                  <span className="font-semibold text-foreground text-[11px] whitespace-nowrap">
+                    {roomLabel}:
+                  </span>
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-normal scale-90 origin-right">
+                    {roleBadge}
+                  </Badge>
                 </div>
-              )}
-            </div>
-          </div>
+                <div className="relative flex-1 h-9 bg-muted/30 rounded-lg border border-border/60 overflow-hidden">
+                  {roomSessions.length > 0 ? (
+                    roomSessions.map((ses) => {
+                      const sStart = parseTimeToDecimal(ses.startTime)
+                      const sEnd = parseTimeToDecimal(ses.endTime)
+                      const left = Math.max(0, ((sStart - startHour) / totalHours) * 100)
+                      const width = Math.min(100 - left, ((sEnd - sStart) / totalHours) * 100)
+                      const isHovered = hoveredSession?.bookingId === ses.bookingId
 
-          {/* Track 2: Ruang #2 (Penanganan Overlap) */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className="w-20 shrink-0 font-medium text-foreground text-[11px] truncate">
-              Ruang #2:
-            </span>
-            <div className="relative flex-1 h-9 bg-muted/30 rounded-lg border border-border/60 overflow-hidden">
-              {room2Sessions.length > 0 ? (
-                room2Sessions.map((ses) => {
-                  const sStart = parseTimeToDecimal(ses.startTime)
-                  const sEnd = parseTimeToDecimal(ses.endTime)
-                  const left = Math.max(0, ((sStart - startHour) / totalHours) * 100)
-                  const width = Math.min(100 - left, ((sEnd - sStart) / totalHours) * 100)
-                  const isHovered = hoveredSession?.bookingId === ses.bookingId
-
-                  return (
-                    <div
-                      key={ses.bookingId}
-                      style={{ left: `${left}%`, width: `${width}%` }}
-                      onMouseEnter={() => setHoveredSession(ses)}
-                      onMouseLeave={() => setHoveredSession(null)}
-                      onClick={() => room2Account && setInspectingAccountId(room2Account.id)}
-                      className={`absolute top-1 bottom-1 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 rounded-md px-2 flex items-center justify-between text-[10px] text-foreground font-medium cursor-pointer transition-all ${
-                        isHovered ? "ring-2 ring-emerald-500 ring-offset-1 z-20" : ""
-                      }`}
-                      title={`${ses.bookingId.slice(0, 7).toUpperCase()} (${ses.startTime.slice(0, 5)} - ${ses.endTime.slice(0, 5)} WIB): ${ses.patientName}`}
-                    >
-                      <span className="truncate font-mono">
-                        {ses.bookingId.slice(0, 7).toUpperCase()} ({ses.startTime.slice(0, 5)} - {ses.endTime.slice(0, 5)})
-                      </span>
-                      <span className="size-1.5 rounded-full bg-emerald-400 shrink-0 ml-1" />
+                      return (
+                        <div
+                          key={ses.bookingId}
+                          style={{ left: `${left}%`, width: `${width}%` }}
+                          onMouseEnter={() => setHoveredSession(ses)}
+                          onMouseLeave={() => setHoveredSession(null)}
+                          onClick={() => setInspectingAccountId(account.id)}
+                          className={`absolute top-1 bottom-1 ${style.blockColor} border rounded-md px-2 flex items-center justify-between text-[10px] font-medium cursor-pointer transition-all ${
+                            isHovered ? `ring-2 ${style.ringColor} ring-offset-1 z-20` : ""
+                          }`}
+                          title={`${ses.bookingId.slice(0, 7).toUpperCase()} (${ses.startTime.slice(0, 5)} - ${ses.endTime.slice(0, 5)} WIB): ${ses.patientName}`}
+                        >
+                          <span className="truncate font-mono">
+                            {ses.bookingId.slice(0, 7).toUpperCase()} ({ses.startTime.slice(0, 5)} - {ses.endTime.slice(0, 5)})
+                          </span>
+                          <span className="size-1.5 rounded-full bg-emerald-400 shrink-0 ml-1" />
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <div className="h-full flex items-center px-3 text-[10px] text-muted-foreground italic">
+                      Siaga — Belum ada sesi pada tanggal ini
                     </div>
-                  )
-                })
-              ) : (
-                <div className="h-full flex items-center px-3 text-[10px] text-muted-foreground italic">
-                  {room2Account ? "Siaga — Belum ada sesi pada tanggal ini" : "Akun Zoom #2 belum dikonfigurasi"}
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            )
+          })}
 
           {/* Hover Details Card (Rich Tooltip in Desktop) */}
           {hoveredSession && (
@@ -756,7 +826,9 @@ export function ZoomSettingsClient({
         <div className="flex md:hidden flex-col gap-2.5 pt-1">
           {chronologicalSessions.length > 0 ? (
             chronologicalSessions.map((ses) => {
-              const isRoom1 = ses.zoomAccountId === room1Account?.id
+              const accountIndex = accounts.findIndex((a) => a.id === ses.zoomAccountId)
+              const style = accountIndex >= 0 ? ROOM_STYLES[accountIndex] || ROOM_STYLES[0] : ROOM_STYLES[0]
+              const roomName = accountIndex >= 0 ? `Ruang #${accountIndex + 1}` : "Ruang Zoom"
               const hasOverlap = overlapWindows.some(
                 (w) => w.s1.bookingId === ses.bookingId || w.s2.bookingId === ses.bookingId
               )
@@ -765,12 +837,9 @@ export function ZoomSettingsClient({
                 <div
                   key={ses.bookingId}
                   onClick={() => {
-                    if (isRoom1 && room1Account) setInspectingAccountId(room1Account.id)
-                    if (!isRoom1 && room2Account) setInspectingAccountId(room2Account.id)
+                    if (ses.zoomAccountId) setInspectingAccountId(ses.zoomAccountId)
                   }}
-                  className={`p-3 rounded-xl border bg-card flex flex-col gap-2 shadow-2xs transition-colors cursor-pointer ${
-                    isRoom1 ? "border-l-4 border-l-primary" : "border-l-4 border-l-emerald-500"
-                  }`}
+                  className={`p-3 rounded-xl border bg-card flex flex-col gap-2 shadow-2xs transition-colors cursor-pointer border-l-4 ${style.borderL}`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
@@ -781,10 +850,10 @@ export function ZoomSettingsClient({
                     </div>
                     <div className="flex items-center gap-1">
                       <Badge
-                        variant={isRoom1 ? "default" : "secondary"}
+                        variant={style.badgeVariant}
                         className="text-[10px] py-0 px-1.5 font-normal"
                       >
-                        {isRoom1 ? "Ruang #1" : "Ruang #2"}
+                        {roomName}
                       </Badge>
                       {hasOverlap && (
                         <Badge variant="outline" className="text-[10px] py-0 px-1.5 text-amber-500 border-amber-500/40">
@@ -828,7 +897,7 @@ export function ZoomSettingsClient({
                   {overlapWindows
                     .map((w) => `${formatDecimalToTime(w.start)} - ${formatDecimalToTime(w.end)} WIB`)
                     .join(", ")}
-                  . Kedua Ruang Zoom Pro aktif. Kapasitas Pool 100%.
+                  . Sistem mendistribusikan sesi mandiri dan Breakout Room secara otomatis.
                 </>
               ) : (
                 <>
@@ -860,9 +929,24 @@ export function ZoomSettingsClient({
             </p>
           </div>
           <Button
-            onClick={() => setIsAddingOpen(true)}
+            onClick={() => {
+              if (!isSuperadmin) {
+                showToast(
+                  "Akses ditolak: Hanya peran Superadmin yang berwenang menambah akun Zoom.",
+                  "error"
+                )
+                return
+              }
+              setIsAddingOpen(true)
+            }}
+            disabled={!isSuperadmin}
             size="sm"
             className="gap-1.5 font-medium mt-1 shadow-xs"
+            title={
+              !isSuperadmin
+                ? "Hanya peran Superadmin yang berwenang menambah akun Zoom"
+                : undefined
+            }
           >
             <Plus className="size-3.5" />
             <span>Daftarkan Akun Zoom Pro #1</span>
@@ -1118,10 +1202,14 @@ export function ZoomSettingsClient({
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={testingAccountId === acc.id}
+                    disabled={testingAccountId === acc.id || !isSuperadmin}
                     onClick={() => handleTestConnection(acc)}
                     className="h-8 text-xs font-normal"
-                    title="Uji koneksi S2S OAuth ke Zoom API dan perbarui cache token"
+                    title={
+                      !isSuperadmin
+                        ? "Hanya peran Superadmin yang berwenang menguji koneksi Zoom"
+                        : "Uji koneksi S2S OAuth ke Zoom API dan perbarui cache token"
+                    }
                   >
                     {testingAccountId === acc.id ? (
                       <Loader2 className="size-3.5 mr-1.5 animate-spin text-primary" />
@@ -1148,9 +1236,14 @@ export function ZoomSettingsClient({
                       <Button
                         size="sm"
                         variant="outline"
+                        disabled={!isSuperadmin}
                         onClick={() => handleOpenEdit(acc)}
                         className="h-8 text-xs font-medium"
-                        title="Ubah kredensial S2S OAuth"
+                        title={
+                          !isSuperadmin
+                            ? "Hanya peran Superadmin yang berwenang mengubah konfigurasi akun Zoom"
+                            : "Ubah kredensial S2S OAuth"
+                        }
                       >
                         <Key className="size-3.5 mr-1.5 text-muted-foreground" />
                         <span>Ubah</span>
@@ -1161,15 +1254,17 @@ export function ZoomSettingsClient({
                     <Button
                       variant="ghost"
                       size="sm"
-                      disabled={isLocked}
+                      disabled={isLocked || !isSuperadmin}
                       onClick={() => setDeletingAccount(acc)}
                       className={`h-8 text-xs px-2.5 ${
-                        isLocked
+                        isLocked || !isSuperadmin
                           ? "text-muted-foreground opacity-50 cursor-not-allowed"
                           : "text-destructive hover:bg-destructive/10 hover:text-destructive"
                       }`}
                       title={
-                        isLocked
+                        !isSuperadmin
+                          ? "Hanya peran Superadmin yang berwenang menghapus akun Zoom"
+                          : isLocked
                           ? "Akun tidak dapat dihapus selama memiliki sesi terikat"
                           : "Hapus akun Zoom dari pool"
                       }
@@ -1199,8 +1294,23 @@ export function ZoomSettingsClient({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsAddingOpen(true)}
+                disabled={!isSuperadmin}
+                onClick={() => {
+                  if (!isSuperadmin) {
+                    showToast(
+                      "Akses ditolak: Hanya peran Superadmin yang berwenang menambah akun Zoom.",
+                      "error"
+                    )
+                    return
+                  }
+                  setIsAddingOpen(true)
+                }}
                 className="gap-1.5 font-medium"
+                title={
+                  !isSuperadmin
+                    ? "Hanya peran Superadmin yang berwenang menambah akun Zoom"
+                    : undefined
+                }
               >
                 <Plus className="size-3.5" />
                 <span>Tambah Akun #{accounts.length + 1}</span>
@@ -1402,7 +1512,7 @@ export function ZoomSettingsClient({
                 >
                   Batal
                 </Button>
-                <Button type="submit" size="sm" disabled={isPending} className="gap-1.5">
+                <Button type="submit" size="sm" disabled={isPending || !isSuperadmin} className="gap-1.5">
                   {isPending && <Loader2 className="size-3.5 animate-spin" />}
                   <span>{isPending ? "Menyimpan..." : "Simpan Kredensial"}</span>
                 </Button>
@@ -1443,7 +1553,7 @@ export function ZoomSettingsClient({
                   type="button"
                   variant="destructive"
                   size="sm"
-                  disabled={isPending}
+                  disabled={isPending || !isSuperadmin}
                   onClick={handleDeleteAccount}
                   className="gap-1.5"
                 >
@@ -1552,7 +1662,7 @@ export function ZoomSettingsClient({
               <Button
                 type="submit"
                 size="sm"
-                disabled={isPending}
+                disabled={isPending || !isSuperadmin}
                 className="gap-1.5"
               >
                 {isPending && <Loader2 className="size-3.5 animate-spin" />}

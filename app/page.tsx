@@ -39,25 +39,6 @@ export const metadata = {
     "Ruang aman dan privat untuk konseling bersama psikolog klinis berizin resmi dan teman cerita terlatih. Durasi 90 menit penuh, rahasia, tanpa perlu membuat akun.",
 }
 
-const HERO_COUNSELORS = [
-  {
-    name: "Sarah Annisa, M.Psi",
-    src: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=120",
-  },
-  {
-    name: "Dimas Wicaksono, M.Psi",
-    src: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120",
-  },
-  {
-    name: "Bima Arya, S.Psi",
-    src: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120",
-  },
-  {
-    name: "Nadya Putri, S.Psi",
-    src: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=120",
-  },
-]
-
 const TRUST_PILLARS = [
   {
     icon: Clock,
@@ -78,51 +59,6 @@ const TRUST_PILLARS = [
     icon: Calendar,
     title: "Tanpa Bikin Akun",
     desc: "Tinggal pilih jadwal langsung",
-  },
-]
-
-const FEATURED_COUNSELORS = [
-  {
-    id: "c-1",
-    name: "Sarah Annisa, M.Psi",
-    role: "Psikolog Klinis Berizin Resmi",
-    type: "psychologist" as const,
-    education: "S2 Profesi Psikologi • Izin Kementerian Kesehatan",
-    specializations: ["Kecemasan Berlebih", "Pemulihan Trauma", "Kejenuhan Kerja"],
-    rate: "Rp 130.000",
-    originalRate: "Rp 250.000",
-    avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=600",
-    rating: "4.9",
-    experience: "4+ Tahun",
-    availableSoon: "Tersedia Hari Ini",
-  },
-  {
-    id: "c-2",
-    name: "Rian Hidayat, S.Psi",
-    role: "Konselor Sebaya (Teman Cerita Terlatih)",
-    type: "peer" as const,
-    education: "Sarjana Psikologi • Pendamping Sebaya",
-    specializations: ["Bimbang Arah Masa Depan", "Stres Kuliah & Kerja", "Hubungan Asmara"],
-    rate: "Rp 85.000",
-    originalRate: "Rp 150.000",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600",
-    rating: "4.8",
-    experience: "3+ Tahun",
-    availableSoon: "Tersedia Besok",
-  },
-  {
-    id: "c-3",
-    name: "Dr. Nadia Larasati, M.Psi",
-    role: "Psikolog Klinis Berizin Resmi",
-    type: "psychologist" as const,
-    education: "Doktor & Magister Psikologi • Izin Kementerian Kesehatan",
-    specializations: ["Gejala Depresi", "Rasa Kurang Percaya Diri", "Penerimaan Diri"],
-    rate: "Rp 130.000",
-    originalRate: "Rp 250.000",
-    avatar: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&q=80&w=600",
-    rating: "5.0",
-    experience: "6+ Tahun",
-    availableSoon: "Tersedia Hari Ini",
   },
 ]
 
@@ -160,27 +96,6 @@ const CORE_PILLARS = [
   },
 ]
 
-const TESTIMONIALS = [
-  {
-    title: "Tidak merasa sendirian lagi",
-    author: "Mahasiswa, 21 tahun",
-    topic: "Kecemasan Kuliah & Ujian",
-    quote: "Awalnya sempat ragu mau cerita karena takut dinilai lebay. Tapi konselornya sangat menenangkan sejak menit awal, dan durasi 90 menit beneran bikin lega tanpa rasa diburu-buru.",
-  },
-  {
-    title: "Punya arah keluar dari masalah",
-    author: "Karyawan Swasta, 26 tahun",
-    topic: "Capek Kerja & Bingung Arah",
-    quote: "Tekanan kerja sempat bikin kepala buntu banget. Lewat sesi ini, beban pikiran pelan-pelan diurai jadi langkah nyata yang masuk akal buat langsung saya jalanin.",
-  },
-  {
-    title: "Punya cara tenang saat cemas datang",
-    author: "Lulusan Baru Kuliah, 23 tahun",
-    topic: "Pikiran Cemas & Berputar",
-    quote: "Konselingnya terarah dan bikin adem. Kami latihan cara menenangkan diri yang langsung ngebantu waktu rasa cemas tiba-tiba muncul di malam hari.",
-  },
-]
-
 const FAQS = [
   {
     question: "Apa bedanya Konselor Sebaya dan Psikolog Klinis?",
@@ -200,7 +115,7 @@ const FAQS = [
   {
     question: "Gimana kalau saya berhalangan hadir pada jam yang dijadwalkan?",
     answer:
-      "Kamu bisa mengajukan ganti jadwal secara mandiri lewat tautan sesimu selambat-lambatnya 12 jam sebelum sesi dimulai, biar waktu konselor bisa dialihkan dengan baik bagi yang membutuhkan.",
+      "Kamu bisa mengajukan ganti jadwal secara mandiri lewat tautan sesimu selambat-lambatnya 4 jam (H-4) sebelum sesi dimulai, biar waktu konselor bisa dialihkan dengan baik bagi yang membutuhkan.",
   },
   {
     question: "Bagaimana Solulu menjaga kerahasiaan cerita dan data pribadi saya?",
@@ -222,7 +137,7 @@ export default async function HomePage() {
           topic: t.topic,
           quote: t.comment,
         }))
-      : TESTIMONIALS
+      : []
 
   const featuredCounselors =
     featuredRes.success && featuredRes.data && featuredRes.data.length > 0
@@ -253,7 +168,7 @@ export default async function HomePage() {
           experience: "4+ Tahun",
           availableSoon: "Tersedia Minggu Ini",
         }))
-      : FEATURED_COUNSELORS
+      : []
 
   const heroCounselorsList = featuredCounselors.slice(0, 4).map((c) => ({
     name: c.name,
@@ -331,16 +246,18 @@ export default async function HomePage() {
 
             {/* Social Proof Row */}
             <div className="flex items-center justify-center gap-2.5 pt-1 text-xs text-muted-foreground">
-              <div className="flex items-center -space-x-2">
-                {heroCounselorsList.map((c, i) => (
-                  <Avatar key={i} className="size-7.5 border-2 border-background ring-1 ring-primary/20 shadow-xs hover:scale-110 hover:z-10 transition-transform duration-200">
-                    <AvatarImage src={c.src} alt={c.name} />
-                    <AvatarFallback className="text-xs font-semibold bg-primary/15 text-primary dark:bg-purple-950 dark:text-purple-300">
-                      {c.name.slice(0, 2)}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
-              </div>
+              {heroCounselorsList.length > 0 && (
+                <div className="flex items-center -space-x-2">
+                  {heroCounselorsList.map((c, i) => (
+                    <Avatar key={i} className="size-7.5 border-2 border-background ring-1 ring-primary/20 shadow-xs hover:scale-110 hover:z-10 transition-transform duration-200">
+                      <AvatarImage src={c.src} alt={c.name} />
+                      <AvatarFallback className="text-xs font-semibold bg-primary/15 text-primary dark:bg-purple-950 dark:text-purple-300">
+                        {c.name.slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                </div>
+              )}
               <div className="flex items-center gap-1.5 font-medium text-foreground">
                 <CheckCircle2 className="size-4 text-emerald-500 shrink-0" aria-hidden="true" />
                 <span>
@@ -807,8 +724,9 @@ export default async function HomePage() {
             </Button>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7 items-stretch">
-            {featuredCounselors.map((c, cIdx) => {
+          {featuredCounselors.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7 items-stretch">
+              {featuredCounselors.map((c, cIdx) => {
               const cPriceData = pricing[c.type]
               const cActivePrice = cPriceData.isSaleActive ? cPriceData.promoPrice : cPriceData.basePrice
               const cHasDiscount = cPriceData.isSaleActive && cPriceData.promoPrice < cPriceData.basePrice
@@ -928,7 +846,23 @@ export default async function HomePage() {
               )
             })}
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center text-center p-8 sm:p-12 rounded-2xl border border-dashed border-border/80 bg-muted/20 max-w-xl mx-auto">
+            <div className="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-3">
+              <Users className="size-6" />
+            </div>
+            <h3 className="font-heading font-semibold text-lg text-foreground">
+              Katalog Konselor Sedang Diperbarui
+            </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 max-w-sm">
+              Jadwal konsultasi baru sedang disinkronkan oleh tim admin. Silakan periksa ketersediaan langsung di halaman katalog.
+            </p>
+            <Button asChild variant="public" size="pill" className="mt-5">
+              <Link href="/counselors">Buka Katalog Konselor</Link>
+            </Button>
+          </div>
+        )}
+      </div>
       </section>
 
       {/* 6. Pengalaman Klien di Solulu: Standardized py-20 sm:py-24 md:py-28 & uniform card padding p-6 */}
@@ -943,41 +877,50 @@ export default async function HomePage() {
             </p>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 items-stretch">
-            {displayTestimonials.map((t, idx) => (
-              <ScrollReveal
-                key={idx}
-                variant="fade-up"
-                delay={idx * 80}
-                className="flex flex-col"
-              >
-                <div className="h-full p-7 rounded-2xl bg-card border border-border/80 flex flex-col justify-between gap-4 shadow-2xs hover:border-primary/35 hover:-translate-y-1 hover:shadow-sm transition-all duration-200">
-                  {/* 1. Header with testimonial headline & Quote icon */}
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="font-heading font-semibold text-base sm:text-lg text-foreground leading-snug">
-                      {t.title}
-                    </h3>
-                    <Quote className="size-5 text-primary/30 shrink-0 mt-0.5" aria-hidden="true" />
-                  </div>
+          {displayTestimonials.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 items-stretch">
+              {displayTestimonials.map((t, idx) => (
+                <ScrollReveal
+                  key={idx}
+                  variant="fade-up"
+                  delay={idx * 80}
+                  className="flex flex-col"
+                >
+                  <div className="h-full p-7 rounded-2xl bg-card border border-border/80 flex flex-col justify-between gap-4 shadow-2xs hover:border-primary/35 hover:-translate-y-1 hover:shadow-sm transition-all duration-200">
+                    {/* 1. Header with testimonial headline & Quote icon */}
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="font-heading font-semibold text-base sm:text-lg text-foreground leading-snug">
+                        {t.title}
+                      </h3>
+                      <Quote className="size-5 text-primary/30 shrink-0 mt-0.5" aria-hidden="true" />
+                    </div>
 
-                  {/* 2. Pure Distilled Quote */}
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty flex-1">
-                    &ldquo;{t.quote}&rdquo;
-                  </p>
+                    {/* 2. Pure Distilled Quote */}
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-pretty flex-1">
+                      &ldquo;{t.quote}&rdquo;
+                    </p>
 
-                  {/* 3. Essential Author Context & Topic Pill */}
-                  <div className="pt-3.5 border-t border-border/60 flex items-center justify-between gap-2 flex-wrap">
-                    <span className="font-heading font-semibold text-xs sm:text-sm text-foreground">
-                      {t.author}
-                    </span>
-                    <span className="px-3.5 py-1.5 rounded-full bg-secondary/80 border border-border/60 text-xs font-medium text-foreground/90">
-                      {t.topic}
-                    </span>
+                    {/* 3. Essential Author Context & Topic Pill */}
+                    <div className="pt-3.5 border-t border-border/60 flex items-center justify-between gap-2 flex-wrap">
+                      <span className="font-heading font-semibold text-xs sm:text-sm text-foreground">
+                        {t.author}
+                      </span>
+                      <span className="px-3.5 py-1.5 rounded-full bg-secondary/80 border border-border/60 text-xs font-medium text-foreground/90">
+                        {t.topic}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
+                </ScrollReveal>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center p-8 sm:p-10 rounded-2xl border border-dashed border-border/80 bg-muted/20 max-w-lg mx-auto flex flex-col items-center">
+              <Quote className="size-8 text-muted-foreground/40 mb-2" />
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                Cerita dan testimoni dari klien yang telah menyelesaikan sesi konseling akan ditampilkan di sini setelah dikurasi oleh admin secara anonim dan aman.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

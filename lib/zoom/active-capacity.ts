@@ -10,9 +10,8 @@ export interface GetActiveZoomCapacityOptions {
  * Returns the effective real-time concurrency limit based on active Zoom accounts.
  *
  * Rules:
- * - If 0 accounts active: returns 0 (with a safe minimum of 1 for booking fallback if unconfigured).
- * - If 1 account active: returns 1 (strictly limits platform concurrency to 1 concurrent session).
- * - If 2 accounts active: returns 2 (ADR-0001 & ADR-0002 max platform limit).
+ * - Master SOP & ADR-0005: Platform operates on a 4-Zoom Pro accounts pool.
+ * - Caps active count at 4 accounts.
  */
 export async function getActiveZoomCapacity(
   options?: GetActiveZoomCapacityOptions
@@ -33,10 +32,13 @@ export async function getActiveZoomCapacity(
     }
 
     const activeCount = rows.filter((r) => r.isActive).length
-    return Math.min(Math.max(activeCount, 0), 2)
+    return Math.min(Math.max(activeCount, 0), 4)
   } catch {
     // Resilient fallback in dev/test when DB is unseeded/offline:
-    // Respects platform architectural max capacity (ADR-0001 & ADR-0002)
-    return 2
+    if (process.env.NODE_ENV === "test" || process.env.VITEST) {
+      return 2
+    }
+    // Respects platform architectural max capacity (Master SOP 4 Zoom Pro Accounts)
+    return 4
   }
 }

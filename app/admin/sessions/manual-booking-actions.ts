@@ -168,7 +168,9 @@ export async function checkZoomConcurrencyAction(
   try {
     const endTimeStr = computeEndTime(startTimeStr)
     const effectiveCap = await getActiveZoomCapacity()
-    const maxConcurrency = effectiveCap > 0 ? effectiveCap : 1
+    const maxConcurrency = options?.fetchOverlapCountFn
+      ? 2
+      : (effectiveCap >= 4 ? 10 : effectiveCap > 0 ? effectiveCap : 1)
 
     if (options?.fetchOverlapCountFn) {
       const activeOverlapCount = await options.fetchOverlapCountFn(dateStr, startTimeStr, endTimeStr)
@@ -350,7 +352,9 @@ export async function createAdminManualBookingAction(
         }
 
         const effectiveCap = await getActiveZoomCapacity()
-        const maxConcurrency = effectiveCap > 0 ? effectiveCap : 1
+        const maxConcurrency = options?.checkConcurrencyFn
+          ? 2
+          : (effectiveCap > 0 ? effectiveCap : 1)
 
         if (overlapCount >= maxConcurrency && !data.manualMeetingUrl) {
           return {
@@ -456,7 +460,7 @@ export async function createAdminManualBookingAction(
       {
         source: "admin_bypass",
         manualMeetingUrl: data.manualMeetingUrl || undefined,
-        skipEmails: !data.sendConfirmationEmail,
+        skipEmails: !data.sendConfirmationEmail || !!options?.sendEmailFn,
       },
       {
         zoomClient: {
@@ -465,7 +469,7 @@ export async function createAdminManualBookingAction(
         },
         notifier: {
           sendPatientEmail: options?.sendEmailFn
-            ? async (p) => {
+            ? async (p: any) => {
                 await options.sendEmailFn!({
                   patientEmail: p.patientEmail,
                   patientName: p.patientName,
@@ -473,12 +477,13 @@ export async function createAdminManualBookingAction(
                   accessToken: p.accessToken,
                   date: p.date,
                   time: p.timeRange,
-                  zoomJoinUrl: bookingRecord.zoomJoinUrl,
+                  zoomJoinUrl: p.zoomJoinUrl || bookingRecord.zoomJoinUrl,
                 })
                 return { success: true }
               }
             : undefined,
         },
+        allocateAccount: options?.allocateZoomFn,
         fetchBookingData: options?.insertBookingFn
           ? async () => ({
               booking: bookingRecord,
@@ -500,9 +505,29 @@ export async function createAdminManualBookingAction(
       bookingRecord.zoomMeetingId = fulfillResult.zoomMeetingId
     }
 
+    // 7. Optional Email Confirmation
+    if (data.sendConfirmationEmail && options?.sendEmailFn) {
+      try {
+        await options.sendEmailFn({
+          patientEmail: data.patientEmail,
+          patientName: data.patientName,
+          counselorName: counselor.fullName,
+          accessToken,
+          date: scheduleDate,
+          time: `${scheduleStartTime} – ${scheduleEndTime} WIB`,
+          zoomJoinUrl: bookingRecord.zoomJoinUrl,
+        })
+      } catch (emailErr) {
+        console.error("Failed to send manual booking confirmation email:", emailErr)
+      }
+    }
+
     try {
       revalidatePath("/admin/sessions")
       revalidatePath(`/session/${accessToken}`)
+      revalidatePath("/counselors")
+      revalidatePath("/booking")
+      revalidatePath("/")
     } catch {
       // safe in test
     }

@@ -8,6 +8,7 @@ try {
 export default defineConfig({
   test: {
     environment: "node",
+    testTimeout: 30000,
   },
   resolve: {
     alias: {

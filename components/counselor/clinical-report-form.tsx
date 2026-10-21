@@ -22,6 +22,7 @@ import {
   Sparkles,
   ExternalLink,
   ShieldCheck,
+  Timer,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
@@ -57,6 +58,17 @@ const COMMON_ISSUES = [
   "Trauma & Kedukaan",
 ]
 
+function extractTimesFromTimeRange(timeRange?: string, defaultStart = "14:00", defaultEnd = "15:30") {
+  if (!timeRange) return { start: defaultStart, end: defaultEnd }
+  const matches = timeRange.match(/(\d{1,2})[.:](\d{2})/g)
+  if (matches && matches.length >= 2) {
+    const start = matches[0].replace(".", ":").padStart(5, "0")
+    const end = matches[1].replace(".", ":").padStart(5, "0")
+    return { start, end }
+  }
+  return { start: defaultStart, end: defaultEnd }
+}
+
 export function ClinicalReportForm({
   initialData,
   isModal = false,
@@ -78,6 +90,42 @@ export function ClinicalReportForm({
     initialData.attachmentR2Keys || []
   )
 
+  const hasRecordedTimer = Boolean(initialData.timerStartedAt && initialData.actualDurationMinutes)
+  const defaultTimes = React.useMemo(
+    () => extractTimesFromTimeRange(booking.timeRange, booking.startTime, booking.endTime),
+    [booking.timeRange, booking.startTime, booking.endTime]
+  )
+
+  const [manualStartTime, setManualStartTime] = React.useState<string>(() => {
+    if (initialData.timerStartedAt) {
+      return new Date(initialData.timerStartedAt)
+        .toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })
+        .replace(".", ":")
+    }
+    return defaultTimes.start
+  })
+
+  const [manualEndTime, setManualEndTime] = React.useState<string>(() => {
+    if (initialData.timerStoppedAt) {
+      return new Date(initialData.timerStoppedAt)
+        .toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })
+        .replace(".", ":")
+    }
+    return defaultTimes.end
+  })
+
+  const calculatedDurationMinutes = React.useMemo(() => {
+    if (hasRecordedTimer && typeof initialData.actualDurationMinutes === "number") {
+      return initialData.actualDurationMinutes
+    }
+    const [startH, startM] = manualStartTime.split(":").map(Number)
+    const [endH, endM] = manualEndTime.split(":").map(Number)
+    if (isNaN(startH) || isNaN(startM) || isNaN(endH) || isNaN(endM)) return 90
+    let diff = (endH * 60 + endM) - (startH * 60 + startM)
+    if (diff <= 0) diff += 24 * 60
+    return diff
+  }, [hasRecordedTimer, initialData.actualDurationMinutes, manualStartTime, manualEndTime])
+
   const [uploading, setUploading] = React.useState(false)
   const [uploadError, setUploadError] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
@@ -90,8 +138,14 @@ export function ClinicalReportForm({
   const isMainIssueValid = mainIssueTrimmed.length >= 3
   const isSummaryValid = summaryChars >= 20
   const isActionPlanValid = actionPlanChars === 0 || actionPlanChars >= 20
+  const isDurationValid = calculatedDurationMinutes >= 15 && calculatedDurationMinutes <= 180
 
-  const canSubmit = isMainIssueValid && isSummaryValid && isActionPlanValid && !submitting
+  const canSubmit =
+    isMainIssueValid &&
+    isSummaryValid &&
+    isActionPlanValid &&
+    isDurationValid &&
+    !submitting
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -173,6 +227,16 @@ export function ClinicalReportForm({
     setFieldErrors({})
 
     try {
+      let submitTimerStartedAt = initialData.timerStartedAt
+      let submitTimerStoppedAt = initialData.timerStoppedAt
+
+      if (!hasRecordedTimer && booking.date) {
+        const [sH, sM] = manualStartTime.split(":")
+        const [eH, eM] = manualEndTime.split(":")
+        submitTimerStartedAt = new Date(`${booking.date}T${sH}:${sM}:00+07:00`).toISOString()
+        submitTimerStoppedAt = new Date(`${booking.date}T${eH}:${eM}:00+07:00`).toISOString()
+      }
+
       const res = await submitSessionReportAction({
         bookingId: booking.id,
         attendanceStatus,
@@ -182,6 +246,9 @@ export function ClinicalReportForm({
         internalNotes: internalNotes.trim() || null,
         followUpRecommendation: followUpRecommendation.trim() || null,
         attachmentR2Keys: attachments,
+        actualDurationMinutes: calculatedDurationMinutes,
+        timerStartedAt: submitTimerStartedAt || undefined,
+        timerStoppedAt: submitTimerStoppedAt || undefined,
       })
 
       if (res.success && res.data) {
@@ -407,6 +474,118 @@ export function ClinicalReportForm({
                   </button>
                 </div>
               </div>
+
+              {/* Field Timer: Log Durasi & Waktu Sesi Klinis */}
+              {hasRecordedTimer ? (
+                <div className="flex flex-col gap-3 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <Timer className="size-4 text-emerald-600" />
+                      <span className="text-xs font-semibold text-foreground">
+                        Durasi Riil Sesi (Floating Timer Terverifikasi)
+                      </span>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="text-[11px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 gap-1 font-medium"
+                    >
+                      <CheckCircle2 className="size-3" />
+                      <span>Terekam Otomatis</span>
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div className="flex flex-col p-2.5 rounded-lg bg-background border border-border/70">
+                      <span className="text-[11px] text-muted-foreground">Waktu Mulai</span>
+                      <span className="text-sm font-bold text-foreground font-mono">
+                        {initialData.timerStartedAt
+                          ? new Date(initialData.timerStartedAt).toLocaleTimeString("id-ID", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            }) + " WIB"
+                          : "-"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col p-2.5 rounded-lg bg-background border border-border/70">
+                      <span className="text-[11px] text-muted-foreground">Waktu Selesai</span>
+                      <span className="text-sm font-bold text-foreground font-mono">
+                        {initialData.timerStoppedAt
+                          ? new Date(initialData.timerStoppedAt).toLocaleTimeString("id-ID", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            }) + " WIB"
+                          : "-"}
+                      </span>
+                    </div>
+                    <div className="flex flex-col p-2.5 rounded-lg bg-background border border-border/70">
+                      <span className="text-[11px] text-muted-foreground">Total Durasi Riil</span>
+                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                        {calculatedDurationMinutes} Menit {calculatedDurationMinutes > 90 ? "(Perpanjangan)" : ""}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 p-4 rounded-xl border border-amber-500/40 bg-amber-500/5">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="size-4 text-amber-600" />
+                      <span className="text-xs font-semibold text-foreground">
+                        Waktu & Durasi Sesi (Konfirmasi Manual)
+                      </span>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="text-[11px] bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1 font-medium"
+                    >
+                      <span>Input Manual Diperlukan</span>
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Log Floating Timer tidak terdeteksi untuk sesi ini. Harap konfirmasi jam mulai dan selesai sesi untuk pencatatan laporan klinis dan validasi payroll.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <Field>
+                      <FieldLabel htmlFor="manual-start-time" className="text-xs font-medium">
+                        Jam Mulai
+                      </FieldLabel>
+                      <Input
+                        id="manual-start-time"
+                        type="time"
+                        value={manualStartTime}
+                        onChange={(e) => setManualStartTime(e.target.value)}
+                        className="h-9 font-mono text-xs"
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="manual-end-time" className="text-xs font-medium">
+                        Jam Selesai
+                      </FieldLabel>
+                      <Input
+                        id="manual-end-time"
+                        type="time"
+                        value={manualEndTime}
+                        onChange={(e) => setManualEndTime(e.target.value)}
+                        className="h-9 font-mono text-xs"
+                      />
+                    </Field>
+                    <div className="flex flex-col justify-end">
+                      <div className="p-2 rounded-lg bg-background border border-border/70 flex flex-col justify-center h-9">
+                        <span className="text-[10px] text-muted-foreground leading-tight">Durasi Terhitung</span>
+                        <span className="text-xs font-bold text-foreground font-mono leading-tight">
+                          {calculatedDurationMinutes} Menit {calculatedDurationMinutes > 90 ? "(Extend)" : ""}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {!isDurationValid && (
+                    <span className="text-[11px] text-destructive font-medium">
+                      Durasi sesi tidak valid (minimal 15 menit, maksimal 180 menit).
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Field 1: Permasalahan Utama (Main Issue) - MANDATORY */}
               <Field data-invalid={!!fieldErrors.mainIssue}>

@@ -2,7 +2,7 @@ import * as React from "react"
 
 export default function CounselorDashboardLoading() {
   return (
-    <div className="flex flex-col gap-6" aria-busy="true" aria-label="Memuat dashboard konselor">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16" aria-busy="true" aria-label="Memuat dashboard konselor">
       {/* Top Banner Header Skeleton */}
       <div className="flex flex-col gap-2 pb-5 border-b border-border/60">
         <div className="flex items-center gap-2">

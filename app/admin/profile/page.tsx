@@ -16,6 +16,7 @@ import {
   Save,
   KeyRound,
   X,
+  Loader2,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -24,8 +25,19 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { AdminPageHeader } from "@/components/admin"
+import {
+  getAdminProfileDataAction,
+  updateAdminContactAction,
+  updateAdminPasswordAction,
+  type AdminProfileView,
+} from "./actions"
 
 export default function AdminProfilePage() {
+  const [profile, setProfile] = React.useState<AdminProfileView | null>(null)
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [isSavingContact, setIsSavingContact] = React.useState(false)
+  const [isSavingPassword, setIsSavingPassword] = React.useState(false)
+
   // Contact state
   const [phone, setPhone] = React.useState("0812-3456-7890")
   const [email, setEmail] = React.useState("admin@solulu.id")
@@ -49,19 +61,54 @@ export default function AdminProfilePage() {
     setTimeout(() => setToastMessage(null), 3500)
   }
 
-  const handleSaveContact = (e: React.FormEvent) => {
+  React.useEffect(() => {
+    async function loadProfile() {
+      setIsLoading(true)
+      try {
+        const res = await getAdminProfileDataAction()
+        if (res.success && res.data) {
+          setProfile(res.data)
+          setEmail(res.data.email)
+          setPhone(res.data.phone)
+          setNotifyUrgent(res.data.notifyUrgent)
+          setNotifyCounselor(res.data.notifyCounselor)
+          setNotifySession(res.data.notifySession)
+        }
+      } catch {
+        // Fallback default
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadProfile()
+  }, [])
+
+  const handleSaveContact = async (e: React.FormEvent) => {
     e.preventDefault()
-    showToast("Data kontak dan preferensi notifikasi berhasil disimpan.")
+    setIsSavingContact(true)
+    try {
+      const res = await updateAdminContactAction({
+        phone,
+        notifyUrgent,
+        notifyCounselor,
+        notifySession,
+      })
+      if (res.success) {
+        showToast(res.message || "Data kontak dan preferensi notifikasi berhasil disimpan.")
+      } else {
+        showToast(res.error || "Gagal menyimpan perubahan kontak.")
+      }
+    } catch (err: any) {
+      showToast(err.message || "Gagal menyimpan perubahan kontak.")
+    } finally {
+      setIsSavingContact(false)
+    }
   }
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setPasswordError(null)
 
-    if (!currentPassword) {
-      setPasswordError("Kata sandi saat ini wajib diisi.")
-      return
-    }
     if (newPassword.length < 8) {
       setPasswordError("Kata sandi baru minimal terdiri dari 8 karakter.")
       return
@@ -71,14 +118,26 @@ export default function AdminProfilePage() {
       return
     }
 
-    setCurrentPassword("")
-    setNewPassword("")
-    setConfirmPassword("")
-    showToast("Kata sandi akun Anda berhasil diperbarui. Gunakan kata sandi baru untuk login berikutnya.")
+    setIsSavingPassword(true)
+    try {
+      const res = await updateAdminPasswordAction(newPassword)
+      if (res.success) {
+        setCurrentPassword("")
+        setNewPassword("")
+        setConfirmPassword("")
+        showToast(res.message || "Kata sandi akun Anda berhasil diperbarui.")
+      } else {
+        setPasswordError(res.error || "Gagal memperbarui kata sandi.")
+      }
+    } catch (err: any) {
+      setPasswordError(err.message || "Gagal memperbarui kata sandi.")
+    } finally {
+      setIsSavingPassword(false)
+    }
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col gap-6 pb-16 font-sans">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full flex flex-col gap-6 pb-16 font-sans">
       {/* Toast Alert */}
       {toastMessage && (
         <div
@@ -116,19 +175,19 @@ export default function AdminProfilePage() {
       <div className="rounded-2xl border border-border bg-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5 shadow-xs">
         <div className="flex items-center gap-4">
           <div className="size-16 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xl shrink-0 shadow-2xs">
-            AP
+            {profile?.role === "superadmin" ? "SA" : "AP"}
           </div>
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <span className="text-lg font-bold text-foreground">
-                Admin Pelayanan
+                {profile?.role === "superadmin" ? "Super Administrator" : "Admin Pelayanan"}
               </span>
               <Badge variant="secondary" className="text-xs py-0 px-2 font-medium">
-                Staf Operasional
+                {profile?.role === "superadmin" ? "Master Access" : "Staf Operasional"}
               </Badge>
             </div>
             <span className="text-xs text-muted-foreground font-mono">
-              admin@solulu.id
+              {profile?.email || email}
             </span>
             <span className="text-[11px] text-muted-foreground">
               Bergabung sejak 1 Agustus 2026 • Status Aktif
@@ -284,9 +343,13 @@ export default function AdminProfilePage() {
             </div>
 
             <div className="flex justify-end pt-2">
-              <Button type="submit" size="sm" className="font-medium px-4 shadow-xs">
-                <Save className="size-3.5 mr-1.5" />
-                <span>Simpan Perubahan Kontak</span>
+              <Button type="submit" size="sm" disabled={isSavingContact} className="font-medium px-4 shadow-xs">
+                {isSavingContact ? (
+                  <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Save className="size-3.5 mr-1.5" />
+                )}
+                <span>{isSavingContact ? "Menyimpan..." : "Simpan Perubahan Kontak"}</span>
               </Button>
             </div>
           </form>
@@ -383,9 +446,13 @@ export default function AdminProfilePage() {
             </div>
 
             <div className="flex justify-end pt-2 border-t border-border/60">
-              <Button type="submit" size="sm" className="font-medium px-4 shadow-xs">
-                <KeyRound className="size-3.5 mr-1.5" />
-                <span>Perbarui Kata Sandi</span>
+              <Button type="submit" size="sm" disabled={isSavingPassword} className="font-medium px-4 shadow-xs">
+                {isSavingPassword ? (
+                  <Loader2 className="size-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <KeyRound className="size-3.5 mr-1.5" />
+                )}
+                <span>{isSavingPassword ? "Memperbarui..." : "Perbarui Kata Sandi"}</span>
               </Button>
             </div>
           </form>

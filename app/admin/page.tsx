@@ -314,7 +314,7 @@ export default function DistilledAdminDashboard() {
   const completedCount = todaySessions.filter((s) => s.status === "completed" || s.isPast).length
 
   return (
-    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-12">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16">
       {/* 1. Header: Standardized Admin Page Header */}
       <AdminPageHeader
         title="Dasbor Operasional"

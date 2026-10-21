@@ -165,9 +165,15 @@ describe("Ticket 2: Operator Slot Matrix and Zoom Dispatcher", () => {
     })
   })
 
+  const testOperatorAuth = {
+    id: "test-operator-id",
+    app_metadata: { role: "operator" },
+    user_metadata: { role: "operator", email: "operator@solulu.id" },
+  }
+
   describe("6. Server Action: Slot Matrix Query & Strict Privacy Isolation", () => {
     it("queries PostgreSQL and returns 7 slots with live data", async () => {
-      const matrix = await getOperatorSlotMatrixAction("2026-10-15")
+      const matrix = await getOperatorSlotMatrixAction("2026-10-15", { currentUser: testOperatorAuth })
 
       expect(matrix.slots).toHaveLength(7)
       expect(matrix.date).toBe("2026-10-15")
@@ -184,7 +190,7 @@ describe("Ticket 2: Operator Slot Matrix and Zoom Dispatcher", () => {
     })
 
     it("STRICT PRIVACY GUARD: never exposes clinical notes or financial transactions to operator", async () => {
-      const matrix = await getOperatorSlotMatrixAction("2026-10-15")
+      const matrix = await getOperatorSlotMatrixAction("2026-10-15", { currentUser: testOperatorAuth })
 
       matrix.slots.forEach((slot) => {
         slot.sessions.forEach((session) => {
@@ -219,9 +225,10 @@ describe("Ticket 2: Operator Slot Matrix and Zoom Dispatcher", () => {
       const testBooking = existingBookings[0]
 
       // 1. Execute admit action
-      const admitResult = await admitParticipantAction({
-        bookingId: testBooking.id,
-      })
+      const admitResult = await admitParticipantAction(
+        { bookingId: testBooking.id },
+        { currentUser: testOperatorAuth }
+      )
 
       expect(admitResult.success).toBe(true)
       expect(admitResult.bookingId).toBe(testBooking.id)
@@ -236,9 +243,10 @@ describe("Ticket 2: Operator Slot Matrix and Zoom Dispatcher", () => {
       expect(persisted.operatorAdmittedAt).not.toBeNull()
 
       // 3. Test unadmit action to verify reversibility and cleanup
-      const unadmitResult = await unadmitParticipantAction({
-        bookingId: testBooking.id,
-      })
+      const unadmitResult = await unadmitParticipantAction(
+        { bookingId: testBooking.id },
+        { currentUser: testOperatorAuth }
+      )
       expect(unadmitResult.success).toBe(true)
 
       const [reverted] = await db
@@ -250,9 +258,10 @@ describe("Ticket 2: Operator Slot Matrix and Zoom Dispatcher", () => {
     })
 
     it("returns descriptive error if booking ID is invalid", async () => {
-      const res = await admitParticipantAction({
-        bookingId: "00000000-0000-0000-0000-000000000000",
-      })
+      const res = await admitParticipantAction(
+        { bookingId: "00000000-0000-0000-0000-000000000000" },
+        { currentUser: testOperatorAuth }
+      )
       expect(res.success).toBe(false)
       expect(res.error).toBe("Pemesanan tidak ditemukan")
     })

@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ADMIN_NAV_GROUPS } from "@/lib/navigation"
 import { logoutAction } from "@/app/(auth)/login/actions"
+import { getAdminProfileDataAction, type AdminProfileView } from "@/app/admin/profile/actions"
 import {
   ChevronsUpDown,
   ExternalLink,
@@ -44,6 +45,26 @@ export function AdminAppSidebar() {
   const router = useRouter()
   const { isMobile, setOpenMobile } = useSidebar()
   const [isLoggingOut, setIsLoggingOut] = React.useState(false)
+  const [adminProfile, setAdminProfile] = React.useState<AdminProfileView | null>(null)
+
+  React.useEffect(() => {
+    let isMounted = true
+    getAdminProfileDataAction()
+      .then((res) => {
+        if (isMounted && res.success && res.data) {
+          setAdminProfile(res.data)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const isSuperadmin = adminProfile?.role === "superadmin"
+  const roleName = isSuperadmin ? "Superadmin Solulu" : "Admin Pelayanan"
+  const roleEmail = adminProfile?.email || (isSuperadmin ? "superadmin@solulu.id" : "admin@solulu.id")
+  const roleInitial = isSuperadmin ? "SA" : "AD"
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -161,15 +182,15 @@ export function AdminAppSidebar() {
                 >
                   <Avatar className="size-8 rounded-lg">
                     <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold text-xs">
-                      AD
+                      {roleInitial}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-semibold text-sidebar-foreground">
-                      Admin Pelayanan
+                      {roleName}
                     </span>
                     <span className="truncate text-xs text-muted-foreground">
-                      admin@solulu.id
+                      {roleEmail}
                     </span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
@@ -185,13 +206,13 @@ export function AdminAppSidebar() {
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="size-8 rounded-lg">
                       <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold text-xs">
-                        AD
+                        {roleInitial}
                       </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">Admin Pelayanan</span>
+                      <span className="truncate font-semibold">{roleName}</span>
                       <span className="truncate text-xs text-muted-foreground">
-                        admin@solulu.id
+                        {roleEmail}
                       </span>
                     </div>
                   </div>
@@ -201,7 +222,7 @@ export function AdminAppSidebar() {
                   <DropdownMenuItem asChild>
                     <Link href="/admin/profile">
                       <User className="size-4 mr-2" />
-                      Profil Operator
+                      Profil Admin
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>

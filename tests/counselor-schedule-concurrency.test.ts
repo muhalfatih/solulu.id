@@ -42,9 +42,9 @@ describe("Issue #5: Counselor Schedule Management & Concurrency Guard", () => {
   }
 
   describe("1. Time Calculation & Formatting (90-minute sessions)", () => {
-    it("has a fixed 90-minute session duration and max 2 platform concurrency", () => {
+    it("has a fixed 90-minute session duration and max 10 platform concurrency (Master SOP)", () => {
       expect(SESSION_DURATION_MINUTES).toBe(90)
-      expect(MAX_PLATFORM_CONCURRENCY).toBe(2)
+      expect(MAX_PLATFORM_CONCURRENCY).toBe(10)
     })
 
     it("auto-computes endTime as startTime + 90 minutes", () => {
@@ -136,15 +136,18 @@ describe("Issue #5: Counselor Schedule Management & Concurrency Guard", () => {
       expect(countOverlappingActiveSessions(activeSessionsOnDate, "10:00", "11:30")).toBe(0)
     })
 
-    it("blocks slot availability when active concurrency >= 2", () => {
-      // When 2 sessions overlap, guard returns false (at capacity)
-      expect(isSlotAvailableUnderConcurrencyGuard(activeSessionsOnDate, "19:00", "20:30")).toBe(false)
-      expect(isSlotAvailableUnderConcurrencyGuard(activeSessionsOnDate, "19:15", "20:45")).toBe(false)
+    it("blocks slot availability when active concurrency >= maxLimit", () => {
+      // When 2 sessions overlap and limit is 2, guard returns false (at capacity)
+      expect(isSlotAvailableUnderConcurrencyGuard(activeSessionsOnDate, "19:00", "20:30", 2)).toBe(false)
+      expect(isSlotAvailableUnderConcurrencyGuard(activeSessionsOnDate, "19:15", "20:45", 2)).toBe(false)
     })
 
-    it("allows slot availability when active concurrency < 2", () => {
-      // Only 1 session overlaps at 20:30 - 22:00 -> allowed
-      expect(isSlotAvailableUnderConcurrencyGuard(activeSessionsOnDate, "20:30", "22:00")).toBe(true)
+    it("allows slot availability when active concurrency < maxLimit", () => {
+      // 2 overlapping sessions is allowed under default limit 10
+      expect(isSlotAvailableUnderConcurrencyGuard(activeSessionsOnDate, "19:00", "20:30")).toBe(true)
+
+      // Only 1 session overlaps at 20:30 - 22:00 -> allowed even with limit 2
+      expect(isSlotAvailableUnderConcurrencyGuard(activeSessionsOnDate, "20:30", "22:00", 2)).toBe(true)
 
       // 0 sessions overlap in morning -> allowed
       expect(isSlotAvailableUnderConcurrencyGuard(activeSessionsOnDate, "09:00", "10:30")).toBe(true)
@@ -157,7 +160,7 @@ describe("Issue #5: Counselor Schedule Management & Concurrency Guard", () => {
         { id: "s3", startTime: "21:00", endTime: "22:30", status: "available" as const }, // After 21:00, 0 overlap
       ]
 
-      const visible = filterSlotsByConcurrencyGuard(candidateSlots, activeSessionsOnDate)
+      const visible = filterSlotsByConcurrencyGuard(candidateSlots, activeSessionsOnDate, 2)
       expect(visible.map((s) => s.id)).toEqual(["s1", "s3"])
       expect(visible.find((s) => s.id === "s2")).toBeUndefined()
     })
@@ -218,9 +221,11 @@ describe("Issue #5: Counselor Schedule Management & Concurrency Guard", () => {
   })
 
   describe("6. Server Action: createScheduleSlotsAction", () => {
+    const futureDate = new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 10)
+
     it("blocks non-counselor users from creating schedule slots", async () => {
       const res = await createScheduleSlotsAction(
-        { date: "2026-10-20", startTimes: ["09:00"] },
+        { date: futureDate, startTimes: ["09:00"] },
         { currentUser: patientAuth }
       )
       expect(res.success).toBe(false)
@@ -236,7 +241,7 @@ describe("Issue #5: Counselor Schedule Management & Concurrency Guard", () => {
       })
 
       const res = await createScheduleSlotsAction(
-        { date: "2026-10-20", startTimes: ["09:00", "13:30"] },
+        { date: futureDate, startTimes: ["09:00", "13:30"] },
         {
           currentUser: counselorAuth,
           checkExistingSlots: async () => [],
@@ -257,7 +262,7 @@ describe("Issue #5: Counselor Schedule Management & Concurrency Guard", () => {
 
     it("rejects internal overlap when multiple proposed slots collide", async () => {
       const res = await createScheduleSlotsAction(
-        { date: "2026-10-20", startTimes: ["09:00", "09:30"] }, // 09:00 ends 10:30, 09:30 collides
+        { date: futureDate, startTimes: ["09:00", "09:30"] }, // 09:00 ends 10:30, 09:30 collides
         {
           currentUser: counselorAuth,
           checkExistingSlots: async () => [],
@@ -275,7 +280,7 @@ describe("Issue #5: Counselor Schedule Management & Concurrency Guard", () => {
       ]
 
       const res = await createScheduleSlotsAction(
-        { date: "2026-10-20", startTimes: ["10:00"] }, // 10:00 collides with 09:00-10:30
+        { date: futureDate, startTimes: ["10:00"] }, // 10:00 collides with 09:00-10:30
         {
           currentUser: counselorAuth,
           checkExistingSlots: async () => existingSlots,
@@ -437,6 +442,7 @@ describe("Issue #5: Counselor Schedule Management & Concurrency Guard", () => {
           getPricing: async () => mockPricing,
           getSlots: async () => candidateSlots,
           getActiveSessions: async () => activeSessions,
+          getZoomCapacity: async () => 2,
         }
       )
 

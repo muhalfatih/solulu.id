@@ -31,6 +31,7 @@ export interface FulfillSessionAdapters {
   // Internal test shims for isolated environments
   fetchBookingData?: (bookingId: string) => Promise<any>
   getZoomAccount?: (accountNumber: number) => Promise<any>
+  allocateAccount?: (date: string, startTime: string, endTime: string) => Promise<any>
 }
 
 // Backward compatibility alias for legacy test callers
@@ -102,6 +103,8 @@ export async function fulfillSession(
     const adapters: FulfillSessionAdapters = isLegacyBag
       ? (optionsOrDeps as FulfillSessionDependencies)
       : maybeAdapters
+
+    const legacyDeps = (isLegacyBag ? optionsOrDeps : maybeAdapters) as FulfillBookingDependencies
 
     // 1. Fetch Booking, Counselor, and Schedule
     let bookingRow: any
@@ -210,9 +213,11 @@ export async function fulfillSession(
     let targetMode: "standalone" | "breakout_room" = "standalone"
     let assignedAccount: any
 
-    const legacyDeps = optionsOrDeps as FulfillBookingDependencies
-    if (legacyDeps.allocateAccount) {
-      const allocation = await legacyDeps.allocateAccount(
+    const allocateAccountFn =
+      adapters.allocateAccount ??
+      (optionsOrDeps as FulfillBookingDependencies).allocateAccount
+    if (allocateAccountFn) {
+      const allocation = await allocateAccountFn(
         scheduleRow.date,
         scheduleRow.startTime,
         scheduleRow.endTime
@@ -296,11 +301,13 @@ export async function fulfillSession(
     // 5. Create Zoom Meeting via S2S OAuth Client Port
     const getAccessTokenFn =
       adapters.zoomClient?.getAccessToken ??
+      (adapters as any).getAccessToken ??
       legacyDeps.getAccessToken ??
       getZoomAccessToken
 
     const createMeetingFn =
       adapters.zoomClient?.createMeeting ??
+      (adapters as any).createMeeting ??
       legacyDeps.createMeeting ??
       createZoomMeeting
 

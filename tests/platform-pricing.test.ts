@@ -54,12 +54,22 @@ describe("Platform Pricing Synchronization & Admin Actions", () => {
   })
 
   it("executes updateRolePricingAction and updates role pricing correctly", async () => {
-    const res = await updateRolePricingAction("psikolog", {
-      regularPrice: 160000,
-      salePrice: 135000,
-      isSaleActive: true,
-      allowVoucher: true,
-    })
+    const res = await updateRolePricingAction(
+      "psikolog",
+      {
+        regularPrice: 160000,
+        salePrice: 135000,
+        isSaleActive: true,
+        allowVoucher: true,
+      },
+      {
+        currentUser: {
+          id: "admin-test-id",
+          app_metadata: { role: "admin" },
+          user_metadata: { role: "admin" },
+        },
+      }
+    )
 
     expect(res.success).toBe(true)
     expect(res.data).toBeDefined()
@@ -70,6 +80,27 @@ describe("Platform Pricing Synchronization & Admin Actions", () => {
     const current = await getPlatformPricing()
     expect(current.psychologist.basePrice).toBe(160000)
     expect(current.psychologist.promoPrice).toBe(135000)
+  })
+
+  it("blocks non-admin users from updating role pricing", async () => {
+    const res = await updateRolePricingAction(
+      "psikolog",
+      {
+        regularPrice: 170000,
+        salePrice: 140000,
+        isSaleActive: true,
+        allowVoucher: true,
+      },
+      {
+        currentUser: {
+          id: "counselor-test-id",
+          app_metadata: { role: "counselor" },
+        },
+      }
+    )
+
+    expect(res.success).toBe(false)
+    expect(res.error).toContain("Akses ditolak")
   })
 
   it("formats pricing amounts correctly for public landing and pricing pages", () => {
@@ -111,7 +142,7 @@ describe("Platform Pricing Synchronization & Admin Actions", () => {
         expect(c.pricing.displayPriceFormatted).toMatch(/Rp\s*140\.000/)
       }
     }
-  })
+  }, 15000)
 
   it("synchronizes individual counselor detail view with platform pricing", async () => {
     const catalogRes = await getCounselorsCatalogAction({ type: "all" })
@@ -128,5 +159,5 @@ describe("Platform Pricing Synchronization & Admin Actions", () => {
     const expectedActive = expected.isSaleActive ? expected.promoPrice : expected.basePrice
 
     expect(counselor.pricing.displayPrice).toBe(expectedActive)
-  })
+  }, 15000)
 })

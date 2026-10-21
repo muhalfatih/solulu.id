@@ -2,7 +2,7 @@ import * as React from "react"
 
 export default function CounselorProfileLoading() {
   return (
-    <div className="flex flex-col gap-6 w-full pb-12" aria-busy="true" aria-label="Memuat profil konselor">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16" aria-busy="true" aria-label="Memuat profil konselor">
       {/* Header Banner Skeleton */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/60">
         <div className="flex flex-col gap-2">

@@ -7,6 +7,7 @@ import {
   type RolePricing,
   type PlatformPricingData,
 } from "@/lib/pricing/platform-pricing"
+import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counselors/actions"
 
 export async function getPlatformPricingAction(): Promise<{
   success: boolean
@@ -26,13 +27,22 @@ export async function updateRolePricingAction(
     salePrice: number
     isSaleActive: boolean
     allowVoucher: boolean
-  }
+  },
+  options?: { currentUser?: AdminAuthContext | null }
 ): Promise<{
   success: boolean
   data?: RolePricing
   error?: string
   message?: string
 }> {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return {
+      success: false,
+      error: "Akses ditolak: Diperlukan role Admin atau Superadmin.",
+    }
+  }
+
   try {
     const counselorType = roleId === "sebaya" ? "peer" : "psychologist"
     const updated = await updatePlatformPricing(counselorType, {
@@ -69,7 +79,6 @@ export async function updateRolePricingAction(
 import { db } from "@/db"
 import { vouchers } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
-import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
 
 export interface VoucherInput {
   code: string

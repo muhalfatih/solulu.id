@@ -34,8 +34,9 @@ export function evaluateRbac(
 ): RbacDecision {
   const isAdminRoute = pathname.startsWith("/admin");
   const isCounselorRoute = pathname.startsWith("/counselor");
+  const isOperatorRoute = pathname.startsWith("/operator");
 
-  if (!isAdminRoute && !isCounselorRoute) {
+  if (!isAdminRoute && !isCounselorRoute && !isOperatorRoute) {
     return { type: "allow" };
   }
 
@@ -55,6 +56,9 @@ export function evaluateRbac(
     if (role === "counselor") {
       return { type: "redirect", destination: "/counselor/dashboard" };
     }
+    if (role === "operator") {
+      return { type: "redirect", destination: "/operator" };
+    }
     return { type: "redirect", destination: "/unauthorized" };
   }
 
@@ -65,6 +69,20 @@ export function evaluateRbac(
     }
     if (role === "admin" || role === "superadmin") {
       return { type: "redirect", destination: "/admin/dashboard" };
+    }
+    if (role === "operator") {
+      return { type: "redirect", destination: "/operator" };
+    }
+    return { type: "redirect", destination: "/unauthorized" };
+  }
+
+  // 4. Operator routes
+  if (isOperatorRoute) {
+    if (role === "operator" || role === "admin" || role === "superadmin") {
+      return { type: "allow" };
+    }
+    if (role === "counselor") {
+      return { type: "redirect", destination: "/counselor/dashboard" };
     }
     return { type: "redirect", destination: "/unauthorized" };
   }

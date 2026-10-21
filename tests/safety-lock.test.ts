@@ -113,23 +113,23 @@ describe("Seam 2: Zoom Safety Lock & Platform Cap (lib/zoom/safety-lock.ts)", ()
     })
   })
 
-  describe("canAddZoomAccount (Max 2 Zoom Accounts Limit)", () => {
-    it("allows adding a new account when current count is 0 or 1", async () => {
-      const mockCountFetcher = vi.fn().mockResolvedValue(1)
+  describe("canAddZoomAccount (Max 4 Zoom Accounts Limit)", () => {
+    it("allows adding a new account when current count is 0, 1, 2, or 3", async () => {
+      const mockCountFetcher = vi.fn().mockResolvedValue(3)
       const result = await canAddZoomAccount({ fetchCount: mockCountFetcher })
 
       expect(result.allowed).toBe(true)
-      expect(result.currentCount).toBe(1)
+      expect(result.currentCount).toBe(3)
       expect(result.error).toBeUndefined()
     })
 
-    it("rejects adding when 2 accounts already exist", async () => {
-      const mockCountFetcher = vi.fn().mockResolvedValue(2)
+    it("rejects adding when 4 accounts already exist", async () => {
+      const mockCountFetcher = vi.fn().mockResolvedValue(4)
       const result = await canAddZoomAccount({ fetchCount: mockCountFetcher })
 
       expect(result.allowed).toBe(false)
-      expect(result.currentCount).toBe(2)
-      expect(result.error).toContain("maksimal 2 akun Zoom")
+      expect(result.currentCount).toBe(4)
+      expect(result.error).toContain("maksimal 4 akun Zoom")
     })
   })
 })

@@ -209,7 +209,7 @@ export default function EditCounselorPage() {
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col gap-6 pb-20">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full flex flex-col gap-6 pb-20">
       {/* Breadcrumb Navigation */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Link

@@ -266,7 +266,7 @@ export function CounselorProfileClient({
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full pb-12">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/60">
         <div className="flex flex-col gap-1.5">

@@ -183,7 +183,7 @@ export default function AdminSettingsPage() {
     <TooltipProvider delayDuration={150}>
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-20 font-sans"
+        className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16 font-sans"
       >
         {/* Header Portal Admin / Superadmin */}
         <AdminPageHeader

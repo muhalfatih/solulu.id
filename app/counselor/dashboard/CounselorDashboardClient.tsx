@@ -22,6 +22,7 @@ import {
   Timer,
   KeyRound,
   Copy,
+  UserCheck,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Card, CardContent } from "@/components/ui/card"
@@ -37,7 +38,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { completeSessionAndOpenReportAction, getSessionReportAction } from "@/app/counselor/actions"
+import {
+  completeSessionAndOpenReportAction,
+  getSessionReportAction,
+  counselorAdmitClientAction,
+  counselorUnadmitClientAction,
+} from "@/app/counselor/actions"
 import { ClinicalReportForm } from "@/components/counselor/clinical-report-form"
 import { FloatingTimer } from "@/components/counselor/FloatingTimer"
 import type { CounselorUpcomingSessionView, SessionReportDetailView } from "@/lib/counselor/types"
@@ -101,6 +107,57 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
     const today = new Date().toISOString().split("T")[0]
     return dateStr === today || dateStr.startsWith(today)
   }, [])
+
+  const [admittingSessionId, setAdmittingSessionId] = React.useState<string | null>(null)
+
+  const handleCounselorAdmit = React.useCallback(async (bookingId: string) => {
+    setAdmittingSessionId(bookingId)
+    const nowIso = new Date().toISOString()
+    setSessions((prev) =>
+      prev.map((s) => (s.id === bookingId ? { ...s, operatorAdmittedAt: nowIso } : s))
+    )
+    try {
+      const res = await counselorAdmitClientAction({ bookingId })
+      if (!res.success) {
+        throw new Error(res.error || "Gagal menandai kehadiran klien.")
+      }
+      toast.success("Klien berhasil ditandai hadir di sesi.")
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menandai kehadiran.")
+      router.refresh()
+    } finally {
+      setAdmittingSessionId(null)
+    }
+  }, [router])
+
+  const handleCounselorUnadmit = React.useCallback(async (bookingId: string) => {
+    setAdmittingSessionId(bookingId)
+    setSessions((prev) =>
+      prev.map((s) => (s.id === bookingId ? { ...s, operatorAdmittedAt: null } : s))
+    )
+    try {
+      const res = await counselorUnadmitClientAction({ bookingId })
+      if (!res.success) {
+        throw new Error(res.error || "Gagal membatalkan status hadir.")
+      }
+      toast.info("Status kehadiran klien dibatalkan.")
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err.message || "Gagal membatalkan kehadiran.")
+      router.refresh()
+    } finally {
+      setAdmittingSessionId(null)
+    }
+  }, [router])
+
+  const handleStartTimer = React.useCallback((session: CounselorUpcomingSessionView) => {
+    setActiveTimerSession(session)
+    // Auto-admit client if not already admitted
+    if (!session.operatorAdmittedAt) {
+      handleCounselorAdmit(session.id)
+    }
+  }, [handleCounselorAdmit])
 
   // Resolve real-time operational status (in_session, confirmed, completed, expired, pending_payment)
   const enrichedSessions = React.useMemo(() => {
@@ -179,7 +236,7 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16">
       {/* Top Banner Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 border-b border-border/60">
         <div className="flex flex-col gap-1">
@@ -692,6 +749,30 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                               </Button>
                             )}
 
+                            {/* Client Admission / Confirmation */}
+                            {session.operatorAdmittedAt ? (
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-800 dark:text-emerald-300 font-medium">
+                                <UserCheck className="size-3.5 text-emerald-600" aria-hidden="true" />
+                                <span>Klien Hadir</span>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 text-xs h-9 border-amber-500/40 text-amber-800 dark:text-amber-300 hover:bg-amber-500/10 font-semibold"
+                                onClick={() => handleCounselorAdmit(session.id)}
+                                disabled={admittingSessionId === session.id}
+                                id={`btn-admit-client-${session.id}`}
+                              >
+                                {admittingSessionId === session.id ? (
+                                  <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                                ) : (
+                                  <UserCheck className="size-3.5 text-amber-600" aria-hidden="true" />
+                                )}
+                                <span>Tandai Klien Hadir</span>
+                              </Button>
+                            )}
+
                             {/* Ticket 4: "Mulai Sesi (Timer)" button */}
                             <Button
                               variant="outline"
@@ -702,7 +783,7 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                                   ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500 ring-2 ring-emerald-500/20"
                                   : "hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                               )}
-                              onClick={() => setActiveTimerSession(session)}
+                              onClick={() => handleStartTimer(session)}
                               id={`btn-start-timer-${session.id}`}
                             >
                               <Timer className="size-3.5 text-emerald-600" aria-hidden="true" />

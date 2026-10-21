@@ -12,6 +12,11 @@ describe("RBAC Evaluation Engine", () => {
     app_metadata: { role: "counselor" },
   };
 
+  const operatorUser: UserWithRoles = {
+    id: "user-operator-1",
+    app_metadata: { role: "operator" },
+  };
+
   const regularUser: UserWithRoles = {
     id: "user-regular-1",
     app_metadata: { role: "authenticated" },
@@ -87,6 +92,50 @@ describe("RBAC Evaluation Engine", () => {
 
     it("redirects other roles trying to access /counselor to /unauthorized", () => {
       const decision = evaluateRbac(regularUser, "/counselor/dashboard");
+      expect(decision).toEqual({
+        type: "redirect",
+        destination: "/unauthorized",
+      });
+    });
+
+    it("redirects operator users trying to access /counselor to /operator", () => {
+      const decision = evaluateRbac(operatorUser, "/counselor/dashboard");
+      expect(decision).toEqual({
+        type: "redirect",
+        destination: "/operator",
+      });
+    });
+  });
+
+  describe("Operator Routes (/operator/*)", () => {
+    it("redirects unauthenticated users to /login with redirect param", () => {
+      const decision = evaluateRbac(null, "/operator");
+      expect(decision).toEqual({
+        type: "redirect",
+        destination: "/login?redirect=%2Foperator",
+      });
+    });
+
+    it("allows operator users to access /operator routes", () => {
+      const decision = evaluateRbac(operatorUser, "/operator");
+      expect(decision).toEqual({ type: "allow" });
+    });
+
+    it("allows admin users to access /operator routes", () => {
+      const decision = evaluateRbac(adminUser, "/operator");
+      expect(decision).toEqual({ type: "allow" });
+    });
+
+    it("redirects counselor users trying to access /operator to /counselor/dashboard", () => {
+      const decision = evaluateRbac(counselorUser, "/operator");
+      expect(decision).toEqual({
+        type: "redirect",
+        destination: "/counselor/dashboard",
+      });
+    });
+
+    it("redirects other roles trying to access /operator to /unauthorized", () => {
+      const decision = evaluateRbac(regularUser, "/operator");
       expect(decision).toEqual({
         type: "redirect",
         destination: "/unauthorized",

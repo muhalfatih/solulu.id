@@ -20,9 +20,5 @@ export default async function AdminCounselorApplicationsPage() {
 
   const applications = res.data || []
 
-  return (
-    <div className="w-full">
-      <ApplicationsClient initialApplications={applications} />
-    </div>
-  )
+  return <ApplicationsClient initialApplications={applications} />
 }

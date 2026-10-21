@@ -79,6 +79,15 @@ async function getAuthenticatedAdmin(
   }
 }
 
+async function getAuthenticatedSuperadmin(
+  customUser?: AuthContext | null
+): Promise<AuthContext | null> {
+  const admin = await getAuthenticatedAdmin(customUser)
+  if (!admin) return null
+  const role = admin.app_metadata?.role || admin.user_metadata?.role
+  return role === "superadmin" ? admin : null
+}
+
 // =============================================================================
 // SEAM 3 CORE HANDLERS (PURE / TESTABLE)
 // =============================================================================
@@ -93,11 +102,11 @@ export async function handleSaveZoomAccount(
   rawInput: ZoomAccountInput,
   options: SaveOptions = {}
 ): Promise<ActionResult> {
-  const admin = await getAuthenticatedAdmin(options.currentUser)
-  if (!admin) {
+  const superadmin = await getAuthenticatedSuperadmin(options.currentUser)
+  if (!superadmin) {
     return {
       success: false,
-      error: "Akses ditolak: Diperlukan role Admin untuk mengelola akun Zoom.",
+      error: "Akses ditolak: Hanya peran Superadmin yang berwenang menambah akun Zoom.",
     }
   }
 
@@ -111,7 +120,7 @@ export async function handleSaveZoomAccount(
 
   const { name, email, accountId, clientId, clientSecret } = parsed.data
 
-  // Enforce platform limit: Max 2 Zoom accounts
+  // Enforce platform limit: Max 4 Zoom accounts
   const canAdd = options.canAddCheck
     ? await options.canAddCheck()
     : await canAddZoomAccount()
@@ -121,7 +130,7 @@ export async function handleSaveZoomAccount(
       success: false,
       error:
         canAdd.error ||
-        "Batas platform tercapai: Solulu dibatasi maksimal 2 akun Zoom.",
+        "Batas platform tercapai: Solulu dibatasi maksimal 4 akun Zoom.",
     }
   }
 
@@ -173,11 +182,11 @@ export async function handleUpdateZoomAccount(
   rawInput: ZoomAccountUpdateInput,
   options: UpdateOptions = {}
 ): Promise<ActionResult> {
-  const admin = await getAuthenticatedAdmin(options.currentUser)
-  if (!admin) {
+  const superadmin = await getAuthenticatedSuperadmin(options.currentUser)
+  if (!superadmin) {
     return {
       success: false,
-      error: "Akses ditolak: Diperlukan role Admin untuk mengelola akun Zoom.",
+      error: "Akses ditolak: Hanya peran Superadmin yang berwenang memperbarui akun Zoom.",
     }
   }
 
@@ -250,11 +259,11 @@ export async function handleDeleteZoomAccount(
   id: string,
   options: DeleteOptions = {}
 ): Promise<ActionResult> {
-  const admin = await getAuthenticatedAdmin(options.currentUser)
-  if (!admin) {
+  const superadmin = await getAuthenticatedSuperadmin(options.currentUser)
+  if (!superadmin) {
     return {
       success: false,
-      error: "Akses ditolak: Diperlukan role Admin untuk mengelola akun Zoom.",
+      error: "Akses ditolak: Hanya peran Superadmin yang berwenang menghapus akun Zoom.",
     }
   }
 
@@ -292,11 +301,11 @@ export async function handleTestZoomConnection(
   id: string,
   options: TestConnectionOptions = {}
 ): Promise<ActionResult> {
-  const admin = await getAuthenticatedAdmin(options.currentUser)
-  if (!admin) {
+  const superadmin = await getAuthenticatedSuperadmin(options.currentUser)
+  if (!superadmin) {
     return {
       success: false,
-      error: "Akses ditolak: Diperlukan role Admin untuk menguji koneksi Zoom.",
+      error: "Akses ditolak: Hanya peran Superadmin yang berwenang menguji koneksi Zoom.",
     }
   }
 

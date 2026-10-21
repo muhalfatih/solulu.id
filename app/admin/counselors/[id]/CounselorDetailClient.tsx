@@ -245,7 +245,7 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
   })
 
   return (
-    <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-20">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-20">
       {/* Toast Feedback */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-border shadow-xl animate-in fade-in flex items-start gap-3 max-w-md">

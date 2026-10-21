@@ -21,7 +21,12 @@ export async function handleRbacProxy(request: NextRequest): Promise<NextRespons
 
   // Support demo role cookie for local development and reviewer evaluation
   const demoRole = request.cookies.get("solulu_demo_role")?.value;
-  if (demoRole === "admin" || demoRole === "superadmin" || demoRole === "counselor") {
+  if (
+    demoRole === "admin" ||
+    demoRole === "superadmin" ||
+    demoRole === "operator" ||
+    demoRole === "counselor"
+  ) {
     user = {
       id: `demo-${demoRole}-id`,
       app_metadata: { role: demoRole },

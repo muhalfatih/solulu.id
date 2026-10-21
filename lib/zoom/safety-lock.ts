@@ -103,7 +103,7 @@ export async function checkZoomSafetyLock(
 
   let reason: string | undefined
   if (isLocked) {
-    reason = `Akun Zoom terkunci: terdapat ${upcomingSessionCount} sesi mendatang (confirmed/reserved) yang bergantung pada akun ini. Perubahan atau penghapusan diblokir demi keamanan pasien.`
+    reason = `Akun Zoom terkunci: terdapat ${upcomingSessionCount} sesi mendatang (confirmed/reserved) yang bergantung pada akun ini. Perubahan atau penghapusan diblokir demi keamanan klien.`
   }
 
   return {
@@ -119,7 +119,7 @@ export interface CanAddAccountOptions {
 }
 
 /**
- * Enforces platform rule: Solulu operates on exactly max 2 Zoom Pro accounts.
+ * Enforces platform rule: Solulu operates on exactly max 4 Zoom Pro accounts (Master SOP & ADR-0005).
  */
 export async function canAddZoomAccount(
   options: CanAddAccountOptions = {}
@@ -133,12 +133,12 @@ export async function canAddZoomAccount(
     currentCount = result[0]?.total ?? 0
   }
 
-  if (currentCount >= 2) {
+  if (currentCount >= 4) {
     return {
       allowed: false,
       currentCount,
       error:
-        "Batas platform tercapai: Solulu dibatasi maksimal 2 akun Zoom Pro aktif.",
+        "Batas platform tercapai: Solulu dibatasi maksimal 4 akun Zoom Pro aktif.",
     }
   }
 

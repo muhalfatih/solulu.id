@@ -327,7 +327,7 @@ export default async function PublicPricingPage() {
                 <span>Bagaimana kalau saya berhalangan hadir pada jam yang dijadwalkan?</span>
               </span>
               <p className="text-muted-foreground text-pretty pl-6 leading-relaxed">
-                Kamu bisa mengajukan ganti jadwal secara gratis maksimal 1 kali, asalkan diajukan paling lambat 12 jam sebelum sesi dimulai. Ini penting biar jadwal konselor kami bisa dialokasikan dengan baik buat yang membutuhkan.
+                Kamu bisa mengajukan ganti jadwal secara gratis maksimal 1 kali, asalkan diajukan paling lambat 4 jam (H-4) sebelum sesi dimulai. Ini penting biar jadwal konselor kami bisa dialokasikan dengan baik buat yang membutuhkan.
               </p>
             </div>
 

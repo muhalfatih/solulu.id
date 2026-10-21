@@ -153,6 +153,7 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
         actualDurationMinutes: r.report?.actualDurationMinutes ?? null,
         timerStartedAt: r.report?.timerStartedAt ? r.report.timerStartedAt.toISOString() : null,
         timerStoppedAt: r.report?.timerStoppedAt ? r.report.timerStoppedAt.toISOString() : null,
+        operatorAdmittedAt: r.booking.operatorAdmittedAt ? r.booking.operatorAdmittedAt.toISOString() : null,
       }
     })
 
@@ -268,8 +269,8 @@ export async function getSessionReportAction(
       return { success: false, error: "Anda hanya dapat melihat catatan sesi Anda sendiri (RLS)." }
     }
     const safeReport: SessionReportDetailView = { ...report }
-    // Confidentiality guard: Admin cannot view internal clinical notes
-    if (role === "admin") {
+    // Confidentiality guard: Admin & Superadmin cannot view internal clinical notes
+    if (role === "admin" || role === "superadmin") {
       delete safeReport.internalNotes
     }
     return { success: true, data: safeReport }
@@ -278,6 +279,8 @@ export async function getSessionReportAction(
     return { success: false, error: "Sesi konseling tidak ditemukan." }
   }
 
+    const isAdminOrSuper = role === "admin" || role === "superadmin"
+
   try {
     const rows = await withDbTimeout(
       db
@@ -285,7 +288,22 @@ export async function getSessionReportAction(
           booking: bookings,
           schedule: schedules,
           screening: screenings,
-          report: sessionReports,
+          report: {
+            id: sessionReports.id,
+            bookingId: sessionReports.bookingId,
+            counselorId: sessionReports.counselorId,
+            mainIssue: sessionReports.mainIssue,
+            summary: sessionReports.summary,
+            actionPlan: sessionReports.actionPlan,
+            // Zero Clinical Leak Invariant: SQL projection guarantees confidential notes never enter server memory for Admin/Superadmin
+            internalNotes: isAdminOrSuper ? sql<string | null>`NULL` : sessionReports.internalNotes,
+            followUpRecommendation: sessionReports.followUpRecommendation,
+            attachmentR2Keys: sessionReports.attachmentR2Keys,
+            actualDurationMinutes: sessionReports.actualDurationMinutes,
+            timerStartedAt: sessionReports.timerStartedAt,
+            timerStoppedAt: sessionReports.timerStoppedAt,
+            createdAt: sessionReports.createdAt,
+          },
         })
         .from(bookings)
         .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
@@ -302,7 +320,7 @@ export async function getSessionReportAction(
 
     const { booking, schedule, screening, report } = rows[0]
 
-    if (role !== "admin" && booking.counselorId !== counselorId) {
+    if (!isAdminOrSuper && booking.counselorId !== counselorId) {
       return { success: false, error: "Anda hanya dapat melihat catatan sesi Anda sendiri (RLS)." }
     }
 
@@ -315,11 +333,11 @@ export async function getSessionReportAction(
       mainIssue: report?.mainIssue || "Konsultasi Emosional & Stres",
       summary: report?.summary || "",
       actionPlan: report?.actionPlan || "",
-      // Confidentiality Guard: internalNotes is STRICTLY excluded from Admin payloads
-      internalNotes: role === "admin" ? undefined : (report?.internalNotes || ""),
+      // Confidentiality Guard: internalNotes is STRICTLY excluded from Admin & Superadmin payloads
+      internalNotes: isAdminOrSuper ? undefined : (report?.internalNotes || ""),
       followUpRecommendation: report?.followUpRecommendation || null,
       attachmentR2Keys: (report?.attachmentR2Keys as string[]) || [],
-      actualDurationMinutes: report?.actualDurationMinutes ?? 90,
+      actualDurationMinutes: report?.actualDurationMinutes ?? null,
       timerStartedAt: report?.timerStartedAt ? report.timerStartedAt.toISOString() : null,
       timerStoppedAt: report?.timerStoppedAt ? report.timerStoppedAt.toISOString() : null,
       createdAt: report ? report.createdAt.toISOString() : new Date().toISOString(),
@@ -330,10 +348,13 @@ export async function getSessionReportAction(
         patientPhone: booking.patientPhone,
         date: schedule.date,
         timeRange: formattedTimeRange,
+        startTime: String(schedule.startTime),
+        endTime: String(schedule.endTime),
         initialNotes: booking.initialNotes,
         srqScore: screening ? screening.totalScore : null,
         hasSuicidalThoughts: screening ? Boolean(screening.hasSuicidalThoughts) : false,
         bypassedRecommendation: Boolean(booking.bypassedRecommendation),
+        operatorAdmittedAt: booking.operatorAdmittedAt ? booking.operatorAdmittedAt.toISOString() : null,
       },
     }
 
@@ -443,44 +464,62 @@ export async function submitSessionReportAction(
 
       if (existing.length > 0) {
         reportId = existing[0].id
+        const updatePayload: any = {
+          mainIssue: mainIssue || "Konsultasi Emosional & Stres",
+          summary,
+          actionPlan: actionPlan || null,
+          internalNotes: internalNotes || null,
+          followUpRecommendation: followUpRecommendation || null,
+          attachmentR2Keys: attachmentR2Keys || [],
+        }
+        if (typeof parsed.data.actualDurationMinutes === "number") {
+          updatePayload.actualDurationMinutes = parsed.data.actualDurationMinutes
+        }
+        if (parsed.data.timerStartedAt) {
+          updatePayload.timerStartedAt = new Date(parsed.data.timerStartedAt)
+        }
+        if (parsed.data.timerStoppedAt) {
+          updatePayload.timerStoppedAt = new Date(parsed.data.timerStoppedAt)
+        }
         await db
           .update(sessionReports)
-          .set({
-            mainIssue: mainIssue || "Konsultasi Emosional & Stres",
-            summary,
-            actionPlan: actionPlan || null,
-            internalNotes: internalNotes || null,
-            followUpRecommendation: followUpRecommendation || null,
-            attachmentR2Keys: attachmentR2Keys || [],
-          })
+          .set(updatePayload)
           .where(eq(sessionReports.id, reportId))
       } else {
+        const insertPayload: any = {
+          bookingId,
+          counselorId,
+          mainIssue: mainIssue || "Konsultasi Emosional & Stres",
+          summary,
+          actionPlan: actionPlan || null,
+          internalNotes: internalNotes || null,
+          followUpRecommendation: followUpRecommendation || null,
+          attachmentR2Keys: attachmentR2Keys || [],
+          actualDurationMinutes: typeof parsed.data.actualDurationMinutes === "number" ? parsed.data.actualDurationMinutes : 90,
+          timerStartedAt: parsed.data.timerStartedAt ? new Date(parsed.data.timerStartedAt) : null,
+          timerStoppedAt: parsed.data.timerStoppedAt ? new Date(parsed.data.timerStoppedAt) : null,
+        }
         const inserted = await db
           .insert(sessionReports)
-          .values({
-            bookingId,
-            counselorId,
-            mainIssue: mainIssue || "Konsultasi Emosional & Stres",
-            summary,
-            actionPlan: actionPlan || null,
-            internalNotes: internalNotes || null,
-            followUpRecommendation: followUpRecommendation || null,
-            attachmentR2Keys: attachmentR2Keys || [],
-          })
+          .values(insertPayload)
           .returning({ id: sessionReports.id })
         reportId = inserted[0].id
       }
 
-      // Ensure booking status is marked completed
+      // Ensure booking status is marked completed & admitted
       await db
         .update(bookings)
-        .set({ status: "completed" })
+        .set({
+          status: "completed",
+          operatorAdmittedAt: sql`COALESCE(${bookings.operatorAdmittedAt}, NOW())`,
+        })
         .where(eq(bookings.id, bookingId))
     }
 
     safeRevalidatePath("/counselor/dashboard")
     safeRevalidatePath(`/counselor/sessions/${bookingId}/report`)
     safeRevalidatePath(`/counselor/reports/${bookingId}`)
+    safeRevalidatePath("/operator")
 
     return {
       success: true,
@@ -991,9 +1030,47 @@ export async function recordSessionTimerAction(
           .where(eq(sessionReports.id, existingReports[0].id)),
         10000
       )
+    } else {
+      await withDbTimeout(
+        dbConn
+          .insert(sessionReports)
+          .values({
+            bookingId,
+            counselorId,
+            mainIssue: "Konsultasi Emosional & Stres",
+            summary: "Sesi konseling telah terekam melalui Floating Timer.",
+            actualDurationMinutes: payload.actualDurationMinutes,
+            timerStartedAt: timerStarted,
+            timerStoppedAt: timerStopped,
+          }),
+        10000
+      )
+    }
+
+    // Auto-admit client on timer start: ensure bookings.operatorAdmittedAt is set
+    const [currentBooking] = await withDbTimeout(
+      dbConn
+        .select({ operatorAdmittedAt: bookings.operatorAdmittedAt })
+        .from(bookings)
+        .where(eq(bookings.id, bookingId))
+        .limit(1),
+      10000
+    )
+
+    if (currentBooking && !currentBooking.operatorAdmittedAt) {
+      await withDbTimeout(
+        dbConn
+          .update(bookings)
+          .set({
+            operatorAdmittedAt: timerStarted,
+          })
+          .where(eq(bookings.id, bookingId)),
+        10000
+      )
     }
 
     safeRevalidatePath("/counselor/dashboard")
+    safeRevalidatePath("/operator")
 
     return {
       success: true,
@@ -1004,6 +1081,103 @@ export async function recordSessionTimerAction(
   } catch (err: any) {
     console.error("[ERROR RECORD TIMER METADATA]", err)
     return { success: false, error: err.message || "Gagal menyimpan metadata durasi sesi." }
+  }
+}
+
+/**
+ * Counselor Admit: Counselor explicitly marks client as admitted / entered session.
+ */
+export async function counselorAdmitClientAction(
+  payload: { bookingId: string },
+  deps?: { currentUser?: CounselorAuthContext | null; dbClient?: typeof db }
+): Promise<CounselorActionResponse<{ admittedAt: string }>> {
+  const { bookingId } = payload
+  if (!bookingId || !UUID_REGEX.test(bookingId)) {
+    return { success: false, error: "ID booking tidak valid." }
+  }
+
+  const auth = await getAuthenticatedCounselor(deps?.currentUser)
+  if (!auth) {
+    return { success: false, error: "Akses ditolak. Silakan login sebagai Mitra Konselor." }
+  }
+
+  const counselorId = await resolveCounselorId(auth)
+  if (!counselorId) {
+    return { success: false, error: "Profil konselor tidak ditemukan." }
+  }
+
+  try {
+    const dbConn = deps?.dbClient || db
+    const now = new Date()
+
+    const updated = await withDbTimeout(
+      dbConn
+        .update(bookings)
+        .set({ operatorAdmittedAt: now })
+        .where(and(eq(bookings.id, bookingId), eq(bookings.counselorId, counselorId)))
+        .returning({ id: bookings.id, operatorAdmittedAt: bookings.operatorAdmittedAt }),
+      10000
+    )
+
+    if (!updated.length) {
+      return { success: false, error: "Sesi konseling tidak ditemukan atau bukan milik Anda." }
+    }
+
+    safeRevalidatePath("/counselor/dashboard")
+    safeRevalidatePath("/operator")
+
+    return {
+      success: true,
+      data: { admittedAt: updated[0].operatorAdmittedAt!.toISOString() },
+    }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Gagal menandai kehadiran klien." }
+  }
+}
+
+/**
+ * Counselor Unadmit: Counselor reverts client admission status.
+ */
+export async function counselorUnadmitClientAction(
+  payload: { bookingId: string },
+  deps?: { currentUser?: CounselorAuthContext | null; dbClient?: typeof db }
+): Promise<CounselorActionResponse<{ success: boolean }>> {
+  const { bookingId } = payload
+  if (!bookingId || !UUID_REGEX.test(bookingId)) {
+    return { success: false, error: "ID booking tidak valid." }
+  }
+
+  const auth = await getAuthenticatedCounselor(deps?.currentUser)
+  if (!auth) {
+    return { success: false, error: "Akses ditolak. Silakan login sebagai Mitra Konselor." }
+  }
+
+  const counselorId = await resolveCounselorId(auth)
+  if (!counselorId) {
+    return { success: false, error: "Profil konselor tidak ditemukan." }
+  }
+
+  try {
+    const dbConn = deps?.dbClient || db
+    const updated = await withDbTimeout(
+      dbConn
+        .update(bookings)
+        .set({ operatorAdmittedAt: null })
+        .where(and(eq(bookings.id, bookingId), eq(bookings.counselorId, counselorId)))
+        .returning({ id: bookings.id }),
+      10000
+    )
+
+    if (!updated.length) {
+      return { success: false, error: "Sesi konseling tidak ditemukan atau bukan milik Anda." }
+    }
+
+    safeRevalidatePath("/counselor/dashboard")
+    safeRevalidatePath("/operator")
+
+    return { success: true, data: { success: true } }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Gagal membatalkan status kehadiran." }
   }
 }
 

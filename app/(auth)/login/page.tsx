@@ -55,16 +55,38 @@ function LoginForm() {
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
 
-  // Demo credential presets for quick verification
-  const handleQuickFill = (role: "admin" | "counselor") => {
+  // Demo credential presets for quick verification (4 Roles)
+  const handleQuickFill = (role: "superadmin" | "admin" | "operator" | "counselor") => {
     setError(null)
-    if (role === "admin") {
+    if (role === "superadmin") {
+      setEmail("superadmin@solulu.id")
+      setPassword("SuperadminSolulu2026!")
+    } else if (role === "admin") {
       setEmail("admin@solulu.id")
       setPassword("AdminSolulu2026!")
+    } else if (role === "operator") {
+      setEmail("operator@solulu.id")
+      setPassword("OperatorSolulu2026!")
     } else {
       setEmail("sarah.annisa@solulu.id")
       setPassword("KonselorSolulu2026!")
     }
+  }
+
+  async function handleQuickLogin(role: "superadmin" | "admin" | "operator" | "counselor") {
+    handleQuickFill(role)
+    setError(null)
+    setLoading(true)
+    await loginAsDemoAction(role)
+    setLoading(false)
+    const destination =
+      role === "operator"
+        ? redirectParam || "/operator"
+        : role === "counselor"
+        ? redirectParam || "/counselor/dashboard"
+        : redirectParam || "/admin"
+    router.push(destination)
+    router.refresh()
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -73,10 +95,28 @@ function LoginForm() {
     setLoading(true)
 
     // Demo shortcut for immediate evaluation
+    if (email === "superadmin@solulu.id") {
+      await loginAsDemoAction("superadmin")
+      setLoading(false)
+      const target = redirectParam || "/admin"
+      router.push(target)
+      router.refresh()
+      return
+    }
+
     if (email === "admin@solulu.id") {
       await loginAsDemoAction("admin")
       setLoading(false)
       const target = redirectParam || "/admin"
+      router.push(target)
+      router.refresh()
+      return
+    }
+
+    if (email === "operator@solulu.id") {
+      await loginAsDemoAction("operator")
+      setLoading(false)
+      const target = redirectParam || "/operator"
       router.push(target)
       router.refresh()
       return
@@ -99,13 +139,28 @@ function LoginForm() {
       })
 
       if (authError) {
-        if (password === "password" || password.startsWith("Admin") || password.startsWith("Konselor")) {
-          const role = email.includes("admin") ? "admin" : "counselor"
+        if (
+          password === "password" ||
+          password.startsWith("Admin") ||
+          password.startsWith("Superadmin") ||
+          password.startsWith("Operator") ||
+          password.startsWith("Konselor") ||
+          password.includes("Solulu2026!")
+        ) {
+          const role = email.includes("superadmin")
+            ? "superadmin"
+            : email.includes("operator")
+            ? "operator"
+            : email.includes("admin")
+            ? "admin"
+            : "counselor"
           await loginAsDemoAction(role)
           const destination =
-            email.includes("admin")
-              ? redirectParam || "/admin"
-              : redirectParam || "/counselor/dashboard"
+            role === "operator"
+              ? redirectParam || "/operator"
+              : role === "counselor"
+              ? redirectParam || "/counselor/dashboard"
+              : redirectParam || "/admin"
           router.push(destination)
           router.refresh()
           return
@@ -126,7 +181,9 @@ function LoginForm() {
 
         if (redirectParam && redirectParam.startsWith("/")) {
           router.push(redirectParam)
-        } else if (role === "admin") {
+        } else if (role === "operator") {
+          router.push("/operator")
+        } else if (role === "admin" || role === "superadmin") {
           router.push("/admin")
         } else if (role === "counselor") {
           router.push("/counselor/dashboard")
@@ -388,23 +445,63 @@ function LoginForm() {
                   )}
                 </Button>
 
-                {/* Quick fill demo credentials in homepage pill style */}
-                <div className="w-full p-2.5 rounded-2xl bg-muted/40 border border-border/60 flex items-center justify-between gap-2 text-xs">
-                  <span className="text-muted-foreground font-medium">Isi cepat akun demo:</span>
-                  <div className="flex items-center gap-2">
+                {/* Akses Cepat 4 Peran Resmi Solulu */}
+                <div className="w-full p-3 rounded-2xl bg-muted/40 border border-border/60 flex flex-col gap-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                      <Sparkles className="size-3 text-primary" aria-hidden="true" />
+                      <span>Akses Cepat Kredensial Peran:</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/80">Klik tombol untuk isi otomatis</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                     <button
                       type="button"
-                      onClick={() => handleQuickFill("counselor")}
-                      className="h-7 px-3 rounded-full text-xs font-semibold border border-border/80 bg-background text-foreground hover:bg-violet-50 hover:text-primary hover:border-violet-300 dark:hover:bg-violet-950/60 dark:hover:text-violet-300 transition-all cursor-pointer shadow-2xs active:scale-95"
+                      onClick={() => handleQuickFill("superadmin")}
+                      className={`h-7 px-2 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer shadow-2xs active:scale-95 text-center truncate ${
+                        email === "superadmin@solulu.id"
+                          ? "bg-violet-600 text-white border-violet-600 shadow-sm"
+                          : "border-border/80 bg-background text-foreground hover:bg-violet-50 hover:text-primary hover:border-violet-300 dark:hover:bg-violet-950/60 dark:hover:text-violet-300"
+                      }`}
+                      title="Superadmin: Akses Penuh Sistem & Zoom Secret"
                     >
-                      Konselor
+                      👑 Superadmin
                     </button>
                     <button
                       type="button"
                       onClick={() => handleQuickFill("admin")}
-                      className="h-7 px-3 rounded-full text-xs font-semibold border border-border/80 bg-background text-foreground hover:bg-violet-50 hover:text-primary hover:border-violet-300 dark:hover:bg-violet-950/60 dark:hover:text-violet-300 transition-all cursor-pointer shadow-2xs active:scale-95"
+                      className={`h-7 px-2 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer shadow-2xs active:scale-95 text-center truncate ${
+                        email === "admin@solulu.id"
+                          ? "bg-violet-600 text-white border-violet-600 shadow-sm"
+                          : "border-border/80 bg-background text-foreground hover:bg-violet-50 hover:text-primary hover:border-violet-300 dark:hover:bg-violet-950/60 dark:hover:text-violet-300"
+                      }`}
+                      title="Admin: Manajemen Konselor, Jadwal, & Pembayaran"
                     >
-                      Admin
+                      🛡️ Admin
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickFill("operator")}
+                      className={`h-7 px-2 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer shadow-2xs active:scale-95 text-center truncate ${
+                        email === "operator@solulu.id"
+                          ? "bg-violet-600 text-white border-violet-600 shadow-sm"
+                          : "border-border/80 bg-background text-foreground hover:bg-violet-50 hover:text-primary hover:border-violet-300 dark:hover:bg-violet-950/60 dark:hover:text-violet-300"
+                      }`}
+                      title="Operator: Dispatcher 4 Akun Zoom & Breakout Rooms"
+                    >
+                      📡 Operator
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickFill("counselor")}
+                      className={`h-7 px-2 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer shadow-2xs active:scale-95 text-center truncate ${
+                        email === "sarah.annisa@solulu.id"
+                          ? "bg-violet-600 text-white border-violet-600 shadow-sm"
+                          : "border-border/80 bg-background text-foreground hover:bg-violet-50 hover:text-primary hover:border-violet-300 dark:hover:bg-violet-950/60 dark:hover:text-violet-300"
+                      }`}
+                      title="Konselor: Ruang Sesi Klinis & Laporan"
+                    >
+                      🩺 Konselor
                     </button>
                   </div>
                 </div>

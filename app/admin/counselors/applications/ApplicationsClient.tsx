@@ -301,9 +301,9 @@ export function ApplicationsClient({
   const rejectedCount = applications.filter((a) => a.status === "rejected").length
 
   return (
-    <div className="w-full flex flex-col gap-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16">
       {/* Header & Quick Stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Verifikasi Berkas Kemitraan Konselor

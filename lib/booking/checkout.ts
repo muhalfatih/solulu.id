@@ -566,13 +566,15 @@ export async function executeCreateGuestBooking(
       schedule.endTime
     )
 
-    let effectiveLimit = MAX_PLATFORM_CONCURRENCY
+    let effectiveLimit = 10
     if (deps?.getZoomCapacity) {
       effectiveLimit = await deps.getZoomCapacity()
     } else {
       try {
         const cap = await getActiveZoomCapacity()
-        if (cap > 0) {
+        if (cap >= 4) {
+          effectiveLimit = 10
+        } else if (cap > 0) {
           effectiveLimit = cap
         }
       } catch {}

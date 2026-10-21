@@ -2,6 +2,8 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import {
   Clock,
   Building2,
@@ -21,6 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { PublicShell } from "@/components/public/public-shell"
 import { OFFICIAL_BANK_ACCOUNTS } from "@/lib/booking/hold"
+import { getBookingByTokenAction } from "@/app/booking/actions"
 
 interface ManualPendingClientProps {
   data: {
@@ -66,6 +69,34 @@ export default function ManualPendingClient({ data }: ManualPendingClientProps) 
   const [copiedAccount, setCopiedAccount] = React.useState<string | null>(null)
   const [copiedAmount, setCopiedAmount] = React.useState(false)
   const [copiedRef, setCopiedRef] = React.useState(false)
+
+  const router = useRouter()
+  const [isConfirmed, setIsConfirmed] = React.useState(booking.status === "confirmed")
+
+  // Auto-polling every 8 seconds to check if admin has verified the manual payment
+  React.useEffect(() => {
+    if (booking.status === "confirmed") {
+      router.push(`/session/${booking.accessToken}`)
+      return
+    }
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await getBookingByTokenAction(booking.accessToken)
+        if (res.success && res.data && res.data.booking.status === "confirmed") {
+          setIsConfirmed(true)
+          toast.success("Pembayaran Anda telah diverifikasi oleh Admin! Mengalihkan ke ruang sesi...")
+          setTimeout(() => {
+            router.push(`/session/${booking.accessToken}`)
+          }, 1200)
+        }
+      } catch {
+        // Silently continue polling
+      }
+    }, 8000)
+
+    return () => clearInterval(interval)
+  }, [booking.status, booking.accessToken, router])
 
   const referenceNumber = transaction?.referenceNumber || "SOL-MANUAL"
   const amountToTransfer = transaction?.netAmount || 0
@@ -115,15 +146,25 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
           <div className="size-18 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center ring-8 ring-amber-500/5 shadow-2xs">
             <Clock className="size-9" />
           </div>
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-semibold shadow-2xs">
-            <span>Status: Menunggu Pembayaran Transfer</span>
-          </div>
+          {isConfirmed ? (
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs font-semibold shadow-2xs">
+              <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
+              <span>Pembayaran Terverifikasi! Mengalihkan ke Ruang Sesi...</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs font-semibold shadow-2xs">
+              <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+              <span>Status: Menunggu Pembayaran Transfer • Otomatis Memeriksa</span>
+            </div>
+          )}
           <div className="flex flex-col gap-1.5">
             <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground text-balance leading-[1.2]">
-              Menunggu Pembayaran Transfer
+              {isConfirmed ? "Pembayaran Dikonfirmasi!" : "Menunggu Pembayaran Transfer"}
             </h1>
             <p className="text-xs sm:text-sm md:text-base text-muted-foreground max-w-md mx-auto leading-relaxed text-pretty">
-              Silakan lakukan transfer ke salah satu rekening resmi platform dan kirimkan bukti pembayaran untuk aktivasi ruang Zoom oleh Admin.
+              {isConfirmed
+                ? "Admin telah memverifikasi pembayaran Anda. Anda sedang dialihkan langsung ke halaman sesi privat..."
+                : "Silakan lakukan transfer ke salah satu rekening resmi platform dan kirimkan bukti pembayaran untuk aktivasi ruang Zoom oleh Admin."}
             </p>
           </div>
         </div>

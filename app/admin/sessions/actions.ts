@@ -1,5 +1,6 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
 import { eq, desc } from "drizzle-orm"
 import { db } from "@/db"
 import { bookings, counselors, schedules, transactions, zoomAccounts } from "@/db/schema"
@@ -20,7 +21,30 @@ export async function confirmManualPaymentAction(
   input: ConfirmManualPaymentInput,
   deps?: ManualPaymentDependencies
 ): Promise<ConfirmManualPaymentResult> {
-  return confirmManualPayment(input, deps)
+  const result = await confirmManualPayment(input, deps)
+
+  if (result.success) {
+    try {
+      revalidatePath("/admin/sessions")
+      revalidatePath("/counselors")
+      revalidatePath("/booking")
+      revalidatePath("/")
+      if (input.bookingId) {
+        const b = await db
+          .select({ accessToken: bookings.accessToken })
+          .from(bookings)
+          .where(eq(bookings.id, input.bookingId))
+          .limit(1)
+        if (b.length > 0 && b[0].accessToken) {
+          revalidatePath(`/session/${b[0].accessToken}`)
+        }
+      }
+    } catch {
+      // Safe outside Next request lifecycle
+    }
+  }
+
+  return result
 }
 
 /**
@@ -134,6 +158,18 @@ export async function rejectManualPaymentAction(
         .where(eq(transactions.bookingId, input.bookingId))
     })
 
+    try {
+      revalidatePath("/admin/sessions")
+      revalidatePath("/counselors")
+      revalidatePath("/booking")
+      revalidatePath("/")
+      if (booking.accessToken) {
+        revalidatePath(`/session/${booking.accessToken}`)
+      }
+    } catch {
+      // Safe outside Next request lifecycle
+    }
+
     return {
       success: true,
       message: `Pembayaran sesi berhasil ditolak (${input.reason}). Slot jadwal telah dikembalikan ke kalender publik.`,
@@ -142,6 +178,72 @@ export async function rejectManualPaymentAction(
     return {
       success: false,
       error: err.message || "Gagal menolak pembayaran manual.",
+    }
+  }
+}
+
+/**
+ * Admin Server Action to mark a booking as No-Show (Spec 0003 - US 42).
+ * Marks booking with isNoShow: true, noShowMarkedAt, and transitions status to 'completed'
+ * without penalizing the counselor.
+ */
+export async function markBookingNoShowAction(
+  bookingId: string,
+  options?: { currentUser?: AdminAuthContext | null }
+) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return {
+      success: false,
+      error: "Akses ditolak: Diperlukan role Admin.",
+    }
+  }
+
+  try {
+    const [booking] = await db
+      .select()
+      .from(bookings)
+      .where(eq(bookings.id, bookingId))
+      .limit(1)
+
+    if (!booking) {
+      return { success: false, error: "Data pesanan booking tidak ditemukan." }
+    }
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(bookings)
+        .set({
+          isNoShow: true,
+          noShowMarkedAt: new Date(),
+          status: "completed",
+        })
+        .where(eq(bookings.id, bookingId))
+
+      await tx
+        .update(schedules)
+        .set({ status: "booked" })
+        .where(eq(schedules.id, booking.scheduleId))
+    })
+
+    try {
+      revalidatePath("/admin/sessions")
+      revalidatePath("/admin/reports/finance")
+      if (booking.accessToken) {
+        revalidatePath(`/session/${booking.accessToken}`)
+      }
+    } catch {
+      // Safe outside Next request lifecycle
+    }
+
+    return {
+      success: true,
+      message: "Sesi berhasil ditandai sebagai No-Show tanpa penalti pada mitra konselor.",
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal menandai sesi sebagai No-Show.",
     }
   }
 }

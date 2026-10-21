@@ -49,13 +49,13 @@ export default function SessionClient({ initialData }: SessionClientProps) {
     }
   }, [data.booking.accessToken])
 
-  // Auto-polling every 20 seconds if booking is pending payment
+  // Auto-polling every 8 seconds if booking is pending payment (responsive verification sync)
   React.useEffect(() => {
     if (data.booking.status !== "pending_payment") return
 
     const interval = setInterval(() => {
       handleRefresh()
-    }, 20000)
+    }, 8000)
 
     return () => clearInterval(interval)
   }, [data.booking.status, handleRefresh])

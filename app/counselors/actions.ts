@@ -222,13 +222,15 @@ export async function getCounselorsCatalogAction(
       visibleSlotsByCounselor[counselorId] = []
     }
 
-    let maxPlatformConcurrency = 2
+    let maxPlatformConcurrency = 10
     if (options?.getZoomCapacity) {
       maxPlatformConcurrency = await options.getZoomCapacity()
     } else {
       try {
         const cap = await getActiveZoomCapacity()
-        if (cap > 0) {
+        if (cap >= 4) {
+          maxPlatformConcurrency = 10
+        } else if (cap > 0) {
           maxPlatformConcurrency = cap
         }
       } catch {}
@@ -236,6 +238,10 @@ export async function getCounselorsCatalogAction(
 
     const now = new Date()
     for (const slot of slotRows) {
+      // Exclude active slot hold (payment in-flight)
+      if (slot.reservedUntil && new Date(slot.reservedUntil) > now) {
+        continue
+      }
       // Must be bookable (not in the past, >= 2h buffer if today, <= 14 days)
       const bookableCheck = isSlotBookable(slot.date, slot.startTime, now)
       if (!bookableCheck.bookable) {

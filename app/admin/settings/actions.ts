@@ -126,6 +126,8 @@ export async function updatePlatformSettingsAction(
       revalidatePath("/admin")
       revalidatePath("/counselors")
       revalidatePath("/booking")
+      revalidatePath("/pricing")
+      revalidatePath("/")
     } catch {
       // Ignore cache revalidation errors in non-request test contexts
     }

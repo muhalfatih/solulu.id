@@ -319,6 +319,8 @@ export async function createScheduleSlotsAction(
 
     safeRevalidatePath("/counselor/schedules")
     safeRevalidatePath("/counselors")
+    safeRevalidatePath("/booking")
+    safeRevalidatePath("/")
 
     return {
       success: true,
@@ -418,6 +420,8 @@ export async function cancelScheduleSlotAction(
 
     safeRevalidatePath("/counselor/schedules")
     safeRevalidatePath("/counselors")
+    safeRevalidatePath("/booking")
+    safeRevalidatePath("/")
 
     return {
       success: true,

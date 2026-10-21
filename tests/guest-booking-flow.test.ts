@@ -519,6 +519,7 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
           getCounselor: async () => mockCounselor,
           getPricing: async () => mockPricing,
           getActiveSessionsOnDate: async () => activeSessions,
+          getZoomCapacity: async () => 2,
           now: () => mockNow,
         }
       )

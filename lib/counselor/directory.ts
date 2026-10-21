@@ -125,6 +125,10 @@ export async function listCatalogCounselors(
     // Map schedules by counselorId
     const schedulesByCounselor = new Map<string, CatalogSlot[]>()
     for (const s of scheduleRows) {
+      // Exclude active slot hold (payment in-flight)
+      if (s.reservedUntil && new Date(s.reservedUntil) > now) {
+        continue
+      }
       const { bookable } = isSlotBookable(s.date, s.startTime, now)
       if (!bookable) continue
 

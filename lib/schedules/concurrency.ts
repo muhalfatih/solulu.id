@@ -10,8 +10,8 @@
  */
 
 export const SESSION_DURATION_MINUTES = 90
-export const MAX_PLATFORM_CONCURRENCY = 2
-export const MIN_BOOKING_LEAD_TIME_MINUTES = 120 // 2 Jam buffer minimum sebelum sesi dimulai
+export const MAX_PLATFORM_CONCURRENCY = 10 // Master SOP & ADR-0005: Maksimal 10 sesi konkurensi per slot via 4 Zoom Pro
+export const MIN_BOOKING_LEAD_TIME_MINUTES = 120 // 2 Jam buffer minimum untuk fleksibilitas checkout dasar
 export const MAX_BOOKING_HORIZON_DAYS = 14 // Jendela pemesanan maksimal 14 hari ke depan
 export const MAX_COUNSELOR_DAILY_SESSIONS = 4 // Batas beban kerja maksimal 4 sesi 90 menit per hari per konselor
 

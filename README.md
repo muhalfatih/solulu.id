@@ -137,16 +137,50 @@ QSTASH_NEXT_SIGNING_KEY="..."
 ENCRYPTION_SECRET_KEY="32-byte-hex-or-string..."
 ```
 
-### 4. Migrasi Database
+### 4. Migrasi & Data Seed Database
+
+Solulu dilengkapi dengan sistem **Zero-Mock Master Seeder** dan **Total Reset** yang mengelola 14 tabel database secara otomatis (Zero-Mock Compliant):
+
 ```bash
-npx drizzle-kit push
+# Opsi 1: Reset total dan seed ulang database dalam satu langkah (Disarankan untuk setup awal / clean slate)
+npm run db:reset-and-seed
+
+# Opsi 2: Hanya menjalankan total reset (mengosongkan 14 tabel via TRUNCATE CASCADE)
+npm run db:reset
+
+# Opsi 3: Memasukkan master seed data ke dalam database
+npm run db:seed
+
+# Migrasi skema (jika ada perubahan skema Drizzle)
+npm run db:migrate
 ```
+
+> [!NOTE]
+> Script reset menjaga keamanan tabel `auth.users` Supabase sehingga kredensial akun tidak terhapus. Script seeder secara otomatis menyinkronkan 4 akun kredensial peran ke Supabase Auth dan mengisi data 14 tabel secara berurutan.
 
 ### 5. Menjalankan Server Pengembangan
 ```bash
 npm run dev
 ```
 Buka [http://localhost:3001](http://localhost:3001) di browser Anda.
+
+---
+
+## 🔑 Kredensial 4 Peran Resmi & Akses Cepat Login
+
+Platform Solulu memiliki 4 tingkatan peran pengguna dengan hak akses yang terisolasi sesuai prinsip least privilege. Seluruh akun di bawah ini telah terdaftar di Supabase Auth dan siap digunakan:
+
+| Peran | Email Akun Kerja | Kata Sandi | Dashboard Tujuan | Cakupan Hak Akses Utama |
+| :--- | :--- | :--- | :--- | :--- |
+| **👑 Superadmin** | `superadmin@solulu.id` | `SuperadminSolulu2026!` | `/admin` | Akses tertinggi: Pengaturan parameter sistem, tarif perpanjangan, buka kunci/reveal client secret Zoom, bypass audit. |
+| **🛡️ Admin** | `admin@solulu.id` | `AdminSolulu2026!` | `/admin` | Manajemen mitra konselor, slot jadwal, pemesanan manual, verifikasi bukti transfer bank, dan laporan keuangan. |
+| **📡 Operator** | `operator@solulu.id` | `OperatorSolulu2026!` | `/operator` | Konsol dispatcher 4 akun Zoom Pro, pemantauan 7 slot harian, dan kontrol Breakout Room (terisolasi dari rekam medis & finansial). |
+| **🩺 Konselor** | `sarah.annisa@solulu.id` | `KonselorSolulu2026!` | `/counselor/dashboard` | Portal praktisi: Ruang konseling privat, floating timer sesi 90 menit, pengisian laporan klinis, dan catatan internal rahasia. |
+
+> [!TIP]
+> **Akses Cepat di Halaman Login (`/login`)**:
+> Pada halaman login tersedia kotak **Akses Cepat Kredensial Peran** dengan 4 tombol badge (**👑 Superadmin**, **🛡️ Admin**, **📡 Operator**, **🩺 Konselor**) yang secara otomatis mengisi email & kata sandi serta mengarahkan ke portal masing-masing secara instan.
+
 
 ---
 
@@ -215,6 +249,11 @@ solulu-web/
 │   ├── encryption.ts          # Utilitas kriptografi AES-256-GCM
 │   ├── r2.ts                  # Integrasi AWS SDK Cloudflare R2
 │   └── xendit.ts              # Integrasi API Xendit Invoicing
+├── scripts/                   # Utilitas database, migrasi & master seed data
+│   ├── data/
+│   │   └── master-data.mjs    # Master data 14 tabel & kredensial 4 peran (Zero-Mock)
+│   ├── reset.mjs              # Script total reset (TRUNCATE CASCADE 14 tabel)
+│   └── seed.mjs               # Master seeder & sinkronisasi Supabase Auth
 └── tests/                     # Unit & integration test suites (Vitest)
 ```
 

@@ -14,7 +14,9 @@
     "test:resend": "node scripts/test-resend.mjs",
     "test:qstash": "node scripts/test-qstash.mjs",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "node scripts/seed.mjs"
+    "db:reset": "node scripts/reset.mjs",
+    "db:seed": "node scripts/seed.mjs",
+    "db:reset-and-seed": "node scripts/reset.mjs && node scripts/seed.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1141.0",

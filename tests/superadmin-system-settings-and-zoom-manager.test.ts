@@ -6,6 +6,10 @@ import {
 import {
   getZoomAccountsAction,
   revealZoomClientSecretAction,
+  handleSaveZoomAccount,
+  handleUpdateZoomAccount,
+  handleDeleteZoomAccount,
+  handleTestZoomConnection,
 } from "../app/admin/zoom-settings/actions"
 import {
   getPlatformSettings,
@@ -269,6 +273,45 @@ describe("Ticket 10: Superadmin System Settings and Zoom Manager", () => {
       })
       expect(superReveal.success).toBe(true)
       expect(superReveal.secret).toBeDefined()
+    })
+
+    it("blocks Admin (non-superadmin) from mutating Zoom configuration (create, update, delete, test)", async () => {
+      // 1. Attempt Save as Admin
+      const saveRes = await handleSaveZoomAccount(
+        {
+          name: "Zoom Akun Baru",
+          email: "zoom-baru@solulu.id",
+          accountId: "acc-123",
+          clientId: "client-123",
+          clientSecret: "secret-123",
+        },
+        { currentUser: adminUser }
+      )
+      expect(saveRes.success).toBe(false)
+      expect(saveRes.error).toContain("Hanya peran Superadmin")
+
+      // 2. Attempt Update as Admin
+      const updateRes = await handleUpdateZoomAccount(
+        "dummy-id",
+        { name: "Zoom Akun Updated" },
+        { currentUser: adminUser }
+      )
+      expect(updateRes.success).toBe(false)
+      expect(updateRes.error).toContain("Hanya peran Superadmin")
+
+      // 3. Attempt Delete as Admin
+      const deleteRes = await handleDeleteZoomAccount("dummy-id", {
+        currentUser: adminUser,
+      })
+      expect(deleteRes.success).toBe(false)
+      expect(deleteRes.error).toContain("Hanya peran Superadmin")
+
+      // 4. Attempt Test Connection as Admin
+      const testRes = await handleTestZoomConnection("dummy-id", {
+        currentUser: adminUser,
+      })
+      expect(testRes.success).toBe(false)
+      expect(testRes.error).toContain("Hanya peran Superadmin")
     })
   })
 })

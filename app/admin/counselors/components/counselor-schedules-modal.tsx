@@ -52,6 +52,7 @@ import {
   parseTimeToMinutes,
   isTimeRangeOverlapping,
 } from "@/lib/schedules/concurrency"
+import { FIXED_SLOTS } from "@/lib/operator/types"
 
 interface CounselorScheduleModalProps {
   counselor: {
@@ -65,14 +66,7 @@ interface CounselorScheduleModalProps {
   onSlotsUpdated?: () => void
 }
 
-const PRESET_START_TIMES = [
-  "09:00",
-  "11:00",
-  "13:30",
-  "15:30",
-  "19:00",
-  "20:30",
-]
+const PRESET_START_TIMES = FIXED_SLOTS.map((s) => s.startTime.slice(0, 5))
 
 function formatIndonesianDateLabel(dateStr: string): string {
   try {
@@ -229,7 +223,8 @@ export function CounselorSchedulesModal({
         return { isPassed: false, isExisting: true, hasOverlap: false, label: "Terdaftar" }
       }
 
-      const endTime = computeEndTime(time)
+      const fixed = FIXED_SLOTS.find((s) => s.startTime.startsWith(time))
+      const endTime = fixed ? fixed.endTime.slice(0, 5) : computeEndTime(time)
       const isOverlapping = existingSlotsOnSelectedDate.some((s) =>
         isTimeRangeOverlapping(s.startTime, s.endTime, time, endTime)
       )
@@ -262,8 +257,8 @@ export function CounselorSchedulesModal({
     }
 
     let candidates: string[] = []
-    if (group === "pagi") candidates = ["09:00", "11:00"]
-    if (group === "sore") candidates = ["15:30", "19:00", "20:30"]
+    if (group === "pagi") candidates = ["08:00", "10:00", "12:00"]
+    if (group === "sore") candidates = ["14:00", "16:00", "18:00", "20:00"]
     if (group === "all") candidates = PRESET_START_TIMES
 
     const validCandidates = candidates.filter((time) => {
@@ -662,7 +657,8 @@ export function CounselorSchedulesModal({
                       <div className="grid grid-cols-2 gap-1.5">
                         {PRESET_START_TIMES.map((time) => {
                           const isSelected = selectedTimes.includes(time)
-                          const endStr = computeEndTime(time)
+                          const fixedSlot = FIXED_SLOTS.find((s) => s.startTime.startsWith(time))
+                          const endStr = fixedSlot ? fixedSlot.endTime.slice(0, 5) : computeEndTime(time)
                           const status = getPresetStatus(time)
                           const isDisabled = status.isPassed || status.isExisting || status.hasOverlap
 
@@ -684,6 +680,11 @@ export function CounselorSchedulesModal({
                               }`}
                             >
                               <div className="flex items-center gap-1">
+                                {fixedSlot && (
+                                  <span className="text-[10px] font-semibold text-primary/80">
+                                    Slot {fixedSlot.slotIndex} •
+                                  </span>
+                                )}
                                 <span className="font-mono font-bold text-xs tabular-nums">{time}</span>
                                 {isSelected && <Check className="size-3 text-primary-foreground" />}
                               </div>
@@ -698,7 +699,7 @@ export function CounselorSchedulesModal({
                                     : "text-muted-foreground"
                                 }`}
                               >
-                                {status.label ? status.label : `– ${endStr}`}
+                                {status.label ? status.label : `– ${endStr} WIB`}
                               </span>
                             </button>
                           )

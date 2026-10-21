@@ -202,7 +202,7 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
       nextSlots.forEach((slot) => {
         slot.sessions.forEach((s) => {
           if (s.operatorAdmittedAt) admitted++
-          else pending++
+          else if (s.zoomAllocationMode === "breakout_room") pending++
         })
       })
 
@@ -260,7 +260,7 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
         nextSlots.forEach((slot) => {
           slot.sessions.forEach((s) => {
             if (s.operatorAdmittedAt) admitted++
-            else pending++
+            else if (s.zoomAllocationMode === "breakout_room") pending++
           })
         })
 
@@ -293,7 +293,7 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col gap-6">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16">
         {/* =========================================================================
             1. TOP BAR: DATE NAVIGATION & ACTION CONTROLS
            ========================================================================= */}
@@ -645,13 +645,15 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              const batchString = generateBatchBreakoutNames(
-                                slot.sessions
-                              )
+                              const targetSessions =
+                                isBreakout && breakoutSessions.length > 0
+                                  ? breakoutSessions
+                                  : slot.sessions
+                              const batchString = generateBatchBreakoutNames(targetSessions)
                               handleCopy(
                                 batchString,
                                 `batch-${slot.slotIndex}`,
-                                `Batch ${slot.sessionCount} nama breakout slot ${slot.slotIndex}`
+                                `Batch ${targetSessions.length} nama breakout slot ${slot.slotIndex}`
                               )
                             }}
                             className="h-8 gap-1.5 text-xs font-medium"
@@ -927,18 +929,25 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
                                           className="border-emerald-600 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 gap-1 font-medium text-[11px] py-0.5"
                                         >
                                           <UserCheck className="size-3" />
-                                          <span>Telah Masuk</span>
+                                          <span>{isSessionBreakout ? "Telah Masuk" : "Klien Masuk (Auto)"}</span>
                                         </Badge>
-                                        <span className="text-[10px] text-muted-foreground">
+                                        <span className="text-[10px] text-muted-foreground font-mono">
                                           {admittedTimeStr}
                                         </span>
                                       </div>
-                                    ) : (
+                                    ) : isSessionBreakout ? (
                                       <Badge
                                         variant="outline"
-                                        className="text-muted-foreground border-dashed text-[11px] py-0.5"
+                                        className="text-amber-700 dark:text-amber-400 border-amber-500/40 bg-amber-500/10 text-[11px] py-0.5 font-medium"
                                       >
                                         Menunggu Admit
+                                      </Badge>
+                                    ) : (
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-muted-foreground border-dashed text-[11px] py-0.5 bg-muted/40 font-normal"
+                                      >
+                                        Sesi Private (Timer)
                                       </Badge>
                                     )}
                                   </TableCell>
@@ -972,38 +981,47 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
                                         </TooltipContent>
                                       </Tooltip>
 
-                                      {/* Admit or Undo Button */}
-                                      {isAdmitted ? (
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() =>
-                                            handleUnadmit(session.bookingId)
-                                          }
-                                          disabled={isAdmitting}
-                                          className="h-7 text-[11px] text-muted-foreground hover:text-destructive px-2"
-                                        >
-                                          Batal
-                                        </Button>
+                                      {/* Admit or Undo Button: Breakout Room only */}
+                                      {isSessionBreakout ? (
+                                        isAdmitted ? (
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() =>
+                                              handleUnadmit(session.bookingId)
+                                            }
+                                            disabled={isAdmitting}
+                                            className="h-7 text-[11px] text-muted-foreground hover:text-destructive px-2"
+                                          >
+                                            Batal
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            type="button"
+                                            variant="default"
+                                            size="sm"
+                                            onClick={() =>
+                                              handleAdmit(session.bookingId)
+                                            }
+                                            disabled={isAdmitting}
+                                            className="h-7 text-xs font-semibold px-2.5 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                          >
+                                            {isAdmitting ? (
+                                              <RefreshCw className="size-3 animate-spin" />
+                                            ) : (
+                                              <UserCheck className="size-3" />
+                                            )}
+                                            <span>Admit</span>
+                                          </Button>
+                                        )
                                       ) : (
-                                        <Button
-                                          type="button"
-                                          variant="default"
-                                          size="sm"
-                                          onClick={() =>
-                                            handleAdmit(session.bookingId)
-                                          }
-                                          disabled={isAdmitting}
-                                          className="h-7 text-xs font-semibold px-2.5 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                        <span
+                                          className="text-[10px] text-muted-foreground font-medium px-2 py-1 rounded bg-muted/50 border border-border/60"
+                                          title="Sesi Zoom private otomatis ditandai hadir saat konselor memulai timer."
                                         >
-                                          {isAdmitting ? (
-                                            <RefreshCw className="size-3 animate-spin" />
-                                          ) : (
-                                            <UserCheck className="size-3" />
-                                          )}
-                                          <span>Admit</span>
-                                        </Button>
+                                          {isAdmitted ? "Auto-Admit Konselor" : "Private (Konselor)"}
+                                        </span>
                                       )}
                                     </div>
                                   </TableCell>

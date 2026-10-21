@@ -18,6 +18,54 @@ import {
   getTodayWibDateString,
 } from "@/lib/operator/dispatcher"
 
+import { cookies } from "next/headers"
+import { createClient } from "@/lib/supabase/server"
+
+export interface OperatorAuthContext {
+  id: string
+  app_metadata?: Record<string, any>
+  user_metadata?: Record<string, any>
+}
+
+export async function getAuthenticatedOperator(
+  customUser?: OperatorAuthContext | null
+): Promise<OperatorAuthContext | null> {
+  if (customUser !== undefined) {
+    if (!customUser) return null
+    const role = customUser.app_metadata?.role || customUser.user_metadata?.role
+    return (role === "operator" || role === "admin" || role === "superadmin") ? customUser : null
+  }
+
+  try {
+    const cookieStore = await cookies()
+    const demoRole = cookieStore.get("solulu_demo_role")?.value
+    if (demoRole === "operator" || demoRole === "admin" || demoRole === "superadmin") {
+      return {
+        id: `demo-${demoRole}-id`,
+        app_metadata: { role: demoRole },
+        user_metadata: { role: demoRole },
+      }
+    }
+
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return null
+    const role = user.app_metadata?.role || user.user_metadata?.role
+    if (role !== "operator" && role !== "admin" && role !== "superadmin") return null
+
+    return {
+      id: user.id,
+      app_metadata: user.app_metadata,
+      user_metadata: user.user_metadata,
+    }
+  } catch {
+    return null
+  }
+}
+
 /**
  * Fetches the complete 7-slot matrix for the specified date.
  *
@@ -27,8 +75,14 @@ import {
  *    from the query to guarantee HIPAA/operational privacy compliance for the operator role.
  */
 export async function getOperatorSlotMatrixAction(
-  dateInput?: string
+  dateInput?: string,
+  options?: { currentUser?: OperatorAuthContext | null }
 ): Promise<OperatorMatrixResponse> {
+  const auth = await getAuthenticatedOperator(options?.currentUser)
+  if (!auth) {
+    throw new Error("Akses ditolak: Diperlukan role Operator atau Admin.")
+  }
+
   const targetDate = dateInput?.trim() || getTodayWibDateString()
 
   // 1. Fetch platform settings for max quota (fallback to 10 per SOP)
@@ -116,14 +170,6 @@ export async function getOperatorSlotMatrixAction(
     }
 
     const sessions: OperatorParticipantSession[] = slotBookings.map((b, idx) => {
-      const isAdmitted = Boolean(b.operatorAdmittedAt)
-      if (isAdmitted) {
-        totalAdmitted++
-      } else {
-        totalPendingAdmit++
-      }
-      totalSessions++
-
       // Formatted room name
       const roomName =
         b.breakoutRoomName ||
@@ -136,6 +182,15 @@ export async function getOperatorSlotMatrixAction(
       } else if (b.zoomAllocationMode === "breakout_room") {
         effectiveMode = "breakout_room"
       }
+
+      const isAdmitted = Boolean(b.operatorAdmittedAt)
+      if (isAdmitted) {
+        totalAdmitted++
+      } else if (effectiveMode === "breakout_room") {
+        // Operator only needs to admit breakout rooms
+        totalPendingAdmit++
+      }
+      totalSessions++
 
       return {
         bookingId: b.bookingId,
@@ -197,15 +252,23 @@ export async function getOperatorSlotMatrixAction(
  * Executes Admit action updating `operator_admitted_at` timestamp in PostgreSQL.
  * Visually transitions participant status in real-time.
  */
-export async function admitParticipantAction(input: {
-  bookingId: string
-}): Promise<{
+export async function admitParticipantAction(
+  input: {
+    bookingId: string
+  },
+  options?: { currentUser?: OperatorAuthContext | null }
+): Promise<{
   success: boolean
   bookingId: string
   admittedAt?: string
   error?: string
 }> {
   try {
+    const auth = await getAuthenticatedOperator(options?.currentUser)
+    if (!auth) {
+      return { success: false, bookingId: input?.bookingId || "", error: "Akses ditolak: Diperlukan role Operator atau Admin." }
+    }
+
     const bookingId = input?.bookingId?.trim()
     if (!bookingId) {
       return { success: false, bookingId: "", error: "ID Pemesanan tidak valid" }
@@ -227,6 +290,7 @@ export async function admitParticipantAction(input: {
 
     try {
       revalidatePath("/operator")
+      revalidatePath("/counselor/dashboard")
     } catch {
       // In unit test runner, revalidatePath is a no-op
     }
@@ -248,14 +312,22 @@ export async function admitParticipantAction(input: {
 /**
  * Reverts Admit status back to pending in PostgreSQL (e.g., if clicked accidentally).
  */
-export async function unadmitParticipantAction(input: {
-  bookingId: string
-}): Promise<{
+export async function unadmitParticipantAction(
+  input: {
+    bookingId: string
+  },
+  options?: { currentUser?: OperatorAuthContext | null }
+): Promise<{
   success: boolean
   bookingId: string
   error?: string
 }> {
   try {
+    const auth = await getAuthenticatedOperator(options?.currentUser)
+    if (!auth) {
+      return { success: false, bookingId: input?.bookingId || "", error: "Akses ditolak: Diperlukan role Operator atau Admin." }
+    }
+
     const bookingId = input?.bookingId?.trim()
     if (!bookingId) {
       return { success: false, bookingId: "", error: "ID Pemesanan tidak valid" }
@@ -275,6 +347,7 @@ export async function unadmitParticipantAction(input: {
 
     try {
       revalidatePath("/operator")
+      revalidatePath("/counselor/dashboard")
     } catch {
       // In unit test runner, revalidatePath is a no-op
     }
