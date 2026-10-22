@@ -37,7 +37,7 @@ export function ZoomDisplayNameBanner({
   return (
     <div
       id="zoom-display-name-banner"
-      className="rounded-3xl border border-violet-200/90 dark:border-violet-900/50 bg-gradient-to-br from-violet-100/60 via-violet-50/40 to-background dark:from-violet-950/40 dark:via-background dark:to-background p-6 sm:p-7 shadow-[0_16px_40px_-12px_rgba(124,58,237,0.08)] flex flex-col gap-4 relative overflow-hidden transition-all print:hidden"
+      className="rounded-3xl border border-violet-100/90 dark:border-violet-900/50 bg-gradient-to-br from-violet-50/80 via-background to-violet-50/30 dark:from-violet-950/30 dark:via-background dark:to-background p-6 sm:p-7 shadow-[0_16px_40px_-12px_rgba(124,58,237,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.10)] flex flex-col gap-4 relative overflow-hidden transition-all print:hidden"
     >
       {/* Decorative calm background accent */}
       <div
@@ -58,7 +58,7 @@ export function ZoomDisplayNameBanner({
           {booking.zoomAllocationMode === "breakout_room" && (
             <Badge
               variant="outline"
-              className="rounded-full border-violet-300 dark:border-violet-800 bg-violet-50/70 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 text-xs px-3 py-1 font-medium"
+              className="rounded-full border-violet-200/80 dark:border-violet-800 bg-violet-50/70 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 text-xs px-3.5 py-1 font-medium shadow-2xs"
             >
               Mode Breakout Room
             </Badge>

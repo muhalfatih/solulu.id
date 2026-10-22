@@ -113,10 +113,7 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
   const whatsappUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(waMessage)}`
 
   return (
-    <Card className="rounded-3xl border border-amber-500/30 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(245,158,11,0.08)] overflow-hidden gap-0">
-      {/* Top Accent Strip */}
-      <div className="h-1.5 w-full bg-gradient-to-r from-amber-500 via-orange-400 to-amber-600 animate-pulse" />
-
+    <Card className="rounded-3xl border border-amber-500/25 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(245,158,11,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(245,158,11,0.10)] transition-all overflow-hidden gap-0">
       {/* Header */}
       <CardHeader className="p-6 sm:p-8 border-b border-border/40 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex flex-col gap-2">
@@ -124,7 +121,7 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Status Pemesanan
             </span>
-            <Badge className="rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-medium px-3 py-0.5 text-xs shadow-2xs">
+            <Badge className="rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-medium px-3.5 py-1 text-xs shadow-2xs">
               <span className="size-2 rounded-full bg-amber-500 animate-ping inline-block mr-1.5" />
               Menunggu Verifikasi Pembayaran
             </Badge>

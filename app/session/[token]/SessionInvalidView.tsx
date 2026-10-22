@@ -34,9 +34,9 @@ export function SessionInvalidView({ token, error }: SessionInvalidViewProps) {
           aria-hidden="true"
         />
 
-        <Card className="w-full rounded-3xl border border-violet-100 dark:border-border/80 shadow-[0_20px_50px_-12px_rgba(124,58,237,0.12)] bg-card/95 backdrop-blur-sm overflow-hidden text-center gap-0">
+        <Card className="w-full rounded-3xl border border-violet-100/90 dark:border-border/80 shadow-[0_16px_40px_-12px_rgba(124,58,237,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.10)] bg-card/95 backdrop-blur-sm overflow-hidden text-center gap-0 transition-all">
           <CardHeader className="flex flex-col items-center gap-3 p-6 sm:p-8 border-b border-border/40">
-            <div className="size-16 rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-950/80 dark:text-violet-300 flex items-center justify-center border border-violet-200/80 dark:border-violet-900/60 shadow-2xs mb-1">
+            <div className="size-16 rounded-2xl bg-violet-100 text-primary dark:bg-violet-950/80 dark:text-violet-300 flex items-center justify-center border border-violet-200/80 dark:border-violet-900/60 shadow-2xs mb-1">
               <Compass className="size-8" />
             </div>
             <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight font-heading text-foreground">

@@ -70,20 +70,20 @@ export default function SessionClient({ initialData }: SessionClientProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 print:hidden">
           <Link
             href="/cek-sesi"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors group px-3.5 py-1.5 rounded-full bg-muted/40 hover:bg-muted/80 border border-border/60 w-fit"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors group px-4 py-1.5 rounded-full bg-violet-50/80 hover:bg-violet-100/80 dark:bg-violet-950/40 dark:hover:bg-violet-900/60 border border-violet-100 dark:border-violet-900/50 w-fit shadow-2xs"
           >
-            <ArrowLeft className="size-3.5 group-hover:-translate-x-0.5 transition-transform" data-icon="inline-start" />
+            <ArrowLeft className="size-3.5 group-hover:-translate-x-0.5 transition-transform text-primary" data-icon="inline-start" />
             <span>Cek Status / Pulihkan Sesi</span>
           </Link>
 
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-200/60 text-xs font-semibold shadow-2xs w-fit">
-            <ShieldCheck className="size-3.5 text-primary" />
-            <span>Koneksi Tamu Aman • Tanpa Wajib Login</span>
+          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary dark:text-purple-300 text-xs font-semibold shadow-2xs w-fit">
+            <ShieldCheck className="size-3.5 text-primary dark:text-purple-300" />
+            <span>Koneksi Tamu Privat • Tanpa Wajib Akun</span>
           </div>
         </div>
 
         {/* Empathetic Welcome Header (Solulu.id Landing Page Style) */}
-        <div className="flex flex-col gap-3.5 print:hidden">
+        <div className="flex flex-col gap-4 print:hidden">
           <div className="flex items-center gap-2 flex-wrap">
             {data.booking.status === "pending_payment" ? (
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-400 text-xs font-semibold shadow-2xs w-fit">
@@ -101,19 +101,27 @@ export default function SessionClient({ initialData }: SessionClientProps) {
                 <span>Sesi Selesai • Laporan Klinis &amp; Rekomendasi</span>
               </div>
             ) : (
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-200/60 text-xs font-semibold shadow-2xs w-fit">
-                <Sparkles className="size-3.5 text-primary" />
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary dark:text-purple-300 text-xs font-semibold shadow-2xs w-fit">
+                <Sparkles className="size-3.5 text-primary dark:text-purple-300" />
                 <span>Ruang Aman &amp; Privat (#CeritaDiSolulu)</span>
               </div>
             )}
           </div>
 
-          <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground leading-[1.2] text-balance">
-            {data.booking.status === "cancelled"
-              ? "Pemesanan Sesi Dibatalkan"
-              : data.booking.status === "completed"
-              ? `Laporan Sesi: ${data.counselor.fullName}`
-              : `Ruang Cerita Privatmu Bersama ${data.counselor.fullName}`}
+          <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl lg:text-[2.6rem] font-bold tracking-tight text-foreground leading-[1.18] text-balance">
+            {data.booking.status === "cancelled" ? (
+              "Pemesanan Sesi Dibatalkan"
+            ) : data.booking.status === "completed" ? (
+              <>
+                Laporan Sesi:{" "}
+                <span className="text-primary dark:text-purple-300">{data.counselor.fullName}</span>
+              </>
+            ) : (
+              <>
+                Ruang Cerita Privatmu Bersama{" "}
+                <span className="text-primary dark:text-purple-300">{data.counselor.fullName}</span>
+              </>
+            )}
           </h1>
 
           <p className="text-xs sm:text-sm md:text-base text-muted-foreground leading-relaxed max-w-2xl font-normal text-pretty">
@@ -138,19 +146,19 @@ export default function SessionClient({ initialData }: SessionClientProps) {
 
           {/* 4 Pilar Kepercayaan Ruang Sesi (Landing Page Trust Pills) */}
           <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap pt-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60 shadow-2xs">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60 shadow-2xs hover:bg-violet-100/60 transition-colors">
               <Clock className="size-3.5 text-primary shrink-0" />
               <span>90 Menit Penuh</span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60 shadow-2xs">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60 shadow-2xs hover:bg-violet-100/60 transition-colors">
               <Lock className="size-3.5 text-primary shrink-0" />
               <span>100% Rahasia &amp; Privat</span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60 shadow-2xs">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60 shadow-2xs hover:bg-violet-100/60 transition-colors">
               <BadgeCheck className="size-3.5 text-primary shrink-0" />
               <span>Praktisi Berizin HIMPSI</span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60 shadow-2xs">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60 shadow-2xs hover:bg-violet-100/60 transition-colors">
               <ShieldCheck className="size-3.5 text-primary shrink-0" />
               <span>Tanpa Wajib Bikin Akun</span>
             </div>

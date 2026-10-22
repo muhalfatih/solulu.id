@@ -25,10 +25,12 @@ export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
   return (
     <div className="flex flex-col gap-4">
       {/* Technical Support Card (US-18) */}
-      <Card className="rounded-3xl border border-violet-100 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(124,58,237,0.08)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.12)] transition-all overflow-hidden gap-0">
+      <Card className="rounded-3xl border border-violet-100/90 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(124,58,237,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.10)] transition-all overflow-hidden gap-0">
         <CardHeader className="p-6 sm:p-7 border-b border-border/40">
           <div className="flex items-center gap-2">
-            <LifeBuoy className="size-4 text-primary" />
+            <div className="size-8 rounded-xl bg-violet-100 text-primary dark:bg-violet-950/80 dark:text-violet-300 flex items-center justify-center shrink-0">
+              <LifeBuoy className="size-4 text-primary" />
+            </div>
             <CardTitle className="text-lg sm:text-xl font-bold tracking-tight font-heading text-foreground">
               Bantuan &amp; Kendala Teknis
             </CardTitle>
@@ -43,13 +45,12 @@ export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
           </p>
           <Button
             asChild
-            variant="outline"
             size="pill-sm"
             id="btn-whatsapp-support"
-            className="shrink-0 h-10 px-5 text-xs font-semibold rounded-full border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/20 active:scale-[0.98] transition-all"
+            className="shrink-0 h-10 px-5 text-xs font-semibold rounded-full bg-[#25d366] hover:bg-[#20ba59] text-white shadow-sm shadow-emerald-500/20 active:scale-[0.98] transition-all"
           >
             <a href={helpDeskUrl} target="_blank" rel="noopener noreferrer">
-              <MessageSquare data-icon="inline-start" className="size-3.5 mr-1" />
+              <MessageSquare data-icon="inline-start" className="size-3.5 mr-1.5" />
               <span>Hubungi Tim Solulu via WhatsApp</span>
             </a>
           </Button>

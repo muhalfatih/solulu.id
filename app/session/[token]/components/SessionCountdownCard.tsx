@@ -88,48 +88,37 @@ export function SessionCountdownCard({
   )}`
 
   return (
-    <Card className="rounded-3xl border border-violet-100 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(124,58,237,0.08)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.12)] transition-all relative overflow-hidden gap-0">
-      {/* Visual Accent Top Bar */}
-      <div
-        className={`h-1.5 w-full transition-colors ${
-          isZoomActive
-            ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 animate-pulse"
-            : state === "ENDED"
-            ? "bg-muted-foreground/30"
-            : "bg-gradient-to-r from-violet-600 via-purple-500 to-indigo-600"
-        }`}
-      />
-
+    <Card className="rounded-3xl border border-violet-100/90 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(124,58,237,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.10)] transition-all relative overflow-hidden gap-0">
       <CardHeader className="p-6 sm:p-8 border-b border-border/40 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Status Ruang Sesi
             </span>
             {state === "UPCOMING_LOCKED" && (
-              <Badge variant="outline" className="rounded-full border-violet-200/80 bg-violet-50/60 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 font-medium px-3 py-0.5 text-xs">
-                <Clock data-icon="inline-start" className="size-3 mr-1" /> Terjadwal • Menunggu Jam Sesi
+              <Badge variant="outline" className="rounded-full border-violet-200/80 bg-violet-50/70 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 font-medium px-3.5 py-1 text-xs shadow-2xs">
+                <Clock data-icon="inline-start" className="size-3.5 mr-1 text-primary" /> Terjadwal • Menunggu Jam Sesi
               </Badge>
             )}
             {state === "ROOM_OPEN_PREPARING" && (
-              <Badge className="rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-medium px-3 py-0.5 text-xs">
+              <Badge className="rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-medium px-3.5 py-1 text-xs shadow-2xs">
                 <span className="size-2 rounded-full bg-emerald-500 animate-ping inline-block mr-1.5" />
                 Ruang Zoom Telah Dibuka
               </Badge>
             )}
             {state === "IN_PROGRESS" && (
-              <Badge className="rounded-full bg-emerald-600 text-white font-medium shadow-xs px-3 py-0.5 text-xs">
+              <Badge className="rounded-full bg-emerald-600 text-white font-medium shadow-xs px-3.5 py-1 text-xs">
                 <span className="size-2 rounded-full bg-white animate-pulse inline-block mr-1.5" />
                 Sesi Sedang Berlangsung
               </Badge>
             )}
             {state === "ENDED" && (
-              <Badge variant="secondary" className="rounded-full font-normal text-muted-foreground px-3 py-0.5 text-xs">
-                <CheckCircle2 data-icon="inline-start" className="size-3 mr-1" /> Sesi Telah Selesai
+              <Badge variant="secondary" className="rounded-full font-normal text-muted-foreground px-3.5 py-1 text-xs">
+                <CheckCircle2 data-icon="inline-start" className="size-3.5 mr-1" /> Sesi Telah Selesai
               </Badge>
             )}
             {booking.status === "cancelled" && (
-              <Badge variant="destructive" className="rounded-full font-medium px-3 py-0.5 text-xs">
+              <Badge variant="destructive" className="rounded-full font-medium px-3.5 py-1 text-xs">
                 Sesi Dibatalkan
               </Badge>
             )}
@@ -137,15 +126,19 @@ export function SessionCountdownCard({
           <CardTitle className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
             Ruang Telekonseling 1-on-1
           </CardTitle>
-          <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            {schedule.formattedDate} • {schedule.timeRange} (Durasi 90 Menit Penuh)
+          <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed flex items-center gap-1.5 flex-wrap">
+            <span>{schedule.formattedDate}</span>
+            <span>•</span>
+            <span className="font-medium text-foreground">{schedule.timeRange}</span>
+            <span className="hidden sm:inline">•</span>
+            <span className="text-primary font-medium">(Durasi 90 Menit Penuh)</span>
           </CardDescription>
         </div>
 
         {/* Live Status Indicator Pill */}
-        <div className="hidden md:flex flex-col items-end">
-          <span className="text-[11px] text-muted-foreground">Waktu Server &amp; Sesi</span>
-          <span className="text-xs sm:text-sm font-semibold tracking-tight text-foreground font-mono bg-violet-50 dark:bg-violet-950/50 px-2.5 py-1 rounded-full border border-violet-100 dark:border-violet-900/50">
+        <div className="hidden md:flex flex-col items-end gap-1">
+          <span className="text-[11px] text-muted-foreground">Zona Waktu Sesi</span>
+          <span className="text-xs font-semibold tracking-tight text-primary font-mono bg-violet-50 dark:bg-violet-950/50 px-3 py-1 rounded-full border border-violet-100 dark:border-violet-900/50 shadow-2xs">
             WIB (UTC+7)
           </span>
         </div>

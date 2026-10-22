@@ -32,15 +32,15 @@ export function PreparationTipsCard() {
   ]
 
   return (
-    <Card className="rounded-3xl border border-violet-100 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(124,58,237,0.08)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.12)] transition-all overflow-hidden gap-0">
+    <Card className="rounded-3xl border border-violet-100/90 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(124,58,237,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.10)] transition-all overflow-hidden gap-0">
       <CardHeader className="p-6 sm:p-7 border-b border-border/40">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-primary">
-          Panduan Sesi Nyaman
-        </span>
-        <CardTitle className="font-heading text-lg sm:text-xl font-bold tracking-tight text-foreground">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60 text-xs font-semibold shadow-2xs w-fit">
+          <span>Panduan Sesi Nyaman</span>
+        </div>
+        <CardTitle className="font-heading text-lg sm:text-xl font-bold tracking-tight text-foreground pt-1">
           Persiapan Sebelum Memulai
         </CardTitle>
-        <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-1">
+        <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
           Langkah sederhana untuk memastikan pengalaman telekonseling yang nyaman dan optimal.
         </CardDescription>
       </CardHeader>

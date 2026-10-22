@@ -32,17 +32,14 @@ Mohon bantuan untuk verifikasi kendala pembayaran / penjadwalan ulang sesi. Teri
   const whatsappUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(waHelpMessage)}`
 
   return (
-    <Card className="rounded-3xl border border-rose-500/25 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(244,63,94,0.08)] overflow-hidden gap-0">
-      {/* Top Accent Strip */}
-      <div className="h-1.5 w-full bg-rose-500/60" />
-
+    <Card className="rounded-3xl border border-rose-500/20 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(244,63,94,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(244,63,94,0.10)] transition-all overflow-hidden gap-0">
       {/* Header */}
       <CardHeader className="p-6 sm:p-8 border-b border-border/40 flex flex-col gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Status Pemesanan
           </span>
-          <Badge className="rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 font-medium px-3 py-0.5 text-xs shadow-2xs">
+          <Badge className="rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 font-medium px-3.5 py-1 text-xs shadow-2xs">
             <AlertCircle className="size-3 mr-1 inline-block" />
             Sesi Dibatalkan / Kedaluwarsa
           </Badge>

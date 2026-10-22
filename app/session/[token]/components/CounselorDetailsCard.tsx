@@ -38,15 +38,15 @@ export function CounselorDetailsCard({ counselor, booking }: CounselorDetailsCar
     .toUpperCase()
 
   return (
-    <Card className="rounded-3xl border border-violet-100 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(124,58,237,0.08)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.12)] transition-all overflow-hidden gap-0">
+    <Card className="rounded-3xl border border-violet-100/90 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(124,58,237,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.10)] transition-all overflow-hidden gap-0">
       <CardHeader className="p-6 sm:p-7 border-b border-border/40">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="font-heading text-lg sm:text-xl font-bold tracking-tight text-foreground">
-            Profil Mitra Konselor
+            Mitra Konselor Anda
           </CardTitle>
           <Badge
-            variant={counselor.counselorType === "psychologist" ? "default" : "secondary"}
-            className="rounded-full px-3 py-1 text-xs font-semibold shadow-2xs"
+            variant="outline"
+            className="rounded-full px-3.5 py-1 text-xs font-semibold bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-200/80 shadow-2xs"
           >
             {counselor.counselorTypeDisplay}
           </Badge>
