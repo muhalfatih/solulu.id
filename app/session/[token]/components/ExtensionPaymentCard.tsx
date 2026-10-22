@@ -152,27 +152,27 @@ export function ExtensionPaymentCard({
   return (
     <Card
       id="card-extension-payment"
-      className="border-2 border-amber-500/30 bg-gradient-to-b from-amber-500/5 via-card to-card shadow-sm overflow-hidden print:hidden"
+      className="rounded-3xl border border-amber-500/40 bg-gradient-to-b from-amber-500/5 via-card to-card shadow-[0_16px_40px_-12px_rgba(245,158,11,0.08)] overflow-hidden print:hidden"
     >
       <CardHeader className="bg-amber-500/10 border-b border-amber-500/20 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="size-9 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+            <div className="size-10 rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
               <Clock className="size-5" />
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-bold text-foreground">
+                <CardTitle className="text-base font-bold text-foreground font-heading">
                   Perpanjangan Sesi (+{booking.extensionMinutes || 30} Menit)
                 </CardTitle>
                 {paymentStatus === "PAID" ? (
-                  <Badge className="bg-emerald-600 text-white text-xs">Lunas</Badge>
+                  <Badge className="rounded-full bg-emerald-600 text-white text-xs px-3 py-0.5">Lunas</Badge>
                 ) : paymentStatus === "PENDING" ? (
-                  <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs bg-amber-500/10">
+                  <Badge variant="outline" className="rounded-full border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs bg-amber-500/10 px-3 py-0.5">
                     Menunggu Verifikasi
                   </Badge>
                 ) : (
-                  <Badge variant="destructive" className="text-xs">
+                  <Badge variant="destructive" className="rounded-full text-xs px-3 py-0.5">
                     Belum Lunas
                   </Badge>
                 )}

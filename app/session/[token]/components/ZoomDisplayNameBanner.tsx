@@ -37,11 +37,11 @@ export function ZoomDisplayNameBanner({
   return (
     <div
       id="zoom-display-name-banner"
-      className="rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-5 sm:p-6 shadow-sm flex flex-col gap-4 relative overflow-hidden transition-all print:hidden"
+      className="rounded-3xl border border-violet-200/90 dark:border-violet-900/50 bg-gradient-to-br from-violet-100/60 via-violet-50/40 to-background dark:from-violet-950/40 dark:via-background dark:to-background p-6 sm:p-7 shadow-[0_16px_40px_-12px_rgba(124,58,237,0.08)] flex flex-col gap-4 relative overflow-hidden transition-all print:hidden"
     >
       {/* Decorative calm background accent */}
       <div
-        className="absolute -top-12 -right-12 size-36 rounded-full bg-primary/10 blur-2xl pointer-events-none"
+        className="absolute -top-12 -right-12 size-40 rounded-full bg-violet-400/10 dark:bg-violet-600/10 blur-3xl pointer-events-none"
         aria-hidden="true"
       />
 
@@ -49,24 +49,24 @@ export function ZoomDisplayNameBanner({
         <div className="flex items-center gap-2 flex-wrap">
           <Badge
             variant="default"
-            className="rounded-full bg-primary text-primary-foreground text-xs font-semibold px-3 py-0.5 shadow-2xs"
+            className="rounded-full bg-primary text-primary-foreground text-xs font-semibold px-3.5 py-1 shadow-2xs"
           >
-            <Sparkles data-icon="inline-start" className="size-3" />
+            <Sparkles data-icon="inline-start" className="size-3 mr-1" />
             Wajib di Ruang Zoom
           </Badge>
 
           {booking.zoomAllocationMode === "breakout_room" && (
             <Badge
               variant="outline"
-              className="rounded-full border-primary/30 text-primary dark:text-purple-300 text-xs px-2.5 py-0.5"
+              className="rounded-full border-violet-300 dark:border-violet-800 bg-violet-50/70 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 text-xs px-3 py-1 font-medium"
             >
               Mode Breakout Room
             </Badge>
           )}
         </div>
 
-        <span className="text-[11px] font-mono font-medium text-muted-foreground self-start sm:self-auto">
-          Kode Reservasi: {booking.bookingCode}
+        <span className="text-xs font-mono font-medium text-muted-foreground self-start sm:self-auto bg-card px-3 py-1 rounded-full border border-violet-100 dark:border-border/60">
+          Kode Reservasi: <strong className="text-foreground">{booking.bookingCode}</strong>
         </span>
       </div>
 
@@ -82,14 +82,14 @@ export function ZoomDisplayNameBanner({
       </div>
 
       {/* Prominent Name Box with 1-Click Copy */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 p-3 sm:p-3.5 rounded-xl border border-primary/25 bg-background/90 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3.5 sm:p-4 rounded-2xl border border-violet-200/80 dark:border-violet-900/60 bg-white/95 dark:bg-card/95 shadow-xs">
         <div className="flex-1 flex items-center gap-2.5 min-w-0 px-1">
           <span className="text-xs text-muted-foreground font-medium shrink-0">
             Nama Profil:
           </span>
           <code
             id="zoom-display-name-value"
-            className="font-mono text-sm sm:text-base font-bold text-primary dark:text-purple-300 truncate select-all"
+            className="font-mono text-sm sm:text-base font-bold text-primary dark:text-violet-300 truncate select-all"
           >
             {requiredDisplayName}
           </code>
@@ -101,16 +101,16 @@ export function ZoomDisplayNameBanner({
           size="sm"
           onClick={handleCopy}
           id="btn-copy-zoom-name"
-          className="shrink-0 text-xs h-9 font-medium border-primary/30 hover:bg-primary/10"
+          className="shrink-0 text-xs h-9 px-4 rounded-full font-semibold border-violet-200 dark:border-violet-900/60 hover:bg-violet-50 dark:hover:bg-violet-950/50 transition-all active:scale-[0.98]"
         >
           {copied ? (
             <>
-              <Check data-icon="inline-start" className="size-3.5 text-emerald-500" />
+              <Check data-icon="inline-start" className="size-3.5 text-emerald-500 mr-1" />
               <span>Tersalin!</span>
             </>
           ) : (
             <>
-              <Copy data-icon="inline-start" className="size-3.5" />
+              <Copy data-icon="inline-start" className="size-3.5 mr-1" />
               <span>Salin Nama Zoom</span>
             </>
           )}
@@ -118,8 +118,8 @@ export function ZoomDisplayNameBanner({
       </div>
 
       {/* Breakout Room Indicator & Direct Entry */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-t border-border/40 text-xs">
-        <div className="flex items-center gap-1.5 text-muted-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-violet-100 dark:border-border/40 text-xs">
+        <div className="flex items-center gap-2 text-muted-foreground">
           <Info className="size-3.5 text-primary shrink-0" />
           <span>
             {booking.breakoutRoomName ? (

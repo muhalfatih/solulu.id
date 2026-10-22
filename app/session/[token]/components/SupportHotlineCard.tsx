@@ -1,6 +1,6 @@
 import * as React from "react"
 import Link from "next/link"
-import { MessageSquare, LifeBuoy, HeartPulse, Search } from "lucide-react"
+import { MessageSquare, LifeBuoy, HeartPulse } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -25,7 +25,7 @@ export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
   return (
     <div className="flex flex-col gap-4">
       {/* Technical Support Card (US-18) */}
-      <Card className="rounded-2xl border border-border/80 shadow-xs bg-card hover:shadow-sm transition-all overflow-hidden gap-0">
+      <Card className="rounded-3xl border border-violet-100 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(124,58,237,0.08)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.12)] transition-all overflow-hidden gap-0">
         <CardHeader className="p-6 sm:p-7 border-b border-border/40">
           <div className="flex items-center gap-2">
             <LifeBuoy className="size-4 text-primary" />
@@ -38,18 +38,18 @@ export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 sm:p-7 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             Mengalami kesulitan mikrofon, kamera, atau akses ruangan?
           </p>
           <Button
             asChild
-            variant="public-secondary"
+            variant="outline"
             size="pill-sm"
             id="btn-whatsapp-support"
-            className="shrink-0 h-9 px-4 text-xs font-semibold"
+            className="shrink-0 h-10 px-5 text-xs font-semibold rounded-full border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/20 active:scale-[0.98] transition-all"
           >
             <a href={helpDeskUrl} target="_blank" rel="noopener noreferrer">
-              <MessageSquare data-icon="inline-start" />
+              <MessageSquare data-icon="inline-start" className="size-3.5 mr-1" />
               <span>Hubungi Tim Solulu via WhatsApp</span>
             </a>
           </Button>
@@ -57,13 +57,13 @@ export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
       </Card>
 
       {/* Emergency Crisis Notice (ADR-0003 & Grounding Sanctuary) */}
-      <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 sm:p-5 flex items-start gap-3.5 text-xs sm:text-sm">
-        <HeartPulse className="size-4.5 text-destructive mt-0.5 shrink-0" />
+      <div className="rounded-2xl border border-rose-200/80 dark:border-rose-900/40 bg-rose-50/60 dark:bg-rose-950/20 p-4 sm:p-5 flex items-start gap-3.5 text-xs sm:text-sm shadow-2xs">
+        <HeartPulse className="size-4.5 text-rose-600 dark:text-rose-400 mt-0.5 shrink-0" />
         <div className="flex flex-col gap-0.5 leading-relaxed">
-          <span className="font-semibold text-foreground">
+          <span className="font-semibold text-rose-950 dark:text-rose-200">
             Pemberitahuan Krisis Medis
           </span>
-          <span className="text-muted-foreground text-xs leading-relaxed">
+          <span className="text-rose-900/80 dark:text-rose-300/80 text-xs leading-relaxed">
             Solulu bukan layanan gawat darurat. Jika Anda sedang mengalami krisis yang mengancam nyawa atau membutuhkan bantuan segera, hubungi Instalasi Gawat Darurat (IGD) rumah sakit terdekat.
           </span>
         </div>
@@ -72,7 +72,7 @@ export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
       {/* Self-Service Session Recovery Hint */}
       <div className="text-center text-xs text-muted-foreground pb-2">
         Kehilangan tautan sesi ini di masa mendatang? Pulihkan mandiri kapan saja di{" "}
-        <Link href="/cek-sesi" className="underline underline-offset-3 hover:text-foreground font-medium text-primary">
+        <Link href="/cek-sesi" className="underline underline-offset-3 hover:text-foreground font-semibold text-primary">
           halaman Cek Sesi
         </Link>
         .

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Copy, Check, UserCheck, ShieldCheck, HeartHandshake } from "lucide-react"
+import { Copy, Check, ShieldCheck, HeartHandshake } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -38,7 +38,7 @@ export function CounselorDetailsCard({ counselor, booking }: CounselorDetailsCar
     .toUpperCase()
 
   return (
-    <Card className="rounded-2xl border border-border/80 shadow-xs bg-card hover:shadow-sm transition-all overflow-hidden gap-0">
+    <Card className="rounded-3xl border border-violet-100 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(124,58,237,0.08)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.12)] transition-all overflow-hidden gap-0">
       <CardHeader className="p-6 sm:p-7 border-b border-border/40">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="font-heading text-lg sm:text-xl font-bold tracking-tight text-foreground">
@@ -46,7 +46,7 @@ export function CounselorDetailsCard({ counselor, booking }: CounselorDetailsCar
           </CardTitle>
           <Badge
             variant={counselor.counselorType === "psychologist" ? "default" : "secondary"}
-            className="rounded-full px-2.5 py-0.5 text-xs font-medium"
+            className="rounded-full px-3 py-1 text-xs font-semibold shadow-2xs"
           >
             {counselor.counselorTypeDisplay}
           </Badge>
@@ -59,11 +59,11 @@ export function CounselorDetailsCard({ counselor, booking }: CounselorDetailsCar
       <CardContent className="p-6 sm:p-7 flex flex-col gap-5 text-xs sm:text-sm">
         {/* Profile Head */}
         <div className="flex items-start gap-4">
-          <Avatar className="size-14 rounded-xl border border-primary/20 shadow-2xs shrink-0">
+          <Avatar className="size-16 rounded-2xl border-2 border-violet-100 dark:border-violet-900/60 shadow-xs shrink-0">
             {counselor.avatarR2Url && (
               <AvatarImage src={counselor.avatarR2Url} alt={counselor.fullName} />
             )}
-            <AvatarFallback className="rounded-xl text-sm font-bold bg-primary/10 text-primary">
+            <AvatarFallback className="rounded-2xl text-base font-bold bg-violet-100 text-violet-700 dark:bg-violet-950/80 dark:text-violet-300">
               {initials}
             </AvatarFallback>
           </Avatar>
@@ -84,7 +84,7 @@ export function CounselorDetailsCard({ counselor, booking }: CounselorDetailsCar
 
         {/* Bio */}
         {counselor.bio && (
-          <div className="rounded-xl bg-muted/30 border border-border/60 p-4 text-xs sm:text-sm leading-relaxed text-muted-foreground">
+          <div className="rounded-2xl bg-violet-50/40 dark:bg-muted/30 border border-violet-100/80 dark:border-border/60 p-4 text-xs sm:text-sm leading-relaxed text-muted-foreground">
             {counselor.bio}
           </div>
         )}
@@ -98,7 +98,7 @@ export function CounselorDetailsCard({ counselor, booking }: CounselorDetailsCar
                 <Badge
                   key={i}
                   variant="outline"
-                  className="rounded-full px-2.5 py-0.5 text-xs font-normal bg-primary/5 border-primary/15 text-primary"
+                  className="rounded-full px-3 py-1 text-xs font-medium bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60"
                 >
                   {spec}
                 </Badge>
@@ -108,7 +108,7 @@ export function CounselorDetailsCard({ counselor, booking }: CounselorDetailsCar
         )}
 
         {/* Patient Reference Box */}
-        <div className="rounded-xl border border-border/60 p-4 bg-muted/20 flex flex-col gap-2.5">
+        <div className="rounded-2xl border border-violet-100 dark:border-border/60 p-4 bg-violet-50/30 dark:bg-muted/20 flex flex-col gap-3">
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">Pasien Terdaftar:</span>
             <span className="font-semibold text-foreground">{booking.patientName}</span>
@@ -116,8 +116,8 @@ export function CounselorDetailsCard({ counselor, booking }: CounselorDetailsCar
 
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">Token Akses Sesi:</span>
-            <div className="flex items-center gap-1.5">
-              <code className="font-mono text-xs bg-muted/80 px-2 py-0.5 rounded-md text-foreground border border-border/60">
+            <div className="flex items-center gap-2">
+              <code className="font-mono text-xs bg-white dark:bg-card px-2.5 py-1 rounded-full text-foreground border border-violet-100 dark:border-border/60">
                 {booking.accessToken.slice(0, 10)}...{booking.accessToken.slice(-6)}
               </code>
               <Button
@@ -125,7 +125,7 @@ export function CounselorDetailsCard({ counselor, booking }: CounselorDetailsCar
                 size="icon"
                 onClick={handleCopyToken}
                 aria-label="Salin token sesi"
-                className="size-7 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer"
+                className="size-7 rounded-full text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 {copiedToken ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
               </Button>
@@ -133,9 +133,9 @@ export function CounselorDetailsCard({ counselor, booking }: CounselorDetailsCar
           </div>
 
           {booking.initialNotes && (
-            <div className="pt-2.5 border-t border-border/60 flex flex-col gap-1">
+            <div className="pt-2.5 border-t border-violet-100 dark:border-border/60 flex flex-col gap-1.5">
               <span className="text-[11px] font-semibold text-muted-foreground">Catatan Awal Anda:</span>
-              <p className="text-xs text-foreground italic bg-muted/40 p-2.5 rounded-lg border border-border/40">
+              <p className="text-xs text-foreground italic bg-white/80 dark:bg-card/80 p-3 rounded-xl border border-violet-100 dark:border-border/40">
                 &ldquo;{booking.initialNotes}&rdquo;
               </p>
             </div>
@@ -143,11 +143,11 @@ export function CounselorDetailsCard({ counselor, booking }: CounselorDetailsCar
         </div>
       </CardContent>
 
-      <CardFooter className="border-t border-border/40 p-6 py-3.5 bg-muted/10 text-xs text-muted-foreground flex items-center justify-between">
-        <span className="flex items-center gap-1.5">
+      <CardFooter className="border-t border-border/40 p-5 sm:p-6 bg-violet-50/20 dark:bg-muted/10 text-xs text-muted-foreground flex items-center justify-between rounded-b-3xl">
+        <span className="flex items-center gap-1.5 font-medium">
           <HeartHandshake className="size-3.5 text-primary" /> Ruang Aman Bebas Penghakiman
         </span>
-        <span className="font-semibold">Konseling 1-on-1</span>
+        <span className="font-semibold text-primary">Konseling 1-on-1</span>
       </CardFooter>
     </Card>
   )

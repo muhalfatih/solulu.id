@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { eq, or } from "drizzle-orm"
 import { db } from "@/db"
 import {
   bookings,
@@ -131,7 +131,7 @@ export async function getGuestSessionByToken(
         .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
         .leftJoin(transactions, eq(bookings.id, transactions.bookingId))
         .leftJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
-        .where(eq(bookings.accessToken, cleanToken))
+        .where(or(eq(bookings.accessToken, cleanToken), eq(bookings.bookingCode, cleanToken)))
         .limit(1),
       db.select().from(platformSettings).limit(1),
     ])
@@ -308,7 +308,7 @@ export async function verifyClientPhoneAndUnlockReport(
       .from(bookings)
       .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
       .innerJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
-      .where(eq(bookings.accessToken, cleanToken))
+      .where(or(eq(bookings.accessToken, cleanToken), eq(bookings.bookingCode, cleanToken)))
       .limit(1)
 
     if (rows.length === 0) {
@@ -425,7 +425,7 @@ export async function processExtensionPayment(
     const bookingRows = await db
       .select()
       .from(bookings)
-      .where(eq(bookings.accessToken, accessToken))
+      .where(or(eq(bookings.accessToken, accessToken), eq(bookings.bookingCode, accessToken)))
       .limit(1)
 
     if (bookingRows.length === 0) {

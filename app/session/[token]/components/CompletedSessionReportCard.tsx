@@ -48,13 +48,13 @@ export function CompletedSessionReportCard({
   return (
     <Card
       id="card-session-report"
-      className="border border-border/80 shadow-sm bg-card overflow-hidden print:border-none print:shadow-none print:m-0 print:p-0"
+      className="rounded-3xl border border-violet-100 dark:border-border/80 shadow-[0_16px_40px_-12px_rgba(124,58,237,0.08)] bg-card/95 backdrop-blur-sm overflow-hidden print:border-none print:shadow-none print:rounded-none print:m-0 print:p-0"
     >
       {/* Printable Clinical Header */}
       <CardHeader className="bg-gradient-to-r from-emerald-500/10 via-primary/5 to-transparent border-b border-border/60 pb-5 print:bg-none print:border-b-2 print:border-foreground/80 print:pb-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="size-11 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0 print:hidden">
+            <div className="size-11 rounded-2xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0 print:hidden">
               <CheckCircle2 className="size-6" />
             </div>
             <div className="flex flex-col">
@@ -63,12 +63,12 @@ export function CompletedSessionReportCard({
                 Klinik Telekonseling Solulu Mental Health • Dokumen Resmi
               </span>
               <div className="flex items-center gap-2">
-                <CardTitle className="text-lg font-bold tracking-tight text-foreground print:text-xl">
+                <CardTitle className="text-lg font-bold tracking-tight text-foreground print:text-xl font-heading">
                   Laporan Resmi Sesi Konseling
                 </CardTitle>
                 <Badge
                   variant="outline"
-                  className="text-[11px] bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 font-semibold print:border-foreground/50 print:text-foreground"
+                  className="rounded-full text-[11px] bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 font-semibold print:border-foreground/50 print:text-foreground"
                 >
                   Completed
                 </Badge>
@@ -85,7 +85,7 @@ export function CompletedSessionReportCard({
               variant="outline"
               size="sm"
               onClick={handlePrint}
-              className="gap-2 text-xs h-9 font-medium self-start sm:self-auto print:hidden"
+              className="gap-2 text-xs h-9 px-4 font-medium self-start sm:self-auto print:hidden rounded-full border-border/80 hover:bg-muted/60"
               id="btn-print-client-report"
             >
               <Printer className="size-3.5" data-icon="inline-start" />

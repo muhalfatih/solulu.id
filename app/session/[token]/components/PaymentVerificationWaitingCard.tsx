@@ -113,26 +113,26 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
   const whatsappUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(waMessage)}`
 
   return (
-    <Card className="rounded-2xl border border-amber-500/30 bg-card shadow-xs overflow-hidden gap-0">
+    <Card className="rounded-3xl border border-amber-500/30 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(245,158,11,0.08)] overflow-hidden gap-0">
       {/* Top Accent Strip */}
       <div className="h-1.5 w-full bg-gradient-to-r from-amber-500 via-orange-400 to-amber-600 animate-pulse" />
 
       {/* Header */}
-      <CardHeader className="p-6 sm:p-7 border-b border-border/40 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex flex-col gap-1.5">
+      <CardHeader className="p-6 sm:p-8 border-b border-border/40 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               Status Pemesanan
             </span>
-            <Badge className="rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-medium px-2.5 py-0.5 text-xs shadow-2xs">
+            <Badge className="rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 font-medium px-3 py-0.5 text-xs shadow-2xs">
               <span className="size-2 rounded-full bg-amber-500 animate-ping inline-block mr-1.5" />
               Menunggu Verifikasi Pembayaran
             </Badge>
           </div>
-          <CardTitle className="font-heading text-lg sm:text-xl font-bold tracking-tight text-foreground">
+          <CardTitle className="font-heading text-xl sm:text-2xl font-bold tracking-tight text-foreground">
             Ruang Tunggu Konfirmasi Sesi
           </CardTitle>
-          <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-1">
+          <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
             {schedule.formattedDate} • {schedule.timeRange} (Durasi 90 Menit Penuh)
           </CardDescription>
         </div>
@@ -344,7 +344,7 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
       </CardContent>
 
       {/* Footer Actions */}
-      <CardFooter className="p-6 sm:p-7 border-t border-border/40 bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <CardFooter className="p-6 sm:p-7 border-t border-border/40 bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-b-3xl">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <ShieldCheck className="size-4 text-emerald-500 shrink-0" />
           <span>Halaman ini otomatis mengecek status verifikasi secara berkala.</span>
@@ -355,7 +355,7 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
             <Button
               asChild
               variant="outline"
-              className="w-full sm:w-auto text-xs h-9 px-4 font-semibold border-rose-500/30 text-rose-700 dark:text-rose-400 hover:bg-rose-500/10"
+              className="w-full sm:w-auto text-xs h-9 px-5 font-semibold rounded-full border-rose-500/30 text-rose-700 dark:text-rose-400 hover:bg-rose-500/10 active:scale-[0.98] transition-all"
             >
               <Link href="/counselors">
                 <span>Pesan Ulang Jadwal Baru</span>
@@ -370,7 +370,7 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
             className="w-full sm:w-auto"
           >
             <Button
-              className="w-full sm:w-auto text-xs h-9 px-4 font-semibold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+              className="w-full sm:w-auto text-xs h-9 px-5 font-semibold gap-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs active:scale-[0.98] transition-all"
             >
               <MessageCircle className="size-3.5" />
               <span>{isExpired ? "Bantuan CS via WhatsApp" : "Konfirmasi via WhatsApp Admin"}</span>

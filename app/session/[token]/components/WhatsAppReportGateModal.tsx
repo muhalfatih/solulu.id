@@ -70,13 +70,13 @@ export function WhatsAppReportGateModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         id="modal-wa-report-gate"
-        className="sm:max-w-md border-border/80 shadow-lg"
+        className="sm:max-w-md rounded-3xl border border-violet-100 dark:border-border/80 shadow-[0_20px_50px_-12px_rgba(124,58,237,0.15)] bg-card/95 backdrop-blur-sm"
       >
         <DialogHeader>
-          <div className="size-11 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-1">
+          <div className="size-12 rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-950/80 dark:text-violet-300 flex items-center justify-center mb-1">
             <Lock className="size-5" />
           </div>
-          <DialogTitle className="text-lg font-bold text-foreground">
+          <DialogTitle className="text-lg font-bold text-foreground font-heading">
             Verifikasi Akses Laporan Sesi
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground leading-relaxed text-pretty">
@@ -87,7 +87,7 @@ export function WhatsAppReportGateModal({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {errorMsg && (
-            <Alert variant="destructive" className="py-2.5 px-3 text-xs">
+            <Alert variant="destructive" className="py-2.5 px-3 text-xs rounded-2xl">
               <AlertCircle data-icon="inline-start" className="size-4" />
               <AlertTitle className="font-semibold text-xs">Verifikasi Gagal</AlertTitle>
               <AlertDescription className="text-xs mt-0.5 leading-relaxed">
@@ -101,7 +101,7 @@ export function WhatsAppReportGateModal({
               <FieldLabel htmlFor="input-verification-phone" className="text-xs font-semibold">
                 Nomor WhatsApp Terdaftar
               </FieldLabel>
-              <InputGroup className="h-10">
+              <InputGroup className="h-10 rounded-full">
                 <InputGroupAddon align="inline-start">
                   <Phone className="size-4 text-muted-foreground" />
                 </InputGroupAddon>
@@ -128,14 +128,14 @@ export function WhatsAppReportGateModal({
             </Field>
           </FieldGroup>
 
-          <DialogFooter className="mt-2">
+          <DialogFooter className="mt-2 flex items-center gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="text-xs"
+              className="text-xs h-9 px-4 rounded-full"
             >
               Batal
             </Button>
@@ -144,7 +144,7 @@ export function WhatsAppReportGateModal({
               size="sm"
               disabled={isLoading || !phone.trim()}
               id="btn-submit-phone-verification"
-              className="text-xs font-semibold gap-1.5"
+              className="text-xs h-9 px-5 font-semibold gap-1.5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs active:scale-[0.98] transition-all"
             >
               {isLoading ? (
                 <>

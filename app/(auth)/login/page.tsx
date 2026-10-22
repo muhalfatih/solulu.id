@@ -330,9 +330,6 @@ function LoginForm() {
 
           {/* Card Login Form Bergaya Card Homepage Solulu */}
           <Card className="w-full relative border border-border/80 shadow-[0_16px_40px_-12px_rgba(124,58,237,0.12)] dark:shadow-[0_16px_40px_-12px_rgba(124,58,237,0.25)] rounded-3xl bg-card/95 backdrop-blur-md overflow-hidden hover:border-primary/40 transition-all duration-300">
-            {/* Top decorative gradient accent */}
-            <div className="h-1.5 w-full bg-gradient-to-r from-violet-600 via-purple-500 to-indigo-500" />
-
             <CardHeader className="p-6 sm:p-7 pb-3 sm:pb-4 space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="size-11 rounded-2xl bg-primary/10 text-primary dark:text-purple-300 flex items-center justify-center shrink-0 ring-1 ring-primary/15 shadow-2xs">

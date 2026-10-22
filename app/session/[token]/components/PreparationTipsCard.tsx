@@ -1,5 +1,4 @@
-import * as React from "react"
-import { Headphones, Wifi, LockKeyhole, Coffee, BatteryCharging, Check } from "lucide-react"
+import { Headphones, Wifi, LockKeyhole, Coffee } from "lucide-react"
 import {
   Card,
   CardHeader,
@@ -33,10 +32,10 @@ export function PreparationTipsCard() {
   ]
 
   return (
-    <Card className="rounded-2xl border border-border/80 shadow-xs bg-card hover:shadow-sm transition-all overflow-hidden gap-0">
+    <Card className="rounded-3xl border border-violet-100 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(124,58,237,0.08)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.12)] transition-all overflow-hidden gap-0">
       <CardHeader className="p-6 sm:p-7 border-b border-border/40">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Panduan Sesi
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+          Panduan Sesi Nyaman
         </span>
         <CardTitle className="font-heading text-lg sm:text-xl font-bold tracking-tight text-foreground">
           Persiapan Sebelum Memulai
@@ -53,13 +52,13 @@ export function PreparationTipsCard() {
             return (
               <div
                 key={idx}
-                className="flex items-start gap-3.5 rounded-xl border border-border/60 bg-muted/25 p-4 hover:bg-muted/40 hover:border-primary/30 transition-all"
+                className="flex items-start gap-3.5 rounded-2xl border border-violet-100/80 dark:border-border/60 bg-violet-50/30 dark:bg-muted/20 p-4 sm:p-5 hover:bg-violet-50/60 dark:hover:bg-muted/40 hover:border-violet-200 dark:hover:border-violet-800/60 transition-all shadow-2xs"
               >
-                <div className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                  <Icon className="size-4.5" />
+                <div className="size-10 rounded-2xl bg-violet-100 text-violet-700 dark:bg-violet-950/80 dark:text-violet-300 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                  <Icon className="size-5" />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <h4 className="font-heading text-xs sm:text-sm font-semibold text-foreground leading-snug">
+                  <h4 className="font-heading text-xs sm:text-sm font-bold text-foreground leading-snug">
                     {tip.title}
                   </h4>
                   <p className="text-xs leading-relaxed text-muted-foreground">

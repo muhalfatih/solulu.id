@@ -2,9 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { ShieldCheck, ArrowLeft, RefreshCw, Heart } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { ShieldCheck, ArrowLeft, Clock, Lock, BadgeCheck, Sparkles } from "lucide-react"
 import { PublicShell } from "@/components/public/public-shell"
 import { SessionCountdownCard } from "./components/SessionCountdownCard"
 import { PaymentVerificationWaitingCard } from "./components/PaymentVerificationWaitingCard"
@@ -24,7 +22,6 @@ interface SessionClientProps {
 }
 
 export default function SessionClient({ initialData }: SessionClientProps) {
-  const router = useRouter()
   const [data, setData] = React.useState<SessionPageData>(initialData)
   const [isRefreshing, setIsRefreshing] = React.useState(false)
   const [unlockedReport, setUnlockedReport] = React.useState<ClientSessionReportView | null>(
@@ -63,9 +60,9 @@ export default function SessionClient({ initialData }: SessionClientProps) {
   return (
     <PublicShell>
       <div className="relative flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16 flex flex-col gap-8 print:p-0 print:m-0 print:max-w-none">
-        {/* Calming Ambient Breathing Aura */}
+        {/* Calming Ambient Breathing Aura (Public Landing Page Signature) */}
         <div
-          className="absolute -top-20 sm:-top-28 left-1/2 -translate-x-1/2 w-[340px] sm:w-[600px] md:w-[850px] h-[300px] sm:h-[450px] bg-gradient-to-b from-purple-400/15 via-purple-300/10 to-transparent rounded-full blur-3xl -z-10 pointer-events-none animate-calm-breath dark:from-purple-800/20 dark:via-purple-950/10 print:hidden"
+          className="absolute -top-24 sm:-top-32 left-1/2 -translate-x-1/2 w-[340px] sm:w-[680px] md:w-[920px] h-[320px] sm:h-[480px] bg-gradient-to-b from-purple-400/20 via-purple-300/10 to-transparent rounded-full blur-3xl -z-10 pointer-events-none animate-calm-breath dark:from-purple-800/25 dark:via-purple-950/15 print:hidden"
           aria-hidden="true"
         />
 
@@ -73,49 +70,52 @@ export default function SessionClient({ initialData }: SessionClientProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 print:hidden">
           <Link
             href="/cek-sesi"
-            className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors group"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors group px-3.5 py-1.5 rounded-full bg-muted/40 hover:bg-muted/80 border border-border/60 w-fit"
           >
             <ArrowLeft className="size-3.5 group-hover:-translate-x-0.5 transition-transform" data-icon="inline-start" />
             <span>Cek Status / Pulihkan Sesi</span>
           </Link>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-medium shadow-2xs w-fit">
-            <ShieldCheck className="size-3.5" />
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-200/60 text-xs font-semibold shadow-2xs w-fit">
+            <ShieldCheck className="size-3.5 text-primary" />
             <span>Koneksi Tamu Aman • Tanpa Wajib Login</span>
           </div>
         </div>
 
-        {/* Empathetic Welcome Header */}
-        <div className="flex flex-col gap-2.5 print:hidden">
-          {data.booking.status === "pending_payment" ? (
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-400 text-xs font-semibold shadow-2xs w-fit">
-              <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
-              <span>Menunggu Verifikasi Pembayaran • Sesi Telah Dipesan</span>
-            </div>
-          ) : data.booking.status === "cancelled" ? (
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-700 dark:text-rose-400 text-xs font-semibold shadow-2xs w-fit">
-              <span className="size-2 rounded-full bg-rose-500" />
-              <span>Pemesanan Dibatalkan / Kedaluwarsa</span>
-            </div>
-          ) : data.booking.status === "completed" ? (
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-400 text-xs font-semibold shadow-2xs w-fit">
-              <span className="size-2 rounded-full bg-emerald-500" />
-              <span>Sesi Selesai • Laporan Klinis &amp; Rekomendasi</span>
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary dark:text-purple-300 text-xs font-semibold shadow-2xs w-fit">
-              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Ruang Telekonseling Privat • Sesi Terjadwal</span>
-            </div>
-          )}
+        {/* Empathetic Welcome Header (Solulu.id Landing Page Style) */}
+        <div className="flex flex-col gap-3.5 print:hidden">
+          <div className="flex items-center gap-2 flex-wrap">
+            {data.booking.status === "pending_payment" ? (
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-400 text-xs font-semibold shadow-2xs w-fit">
+                <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+                <span>Menunggu Verifikasi Pembayaran • Sesi Telah Dipesan</span>
+              </div>
+            ) : data.booking.status === "cancelled" ? (
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-rose-700 dark:text-rose-400 text-xs font-semibold shadow-2xs w-fit">
+                <span className="size-2 rounded-full bg-rose-500" />
+                <span>Pemesanan Dibatalkan / Kedaluwarsa</span>
+              </div>
+            ) : data.booking.status === "completed" ? (
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-400 text-xs font-semibold shadow-2xs w-fit">
+                <span className="size-2 rounded-full bg-emerald-500" />
+                <span>Sesi Selesai • Laporan Klinis &amp; Rekomendasi</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-200/60 text-xs font-semibold shadow-2xs w-fit">
+                <Sparkles className="size-3.5 text-primary" />
+                <span>Ruang Aman &amp; Privat (#CeritaDiSolulu)</span>
+              </div>
+            )}
+          </div>
 
-          <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground leading-[1.2]">
+          <h1 className="font-heading text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-foreground leading-[1.2] text-balance">
             {data.booking.status === "cancelled"
               ? "Pemesanan Sesi Dibatalkan"
               : data.booking.status === "completed"
               ? `Laporan Sesi: ${data.counselor.fullName}`
-              : `Ruang Sesi Bersama ${data.counselor.fullName}`}
+              : `Ruang Cerita Privatmu Bersama ${data.counselor.fullName}`}
           </h1>
+
           <p className="text-xs sm:text-sm md:text-base text-muted-foreground leading-relaxed max-w-2xl font-normal text-pretty">
             {data.booking.status === "pending_payment" ? (
               <>
@@ -131,10 +131,30 @@ export default function SessionClient({ initialData }: SessionClientProps) {
               </>
             ) : (
               <>
-                Selamat datang, <strong className="font-semibold text-foreground">{data.booking.patientName}</strong>. Ruang aman dan privat ini disiapkan khusus untuk Anda tanpa perlu membuat akun.
+                Selamat datang, <strong className="font-semibold text-foreground">{data.booking.patientName}</strong>. Ruang aman dan privat ini disiapkan khusus untuk mendengarkan ceritamu dengan penuh empati, tanpa penghakiman, dan terlindungi kerahasiaan klinis.
               </>
             )}
           </p>
+
+          {/* 4 Pilar Kepercayaan Ruang Sesi (Landing Page Trust Pills) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap pt-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60 shadow-2xs">
+              <Clock className="size-3.5 text-primary shrink-0" />
+              <span>90 Menit Penuh</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60 shadow-2xs">
+              <Lock className="size-3.5 text-primary shrink-0" />
+              <span>100% Rahasia &amp; Privat</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60 shadow-2xs">
+              <BadgeCheck className="size-3.5 text-primary shrink-0" />
+              <span>Praktisi Berizin HIMPSI</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-100 dark:border-violet-900/60 shadow-2xs">
+              <ShieldCheck className="size-3.5 text-primary shrink-0" />
+              <span>Tanpa Wajib Bikin Akun</span>
+            </div>
+          </div>
         </div>
 
         {/* Prominent Zoom Display Name Formatting Banner (Confirmed Sessions) */}
