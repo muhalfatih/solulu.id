@@ -11,6 +11,7 @@ import {
   jsonb,
   pgEnum,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -22,6 +23,10 @@ export const roleEnum = pgEnum("role_enum", [
   "admin",
   "operator",
   "counselor",
+]);
+export const scheduleModeEnum = pgEnum("schedule_mode_enum", [
+  "manual",
+  "automatic",
 ]);
 export const counselorTypeEnum = pgEnum("counselor_type_enum", ["peer", "psychologist"]);
 export const scheduleStatusEnum = pgEnum("schedule_status_enum", [
@@ -180,6 +185,7 @@ export const counselors = pgTable("counselors", {
   counselorType: counselorTypeEnum("counselor_type").notNull(),
   verificationStatus: text("verification_status").default("verified").notNull(), // 'pending' | 'verified' | 'rejected'
   weeklySlotTarget: integer("weekly_slot_target").default(10).notNull(), // Min 10 sesi/minggu
+  scheduleMode: scheduleModeEnum("schedule_mode").default("manual").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   isFeatured: boolean("is_featured").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -197,6 +203,32 @@ export const specializations = pgTable("specializations", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// =============================================================================
+// 4C. COUNSELOR WEEKLY TEMPLATES (RECURRING BLUEPRINT 7x7 SLOTS)
+// =============================================================================
+export const counselorWeeklyTemplates = pgTable(
+  "counselor_weekly_templates",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    counselorId: uuid("counselor_id")
+      .references(() => counselors.id, { onDelete: "cascade" })
+      .notNull(),
+    dayOfWeek: integer("day_of_week").notNull(), // 1 (Senin) s/d 7 (Minggu)
+    slotIndex: integer("slot_index").notNull(), // 1 s/d 7
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_counselor_weekly_template_unique").on(
+      table.counselorId,
+      table.dayOfWeek,
+      table.slotIndex
+    ),
+    index("idx_counselor_weekly_template_counselor").on(table.counselorId),
+  ]
+);
 
 // =============================================================================
 // 5. SCHEDULES (7 FIXED 2-HOUR SLOTS DAILY)
@@ -390,7 +422,18 @@ export const counselorsRelations = relations(counselors, ({ many }) => ({
   schedules: many(schedules),
   bookings: many(bookings),
   sessionReports: many(sessionReports),
+  weeklyTemplates: many(counselorWeeklyTemplates),
 }));
+
+export const counselorWeeklyTemplatesRelations = relations(
+  counselorWeeklyTemplates,
+  ({ one }) => ({
+    counselor: one(counselors, {
+      fields: [counselorWeeklyTemplates.counselorId],
+      references: [counselors.id],
+    }),
+  })
+);
 
 export const schedulesRelations = relations(schedules, ({ one, many }) => ({
   counselor: one(counselors, {
@@ -448,3 +491,9 @@ export const sessionReportsRelations = relations(sessionReports, ({ one }) => ({
     references: [counselors.id],
   }),
 }));
+
+// Type helpers inferred from schema
+export type CounselorWeeklyTemplate = typeof counselorWeeklyTemplates.$inferSelect;
+export type NewCounselorWeeklyTemplate = typeof counselorWeeklyTemplates.$inferInsert;
+export type ScheduleMode = (typeof scheduleModeEnum.enumValues)[number];
+

@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 
 describe("Drizzle ORM Schema & Migrations", () => {
-  it("defines all 14 required tables", () => {
+  it("defines all required tables including counselorWeeklyTemplates", () => {
     expect(schema.zoomAccounts).toBeDefined();
     expect(schema.platformPricing).toBeDefined();
     expect(schema.platformSettings).toBeDefined();
@@ -13,6 +13,7 @@ describe("Drizzle ORM Schema & Migrations", () => {
     expect(schema.counselorApplications).toBeDefined();
     expect(schema.counselors).toBeDefined();
     expect(schema.specializations).toBeDefined();
+    expect(schema.counselorWeeklyTemplates).toBeDefined();
     expect(schema.schedules).toBeDefined();
     expect(schema.bookings).toBeDefined();
     expect(schema.transactions).toBeDefined();
@@ -21,14 +22,16 @@ describe("Drizzle ORM Schema & Migrations", () => {
     expect(schema.testimonials).toBeDefined();
   });
 
-  it("defines all 6 required PostgreSQL enums", () => {
+  it("defines all required PostgreSQL enums including scheduleModeEnum", () => {
     expect(schema.roleEnum).toBeDefined();
+    expect(schema.scheduleModeEnum).toBeDefined();
     expect(schema.counselorTypeEnum).toBeDefined();
     expect(schema.scheduleStatusEnum).toBeDefined();
     expect(schema.bookingStatusEnum).toBeDefined();
     expect(schema.transactionStatusEnum).toBeDefined();
     expect(schema.applicationStatusEnum).toBeDefined();
 
+    expect(schema.scheduleModeEnum.enumValues).toEqual(["manual", "automatic"]);
     expect(schema.roleEnum.enumValues).toEqual(["superadmin", "admin", "operator", "counselor"]);
     expect(schema.counselorTypeEnum.enumValues).toEqual(["peer", "psychologist"]);
     expect(schema.scheduleStatusEnum.enumValues).toEqual([
@@ -56,16 +59,23 @@ describe("Drizzle ORM Schema & Migrations", () => {
     ]);
   });
 
-  it("includes all spec overrides on counselorApplications, transactions, and schedules", () => {
+  it("includes all spec overrides on counselorApplications, transactions, schedules, and counselor templates", () => {
     // counselorApplications mandatory overrides
     expect(schema.counselorApplications.ktpR2Key).toBeDefined();
     expect(schema.counselorApplications.diplomaR2Key).toBeDefined();
     expect(schema.counselorApplications.rejectionReason).toBeDefined();
 
-    // counselors custom profile fields
+    // counselors custom profile fields & scheduleMode
     expect(schema.counselors.education).toBeDefined();
     expect(schema.counselors.strNumber).toBeDefined();
     expect(schema.counselors.isFeatured).toBeDefined();
+    expect(schema.counselors.scheduleMode).toBeDefined();
+
+    // counselorWeeklyTemplates structure
+    expect(schema.counselorWeeklyTemplates.counselorId).toBeDefined();
+    expect(schema.counselorWeeklyTemplates.dayOfWeek).toBeDefined();
+    expect(schema.counselorWeeklyTemplates.slotIndex).toBeDefined();
+    expect(schema.counselorWeeklyTemplates.isActive).toBeDefined();
 
     // transactions voucherId override
     expect(schema.transactions.voucherId).toBeDefined();
