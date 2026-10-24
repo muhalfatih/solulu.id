@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache"
 import { eq, and, sql, gte, lte, inArray } from "drizzle-orm"
-import { db } from "@/db"
-import { schedules, bookings, counselors } from "@/db/schema"
-import { FIXED_SLOTS, type FixedSlot } from "@/lib/operator/types"
+import { db, type DbClient } from "@/db"
+import { schedules, bookings, counselors, counselorWeeklyTemplates } from "@/db/schema"
+import { FIXED_SLOTS, type FixedSlot } from "@/lib/schedules/slots"
 import {
   MIN_WEEKLY_SLOTS_TARGET,
   CLINIC_BOOKING_CUTOFF_HOURS,
@@ -20,9 +20,20 @@ import {
 import {
   toggleScheduleSlotSchema,
   leaveRequestSchema,
+  saveCounselorTemplateSchema,
+  toggleScheduleModeSchema,
   type ToggleScheduleSlotInput,
   type LeaveRequestInput,
+  type SaveCounselorTemplateInput,
+  type ToggleScheduleModeInput,
+  type TemplateSlotItem,
 } from "@/lib/validations/schedules"
+import {
+  getCounselorTemplateMatrix,
+  saveCounselorWeeklyTemplates,
+  materializeCounselorSlots,
+  type MaterializeResult,
+} from "@/lib/schedules/template"
 import { getAuthenticatedCounselor, resolveCounselorId } from "@/lib/counselor/auth"
 import type { CounselorAuthContext } from "@/lib/counselor/types"
 import { getNowWIB } from "@/lib/schedules/concurrency"
@@ -686,3 +697,406 @@ export async function cancelSlotLeaveAction(
     }
   }
 }
+
+// =============================================================================
+// RECURRING SCHEDULE TEMPLATE SERVER ACTIONS
+// =============================================================================
+
+export interface CounselorTemplateSlotCell {
+  dayOfWeek: number // 1 (Senin) .. 7 (Minggu)
+  dayName: string // "Senin", "Selasa", ..., "Minggu"
+  dayShort: string // "Sen", "Sel", ..., "Min"
+  slotIndex: number // 1 .. 7
+  startTime: string // "08:00:00"
+  endTime: string // "10:00:00"
+  displayTime: string // "08.00 – 10.00 WIB"
+  isActive: boolean
+}
+
+export interface CounselorTemplateDayInfo {
+  dayOfWeek: number // 1 (Senin) .. 7 (Minggu)
+  dayName: string
+  dayShort: string
+}
+
+export const TEMPLATE_DAYS: CounselorTemplateDayInfo[] = [
+  { dayOfWeek: 1, dayName: "Senin", dayShort: "Sen" },
+  { dayOfWeek: 2, dayName: "Selasa", dayShort: "Sel" },
+  { dayOfWeek: 3, dayName: "Rabu", dayShort: "Rab" },
+  { dayOfWeek: 4, dayName: "Kamis", dayShort: "Kam" },
+  { dayOfWeek: 5, dayName: "Jumat", dayShort: "Jum" },
+  { dayOfWeek: 6, dayName: "Sabtu", dayShort: "Sab" },
+  { dayOfWeek: 7, dayName: "Minggu", dayShort: "Min" },
+]
+
+export interface CounselorTemplateData {
+  counselorId: string
+  counselorName: string
+  counselorTitle: string
+  scheduleMode: "manual" | "automatic"
+  weeklySlotTarget: number
+  activeCount: number
+  isTargetMet: boolean
+  remainingSlots: number
+  percentage: number
+  matrix: Record<number, Record<number, boolean>> // [dayOfWeek][slotIndex] -> isActive
+  slots: CounselorTemplateSlotCell[]
+  fixedSlots: FixedSlot[]
+  days: CounselorTemplateDayInfo[]
+}
+
+/**
+ * Server Action: Fetch the complete recurring schedule blueprint template for the authenticated counselor.
+ * Returns the 7x7 matrix (7 days x 7 fixed slots), active slot count, target metrics, and schedule mode.
+ */
+export async function getCounselorTemplateAction(
+  options?: {
+    currentUser?: CounselorAuthContext | null
+    dbClient?: DbClient
+  }
+): Promise<ActionResponse<CounselorTemplateData>> {
+  const auth = await getAuthenticatedCounselor(options?.currentUser)
+  if (!auth) {
+    return {
+      success: false,
+      error: "Akses ditolak: Anda harus masuk sebagai Mitra Konselor.",
+    }
+  }
+
+  const counselorId = await resolveCounselorId(auth)
+  if (!counselorId) {
+    return {
+      success: false,
+      error: "Profil mitra konselor tidak ditemukan.",
+    }
+  }
+
+  try {
+    const client = options?.dbClient || db
+
+    // 1. Fetch counselor profile info & schedule mode
+    const counselorRows = await client
+      .select({
+        id: counselors.id,
+        fullName: counselors.fullName,
+        title: counselors.title,
+        scheduleMode: counselors.scheduleMode,
+        weeklySlotTarget: counselors.weeklySlotTarget,
+      })
+      .from(counselors)
+      .where(eq(counselors.id, counselorId))
+      .limit(1)
+
+    if (counselorRows.length === 0) {
+      return {
+        success: false,
+        error: "Data profil mitra konselor tidak ditemukan di sistem.",
+      }
+    }
+
+    const counselor = counselorRows[0]
+    const target = counselor.weeklySlotTarget || MIN_WEEKLY_SLOTS_TARGET
+    const scheduleMode = counselor.scheduleMode || "manual"
+
+    // 2. Fetch template matrix from counselor_weekly_templates
+    const { activeCount, matrix } = await getCounselorTemplateMatrix(counselorId, client)
+
+    // 3. Build comprehensive list of 49 slot cells (7 days x 7 slots)
+    const slots: CounselorTemplateSlotCell[] = []
+    for (const day of TEMPLATE_DAYS) {
+      for (const fixed of FIXED_SLOTS) {
+        const isActive = matrix[day.dayOfWeek]?.[fixed.slotIndex] ?? false
+        slots.push({
+          dayOfWeek: day.dayOfWeek,
+          dayName: day.dayName,
+          dayShort: day.dayShort,
+          slotIndex: fixed.slotIndex,
+          startTime: fixed.startTime,
+          endTime: fixed.endTime,
+          displayTime: fixed.displayTime,
+          isActive,
+        })
+      }
+    }
+
+    const isTargetMet = activeCount >= target
+    const remainingSlots = Math.max(0, target - activeCount)
+    const percentage = Math.min(100, Math.round((activeCount / target) * 100))
+
+    return {
+      success: true,
+      data: {
+        counselorId,
+        counselorName: counselor.fullName || auth.user_metadata?.full_name || "Mitra Konselor",
+        counselorTitle: counselor.title || "Konselor Solulu",
+        scheduleMode,
+        weeklySlotTarget: target,
+        activeCount,
+        isTargetMet,
+        remainingSlots,
+        percentage,
+        matrix,
+        slots,
+        fixedSlots: FIXED_SLOTS,
+        days: TEMPLATE_DAYS,
+      },
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal memuat data template jadwal konselor.",
+    }
+  }
+}
+
+/**
+ * Server Action: Save the counselor's recurring weekly blueprint slots.
+ * Validates with Zod: strictly enforces minimum commitment of 10 active slots if automatic mode is active.
+ * When saved with automatic mode active, immediately synchronizes physical schedule slots for the next 4 weeks.
+ * Revalidates cache for /counselor/schedule, /counselor/schedules, and /counselors.
+ */
+export async function saveCounselorTemplateAction(
+  rawInput: SaveCounselorTemplateInput,
+  options?: {
+    currentUser?: CounselorAuthContext | null
+    referenceDate?: Date | string
+    dbClient?: DbClient
+  }
+): Promise<ActionResponse<{
+  activeCount: number
+  scheduleMode: "manual" | "automatic"
+  materialized?: MaterializeResult
+}>> {
+  const auth = await getAuthenticatedCounselor(options?.currentUser)
+  if (!auth) {
+    return {
+      success: false,
+      error: "Akses ditolak: Anda harus masuk sebagai Mitra Konselor.",
+    }
+  }
+
+  const counselorId = await resolveCounselorId(auth)
+  if (!counselorId) {
+    return {
+      success: false,
+      error: "Profil mitra konselor tidak ditemukan.",
+    }
+  }
+
+  // 1. Zod input validation
+  const parsed = saveCounselorTemplateSchema.safeParse(rawInput)
+  if (!parsed.success) {
+    const primaryError = parsed.error.issues[0]?.message || "Validasi template jadwal tidak valid."
+    return {
+      success: false,
+      error: primaryError,
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    }
+  }
+
+  try {
+    const client = options?.dbClient || db
+
+    // 2. Fetch current counselor profile & schedule mode
+    const counselorRows = await client
+      .select({
+        id: counselors.id,
+        scheduleMode: counselors.scheduleMode,
+        weeklySlotTarget: counselors.weeklySlotTarget,
+      })
+      .from(counselors)
+      .where(eq(counselors.id, counselorId))
+      .limit(1)
+
+    if (counselorRows.length === 0) {
+      return {
+        success: false,
+        error: "Profil mitra konselor tidak ditemukan di sistem.",
+      }
+    }
+
+    const currentCounselor = counselorRows[0]
+    const effectiveScheduleMode = parsed.data.scheduleMode || currentCounselor.scheduleMode
+
+    // 3. Compute projected active slots across the entire 7x7 matrix
+    const currentTemplate = await getCounselorTemplateMatrix(counselorId, client)
+    const mergedActiveMap = new Map<string, boolean>()
+
+    for (let d = 1; d <= 7; d++) {
+      for (let s = 1; s <= 7; s++) {
+        mergedActiveMap.set(`${d}_${s}`, currentTemplate.matrix[d]?.[s] ?? false)
+      }
+    }
+
+    for (const item of parsed.data.slots) {
+      mergedActiveMap.set(`${item.dayOfWeek}_${item.slotIndex}`, item.isActive)
+    }
+
+    let projectedActiveCount = 0
+    for (const isActive of mergedActiveMap.values()) {
+      if (isActive) projectedActiveCount++
+    }
+
+    // 4. Strict Quota Guardrail for Automatic Mode:
+    // Minimum 10 slots commitment required if saving with or in automatic mode.
+    if (effectiveScheduleMode === "automatic" && projectedActiveCount < MIN_WEEKLY_SLOTS_TARGET) {
+      return {
+        success: false,
+        error: `Mode otomatis membutuhkan komitmen minimal ${MIN_WEEKLY_SLOTS_TARGET} slot aktif per minggu. Saat ini hanya memilih ${projectedActiveCount} slot aktif. Silakan tambahkan slot praktik rutin Anda.`,
+      }
+    }
+
+    // 5. Save weekly template slots in PostgreSQL
+    const { activeCount } = await saveCounselorWeeklyTemplates(counselorId, parsed.data.slots, client)
+
+    // 6. Update counselor scheduleMode if provided and changed
+    if (parsed.data.scheduleMode && parsed.data.scheduleMode !== currentCounselor.scheduleMode) {
+      await client
+        .update(counselors)
+        .set({ scheduleMode: parsed.data.scheduleMode })
+        .where(eq(counselors.id, counselorId))
+    }
+
+    // 7. If automatic mode is active, trigger immediate 4-week rolling materialization
+    let materialized: MaterializeResult | undefined
+    if (effectiveScheduleMode === "automatic") {
+      materialized = await materializeCounselorSlots(counselorId, 4, {
+        referenceDate: options?.referenceDate,
+        dbClient: client,
+      })
+    }
+
+    // 8. Revalidate paths
+    safeRevalidatePath("/counselor/schedule")
+    safeRevalidatePath("/counselor/schedules")
+    safeRevalidatePath("/counselors")
+
+    return {
+      success: true,
+      data: {
+        activeCount,
+        scheduleMode: effectiveScheduleMode,
+        materialized,
+      },
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal menyimpan cetak biru template jadwal konselor.",
+    }
+  }
+}
+
+/**
+ * Server Action: Toggle between 'manual' and 'automatic' schedule modes for the authenticated counselor.
+ * When switching to 'automatic', enforces minimum 10 active slots requirement and immediately materializes 4 weeks ahead.
+ * When switching to 'manual', existing future slots in PostgreSQL are strictly retained and preserved.
+ * Revalidates cache for /counselor/schedule, /counselor/schedules, and /counselors.
+ */
+export async function toggleScheduleModeAction(
+  rawInput: ToggleScheduleModeInput,
+  options?: {
+    currentUser?: CounselorAuthContext | null
+    referenceDate?: Date | string
+    dbClient?: DbClient
+  }
+): Promise<ActionResponse<{
+  scheduleMode: "manual" | "automatic"
+  activeCount: number
+  materialized?: MaterializeResult
+}>> {
+  const auth = await getAuthenticatedCounselor(options?.currentUser)
+  if (!auth) {
+    return {
+      success: false,
+      error: "Akses ditolak: Anda harus masuk sebagai Mitra Konselor.",
+    }
+  }
+
+  const counselorId = await resolveCounselorId(auth)
+  if (!counselorId) {
+    return {
+      success: false,
+      error: "Profil mitra konselor tidak ditemukan.",
+    }
+  }
+
+  const parsed = toggleScheduleModeSchema.safeParse(rawInput)
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Mode jadwal tidak valid. Pilihan yang tersedia adalah 'manual' atau 'automatic'.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    }
+  }
+
+  const targetMode = parsed.data.scheduleMode
+
+  try {
+    const client = options?.dbClient || db
+
+    // 1. Fetch current counselor profile & weekly template active count
+    const counselorRows = await client
+      .select({
+        id: counselors.id,
+        scheduleMode: counselors.scheduleMode,
+      })
+      .from(counselors)
+      .where(eq(counselors.id, counselorId))
+      .limit(1)
+
+    if (counselorRows.length === 0) {
+      return {
+        success: false,
+        error: "Profil mitra konselor tidak ditemukan di sistem.",
+      }
+    }
+
+    const { activeCount } = await getCounselorTemplateMatrix(counselorId, client)
+
+    // 2. Guard: Cannot activate automatic mode if active slots < 10
+    if (targetMode === "automatic" && activeCount < MIN_WEEKLY_SLOTS_TARGET) {
+      return {
+        success: false,
+        error: `Tidak dapat mengaktifkan mode otomatis. Anda harus memilih minimal ${MIN_WEEKLY_SLOTS_TARGET} slot aktif pada template mingguan terlebih dahulu (saat ini ${activeCount} slot aktif).`,
+      }
+    }
+
+    // 3. Update scheduleMode in counselors table
+    await client
+      .update(counselors)
+      .set({ scheduleMode: targetMode })
+      .where(eq(counselors.id, counselorId))
+
+    // 4. If switching to automatic, trigger immediate 4-week rolling materialization
+    let materialized: MaterializeResult | undefined
+    if (targetMode === "automatic") {
+      materialized = await materializeCounselorSlots(counselorId, 4, {
+        referenceDate: options?.referenceDate,
+        dbClient: client,
+      })
+    }
+    // Note: When switching to 'manual', future slots already created in PostgreSQL
+    // are strictly retained without any deletion or cancellation, preserving client bookings and counselor visibility.
+
+    // 5. Revalidate Next.js cache
+    safeRevalidatePath("/counselor/schedule")
+    safeRevalidatePath("/counselor/schedules")
+    safeRevalidatePath("/counselors")
+
+    return {
+      success: true,
+      data: {
+        scheduleMode: targetMode,
+        activeCount,
+        materialized,
+      },
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Gagal mengubah mode pengisian jadwal.",
+    }
+  }
+}
+

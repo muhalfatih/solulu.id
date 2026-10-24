@@ -380,32 +380,54 @@ export async function saveCounselorWeeklyTemplates(
 ): Promise<{ activeCount: number }> {
   let activeCount = 0
 
+  if (slots.length === 0) {
+    const [activeRow] = await client
+      .select({ count: sql<number>`count(*)::int` })
+      .from(counselorWeeklyTemplates)
+      .where(
+        and(
+          eq(counselorWeeklyTemplates.counselorId, counselorId),
+          eq(counselorWeeklyTemplates.isActive, true)
+        )
+      )
+    return { activeCount: Number(activeRow?.count ?? 0) }
+  }
+
   await client.transaction(async (tx) => {
-    for (const slot of slots) {
-      if (slot.isActive) {
-        activeCount++
-      }
-      await tx
-        .insert(counselorWeeklyTemplates)
-        .values({
-          counselorId,
-          dayOfWeek: slot.dayOfWeek,
-          slotIndex: slot.slotIndex,
-          isActive: slot.isActive,
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: [
-            counselorWeeklyTemplates.counselorId,
-            counselorWeeklyTemplates.dayOfWeek,
-            counselorWeeklyTemplates.slotIndex,
-          ],
-          set: {
-            isActive: slot.isActive,
-            updatedAt: new Date(),
-          },
-        })
-    }
+    const batchValues = slots.map((slot) => ({
+      counselorId,
+      dayOfWeek: slot.dayOfWeek,
+      slotIndex: slot.slotIndex,
+      isActive: slot.isActive,
+      updatedAt: new Date(),
+    }))
+
+    await tx
+      .insert(counselorWeeklyTemplates)
+      .values(batchValues)
+      .onConflictDoUpdate({
+        target: [
+          counselorWeeklyTemplates.counselorId,
+          counselorWeeklyTemplates.dayOfWeek,
+          counselorWeeklyTemplates.slotIndex,
+        ],
+        set: {
+          isActive: sql`EXCLUDED.is_active`,
+          updatedAt: sql`EXCLUDED.updated_at`,
+        },
+      })
+
+    const [activeRow] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(counselorWeeklyTemplates)
+      .where(
+        and(
+          eq(counselorWeeklyTemplates.counselorId, counselorId),
+          eq(counselorWeeklyTemplates.isActive, true)
+        )
+      )
+
+    activeCount = Number(activeRow?.count ?? 0)
   })
 
   return { activeCount }

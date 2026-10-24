@@ -58,3 +58,39 @@ export const catalogFilterSchema = z.object({
 
 export type CatalogFilterInput = z.input<typeof catalogFilterSchema>
 
+export const templateSlotItemSchema = z.object({
+  dayOfWeek: z.number().int().min(1, "Hari harus antara 1 (Senin) dan 7 (Minggu)").max(7, "Hari harus antara 1 (Senin) dan 7 (Minggu)"),
+  slotIndex: z.number().int().min(1, "Index slot minimal 1").max(7, "Index slot maksimal 7"),
+  isActive: z.boolean(),
+})
+
+export type TemplateSlotItem = z.infer<typeof templateSlotItemSchema>
+
+export const saveCounselorTemplateSchema = z
+  .object({
+    slots: z.array(templateSlotItemSchema).min(1, "Daftar slot tidak boleh kosong"),
+    scheduleMode: z.enum(["manual", "automatic"]).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.scheduleMode === "automatic") {
+      const activeCount = data.slots.filter((s) => s.isActive).length
+      if (activeCount < 10) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Mode otomatis membutuhkan minimal 10 slot aktif per minggu. Saat ini hanya memilih ${activeCount} slot.`,
+          path: ["slots"],
+        })
+      }
+    }
+  })
+
+export type SaveCounselorTemplateInput = z.infer<typeof saveCounselorTemplateSchema>
+
+export const toggleScheduleModeSchema = z.object({
+  scheduleMode: z.enum(["manual", "automatic"], {
+    message: "Mode jadwal harus 'manual' atau 'automatic'",
+  }),
+})
+
+export type ToggleScheduleModeInput = z.infer<typeof toggleScheduleModeSchema>
+
