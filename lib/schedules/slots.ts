@@ -73,6 +73,22 @@ export const CLINIC_BOOKING_CUTOFF_HOURS = 4 // H-4 Jam per Master SOP
 export const MIN_BOOKING_LEAD_TIME_MINUTES = CLINIC_BOOKING_CUTOFF_HOURS * 60 // 240 minutes
 export const MAX_BOOKING_HORIZON_DAYS = 14
 
+export interface CounselorTemplateDayInfo {
+  dayOfWeek: number
+  dayName: string
+  dayShort: string
+}
+
+export const TEMPLATE_DAYS: CounselorTemplateDayInfo[] = [
+  { dayOfWeek: 1, dayName: "Senin", dayShort: "Sen" },
+  { dayOfWeek: 2, dayName: "Selasa", dayShort: "Sel" },
+  { dayOfWeek: 3, dayName: "Rabu", dayShort: "Rab" },
+  { dayOfWeek: 4, dayName: "Kamis", dayShort: "Kam" },
+  { dayOfWeek: 5, dayName: "Jumat", dayShort: "Jum" },
+  { dayOfWeek: 6, dayName: "Sabtu", dayShort: "Sab" },
+  { dayOfWeek: 7, dayName: "Minggu", dayShort: "Min" },
+]
+
 /**
  * Resolves fixed slot details by 1-based slot index (1..7).
  */

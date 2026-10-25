@@ -32,6 +32,8 @@ import {
   getCounselorTemplateMatrix,
   saveCounselorWeeklyTemplates,
   materializeCounselorSlots,
+  TEMPLATE_DAYS,
+  type CounselorTemplateDayInfo,
   type MaterializeResult,
 } from "@/lib/schedules/template"
 import { getAuthenticatedCounselor, resolveCounselorId } from "@/lib/counselor/auth"
@@ -60,6 +62,7 @@ export interface CounselorWeeklyGridData {
   commitment: WeeklyCommitmentSummary
   counselorName: string
   counselorTitle: string
+  scheduleMode?: "manual" | "automatic"
 }
 
 /**
@@ -100,18 +103,21 @@ export async function getCounselorWeeklyGridAction(
     // 1. Fetch counselor profile info
     let counselorName = auth.user_metadata?.full_name || "Mitra Konselor"
     let counselorTitle = "Konselor Solulu"
+    let scheduleMode: "manual" | "automatic" = "manual"
 
     if (options?.getCounselor) {
       const c = await options.getCounselor(counselorId)
       if (c) {
         counselorName = c.fullName || counselorName
         counselorTitle = c.title || counselorTitle
+        scheduleMode = (c.scheduleMode as "manual" | "automatic") || "manual"
       }
     } else {
       const cRows = await db
         .select({
           fullName: counselors.fullName,
           title: counselors.title,
+          scheduleMode: counselors.scheduleMode,
         })
         .from(counselors)
         .where(eq(counselors.id, counselorId))
@@ -120,6 +126,7 @@ export async function getCounselorWeeklyGridAction(
       if (cRows.length > 0) {
         counselorName = cRows[0].fullName
         counselorTitle = cRows[0].title
+        scheduleMode = (cRows[0].scheduleMode as "manual" | "automatic") || "manual"
       }
     }
 
@@ -251,6 +258,7 @@ export async function getCounselorWeeklyGridAction(
         commitment,
         counselorName,
         counselorTitle,
+        scheduleMode,
       },
     }
   } catch (err: any) {
@@ -713,21 +721,7 @@ export interface CounselorTemplateSlotCell {
   isActive: boolean
 }
 
-export interface CounselorTemplateDayInfo {
-  dayOfWeek: number // 1 (Senin) .. 7 (Minggu)
-  dayName: string
-  dayShort: string
-}
-
-export const TEMPLATE_DAYS: CounselorTemplateDayInfo[] = [
-  { dayOfWeek: 1, dayName: "Senin", dayShort: "Sen" },
-  { dayOfWeek: 2, dayName: "Selasa", dayShort: "Sel" },
-  { dayOfWeek: 3, dayName: "Rabu", dayShort: "Rab" },
-  { dayOfWeek: 4, dayName: "Kamis", dayShort: "Kam" },
-  { dayOfWeek: 5, dayName: "Jumat", dayShort: "Jum" },
-  { dayOfWeek: 6, dayName: "Sabtu", dayShort: "Sab" },
-  { dayOfWeek: 7, dayName: "Minggu", dayShort: "Min" },
-]
+export type { CounselorTemplateDayInfo }
 
 export interface CounselorTemplateData {
   counselorId: string

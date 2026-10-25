@@ -29,6 +29,8 @@ export interface MaterializeResult {
   totalProcessedDays: number
 }
 
+export { TEMPLATE_DAYS, type CounselorTemplateDayInfo } from "@/lib/schedules/slots"
+
 /**
  * Returns year, month, day, and formatted YYYY-MM-DD date string in Asia/Jakarta (WIB).
  */
@@ -432,3 +434,151 @@ export async function saveCounselorWeeklyTemplates(
 
   return { activeCount }
 }
+
+export interface ScheduleMaintenanceOptions {
+  referenceDate?: Date | string
+  weeksAhead?: number
+  dbClient?: DbClient
+  counselorId?: string
+}
+
+export interface CounselorMaintenanceReport {
+  counselorId: string
+  counselorName: string
+  success: boolean
+  createdCount: number
+  updatedCount: number
+  preservedBookedCount: number
+  preservedLeaveCount: number
+  cancelledCount: number
+  totalProcessedDays: number
+  startDate: string
+  endDate: string
+  error?: string
+}
+
+export interface ScheduleMaintenanceResult {
+  success: boolean
+  processedCounselorsCount: number
+  totalCreatedSlots: number
+  totalUpdatedSlots: number
+  totalPreservedBookedSlots: number
+  totalPreservedLeaveSlots: number
+  counselorReports: CounselorMaintenanceReport[]
+  error?: string
+}
+
+/**
+ * Scans all active counselors with schedule_mode = 'automatic' and ensures their
+ * physical schedule slots are continuously materialized for the next 4-week rolling window.
+ *
+ * Guarantees (Issue 04 / ADR-0006):
+ * 1. Automatic Counselor Scanning: Scans counselors where schedule_mode = 'automatic' AND is_active = true.
+ * 2. Rolling Buffer Extension: Extends slots 4 weeks into the future from referenceDate.
+ * 3. Idempotent: Can be run periodically without creating duplicate slot rows.
+ * 4. Booking & Leave Protection: Preserves existing booked, reserved, and leave slots.
+ */
+export async function maintainAutomaticScheduleBuffers(
+  options?: ScheduleMaintenanceOptions
+): Promise<ScheduleMaintenanceResult> {
+  const client = options?.dbClient || db
+  const refDate = options?.referenceDate || new Date()
+  const weeksAhead = options?.weeksAhead ?? 4
+
+  try {
+    const whereConditions = [
+      eq(counselors.scheduleMode, "automatic"),
+      eq(counselors.isActive, true),
+    ]
+
+    if (options?.counselorId) {
+      whereConditions.push(eq(counselors.id, options.counselorId))
+    }
+
+    const autoCounselors = await client
+      .select({
+        id: counselors.id,
+        fullName: counselors.fullName,
+        scheduleMode: counselors.scheduleMode,
+        isActive: counselors.isActive,
+      })
+      .from(counselors)
+      .where(and(...whereConditions))
+
+    let totalCreatedSlots = 0
+    let totalUpdatedSlots = 0
+    let totalPreservedBookedSlots = 0
+    let totalPreservedLeaveSlots = 0
+    const counselorReports: CounselorMaintenanceReport[] = []
+
+    for (const counselor of autoCounselors) {
+      try {
+        const res = await materializeCounselorSlots(counselor.id, weeksAhead, {
+          referenceDate: refDate,
+          dbClient: client,
+        })
+
+        totalCreatedSlots += res.createdCount
+        totalUpdatedSlots += res.updatedCount
+        totalPreservedBookedSlots += res.preservedBookedCount
+        totalPreservedLeaveSlots += res.preservedLeaveCount
+
+        counselorReports.push({
+          counselorId: counselor.id,
+          counselorName: counselor.fullName,
+          success: true,
+          createdCount: res.createdCount,
+          updatedCount: res.updatedCount,
+          preservedBookedCount: res.preservedBookedCount,
+          preservedLeaveCount: res.preservedLeaveCount,
+          cancelledCount: res.cancelledCount,
+          totalProcessedDays: res.totalProcessedDays,
+          startDate: res.startDate,
+          endDate: res.endDate,
+        })
+      } catch (counselorErr: any) {
+        console.error(
+          `Cron maintenance failed for counselor ${counselor.id} (${counselor.fullName}):`,
+          counselorErr
+        )
+        counselorReports.push({
+          counselorId: counselor.id,
+          counselorName: counselor.fullName,
+          success: false,
+          createdCount: 0,
+          updatedCount: 0,
+          preservedBookedCount: 0,
+          preservedLeaveCount: 0,
+          cancelledCount: 0,
+          totalProcessedDays: 0,
+          startDate: "",
+          endDate: "",
+          error: counselorErr.message || "Gagal memproses perpanjangan slot otomatis",
+        })
+      }
+    }
+
+    return {
+      success: true,
+      processedCounselorsCount: autoCounselors.length,
+      totalCreatedSlots,
+      totalUpdatedSlots,
+      totalPreservedBookedSlots,
+      totalPreservedLeaveSlots,
+      counselorReports,
+    }
+  } catch (error: any) {
+    console.error("Error executing maintainAutomaticScheduleBuffers:", error)
+    return {
+      success: false,
+      processedCounselorsCount: 0,
+      totalCreatedSlots: 0,
+      totalUpdatedSlots: 0,
+      totalPreservedBookedSlots: 0,
+      totalPreservedLeaveSlots: 0,
+      counselorReports: [],
+      error: error?.message || "Failed to maintain automatic schedule buffers",
+    }
+  }
+}
+
