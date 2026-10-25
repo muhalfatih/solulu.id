@@ -20,6 +20,8 @@ import {
   Ban,
   Calendar,
   Layers,
+  FileText,
+  Eye,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -101,6 +103,12 @@ const STATUS_OPTIONS = [
   { value: "cancelled", label: "Dibatalkan (Cancelled)" },
 ]
 
+const REPORT_STATUS_OPTIONS = [
+  { value: "all", label: "Semua Status Laporan" },
+  { value: "filled", label: "Laporan Lengkap (Siap)" },
+  { value: "pending", label: "Menunggu Laporan Konselor" },
+]
+
 export function BookingsClient({
   initialBookings,
   counselorOptions,
@@ -109,7 +117,14 @@ export function BookingsClient({
   const [searchQuery, setSearchQuery] = React.useState("")
   const [selectedSlot, setSelectedSlot] = React.useState("0")
   const [selectedStatus, setSelectedStatus] = React.useState("all")
+  const [selectedReportStatus, setSelectedReportStatus] = React.useState<"all" | "filled" | "pending">("all")
   const [selectedCounselor, setSelectedCounselor] = React.useState("all")
+
+  // Report Detail Preview Modal
+  const [selectedReportBooking, setSelectedReportBooking] = React.useState<AdminBookingItem | null>(null)
+
+  // Send WhatsApp Without Report Confirmation Dialog
+  const [confirmSendWithoutReportItem, setConfirmSendWithoutReportItem] = React.useState<AdminBookingItem | null>(null)
 
   // No-Show Dialog State
   const [noShowItem, setNoShowItem] = React.useState<AdminBookingItem | null>(null)
@@ -117,6 +132,17 @@ export function BookingsClient({
 
   // Follow-Up Loading State by Booking ID
   const [followingUpId, setFollowingUpId] = React.useState<string | null>(null)
+
+  // Read URL query parameter on mount (e.g. ?reportStatus=pending)
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      const rep = params.get("reportStatus") || params.get("reportFilter")
+      if (rep === "pending" || rep === "filled") {
+        setSelectedReportStatus(rep)
+      }
+    }
+  }, [])
 
   // Filter Bookings
   const filteredBookings = React.useMemo(() => {
@@ -136,6 +162,14 @@ export function BookingsClient({
         return false
       }
 
+      // Report Status filter
+      if (selectedReportStatus === "filled" && !b.hasSessionReport) {
+        return false
+      }
+      if (selectedReportStatus === "pending" && (b.hasSessionReport || b.status !== "completed")) {
+        return false
+      }
+
       // Search keyword filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim()
@@ -151,12 +185,16 @@ export function BookingsClient({
 
       return true
     })
-  }, [bookingsList, selectedSlot, selectedStatus, selectedCounselor, searchQuery])
+  }, [bookingsList, selectedSlot, selectedStatus, selectedReportStatus, selectedCounselor, searchQuery])
 
   // Top Metrics
   const totalBookings = bookingsList.length
   const confirmedCount = bookingsList.filter((b) => b.status === "confirmed").length
   const completedCount = bookingsList.filter((b) => b.status === "completed").length
+  const reportsFilledCount = bookingsList.filter((b) => b.hasSessionReport).length
+  const reportsPendingCount = bookingsList.filter(
+    (b) => b.status === "completed" && !b.hasSessionReport
+  ).length
   const needFollowUpCount = bookingsList.filter(
     (b) => b.status === "completed" && !b.isFollowedUp
   ).length
@@ -296,34 +334,74 @@ export function BookingsClient({
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 shadow-xs">
+        {/* KPI: Laporan Lengkap */}
+        <Card
+          onClick={() => setSelectedReportStatus((prev) => (prev === "filled" ? "all" : "filled"))}
+          className={`border shadow-xs cursor-pointer transition-colors ${
+            selectedReportStatus === "filled"
+              ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20"
+              : "border-border/80 hover:border-emerald-500/50"
+          }`}
+          title="Klik untuk menyaring sesi dengan laporan lengkap"
+        >
           <CardContent className="p-4 flex flex-col gap-1">
-            <span className="text-xs font-medium text-muted-foreground">Sesi Selesai</span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Laporan Selesai</span>
+              {selectedReportStatus === "filled" && (
+                <Badge variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-300 border-emerald-500/40">
+                  Aktif
+                </Badge>
+              )}
+            </div>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                {completedCount}
+                {reportsFilledCount}
               </span>
-              <Badge variant="secondary" className="text-[10px]">Completed</Badge>
+              <Badge variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-300 border-emerald-500/30 bg-emerald-500/10">
+                Siap Kirim
+              </Badge>
             </div>
-            <span className="text-[11px] text-muted-foreground">Termasuk sesi No-Show</span>
+            <span className="text-[11px] text-muted-foreground">Catatan klinis sudah diisi</span>
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 shadow-xs">
+        {/* KPI: Menunggu Catatan Konselor */}
+        <Card
+          onClick={() => setSelectedReportStatus((prev) => (prev === "pending" ? "all" : "pending"))}
+          className={`border shadow-xs cursor-pointer transition-colors ${
+            selectedReportStatus === "pending"
+              ? "border-amber-500 bg-amber-500/15 ring-2 ring-amber-500/25"
+              : reportsPendingCount > 0
+              ? "border-amber-500/60 bg-amber-500/5 hover:border-amber-500"
+              : "border-border/80"
+          }`}
+          title="Klik untuk menyaring sesi yang konselornya belum mengisi laporan klinis"
+        >
           <CardContent className="p-4 flex flex-col gap-1">
-            <span className="text-xs font-medium text-muted-foreground">Perlu Follow-up WA</span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Menunggu Laporan</span>
+              {selectedReportStatus === "pending" && (
+                <Badge variant="outline" className="text-[10px] text-amber-700 dark:text-amber-300 border-amber-500/40">
+                  Filter Aktif
+                </Badge>
+              )}
+            </div>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">
-                {needFollowUpCount}
+                {reportsPendingCount}
               </span>
               <Badge
-                variant={needFollowUpCount > 0 ? "destructive" : "secondary"}
+                variant={reportsPendingCount > 0 ? "destructive" : "secondary"}
                 className="text-[10px]"
               >
-                {needFollowUpCount > 0 ? "Perlu Kirim" : "Tuntas"}
+                {reportsPendingCount > 0 ? "Perlu Diisi" : "Tuntas"}
               </Badge>
             </div>
-            <span className="text-[11px] text-muted-foreground">Laporan selesai belum dikirim</span>
+            <span className="text-[11px] text-muted-foreground">
+              {reportsPendingCount > 0
+                ? "Sesi selesai belum ada catatan klinis"
+                : "Semua rekam medis lengkap"}
+            </span>
           </CardContent>
         </Card>
       </div>
@@ -338,7 +416,7 @@ export function BookingsClient({
                   Daftar Booking Sesi Klinis
                 </CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                  Filter berdasarkan slot harian 1-7, status siklus, dan mitra konselor pendamping.
+                  Filter berdasarkan slot harian, status sesi, status kelengkapan laporan konselor, dan mitra pendamping.
                 </CardDescription>
               </div>
 
@@ -350,7 +428,7 @@ export function BookingsClient({
             </div>
 
             {/* Filter Controls Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 pt-1">
               {/* Search Keyword */}
               <div className="relative">
                 <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -388,6 +466,22 @@ export function BookingsClient({
                     {STATUS_OPTIONS.map((status) => (
                       <SelectItem key={status.value} value={status.value} className="text-xs">
                         {status.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
+              {/* Report Status Filter */}
+              <Select value={selectedReportStatus} onValueChange={(val: any) => setSelectedReportStatus(val)}>
+                <SelectTrigger className="h-8 text-xs bg-background">
+                  <SelectValue placeholder="Status Laporan..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {REPORT_STATUS_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                        {opt.label}
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -436,6 +530,7 @@ export function BookingsClient({
                     setSearchQuery("")
                     setSelectedSlot("0")
                     setSelectedStatus("all")
+                    setSelectedReportStatus("all")
                     setSelectedCounselor("all")
                   }}
                   className="h-8 text-xs cursor-pointer"
@@ -553,6 +648,27 @@ export function BookingsClient({
                                 : "Menunggu Bayar"}
                             </Badge>
 
+                            {/* Clinical Report Status Badge */}
+                            {b.status === "completed" && (
+                              b.hasSessionReport ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-1.5 py-0 gap-1 font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                                >
+                                  <CheckCircle2 className="size-2.5 text-emerald-600" />
+                                  <span>Laporan Lengkap</span>
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] px-1.5 py-0 gap-1 font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                                >
+                                  <Clock className="size-2.5 text-amber-600" />
+                                  <span>Menunggu Catatan</span>
+                                </Badge>
+                              )
+                            )}
+
                             {/* No-Show Marker Badge */}
                             {b.isNoShow && (
                               <Badge
@@ -575,6 +691,21 @@ export function BookingsClient({
 
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            {/* Tombol Lihat Laporan Klinis (Jika sudah diisi) */}
+                            {b.hasSessionReport && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedReportBooking(b)}
+                                className="h-7 text-[11px] gap-1 text-primary hover:bg-primary/10 border-primary/30 cursor-pointer"
+                                title="Lihat rincian laporan sesi klinis"
+                              >
+                                <FileText className="size-3" data-icon="inline-start" />
+                                <span className="hidden sm:inline">Lihat Laporan</span>
+                              </Button>
+                            )}
+
                             {/* 1. Tombol Tandai No-Show (Syarat: Tidak hadir dalam 30 menit) */}
                             {!b.isNoShow && b.status !== "cancelled" ? (
                               <Button
@@ -612,7 +743,13 @@ export function BookingsClient({
                               size="sm"
                               variant={b.isFollowedUp ? "outline" : "default"}
                               disabled={followingUpId === b.id}
-                              onClick={() => handleSendWhatsAppReport(b)}
+                              onClick={() => {
+                                if (b.status === "completed" && !b.hasSessionReport) {
+                                  setConfirmSendWithoutReportItem(b)
+                                } else {
+                                  handleSendWhatsAppReport(b)
+                                }
+                              }}
                               className={`h-7 text-[11px] gap-1 cursor-pointer font-medium ${
                                 b.isFollowedUp
                                   ? "text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/10"
@@ -728,6 +865,205 @@ export function BookingsClient({
                   <span>Konfirmasi Tandai No-Show</span>
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOG 1: LIHAT RINCIAN LAPORAN KLINIS (ADMIN READ-ONLY) */}
+      <Dialog open={Boolean(selectedReportBooking)} onOpenChange={(open) => !open && setSelectedReportBooking(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center gap-2.5">
+              <div className="size-9 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                <FileText className="size-4.5" />
+              </div>
+              <div className="flex flex-col">
+                <DialogTitle className="text-base font-bold text-foreground">
+                  Laporan Sesi Klinis Konselor
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  {selectedReportBooking?.bookingCode} • Klien: {selectedReportBooking?.patientName} • Konselor: {selectedReportBooking?.counselorName}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4 py-2 text-xs">
+            {/* Metadata Ringkas */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-3 rounded-lg bg-muted/40 border border-border/60">
+              <div>
+                <span className="text-[10px] text-muted-foreground block font-medium">Jadwal Sesi</span>
+                <span className="font-semibold text-foreground">
+                  {selectedReportBooking?.scheduleDate} ({selectedReportBooking?.timeRange})
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-muted-foreground block font-medium">Durasi Riil Konseling</span>
+                <span className="font-semibold text-foreground">
+                  {selectedReportBooking?.reportDetails?.actualDurationMinutes
+                    ? `${selectedReportBooking.reportDetails.actualDurationMinutes} Menit`
+                    : "90 Menit"}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-muted-foreground block font-medium">Waktu Diserahkan</span>
+                <span className="font-semibold text-foreground">
+                  {selectedReportBooking?.reportDetails?.createdAt
+                    ? new Date(selectedReportBooking.reportDetails.createdAt).toLocaleString("id-ID", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })
+                    : "-"}
+                </span>
+              </div>
+            </div>
+
+            {/* Permasalahan Utama */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Permasalahan Utama (Main Issue)
+              </span>
+              <div className="p-3 rounded-md bg-background border border-border text-foreground font-medium">
+                {selectedReportBooking?.reportDetails?.mainIssue || "Konsultasi Emosional & Stres"}
+              </div>
+            </div>
+
+            {/* Ringkasan Dinamika Sesi */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Ringkasan Dinamika Sesi (Clinical Summary)
+              </span>
+              <div className="p-3 rounded-md bg-background border border-border text-foreground whitespace-pre-wrap leading-relaxed">
+                {selectedReportBooking?.reportDetails?.summary || "Tidak ada ringkasan tertulis."}
+              </div>
+            </div>
+
+            {/* Rencana Aksi */}
+            {selectedReportBooking?.reportDetails?.actionPlan && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Rencana Aksi & Latihan Mandiri (Action Plan)
+                </span>
+                <div className="p-3 rounded-md bg-background border border-border text-foreground whitespace-pre-wrap leading-relaxed">
+                  {selectedReportBooking.reportDetails.actionPlan}
+                </div>
+              </div>
+            )}
+
+            {/* Rekomendasi Sesi Lanjutan */}
+            {selectedReportBooking?.reportDetails?.followUpRecommendation && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Rekomendasi Konselor untuk Klien
+                </span>
+                <div className="p-3 rounded-md bg-background border border-border text-foreground whitespace-pre-wrap leading-relaxed">
+                  {selectedReportBooking.reportDetails.followUpRecommendation}
+                </div>
+              </div>
+            )}
+
+            {/* Zero Clinical Leak Privacy Disclaimer */}
+            <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5">
+              <ShieldCheck className="size-4 shrink-0 mt-0.5 text-emerald-600" />
+              <div className="text-[11px] leading-relaxed">
+                <strong>Kepatuhan Etika & Kerahasiaan Medis:</strong> Catatan internal pribadi konselor (<em>Internal Notes</em>) dilindungi dan disembunyikan secara otomatis demi menjaga kerahasiaan proses terapi klien.
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border/60">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedReportBooking(null)}
+              className="text-xs h-8 cursor-pointer"
+            >
+              Tutup
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                if (selectedReportBooking) {
+                  const b = selectedReportBooking
+                  setSelectedReportBooking(null)
+                  handleSendWhatsAppReport(b)
+                }
+              }}
+              className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 cursor-pointer font-medium"
+            >
+              <MessageSquare className="size-3.5" />
+              <span>Kirimkan Tautan ke Klien via WA</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* DIALOG 2: PERINGATAN KIRIM WA SAAT LAPORAN BELUM DIISI */}
+      <Dialog
+        open={Boolean(confirmSendWithoutReportItem)}
+        onOpenChange={(open) => !open && setConfirmSendWithoutReportItem(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2.5">
+              <div className="size-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="size-4" />
+              </div>
+              <div className="flex flex-col">
+                <DialogTitle className="text-base font-bold text-foreground">
+                  Catatan Konselor Belum Lengkap
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  {confirmSendWithoutReportItem?.bookingCode} • Klien: {confirmSendWithoutReportItem?.patientName}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3 py-2 text-xs">
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 flex items-start gap-2.5 text-amber-800 dark:text-amber-300">
+              <Clock className="size-4 shrink-0 mt-0.5 text-amber-600" />
+              <div className="flex flex-col gap-0.5 leading-relaxed">
+                <span className="font-semibold">Mitra Konselor Belum Menyerahkan Laporan</span>
+                <span className="text-[11px] text-muted-foreground">
+                  Mitra konselor <strong>{confirmSendWithoutReportItem?.counselorName}</strong> belum mengisi formulir catatan klinis untuk sesi ini. Jika Anda mengirim tautan sekarang, klien akan melihat status laporan masih dalam proses.
+                </span>
+              </div>
+            </div>
+
+            <p className="text-muted-foreground leading-relaxed">
+              Disarankan untuk menghubungi mitra konselor terlebih dahulu untuk melengkapi ringkasan sesi sebelum meneruskan ke klien. Apakah Anda tetap ingin membuka WhatsApp?
+            </p>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmSendWithoutReportItem(null)}
+              className="h-8 text-xs cursor-pointer"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="default"
+              onClick={() => {
+                if (confirmSendWithoutReportItem) {
+                  const b = confirmSendWithoutReportItem
+                  setConfirmSendWithoutReportItem(null)
+                  handleSendWhatsAppReport(b)
+                }
+              }}
+              className="h-8 text-xs font-medium gap-1.5 cursor-pointer bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <MessageSquare className="size-3.5" />
+              <span>Tetap Buka WhatsApp</span>
             </Button>
           </DialogFooter>
         </DialogContent>

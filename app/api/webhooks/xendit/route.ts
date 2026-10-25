@@ -92,10 +92,46 @@ export async function POST(req: Request) {
     }
 
     // 5. Handle Payment Statuses
+    const isExtension =
+      transaction.adminNotes === "EXTENSION" ||
+      Boolean(transaction.referenceNumber && transaction.referenceNumber.startsWith("EXT-")) ||
+      Boolean(body.external_id && body.external_id.startsWith("EXT-"))
+
     if (body.status === "PAID") {
       const paymentMethod =
         body.payment_method || body.payment_channel || "XENDIT_AUTO"
 
+      if (isExtension) {
+        // Atomically update Transaction and Booking extensionPaymentStatus
+        await db
+          .update(transactions)
+          .set({
+            status: "PAID",
+            paidAt: body.paid_at ? new Date(body.paid_at) : new Date(),
+            paymentMethod,
+          })
+          .where(eq(transactions.id, transaction.id))
+
+        await db
+          .update(bookings)
+          .set({
+            extensionPaymentStatus: "PAID",
+            extensionPaymentMethod: "xendit",
+          })
+          .where(eq(bookings.id, booking.id))
+
+        return NextResponse.json(
+          {
+            success: true,
+            status: "PAID",
+            type: "extension",
+            bookingId: booking.id,
+          },
+          { status: 200 }
+        )
+      }
+
+      // Standard Initial Booking Payment
       // Atomically update Transaction, Booking, Schedule status
       await db
         .update(transactions)
@@ -139,8 +175,17 @@ export async function POST(req: Request) {
         })
         .where(eq(transactions.id, transaction.id))
 
+      if (isExtension) {
+        await db
+          .update(bookings)
+          .set({
+            extensionPaymentStatus: "NONE",
+          })
+          .where(eq(bookings.id, booking.id))
+      }
+
       return NextResponse.json(
-        { success: true, status: body.status },
+        { success: true, status: body.status, type: isExtension ? "extension" : "initial" },
         { status: 200 }
       )
     }

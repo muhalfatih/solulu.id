@@ -99,13 +99,8 @@ export const ADMIN_NAV_GROUPS: NavGroup[] = [
         href: "/admin/settings",
         label: "Pengaturan Sistem",
         icon: Sliders,
-        description: "Parameter cutoff H-4 jam, kuota 10 slot, dan tarif perpanjangan",
-      },
-      {
-        href: "/admin/pricing",
-        label: "Tarif & Promo",
-        icon: Tag,
-        description: "Konfigurasi tarif dasar konsultasi dan kupon diskon",
+        description: "Parameter operasional, tarif konseling, extend sesi, dan kuesioner",
+        aliases: ["/admin/pricing"],
       },
       {
         href: "/admin/testimonials",

@@ -61,6 +61,11 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
   const [copiedKey, setCopiedKey] = React.useState<boolean>(false)
   const [isSavingExtension, setIsSavingExtension] = React.useState<boolean>(false)
   const [extensionRecorded, setExtensionRecorded] = React.useState<boolean>(session.isExtended)
+  const [recordedFee, setRecordedFee] = React.useState<number | null>(
+    session.extensionFee && Number(session.extensionFee) > 0
+      ? Number(session.extensionFee)
+      : null
+  )
   const [isClientAdmitted, setIsClientAdmitted] = React.useState<boolean>(Boolean(session.operatorAdmittedAt))
   const [isAdmittingClient, setIsAdmittingClient] = React.useState<boolean>(false)
   const autoAdmittedOnceRef = React.useRef<boolean>(false)
@@ -116,8 +121,8 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
   )
   const elapsedMinutes = Math.floor(elapsedSeconds / 60)
   const feeCalculation = React.useMemo(
-    () => calculateExtendFee(elapsedMinutes, session.counselorType),
-    [elapsedMinutes, session.counselorType]
+    () => calculateExtendFee(elapsedMinutes, session.counselorType, session.customRates),
+    [elapsedMinutes, session.counselorType, session.customRates]
   )
 
   // Host Key fallback
@@ -212,6 +217,9 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
       const res = await recordSessionExtensionAction(session.id)
       if (res.success) {
         setExtensionRecorded(true)
+        if (res.data?.fee) {
+          setRecordedFee(res.data.fee)
+        }
         toast.success("Perpanjangan Sesi Tercatat", {
           description: `Biaya perpanjangan Rp ${res.data?.fee.toLocaleString("id-ID")} berhasil disimpan ke database.`,
         })
@@ -551,7 +559,13 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
                   Tarif ({session.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"}):
                 </span>
                 <span className="font-bold font-mono text-sm">
-                  {feeCalculation.formattedFee}
+                  {recordedFee != null
+                    ? new Intl.NumberFormat("id-ID", {
+                        style: "currency",
+                        currency: "IDR",
+                        maximumFractionDigits: 0,
+                      }).format(recordedFee)
+                    : feeCalculation.formattedFee}
                 </span>
               </div>
 

@@ -84,32 +84,52 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
     const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
     const sevenDaysLaterStr = sevenDaysLater.toISOString().split("T")[0]
 
-    const rows = await withDbTimeout(
-      db
-        .select({
-          booking: bookings,
-          schedule: schedules,
-          screening: screenings,
-          report: sessionReports,
-          counselor: counselors,
-          zoomAccount: zoomAccounts,
-        })
-        .from(bookings)
-        .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
-        .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
-        .leftJoin(zoomAccounts, eq(bookings.zoomAccountId, zoomAccounts.id))
-        .leftJoin(screenings, eq(bookings.screeningId, screenings.id))
-        .leftJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
-        .where(
-          and(
-            eq(bookings.counselorId, counselorId),
-            sql`${bookings.status} IN ('pending_payment', 'confirmed', 'completed', 'cancelled')`,
-            sql`${schedules.date} >= ${todayStr} AND ${schedules.date} <= ${sevenDaysLaterStr}`
+    const [rows, settingsRows] = await Promise.all([
+      withDbTimeout(
+        db
+          .select({
+            booking: bookings,
+            schedule: schedules,
+            screening: screenings,
+            report: sessionReports,
+            counselor: counselors,
+            zoomAccount: zoomAccounts,
+          })
+          .from(bookings)
+          .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
+          .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
+          .leftJoin(zoomAccounts, eq(bookings.zoomAccountId, zoomAccounts.id))
+          .leftJoin(screenings, eq(bookings.screeningId, screenings.id))
+          .leftJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
+          .where(
+            and(
+              eq(bookings.counselorId, counselorId),
+              sql`${bookings.status} IN ('pending_payment', 'confirmed', 'completed', 'cancelled')`,
+              sql`${schedules.date} >= ${todayStr} AND ${schedules.date} <= ${sevenDaysLaterStr}`
+            )
           )
-        )
-        .orderBy(asc(schedules.date), asc(schedules.startTime)),
-      10000
-    )
+          .orderBy(asc(schedules.date), asc(schedules.startTime)),
+        10000
+      ),
+      withDbTimeout(
+        db
+          .select({
+            counselorExtendFeePer30Min: platformSettings.counselorExtendFeePer30Min,
+            psychologistExtendFeePer30Min: platformSettings.psychologistExtendFeePer30Min,
+          })
+          .from(platformSettings)
+          .where(eq(platformSettings.id, "default"))
+          .limit(1),
+        5000
+      ).catch(() => []),
+    ])
+
+    const customRates = settingsRows?.length
+      ? {
+          peerRate: Number(settingsRows[0].counselorExtendFeePer30Min),
+          psychologistRate: Number(settingsRows[0].psychologistExtendFeePer30Min),
+        }
+      : undefined
 
     const sessions: CounselorUpcomingSessionView[] = rows.map((r) => {
       const startTime = String(r.schedule.startTime)
@@ -145,6 +165,7 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
         extensionMinutes: r.booking.extensionMinutes ?? 0,
         extensionFee: r.booking.extensionFee ?? "0",
         extensionPaymentStatus: r.booking.extensionPaymentStatus || "NONE",
+        customRates,
         srqScore: r.screening ? r.screening.totalScore : null,
         hasSuicidalThoughts: r.screening ? Boolean(r.screening.hasSuicidalThoughts) : false,
         bypassedRecommendation: Boolean(r.booking.bypassedRecommendation),
@@ -937,7 +958,7 @@ export async function recordSessionExtensionAction(
           isExtended: true,
           extensionMinutes: 30,
           extensionFee: feeCalc.fee.toString(),
-          extensionPaymentStatus: "PENDING",
+          extensionPaymentStatus: booking.extensionPaymentStatus === "PAID" ? "PAID" : "NONE",
         })
         .where(eq(bookings.id, bookingId)),
       10000

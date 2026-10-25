@@ -22,6 +22,7 @@ export interface FinanceLedgerItem {
   bookingStatus: "pending_payment" | "confirmed" | "completed" | "cancelled"
   isExtended: boolean
   extensionMinutes: number
+  extensionPaymentStatus?: "NONE" | "PENDING" | "PAID" | "REJECTED"
   isNoShow: boolean
   createdAt: string
 }
@@ -94,12 +95,15 @@ export function computeFinanceMetrics(items: FinanceLedgerItem[]): FinanceReport
       item.bookingStatus === "completed"
   )
 
-  const totalGrossRevenue = revenueItems.reduce((acc, curr) => acc + curr.totalAmount, 0)
   const baseRevenue = revenueItems.reduce((acc, curr) => acc + curr.baseFee, 0)
   const totalExtensionRevenue = revenueItems.reduce(
-    (acc, curr) => acc + curr.extensionFee,
+    (acc, curr) => {
+      const isPaid = curr.extensionPaymentStatus === undefined || curr.extensionPaymentStatus === "PAID"
+      return isPaid ? acc + curr.extensionFee : acc
+    },
     0
   )
+  const totalGrossRevenue = baseRevenue + totalExtensionRevenue
   const extendedSessionsCount = items.filter(
     (item) => item.isExtended || item.extensionFee > 0
   ).length

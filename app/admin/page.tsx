@@ -135,6 +135,8 @@ export default function DistilledAdminDashboard() {
             referenceNumber: t?.referenceNumber || undefined,
             adminNotes: t?.adminNotes || undefined,
             amount: t?.netAmount ? Number(t.netAmount) : 150000,
+            hasSessionReport: Boolean(row.report?.id),
+            sessionReportId: row.report?.id || null,
           }
         })
         setAllSessions(mapped)
@@ -384,29 +386,35 @@ export default function DistilledAdminDashboard() {
           loading={isLoading}
         />
 
-        <AdminMetricCard
-          title="Rekam Medis Tertunda"
-          value={metrics?.pendingMedicalRecordsCount ?? 0}
-          variant={
-            (metrics?.pendingMedicalRecordsCount ?? 0) > 0
-              ? "warning"
-              : "default"
-          }
-          badge={
-            (metrics?.pendingMedicalRecordsCount ?? 0) > 0 ? (
-              <span
-                className="size-2 rounded-full bg-amber-500 ring-2 ring-amber-500/20"
-                title="Perlu pengisian catatan klinis"
-              />
-            ) : undefined
-          }
-          description={
-            metrics?.firstPendingMedicalRecordCode
-              ? `Menunggu catatan: ${metrics.firstPendingMedicalRecordCode}`
-              : "Semua rekam medis lengkap"
-          }
-          loading={isLoading}
-        />
+        <Link
+          href="/admin/bookings?reportStatus=pending"
+          className="block focus:outline-hidden transition-transform hover:-translate-y-0.5"
+          title="Klik untuk melihat sesi dan konselor yang belum mengisi laporan"
+        >
+          <AdminMetricCard
+            title="Rekam Medis Tertunda"
+            value={metrics?.pendingMedicalRecordsCount ?? 0}
+            variant={
+              (metrics?.pendingMedicalRecordsCount ?? 0) > 0
+                ? "warning"
+                : "default"
+            }
+            badge={
+              (metrics?.pendingMedicalRecordsCount ?? 0) > 0 ? (
+                <span
+                  className="size-2 rounded-full bg-amber-500 ring-2 ring-amber-500/20"
+                  title="Perlu pengisian catatan klinis"
+                />
+              ) : undefined
+            }
+            description={
+              metrics?.firstPendingMedicalRecordCode
+                ? `Menunggu catatan: ${metrics.firstPendingMedicalRecordCode} (Klik lihat detail)`
+                : "Semua rekam medis lengkap"
+            }
+            loading={isLoading}
+          />
+        </Link>
 
         <AdminMetricCard
           title="Pendapatan"
@@ -611,7 +619,22 @@ export default function DistilledAdminDashboard() {
 
                           {/* Unified Status */}
                           <TableCell className="py-2.5 px-2 align-middle whitespace-nowrap">
-                            <SessionStatusBadge status={ses.status} />
+                            <div className="flex flex-col gap-1 items-start">
+                              <SessionStatusBadge status={ses.status} />
+                              {(ses.status === "completed" || ses.isPast) && (
+                                ses.hasSessionReport ? (
+                                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium inline-flex items-center gap-1">
+                                    <CheckCircle2 className="size-2.5" />
+                                    Laporan Lengkap
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium inline-flex items-center gap-1">
+                                    <Clock className="size-2.5" />
+                                    Menunggu Laporan
+                                  </span>
+                                )
+                              )}
+                            </div>
                           </TableCell>
 
                           {/* Actions (Fluid, DropdownMenu + Quick Action) */}

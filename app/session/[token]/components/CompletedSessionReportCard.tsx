@@ -12,6 +12,7 @@ import {
   Sparkles,
   Lock,
   FileCheck,
+  CreditCard,
 } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -41,6 +42,12 @@ export function CompletedSessionReportCard({
   hasReport = false,
   onOpenUnlockModal,
 }: CompletedSessionReportCardProps) {
+  const isExtendUnpaid = Boolean(
+    booking.isExtended &&
+      Number(booking.extensionFee) > 0 &&
+      booking.extensionPaymentStatus !== "PAID"
+  )
+
   const handlePrint = () => {
     window.print()
   }
@@ -79,7 +86,7 @@ export function CompletedSessionReportCard({
             </div>
           </div>
 
-          {report && (
+          {report && !isExtendUnpaid && (
             <Button
               type="button"
               variant="outline"
@@ -123,7 +130,49 @@ export function CompletedSessionReportCard({
           </div>
         </div>
 
-        {report ? (
+        {isExtendUnpaid ? (
+          /* LOCKED DUE TO UNPAID EXTENSION FEE */
+          <div
+            id="report-locked-extension-gate"
+            className="flex flex-col items-center justify-center p-7 sm:p-8 text-center rounded-2xl border-2 border-amber-500/30 bg-gradient-to-b from-amber-500/10 via-background to-background gap-4 shadow-2xs print:hidden"
+          >
+            <div className="size-12 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Lock className="size-6" />
+            </div>
+
+            <div className="flex flex-col gap-1.5 max-w-md items-center">
+              <div className="flex items-center justify-center gap-2">
+                <Badge variant="outline" className="text-[10px] font-semibold border-amber-500/40 text-amber-700 dark:text-amber-300 bg-amber-500/10">
+                  Perpanjangan Sesi (+{booking.extensionMinutes || 30} Menit)
+                </Badge>
+                <Badge variant="destructive" className="text-[10px]">
+                  Pelunasan Belum Selesai
+                </Badge>
+              </div>
+              <h3 className="font-heading font-bold text-base sm:text-lg text-foreground pt-1">
+                Laporan Sesi Klinis Terkunci
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed text-pretty">
+                Sesi konseling Anda diperpanjang melampaui 90 menit reguler. Dokumen resmi catatan klinis dan saran tindak lanjut dari <strong className="text-foreground">{counselor.fullName}</strong> akan otomatis dapat dibuka setelah pelunasan biaya perpanjangan sesi ({booking.extensionFeeFormatted || `Rp ${Number(booking.extensionFee).toLocaleString("id-ID")}`}) diselesaikan dan diverifikasi.
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              onClick={() => {
+                const el = document.getElementById("card-extension-payment")
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "center" })
+                }
+              }}
+              id="btn-goto-extension-payment"
+              className="text-xs sm:text-sm font-semibold h-10 px-5 gap-2 shadow-xs bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
+            >
+              <CreditCard data-icon="inline-start" className="size-4" />
+              <span>Selesaikan Pelunasan Extend</span>
+            </Button>
+          </div>
+        ) : report ? (
           /* UNLOCKED OFFICIAL CLINICAL REPORT */
           <div className="flex flex-col gap-5 print:gap-4">
             {/* Permasalahan Utama (*Main Issue*) */}

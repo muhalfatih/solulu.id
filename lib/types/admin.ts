@@ -81,6 +81,8 @@ export interface BookingSession {
   adminNotes?: string
   amount: number
   voucherCode?: string
+  hasSessionReport?: boolean
+  sessionReportId?: string | null
 }
 
 export interface ActiveCounselor {

@@ -115,20 +115,15 @@ export async function getFinanceReportDataAction(params?: {
       // Compute base fee:
       let baseFee = 0
       if (r.grossAmount && Number(r.grossAmount) > 0) {
-        baseFee = Math.max(0, Number(r.grossAmount) - extFee)
+        baseFee = Number(r.grossAmount)
       } else if (r.customFeeRate && Number(r.customFeeRate) > 0) {
         baseFee = Number(r.customFeeRate)
       } else {
         baseFee = r.counselorType === "psychologist" ? 150000 : 85000
       }
 
-      // Compute total amount:
-      let totalAmount = 0
-      if (r.netAmount && Number(r.netAmount) > 0) {
-        totalAmount = Number(r.netAmount)
-      } else {
-        totalAmount = baseFee + extFee
-      }
+      // Compute total amount (base session fee + any extension fee):
+      const totalAmount = baseFee + extFee
 
       // Determine payment status
       let paymentStatus: FinanceLedgerItem["paymentStatus"] = "PENDING"
@@ -165,6 +160,7 @@ export async function getFinanceReportDataAction(params?: {
         actualDurationMinutes: actualDuration,
         baseFee,
         extensionFee: extFee,
+        extensionPaymentStatus: (r.extensionPaymentStatus as any) || "NONE",
         totalAmount,
         paymentMethod: (r.paymentMethod as "xendit" | "manual_bank_transfer") || "xendit",
         paymentStatus,

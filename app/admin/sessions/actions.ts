@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { eq, desc } from "drizzle-orm"
 import { db } from "@/db"
-import { bookings, counselors, schedules, transactions, zoomAccounts } from "@/db/schema"
+import { bookings, counselors, schedules, transactions, zoomAccounts, sessionReports } from "@/db/schema"
 import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
 import {
   confirmManualPayment,
@@ -70,12 +70,14 @@ export async function getBookingsAdminAction(options?: {
           schedule: schedules,
           transaction: transactions,
           zoomAccount: zoomAccounts,
+          report: sessionReports,
         })
         .from(bookings)
         .leftJoin(counselors, eq(bookings.counselorId, counselors.id))
         .leftJoin(schedules, eq(bookings.scheduleId, schedules.id))
         .leftJoin(transactions, eq(transactions.bookingId, bookings.id))
         .leftJoin(zoomAccounts, eq(bookings.zoomAccountId, zoomAccounts.id))
+        .leftJoin(sessionReports, eq(sessionReports.bookingId, bookings.id))
         .orderBy(desc(bookings.createdAt)),
       db
         .select({

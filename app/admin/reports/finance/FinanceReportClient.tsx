@@ -67,6 +67,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { cn } from "@/lib/utils"
 import {
   type FinanceLedgerItem,
   type FinanceReportMetrics,
@@ -772,9 +773,33 @@ export function FinanceReportClient({
                         {/* 8. Biaya Extend */}
                         <TableCell className="text-right font-mono">
                           {hasExtend ? (
-                            <span className="text-blue-600 dark:text-blue-400 font-medium">
-                              +{formatRupiah(item.extensionFee)}
-                            </span>
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-blue-600 dark:text-blue-400 font-medium">
+                                +{formatRupiah(item.extensionFee)}
+                              </span>
+                              {item.extensionPaymentStatus === "PAID" ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[9px] px-1.5 py-0 font-medium text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
+                                >
+                                  Lunas
+                                </Badge>
+                              ) : item.extensionPaymentStatus === "PENDING" ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[9px] px-1.5 py-0 font-medium text-amber-600 dark:text-amber-400 border-amber-500/30 bg-amber-500/10"
+                                >
+                                  Verifikasi
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[9px] px-1.5 py-0 font-medium text-rose-600 dark:text-rose-400 border-rose-500/30 bg-rose-500/10"
+                                >
+                                  Belum Bayar
+                                </Badge>
+                              )}
+                            </div>
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}
@@ -941,15 +966,36 @@ export function FinanceReportClient({
                   <span className="text-muted-foreground">
                     Biaya Perpanjangan (Extend):
                   </span>
-                  <span className="font-medium text-blue-600 dark:text-blue-400">
-                    {selectedItem.extensionFee > 0
-                      ? `+${formatRupiah(selectedItem.extensionFee)} (${selectedItem.extensionMinutes} m)`
-                      : "-"}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-medium text-blue-600 dark:text-blue-400">
+                      {selectedItem.extensionFee > 0
+                        ? `+${formatRupiah(selectedItem.extensionFee)} (${selectedItem.extensionMinutes} m)`
+                        : "-"}
+                    </span>
+                    {selectedItem.extensionFee > 0 && (
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[9px] px-1.5 py-0 font-medium",
+                          selectedItem.extensionPaymentStatus === "PAID"
+                            ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
+                            : selectedItem.extensionPaymentStatus === "PENDING"
+                            ? "text-amber-600 dark:text-amber-400 border-amber-500/30 bg-amber-500/10"
+                            : "text-rose-600 dark:text-rose-400 border-rose-500/30 bg-rose-500/10"
+                        )}
+                      >
+                        {selectedItem.extensionPaymentStatus === "PAID"
+                          ? "Lunas"
+                          : selectedItem.extensionPaymentStatus === "PENDING"
+                          ? "Verifikasi"
+                          : "Belum Bayar"}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center text-sm">
-                  <span className="font-semibold text-foreground">Total Penerimaan:</span>
+                  <span className="font-semibold text-foreground">Total Biaya Sesi:</span>
                   <span className="font-bold text-foreground font-mono">
                     {formatRupiah(selectedItem.totalAmount)}
                   </span>
@@ -963,7 +1009,7 @@ export function FinanceReportClient({
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Status Pembayaran:</span>
+                  <span className="text-muted-foreground">Status Pembayaran Sesi:</span>
                   <Badge variant="secondary" className="font-mono text-[10px]">
                     {selectedItem.paymentStatus}
                   </Badge>

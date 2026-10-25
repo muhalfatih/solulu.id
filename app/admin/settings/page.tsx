@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import {
   Sliders,
   ShieldCheck,
@@ -60,22 +61,36 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@/components/ui/tooltip"
+import { Skeleton } from "@/components/ui/skeleton"
 import { AdminPageHeader, AdminMetricCard } from "@/components/admin"
 import {
   getPlatformSettingsAction,
   updatePlatformSettingsAction,
 } from "./actions"
 import type { PlatformSettingsData } from "@/lib/settings/platform"
+import { FeesTab } from "./fees-tab"
 
-export default function AdminSettingsPage() {
+function AdminSettingsContent() {
+  const searchParams = useSearchParams()
+  const initialTab = searchParams.get("tab")
   const [isLoading, setIsLoading] = React.useState(true)
   const [isSaving, setIsSaving] = React.useState(false)
   const [isSuperadmin, setIsSuperadmin] = React.useState(false)
-  const [activeTab, setActiveTab] = React.useState("operations")
+  const [activeTab, setActiveTab] = React.useState(
+    initialTab && ["operations", "fees", "manual-transfer", "screening"].includes(initialTab)
+      ? initialTab
+      : "operations"
+  )
   const [feedback, setFeedback] = React.useState<{
     type: "success" | "error"
     message: string
   } | null>(null)
+
+  React.useEffect(() => {
+    if (initialTab && ["operations", "fees", "manual-transfer", "screening"].includes(initialTab)) {
+      setActiveTab(initialTab)
+    }
+  }, [initialTab])
 
   // Form State
   const [formData, setFormData] = React.useState<PlatformSettingsData>({
@@ -293,46 +308,6 @@ export default function AdminSettingsPage() {
             </div>
           </Alert>
         )}
-
-        {/* Kartu Ringkasan Metrik Operasional */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          <AdminMetricCard
-            title="Cutoff Pemesanan"
-            value={isLoading ? "..." : `H-${formData.bookingCutoffHours} Jam`}
-            isLoading={isLoading}
-            status="default"
-            icon={Clock}
-            trendLabel="Batas minimal booking sebelum sesi dimulai"
-          />
-          <AdminMetricCard
-            title="Kunci Jadwal"
-            value={isLoading ? "..." : `${formData.paymentHoldMinutes} Menit`}
-            isLoading={isLoading}
-            status="default"
-            icon={Timer}
-            trendLabel="Slot diamankan saat klien checkout"
-          />
-          <AdminMetricCard
-            title="Kapasitas Slot"
-            value={isLoading ? "..." : `${formData.maxSlotQuota} Sesi`}
-            isLoading={isLoading}
-            status="neutral"
-            icon={Users}
-            trendLabel="Maksimal sesi serentak per slot waktu"
-          />
-          <AdminMetricCard
-            title="Tarif Extend Sebaya / Psikolog"
-            value={
-              isLoading
-                ? "..."
-                : `${formatRupiah(formData.counselorExtendFeePer30Min)} / ${formatRupiah(formData.psychologistExtendFeePer30Min)}`
-            }
-            isLoading={isLoading}
-            status="success"
-            icon={CreditCard}
-            trendLabel="Biaya perpanjangan sesi per 30 menit"
-          />
-        </div>
 
         {/* Tab Konfigurasi Sistem */}
         <Tabs
@@ -583,143 +558,12 @@ export default function AdminSettingsPage() {
 
           {/* TAB 2: TARIF & EXTEND SESI */}
           <TabsContent value="fees" className="flex flex-col gap-6 m-0 outline-none">
-            <Card className="border border-border/80 shadow-xs">
-              <CardHeader className="pt-6 px-6 pb-5 border-b border-border/60">
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <CardTitle className="text-base font-semibold text-foreground">
-                      Tarif Dasar &amp; Biaya Perpanjangan Sesi (Extend Fees)
-                    </CardTitle>
-                    <Badge variant="outline" className="text-[11px]">
-                      Dinamis / Tanpa Redeploy
-                    </Badge>
-                  </div>
-                  <CardDescription className="text-xs leading-relaxed text-muted-foreground">
-                    Atur tarif dasar konseling serta tarif tambahan per 30 menit ketika konselor dan klien menyetujui extend waktu.
-                  </CardDescription>
-                </div>
-              </CardHeader>
-
-              <CardContent className="pt-6 px-6 pb-6 flex flex-col gap-6">
-                {/* Tarif Dasar Platform */}
-                <FieldGroup>
-                  <Field>
-                    <FieldLabel htmlFor="basePrice" className="text-xs font-semibold">
-                      Tarif Dasar Konseling Standar (Rp)
-                    </FieldLabel>
-                    <FieldDescription className="text-xs text-muted-foreground">
-                      Harga patokan dasar untuk sesi konseling telekonsultasi 90 menit.
-                    </FieldDescription>
-                    <Input
-                      id="basePrice"
-                      type="number"
-                      min={0}
-                      disabled={isLoading || isSaving || !isSuperadmin}
-                      value={formData.basePrice}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          basePrice: e.target.value,
-                        })
-                      }
-                      className="text-sm font-medium max-w-sm"
-                    />
-                  </Field>
-                </FieldGroup>
-
-                <Separator />
-
-                {/* Section Dedicated: Extend Session Fees */}
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1">
-                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                      <Sparkles className="size-4 text-primary" />
-                      Tarif Perpanjangan Sesi per 30 Menit (Dedicated Section)
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Biaya perpanjangan ini diterapkan secara otomatis saat konselor mengaktifkan tombol Extend di Floating Timer konseling.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Extend Fee Konselor Sebaya */}
-                    <div className="p-5 rounded-lg border border-border/70 bg-muted/15 flex flex-col gap-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-foreground">
-                          Mitra Konselor Sebaya
-                        </span>
-                        <Badge variant="secondary" className="text-[11px]">
-                          Default Rp 35.000
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Tarif tambahan per 30 menit perpanjangan sesi dengan konselor sebaya (lulusan S1 Psikologi).
-                      </p>
-                      <Field className="mt-1">
-                        <FieldLabel htmlFor="counselorExtendFeePer30Min" className="text-xs font-medium">
-                          Tarif Tambahan per 30 Menit (Rp)
-                        </FieldLabel>
-                        <Input
-                          id="counselorExtendFeePer30Min"
-                          type="number"
-                          min={0}
-                          disabled={isLoading || isSaving || !isSuperadmin}
-                          value={formData.counselorExtendFeePer30Min}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              counselorExtendFeePer30Min: e.target.value,
-                            })
-                          }
-                          className="text-sm font-medium bg-background"
-                        />
-                      </Field>
-                    </div>
-
-                    {/* Extend Fee Psikolog Klinis */}
-                    <div className="p-5 rounded-lg border border-border/70 bg-muted/15 flex flex-col gap-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-foreground">
-                          Psikolog Klinis Ber-STR/SIPP
-                        </span>
-                        <Badge variant="default" className="text-[11px]">
-                          Default Rp 50.000
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Tarif tambahan per 30 menit perpanjangan sesi dengan Psikolog Klinis berizin praktik resmi.
-                      </p>
-                      <Field className="mt-1">
-                        <FieldLabel htmlFor="psychologistExtendFeePer30Min" className="text-xs font-medium">
-                          Tarif Tambahan per 30 Menit (Rp)
-                        </FieldLabel>
-                        <Input
-                          id="psychologistExtendFeePer30Min"
-                          type="number"
-                          min={0}
-                          disabled={isLoading || isSaving || !isSuperadmin}
-                          value={formData.psychologistExtendFeePer30Min}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              psychologistExtendFeePer30Min: e.target.value,
-                            })
-                          }
-                          className="text-sm font-medium bg-background"
-                        />
-                      </Field>
-                    </div>
-                  </div>
-                </div>
-
-                <Alert className="bg-muted/30 border-border/70 text-muted-foreground text-xs">
-                  <Info className="size-4 text-foreground shrink-0 mt-0.5" />
-                  <AlertDescription className="text-xs leading-relaxed">
-                    Sistem perpanjangan sesi Solulu sepenuhnya transparan. Klien akan menerima invoice perpanjangan di halaman sesi konseling dan dapat membayar melalui QRIS/Xendit maupun Transfer Bank Manual.
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
+            <FeesTab
+              formData={formData}
+              setFormData={setFormData}
+              isSuperadmin={isSuperadmin}
+              onFeedback={setFeedback}
+            />
           </TabsContent>
 
           {/* TAB 3: TRANSFER BANK MANUAL */}
@@ -891,3 +735,20 @@ export default function AdminSettingsPage() {
     </TooltipProvider>
   )
 }
+
+export default function AdminSettingsPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 font-sans">
+          <Skeleton className="h-10 w-64 rounded-md" />
+          <Skeleton className="h-10 w-96 rounded-md" />
+          <Skeleton className="h-96 rounded-xl" />
+        </div>
+      }
+    >
+      <AdminSettingsContent />
+    </React.Suspense>
+  )
+}
+

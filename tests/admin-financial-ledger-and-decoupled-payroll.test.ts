@@ -215,6 +215,84 @@ describe("Ticket 09: Admin Financial Ledger and Decoupled Payroll", () => {
       expect(metrics.totalExtensionRevenue).toBe(85000)
     })
 
+    it("does not include unpaid extension fees (PENDING, NONE, REJECTED) into totalExtensionRevenue or totalGrossRevenue", () => {
+      const itemsWithUnpaidExt: FinanceLedgerItem[] = [
+        {
+          id: "b-ext-pending",
+          bookingCode: "SL-9901",
+          scheduleDate: "2026-10-25",
+          slotIndex: 1,
+          startTime: "08:00:00",
+          endTime: "10:00:00",
+          timeRange: "08:00 - 10:00",
+          patientName: "Budi",
+          patientPhone: "0811111111",
+          patientEmail: "budi@example.com",
+          counselorId: "c-001",
+          counselorName: "Dimas",
+          counselorTitle: "S.Psi",
+          counselorType: "peer",
+          actualDurationMinutes: 120,
+          baseFee: 140000,
+          extensionFee: 60000,
+          totalAmount: 200000,
+          paymentMethod: "xendit",
+          paymentStatus: "PAID",
+          bookingStatus: "completed",
+          isExtended: true,
+          extensionMinutes: 30,
+          extensionPaymentStatus: "PENDING",
+          isNoShow: false,
+          createdAt: "2026-10-25T08:00:00Z",
+        },
+      ]
+
+      const metrics = computeFinanceMetrics(itemsWithUnpaidExt)
+      expect(metrics.baseRevenue).toBe(140000)
+      expect(metrics.totalExtensionRevenue).toBe(0) // NOT counted because extension is PENDING
+      expect(metrics.totalGrossRevenue).toBe(140000)
+      expect(metrics.extendedSessionsCount).toBe(1)
+    })
+
+    it("includes paid extension fees (extensionPaymentStatus === PAID) into totalExtensionRevenue and totalGrossRevenue", () => {
+      const itemsWithPaidExt: FinanceLedgerItem[] = [
+        {
+          id: "b-ext-paid",
+          bookingCode: "SL-9902",
+          scheduleDate: "2026-10-25",
+          slotIndex: 1,
+          startTime: "08:00:00",
+          endTime: "10:00:00",
+          timeRange: "08:00 - 10:00",
+          patientName: "Siti",
+          patientPhone: "0822222222",
+          patientEmail: "siti@example.com",
+          counselorId: "c-002",
+          counselorName: "Sarah",
+          counselorTitle: "M.Psi",
+          counselorType: "psychologist",
+          actualDurationMinutes: 120,
+          baseFee: 140000,
+          extensionFee: 60000,
+          totalAmount: 200000,
+          paymentMethod: "xendit",
+          paymentStatus: "PAID",
+          bookingStatus: "completed",
+          isExtended: true,
+          extensionMinutes: 30,
+          extensionPaymentStatus: "PAID",
+          isNoShow: false,
+          createdAt: "2026-10-25T08:00:00Z",
+        },
+      ]
+
+      const metrics = computeFinanceMetrics(itemsWithPaidExt)
+      expect(metrics.baseRevenue).toBe(140000)
+      expect(metrics.totalExtensionRevenue).toBe(60000)
+      expect(metrics.totalGrossRevenue).toBe(200000)
+      expect(metrics.extendedSessionsCount).toBe(1)
+    })
+
     it("computes payment channels breakdown (Xendit vs Manual Bank Transfer)", () => {
       const metrics = computeFinanceMetrics(sampleLedgerItems)
       // Xendit revenue items: b-001 (85k), b-003 (120k) => 2 tx, 205k

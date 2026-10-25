@@ -37,6 +37,7 @@ export interface CounselorUpcomingSessionView {
   extensionMinutes: number
   extensionFee: string | number
   extensionPaymentStatus: string
+  customRates?: { peerRate?: number; psychologistRate?: number }
   srqScore: number | null
   hasSuicidalThoughts: boolean
   bypassedRecommendation: boolean

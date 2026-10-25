@@ -16,6 +16,7 @@ import { PreparationTipsCard } from "./components/PreparationTipsCard"
 import { SupportHotlineCard } from "./components/SupportHotlineCard"
 import { getSessionByTokenAction } from "@/lib/session/actions"
 import type { SessionPageData, ClientSessionReportView } from "@/lib/session/types"
+import { toast } from "sonner"
 
 interface SessionClientProps {
   initialData: SessionPageData
@@ -24,8 +25,14 @@ interface SessionClientProps {
 export default function SessionClient({ initialData }: SessionClientProps) {
   const [data, setData] = React.useState<SessionPageData>(initialData)
   const [isRefreshing, setIsRefreshing] = React.useState(false)
+  const isExtendUnpaid = Boolean(
+    data.booking.isExtended &&
+      Number(data.booking.extensionFee) > 0 &&
+      data.booking.extensionPaymentStatus !== "PAID"
+  )
+
   const [unlockedReport, setUnlockedReport] = React.useState<ClientSessionReportView | null>(
-    initialData.report || null
+    isExtendUnpaid ? null : initialData.report || null
   )
   const [isUnlockModalOpen, setIsUnlockModalOpen] = React.useState(false)
 
@@ -35,8 +42,15 @@ export default function SessionClient({ initialData }: SessionClientProps) {
       const res = await getSessionByTokenAction(data.booking.accessToken)
       if (res.success && res.data) {
         setData(res.data)
-        if (res.data.report) {
+        const updatedIsExtendUnpaid = Boolean(
+          res.data.booking.isExtended &&
+            Number(res.data.booking.extensionFee) > 0 &&
+            res.data.booking.extensionPaymentStatus !== "PAID"
+        )
+        if (res.data.report && !updatedIsExtendUnpaid) {
           setUnlockedReport(res.data.report)
+        } else if (updatedIsExtendUnpaid) {
+          setUnlockedReport(null)
         }
       }
     } catch {
@@ -46,16 +60,38 @@ export default function SessionClient({ initialData }: SessionClientProps) {
     }
   }, [data.booking.accessToken])
 
-  // Auto-polling every 8 seconds if booking is pending payment (responsive verification sync)
+  // Instant sync when returning from Xendit gateway (?extend_status=success)
   React.useEffect(() => {
-    if (data.booking.status !== "pending_payment") return
+    if (typeof window !== "undefined" && window.location.search.includes("extend_status=success")) {
+      handleRefresh().then(() => {
+        toast.success("Pembayaran perpanjangan berhasil diverifikasi! Laporan kini dapat diakses.")
+      })
+      window.history.replaceState({}, "", window.location.pathname)
+    }
+  }, [handleRefresh])
+
+  // Auto-polling every 6 seconds if booking is pending payment or awaiting Xendit extension confirmation
+  React.useEffect(() => {
+    const isPendingBooking = data.booking.status === "pending_payment"
+    const isPendingXenditExtend =
+      data.booking.isExtended &&
+      data.booking.extensionPaymentStatus === "PENDING" &&
+      data.booking.extensionPaymentMethod === "xendit"
+
+    if (!isPendingBooking && !isPendingXenditExtend) return
 
     const interval = setInterval(() => {
       handleRefresh()
-    }, 8000)
+    }, 6000)
 
     return () => clearInterval(interval)
-  }, [data.booking.status, handleRefresh])
+  }, [
+    data.booking.status,
+    data.booking.isExtended,
+    data.booking.extensionPaymentStatus,
+    data.booking.extensionPaymentMethod,
+    handleRefresh,
+  ])
 
   return (
     <PublicShell>
@@ -96,10 +132,17 @@ export default function SessionClient({ initialData }: SessionClientProps) {
                 <span>Pemesanan Dibatalkan / Kedaluwarsa</span>
               </div>
             ) : data.booking.status === "completed" ? (
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-400 text-xs font-semibold shadow-2xs w-fit">
-                <span className="size-2 rounded-full bg-emerald-500" />
-                <span>Sesi Selesai • Laporan Klinis &amp; Rekomendasi</span>
-              </div>
+              isExtendUnpaid ? (
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-400 text-xs font-semibold shadow-2xs w-fit">
+                  <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+                  <span>Sesi Selesai • Menunggu Pelunasan Extend</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-400 text-xs font-semibold shadow-2xs w-fit">
+                  <span className="size-2 rounded-full bg-emerald-500" />
+                  <span>Sesi Selesai • Laporan Klinis &amp; Rekomendasi</span>
+                </div>
+              )
             ) : (
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary dark:text-purple-300 text-xs font-semibold shadow-2xs w-fit">
                 <Sparkles className="size-3.5 text-primary dark:text-purple-300" />
@@ -217,7 +260,10 @@ export default function SessionClient({ initialData }: SessionClientProps) {
                 schedule={data.schedule}
                 hasReport={data.hasReport ?? Boolean(data.report)}
                 report={unlockedReport}
-                onOpenUnlockModal={() => setIsUnlockModalOpen(true)}
+                onOpenUnlockModal={() => {
+                  if (isExtendUnpaid) return
+                  setIsUnlockModalOpen(true)
+                }}
               />
             ) : (
               <SessionCountdownCard

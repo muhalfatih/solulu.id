@@ -258,6 +258,68 @@ describe("Ticket 06: Client Session Room, Dual Payments & WhatsApp Report Gate",
       expect(res.data?.report.summary).toContain("transisi peran profesional")
       expect(res.data?.report.actionPlan).toContain("grounding 5-4-3-2-1")
     })
+
+    it("blocks unlocking clinical report when session has unpaid extension fee", async () => {
+      const mockRawClinicalData = {
+        id: "rep-601",
+        mainIssue: "Quarter-life Crisis & Penyesuaian Karir",
+        summary: "Klien mengeksplorasi ketakutan akan kegagalan dalam transisi peran profesional.",
+        actionPlan: "Praktik grounding 5-4-3-2-1 dan reframing pikiran otomatis negatif.",
+        followUpRecommendation: "Sesi konseling tindak lanjut disarankan 2 minggu lagi.",
+        createdAt: new Date().toISOString(),
+      }
+
+      const res = await verifyClientPhoneAndUnlockReportAction(
+        "tok_nanoid32_client_session_room_001",
+        "081234567890",
+        {
+          findReport: async () => ({
+            patientPhone: "081234567890",
+            patientName: "Nadia Rahma",
+            counselorName: "Dimas Pratama, S.Psi.",
+            isExtended: true,
+            extensionFee: 60000,
+            extensionPaymentStatus: "PENDING",
+            report: mockRawClinicalData,
+          }),
+        }
+      )
+
+      expect(res.success).toBe(false)
+      expect(res.error).toContain("belum dapat diakses karena biaya perpanjangan sesi belum dilunasi")
+      expect(res.data).toBeUndefined()
+    })
+
+    it("allows unlocking clinical report when extension fee has been successfully PAID", async () => {
+      const mockRawClinicalData = {
+        id: "rep-601",
+        mainIssue: "Quarter-life Crisis & Penyesuaian Karir",
+        summary: "Klien mengeksplorasi ketakutan akan kegagalan dalam transisi peran profesional.",
+        actionPlan: "Praktik grounding 5-4-3-2-1 dan reframing pikiran otomatis negatif.",
+        followUpRecommendation: "Sesi konseling tindak lanjut disarankan 2 minggu lagi.",
+        createdAt: new Date().toISOString(),
+      }
+
+      const res = await verifyClientPhoneAndUnlockReportAction(
+        "tok_nanoid32_client_session_room_001",
+        "081234567890",
+        {
+          findReport: async () => ({
+            patientPhone: "081234567890",
+            patientName: "Nadia Rahma",
+            counselorName: "Dimas Pratama, S.Psi.",
+            isExtended: true,
+            extensionFee: 60000,
+            extensionPaymentStatus: "PAID",
+            report: mockRawClinicalData,
+          }),
+        }
+      )
+
+      expect(res.success).toBe(true)
+      expect(res.data?.patientName).toBe("Nadia Rahma")
+      expect(res.data?.report).toBeDefined()
+    })
   })
 
   // ===========================================================================

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
 import { eq, desc, sql, and, not, inArray } from "drizzle-orm"
 import { db } from "@/db"
-import { counselors, schedules, bookings } from "@/db/schema"
+import { counselors, schedules, bookings, sessionReports } from "@/db/schema"
 import {
   generatePresignedPutUrl,
   generatePresignedGetUrl,
@@ -169,6 +169,22 @@ export async function getCounselorsAdminAction(options?: {
               sql`${bookings.counselorId} = ${c.id} AND ${bookings.status} IN ('confirmed', 'completed')`
             )
 
+          const [reportsFilled] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(bookings)
+            .innerJoin(sessionReports, eq(sessionReports.bookingId, bookings.id))
+            .where(
+              sql`${bookings.counselorId} = ${c.id} AND ${bookings.status} = 'completed'`
+            )
+
+          const [reportsPending] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(bookings)
+            .leftJoin(sessionReports, eq(sessionReports.bookingId, bookings.id))
+            .where(
+              sql`${bookings.counselorId} = ${c.id} AND ${bookings.status} = 'completed' AND ${sessionReports.id} IS NULL`
+            )
+
           return {
             ...c,
             radar,
@@ -176,6 +192,8 @@ export async function getCounselorsAdminAction(options?: {
             phone: c.phone || "-",
             activeSlotsCount: Number(activeSlots?.count || 0),
             completedSessionsCount: Number(completedSessions?.count || 0),
+            reportsFilledCount: Number(reportsFilled?.count || 0),
+            reportsPendingCount: Number(reportsPending?.count || 0),
           }
         } catch {
           return {
@@ -185,6 +203,8 @@ export async function getCounselorsAdminAction(options?: {
             phone: c.phone || "-",
             activeSlotsCount: 0,
             completedSessionsCount: 0,
+            reportsFilledCount: 0,
+            reportsPendingCount: 0,
           }
         }
       })

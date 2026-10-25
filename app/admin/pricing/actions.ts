@@ -58,6 +58,7 @@ export async function updateRolePricingAction(
       revalidatePath("/counselors")
       revalidatePath("/booking")
       revalidatePath("/admin/pricing")
+      revalidatePath("/admin/settings")
     } catch {
       // Safe fallback when running outside of Next.js HTTP server context (e.g. unit tests)
     }
@@ -148,6 +149,7 @@ export async function createVoucherAdminAction(
 
     try {
       revalidatePath("/admin/pricing")
+      revalidatePath("/admin/settings")
       revalidatePath("/booking")
     } catch {}
 
@@ -185,6 +187,7 @@ export async function toggleVoucherStatusAction(
 
     try {
       revalidatePath("/admin/pricing")
+      revalidatePath("/admin/settings")
       revalidatePath("/booking")
     } catch {}
 
@@ -217,6 +220,7 @@ export async function deleteVoucherAdminAction(
 
     try {
       revalidatePath("/admin/pricing")
+      revalidatePath("/admin/settings")
       revalidatePath("/booking")
     } catch {}
 

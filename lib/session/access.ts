@@ -1,4 +1,4 @@
-import { eq, or } from "drizzle-orm"
+import { eq, or, and, desc, ilike } from "drizzle-orm"
 import { db } from "@/db"
 import {
   bookings,
@@ -11,7 +11,7 @@ import {
 import { formatTimeRange } from "@/lib/schedules/concurrency"
 import { formatIndonesianDate } from "@/lib/session/time"
 import { normalizeIndonesianPhone, extensionPaymentSchema } from "@/lib/validations/session"
-import { createXenditInvoice } from "@/lib/xendit"
+import { createXenditInvoice, getXenditInvoice } from "@/lib/xendit"
 import { getAppBaseUrl } from "@/lib/url"
 import {
   formatRupiah,
@@ -145,6 +145,64 @@ export async function getGuestSessionByToken(
 
     const item = rows[0]
     const settings = settingsRows[0]
+
+    // AUTO-SYNC EXTENSION PAYMENT VIA XENDIT (Zero-Friction Client Experience)
+    // If extension is pending with Xendit, check Xendit invoice status directly
+    if (
+      item.booking.isExtended &&
+      item.booking.extensionPaymentMethod === "xendit" &&
+      item.booking.extensionPaymentStatus === "PENDING"
+    ) {
+      try {
+        const extTxRows = await db
+          .select()
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.bookingId, item.booking.id),
+              or(
+                eq(transactions.adminNotes, "EXTENSION"),
+                ilike(transactions.referenceNumber, "EXT-%")
+              )
+            )
+          )
+          .orderBy(desc(transactions.createdAt))
+          .limit(1)
+
+        const extTx = extTxRows[0]
+        if (extTx && extTx.xenditInvoiceId) {
+          const xenditInvoice = await getXenditInvoice(extTx.xenditInvoiceId)
+          if (
+            xenditInvoice &&
+            (xenditInvoice.status === "PAID" || xenditInvoice.status === "SETTLED")
+          ) {
+            await Promise.all([
+              db
+                .update(transactions)
+                .set({
+                  status: "PAID",
+                  paidAt: xenditInvoice.paid_at ? new Date(xenditInvoice.paid_at) : new Date(),
+                  paymentMethod:
+                    xenditInvoice.payment_method ||
+                    xenditInvoice.payment_channel ||
+                    "XENDIT_AUTO",
+                })
+                .where(eq(transactions.id, extTx.id)),
+              db
+                .update(bookings)
+                .set({
+                  extensionPaymentStatus: "PAID",
+                })
+                .where(eq(bookings.id, item.booking.id)),
+            ])
+            item.booking.extensionPaymentStatus = "PAID"
+          }
+        }
+      } catch (syncErr) {
+        console.error("[AUTO_SYNC_XENDIT_EXT_ERROR]", syncErr)
+      }
+    }
+
     const netAmount = item.transaction ? Number(item.transaction.netAmount) : 0
     const extensionFeeNum = Number(item.booking.extensionFee || 0)
 
@@ -278,6 +336,18 @@ export async function verifyClientPhoneAndUnlockReport(
       }
     }
 
+    if (
+      custom.isExtended &&
+      Number(custom.extensionFee || 0) > 0 &&
+      custom.extensionPaymentStatus !== "PAID"
+    ) {
+      return {
+        success: false,
+        error:
+          "Laporan klinis resmi belum dapat diakses karena biaya perpanjangan sesi belum dilunasi. Silakan selesaikan pembayaran perpanjangan terlebih dahulu.",
+      }
+    }
+
     const raw = custom.report || custom
     const { internalNotes, attachmentR2Keys, ...safeReport } = raw
     return {
@@ -319,6 +389,73 @@ export async function verifyClientPhoneAndUnlockReport(
     }
 
     const { booking, counselor, report } = rows[0]
+
+    // Auto-sync Xendit extension status before checking gate
+    const extFeeNum = Number(booking.extensionFee || 0)
+    if (
+      booking.isExtended &&
+      extFeeNum > 0 &&
+      booking.extensionPaymentMethod === "xendit" &&
+      booking.extensionPaymentStatus === "PENDING"
+    ) {
+      try {
+        const extTxRows = await db
+          .select()
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.bookingId, booking.id),
+              or(
+                eq(transactions.adminNotes, "EXTENSION"),
+                ilike(transactions.referenceNumber, "EXT-%")
+              )
+            )
+          )
+          .orderBy(desc(transactions.createdAt))
+          .limit(1)
+
+        const extTx = extTxRows[0]
+        if (extTx && extTx.xenditInvoiceId) {
+          const xenditInvoice = await getXenditInvoice(extTx.xenditInvoiceId)
+          if (
+            xenditInvoice &&
+            (xenditInvoice.status === "PAID" || xenditInvoice.status === "SETTLED")
+          ) {
+            await Promise.all([
+              db
+                .update(transactions)
+                .set({
+                  status: "PAID",
+                  paidAt: xenditInvoice.paid_at ? new Date(xenditInvoice.paid_at) : new Date(),
+                  paymentMethod:
+                    xenditInvoice.payment_method ||
+                    xenditInvoice.payment_channel ||
+                    "XENDIT_AUTO",
+                })
+                .where(eq(transactions.id, extTx.id)),
+              db
+                .update(bookings)
+                .set({
+                  extensionPaymentStatus: "PAID",
+                })
+                .where(eq(bookings.id, booking.id)),
+            ])
+            booking.extensionPaymentStatus = "PAID"
+          }
+        }
+      } catch (syncErr) {
+        console.error("[AUTO_SYNC_UNLOCK_EXT_ERROR]", syncErr)
+      }
+    }
+
+    // Extend payment security gate
+    if (booking.isExtended && extFeeNum > 0 && booking.extensionPaymentStatus !== "PAID") {
+      return {
+        success: false,
+        error:
+          "Laporan klinis resmi belum dapat diakses karena biaya perpanjangan sesi belum dilunasi. Silakan selesaikan pembayaran perpanjangan terlebih dahulu.",
+      }
+    }
 
     // Phone verification check
     const cleanInput = normalizeIndonesianPhone(verificationPhone)
@@ -454,14 +591,29 @@ export async function processExtensionPayment(
     } else {
       const appUrl = getAppBaseUrl()
       const fee = booking.extensionFee ? Number(booking.extensionFee) : 35000
+      const externalId = `EXT-${booking.bookingCode || booking.id.slice(0, 8)}-${Date.now()}`
 
       const invoice = await createXenditInvoice({
-        externalId: `EXT-${booking.bookingCode || booking.id.slice(0, 8)}-${Date.now()}`,
+        externalId,
         amount: fee,
         payerEmail: booking.patientEmail,
         description: `Perpanjangan Sesi Konseling ${booking.bookingCode || ""} (${booking.extensionMinutes || 30} menit)`,
         successRedirectUrl: `${appUrl}/session/${accessToken}?extend_status=success`,
         failureRedirectUrl: `${appUrl}/session/${accessToken}?extend_status=failed`,
+      })
+
+      // Insert transaction record for the extension
+      await db.insert(transactions).values({
+        bookingId: booking.id,
+        xenditInvoiceId: invoice.id,
+        xenditPaymentUrl: invoice.invoiceUrl,
+        paymentProvider: "xendit",
+        paymentMethod: "XENDIT_AUTO",
+        referenceNumber: externalId,
+        adminNotes: "EXTENSION",
+        grossAmount: String(fee),
+        netAmount: String(fee),
+        status: "PENDING",
       })
 
       await db

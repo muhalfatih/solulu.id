@@ -180,6 +180,8 @@ export default function DistilledCounselorsPage() {
           verificationStatus: row.verificationStatus || "verified",
           totalSessions: row.completedSessionsCount ?? 0,
           activeSlots: row.activeSlotsCount ?? 0,
+          reportsFilled: row.reportsFilledCount ?? 0,
+          reportsPending: row.reportsPendingCount ?? 0,
           avatarR2Url: row.avatarR2Url,
           education: row.education,
           strNumber: row.strNumber,
@@ -1105,10 +1107,27 @@ export default function DistilledCounselorsPage() {
 
                       {/* Kinerja & Jadwal */}
                       <TableCell className="py-3.5 px-3.5 align-top">
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="tabular-nums font-semibold text-foreground">{c.totalSessions} sesi</span>
-                          <span>•</span>
-                          <span className="font-mono text-primary font-medium">{c.activeSlots} slot aktif</span>
+                        <div className="flex flex-col gap-1 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="tabular-nums font-semibold text-foreground">{c.totalSessions} sesi</span>
+                            <span>•</span>
+                            <span className="font-mono text-primary font-medium">{c.activeSlots} slot aktif</span>
+                          </div>
+                          {c.reportsPending > 0 ? (
+                            <Link
+                              href={`/admin/bookings?counselorId=${c.id}&reportStatus=pending`}
+                              className="inline-flex items-center gap-1 text-[11px] text-amber-700 dark:text-amber-400 font-medium hover:underline"
+                              title="Klik untuk menyaring sesi yang belum diisi laporannya oleh konselor ini"
+                            >
+                              <Clock className="size-3 text-amber-600 shrink-0" />
+                              <span>{c.reportsPending} rekam medis tertunda</span>
+                            </Link>
+                          ) : c.totalSessions > 0 ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400 font-medium">
+                              <CheckCircle2 className="size-3 text-emerald-600 shrink-0" />
+                              <span>{c.reportsFilled} laporan lengkap</span>
+                            </span>
+                          ) : null}
                         </div>
                         {c.specializations && c.specializations.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1.5 max-w-[210px]">

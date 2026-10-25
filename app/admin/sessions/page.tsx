@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import type { BookingSession } from "@/lib/types/admin"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -9,6 +10,7 @@ import {
   Search,
   Video,
   CheckCircle2,
+  FileText,
   ShieldAlert,
   Mail,
   AlertTriangle,
@@ -196,6 +198,8 @@ export default function DistilledSessionsPage() {
               referenceNumber: t?.referenceNumber || undefined,
               adminNotes: t?.adminNotes || undefined,
               amount: t?.netAmount ? Number(t.netAmount) : 150000,
+              hasSessionReport: Boolean(r.report?.id),
+              sessionReportId: r.report?.id || null,
             }
           })
           setSessions(mapped)
@@ -1772,8 +1776,21 @@ export default function DistilledSessionsPage() {
                     Jadwal sesi telah kadaluarsa karena waktu telekonseling telah terlewati sebelum pembayaran diverifikasi. Perubahan jadwal tidak dapat dilakukan.
                   </div>
                 ) : selectedSession.isPast || selectedSession.status === "completed" ? (
-                  <div className="text-xs text-muted-foreground leading-relaxed">
-                    Sesi konseling telah selesai dilaksanakan. Perubahan jadwal sudah tidak berlaku.
+                  <div className="flex flex-col gap-2">
+                    <div className="text-xs text-muted-foreground leading-relaxed">
+                      Sesi konseling telah selesai dilaksanakan. Perubahan jadwal sudah tidak berlaku.
+                    </div>
+                    {selectedSession.hasSessionReport ? (
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-800 dark:text-emerald-300 text-xs font-medium">
+                        <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+                        <span>Laporan klinis telah diisi lengkap oleh {selectedSession.counselorName}.</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 text-xs font-medium">
+                        <Clock className="size-4 text-amber-600 shrink-0" />
+                        <span>Menunggu pengisian laporan klinis dari {selectedSession.counselorName}.</span>
+                      </div>
+                    )}
                   </div>
                 ) : selectedSession.status === "cancelled" ? (
                   <div className="text-xs text-destructive leading-relaxed">
@@ -1812,15 +1829,28 @@ export default function DistilledSessionsPage() {
                   <span>Konfirmasi Pembayaran Manual</span>
                 </Button>
               ) : selectedSession.isPast || selectedSession.status === "completed" ? (
-                <Button
-                  size="sm"
-                  disabled
-                  variant="secondary"
-                  className="w-full h-9 text-xs font-semibold opacity-60 cursor-not-allowed"
-                >
-                  <CheckCircle2 className="size-3.5 mr-1.5" />
-                  <span>Sesi Telah Berakhir</span>
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    size="sm"
+                    disabled
+                    variant="secondary"
+                    className="w-full h-9 text-xs font-semibold opacity-60 cursor-not-allowed"
+                  >
+                    <CheckCircle2 className="size-3.5 mr-1.5" />
+                    <span>Sesi Telah Berakhir</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    asChild
+                    className="w-full h-8 text-xs cursor-pointer font-medium"
+                  >
+                    <Link href={`/admin/bookings?search=${selectedSession.code}`}>
+                      <FileText className="size-3.5 mr-1.5 text-primary" />
+                      <span>{selectedSession.hasSessionReport ? "Lihat Status Laporan di Pengawasan" : "Pantau Laporan di Pengawasan"}</span>
+                    </Link>
+                  </Button>
+                </div>
               ) : (
                 <Button
                   size="sm"

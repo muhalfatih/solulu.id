@@ -17,6 +17,16 @@ function safeRevalidatePaths(...paths: string[]) {
   }
 }
 
+export interface ClinicalReportPreview {
+  id: string
+  mainIssue: string
+  summary: string
+  actionPlan: string | null
+  followUpRecommendation: string | null
+  actualDurationMinutes: number | null
+  createdAt: string
+}
+
 export interface AdminBookingItem {
   id: string
   bookingCode: string
@@ -52,6 +62,7 @@ export interface AdminBookingItem {
   followedUpAt: string | null
   hasSessionReport: boolean
   sessionReportId: string | null
+  reportDetails?: ClinicalReportPreview | null
   createdAt: string
 }
 
@@ -66,6 +77,7 @@ export interface GetBookingsFilters {
   status?: string | null
   counselorId?: string | null
   search?: string | null
+  reportStatus?: "all" | "filled" | "pending" | null
 }
 
 /**
@@ -205,9 +217,27 @@ export async function getBookingsAdminAction(
         followedUpAt: b.followedUpAt ? b.followedUpAt.toISOString() : null,
         hasSessionReport: Boolean(rep?.id),
         sessionReportId: rep?.id || null,
+        reportDetails: rep?.id
+          ? {
+              id: rep.id,
+              mainIssue: rep.mainIssue || "Konsultasi Emosional & Stres",
+              summary: rep.summary || "",
+              actionPlan: rep.actionPlan || null,
+              followUpRecommendation: rep.followUpRecommendation || null,
+              actualDurationMinutes: rep.actualDurationMinutes || null,
+              createdAt: rep.createdAt ? rep.createdAt.toISOString() : b.createdAt.toISOString(),
+            }
+          : null,
         createdAt: b.createdAt.toISOString(),
       }
     })
+
+    // Apply reportStatus filter if specified
+    if (filters?.reportStatus === "filled") {
+      mapped = mapped.filter((b) => b.hasSessionReport)
+    } else if (filters?.reportStatus === "pending") {
+      mapped = mapped.filter((b) => !b.hasSessionReport && b.status === "completed")
+    }
 
     // Apply search filter in-memory if query provided
     if (filters?.search?.trim()) {
