@@ -26,7 +26,7 @@ import {
   type SRQ20EvaluationResult,
 } from "@/lib/screening/srq20";
 import { submitScreeningAction } from "./actions";
-import { formatRupiah } from "@/lib/booking/checkout";
+import { formatRupiah } from "@/lib/utils";
 import type { PlatformPricingData } from "@/lib/pricing/platform-pricing";
 
 interface ScreeningClientProps {

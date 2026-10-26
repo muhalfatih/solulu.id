@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { PublicShell } from "@/components/public/public-shell"
 import { getPlatformPricing } from "@/lib/pricing/platform-pricing"
-import { formatRupiah } from "@/lib/booking/checkout"
+import { formatRupiah } from "@/lib/utils"
 
 export const metadata = {
   title: "Biaya & Pilihan Layanan Konseling | Solulu",

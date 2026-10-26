@@ -12,7 +12,7 @@ import {
   getCounselorsCatalogAction,
   getCounselorByIdAction,
 } from "../app/counselors/actions"
-import { formatRupiah } from "../lib/booking/checkout"
+import { formatRupiah } from "../lib/utils"
 
 describe("Platform Pricing Synchronization & Admin Actions", () => {
   it("provides reliable default platform pricing for peer and psychologist", async () => {

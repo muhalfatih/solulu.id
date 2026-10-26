@@ -43,14 +43,8 @@ export interface ActionResponse<T = any> {
   data?: T
   error?: string
 }
-
-export function formatRupiah(amount: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
+import { formatRupiah } from "@/lib/utils"
+export { formatRupiah }
 
 export interface BookingContextData {
   counselor: {
