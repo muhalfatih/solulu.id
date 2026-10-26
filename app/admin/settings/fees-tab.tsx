@@ -98,7 +98,7 @@ const INITIAL_ROLES: RolePricingState[] = [
     regularPrice: 85000,
     isSaleActive: true,
     salePrice: 49000,
-    allowVoucher: false,
+    allowVoucher: true,
   },
   {
     id: "psikolog",

@@ -26,6 +26,8 @@ import {
   type SRQ20EvaluationResult,
 } from "@/lib/screening/srq20";
 import { submitScreeningAction } from "./actions";
+import { formatRupiah } from "@/lib/booking/checkout";
+import type { PlatformPricingData } from "@/lib/pricing/platform-pricing";
 
 interface ScreeningClientProps {
   initialCounselorId?: string;
@@ -37,14 +39,32 @@ interface ScreeningClientProps {
     recommendedType: "peer" | "psychologist";
     evaluation: SRQ20EvaluationResult;
   } | null;
+  pricing?: PlatformPricingData | null;
 }
 
 export function ScreeningClient({
   initialCounselorId,
   initialScheduleId,
   initialScreeningData,
+  pricing,
 }: ScreeningClientProps) {
   const router = useRouter();
+
+  const psychologistDisplayPrice = React.useMemo(() => {
+    if (!pricing?.psychologist) return "Mulai Rp 129.000";
+    const p = pricing.psychologist;
+    const isSale = p.isSaleActive && p.promoPrice && p.promoPrice < p.basePrice;
+    const price = isSale && p.promoPrice ? p.promoPrice : p.basePrice;
+    return `Mulai ${formatRupiah(price)}`;
+  }, [pricing]);
+
+  const peerDisplayPrice = React.useMemo(() => {
+    if (!pricing?.peer) return "Mulai Rp 49.000";
+    const p = pricing.peer;
+    const isSale = p.isSaleActive && p.promoPrice && p.promoPrice < p.basePrice;
+    const price = isSale && p.promoPrice ? p.promoPrice : p.basePrice;
+    return `Mulai ${formatRupiah(price)}`;
+  }, [pricing]);
 
   // State: Answers for 20 questions (true = Ya, false = Tidak, null = Belum dijawab)
   const [answers, setAnswers] = React.useState<(boolean | null)[]>(
@@ -265,7 +285,7 @@ export function ScreeningClient({
 
                     <div className="mt-auto pt-2 flex items-center justify-between text-xs font-medium border-t border-border/50">
                       <span className="text-muted-foreground">Sesi 90 Menit</span>
-                      <span className="text-foreground font-semibold">Mulai Rp 130.000</span>
+                      <span className="text-foreground font-semibold">{psychologistDisplayPrice}</span>
                     </div>
                   </div>
 
@@ -303,7 +323,7 @@ export function ScreeningClient({
 
                     <div className="mt-auto pt-2 flex items-center justify-between text-xs font-medium border-t border-border/50">
                       <span className="text-muted-foreground">Sesi 90 Menit</span>
-                      <span className="text-foreground font-semibold">Mulai Rp 85.000</span>
+                      <span className="text-foreground font-semibold">{peerDisplayPrice}</span>
                     </div>
                   </div>
                 </div>

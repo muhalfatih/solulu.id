@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { ScreeningClient } from "./ScreeningClient";
 import { getScreeningResultAction } from "./actions";
+import { getPlatformPricing } from "@/lib/pricing/platform-pricing";
 
 export const metadata: Metadata = {
   title: "Skrining Mandiri Kesejahteraan Emosional (SRQ-20) | Solulu",
@@ -29,11 +30,14 @@ export default async function ScreeningPage({
     }
   }
 
+  const pricing = await getPlatformPricing();
+
   return (
     <ScreeningClient
       initialCounselorId={counselorId}
       initialScheduleId={scheduleId}
       initialScreeningData={initialScreeningData}
+      pricing={pricing}
     />
   );
 }

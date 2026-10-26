@@ -5,13 +5,14 @@ export interface RescheduleCheckResult {
 }
 
 /**
- * Evaluates whether a session can be rescheduled based on the H-12 rule.
- * Sesi hanya boleh diubah jadwalnya jika waktu mulai sesi masih lebih dari 12 jam (H-12).
+ * Evaluates whether a session can be rescheduled based on configurable cutoff hours.
+ * Batas waktu reschedule dinamis menyesuaikan konfigurasi admin pada Platform Settings (default: H-12 atau H-4).
  */
 export function canRescheduleSession(
   sessionDate: string,
   startTime: string,
-  currentTime: Date = new Date()
+  currentTime: Date = new Date(),
+  cutoffHours: number = 12
 ): RescheduleCheckResult {
   // Parse session datetime (WIB / UTC+7 or local date string)
   // Format expected: date: 'YYYY-MM-DD', startTime: 'HH:mm' or 'HH:mm:ss'
@@ -39,11 +40,11 @@ export function canRescheduleSession(
     }
   }
 
-  if (hoursUntilSession < 12) {
+  if (hoursUntilSession < cutoffHours) {
     return {
       allowed: false,
       hoursUntilSession,
-      reason: `Perubahan jadwal ditutup karena sesi dimulai dalam ${hoursUntilSession} jam (Aturan H-12 mengharuskan minimal 12 jam sebelumnya).`,
+      reason: `Perubahan jadwal ditutup karena sesi dimulai dalam ${hoursUntilSession} jam (Aturan H-${cutoffHours} mengharuskan minimal ${cutoffHours} jam sebelumnya).`,
     }
   }
 

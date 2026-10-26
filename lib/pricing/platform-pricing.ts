@@ -21,7 +21,7 @@ export const DEFAULT_PLATFORM_PRICING: PlatformPricingData = {
     basePrice: 85000,
     promoPrice: 49000,
     isSaleActive: true,
-    allowVoucher: false,
+    allowVoucher: true,
   },
   psychologist: {
     counselorType: "psychologist",

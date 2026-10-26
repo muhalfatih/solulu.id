@@ -46,7 +46,7 @@ Sistem ini mendukung pendampingan oleh **Psikolog Klinis ber-STR** (Rp 150.000/9
 
 ### 6. ⚙️ Portal Administrator Operasional (`/admin/*`)
 - **Verifikasi Pelamar Konselor**: Review berkas KTP, CV, ijazah, dan nomor STR resmi dengan pratinjau dokumen dari Cloudflare R2 privat.
-- **Aturan Reschedule H-12**: Sistem otomatis mengunci permintaan perubahan jadwal jika kurang dari 12 jam sebelum sesi.
+- **Aturan Reschedule Dinamis**: Sistem otomatis mengunci permintaan perubahan jadwal berdasarkan konfigurasi operasional admin via Platform Settings (default H-4 jam atau sesuai kebutuhan klinis).
 - **Konfirmasi Pembayaran Manual**: Verifikasi pembayaran transfer manual dan pemicu alokasi Zoom otomatis.
 - **Kurasi Testimoni & Galeri**: Publikasi testimoni anonim dan foto kegiatan edukasi komunitas dengan validasi persetujuan klien (*consent*).
 
