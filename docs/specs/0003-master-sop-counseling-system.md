@@ -1,5 +1,7 @@
 # Spec 0003: Master SOP Counseling System Revamp (7 Fixed Slots, 4 Zoom Hybrid Dispatcher, 4-Role RBAC, Dual Payments & Decoupled Payroll)
 
+> **SUPERSEDED (2026-11-02):** Acuan utama kini `PRD_MASTER_SISTEM_KONSELING_SOLULU.md` (PRD v9). Deviasi yang disengaja dicatat di [ADR-0009](../adr/0009-master-spec-v9-as-source-of-truth-and-recorded-deviations.md).
+
 Label: `ready-for-agent`  
 Branch: `feat/master-counseling-sop-revamp`  
 Supersedes: `docs/specs/0002-admin-counselors-and-manual-booking.md`  
