@@ -3,6 +3,8 @@
 import * as React from "react"
 import Link from "next/link"
 import type { BookingSession } from "@/lib/types/admin"
+import { formatRupiahOrDash } from "@/lib/utils"
+import { mapAdminBookingRow, type AdminBookingRow } from "@/lib/admin/booking-session"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Clock,
@@ -115,94 +117,17 @@ export default function DistilledSessionsPage() {
     return match ? parseInt(match[1], 10) : 9
   }, [])
 
-  React.useEffect(() => {
-    async function loadSessions() {
+  const loadSessions = React.useCallback(async () => {
       try {
         const res = await getBookingsAdminAction()
         if (res.success && res.data && res.data.length > 0) {
-          const accounts = (res as any).activeAccounts || []
-          const slot1Acc = accounts[0]
-          const slot2Acc = accounts[1]
-
-          const mapped: BookingSession[] = res.data.map((r: any) => {
-            const b = r.booking
-            const c = r.counselor
-            const s = r.schedule
-            const t = r.transaction
-            const za = r.zoomAccount
-
-            const counselorType = c?.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"
-
-            const dateStr = s?.date ? String(s.date) : ""
-            const timeRange = s ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)}` : "09:00 - 10:30"
-
-            const timing = resolveSessionTimingAndStatus({
-              date: s?.date,
-              startTime: s?.startTime,
-              endTime: s?.endTime,
-              status: b.status,
-            })
-            const hoursUntilSession = timing.hoursUntilSession
-            const status = timing.status
-            const isPast = timing.isPast
-
-            // Accurate Zoom Room & Slot Resolution (Eliminates false R2 label)
-            let zoomSlotNumber: 1 | 2 | null = null
-            let zoomRoom = "Belum Dijadwalkan"
-            let zoomAccountName: string | null = null
-
-            if (b.zoomAccountId) {
-              if (slot2Acc && b.zoomAccountId === slot2Acc.id) {
-                zoomSlotNumber = 2
-                zoomAccountName = slot2Acc.name || "Zoom Pro 2"
-                zoomRoom = "Zoom Pro 2"
-              } else if (slot1Acc && b.zoomAccountId === slot1Acc.id) {
-                zoomSlotNumber = 1
-                zoomAccountName = slot1Acc.name || "Zoom Pro 1"
-                zoomRoom = "Zoom Pro 1"
-              } else if (za) {
-                zoomSlotNumber = 1
-                zoomAccountName = za.name || "Zoom Pro 1"
-                zoomRoom = za.name || "Zoom Pro 1"
-              } else {
-                zoomSlotNumber = 1
-                zoomRoom = "Zoom Pro 1"
-              }
-            } else if (b.zoomMeetingId || (b.zoomJoinUrl && b.zoomJoinUrl !== "#")) {
-              zoomSlotNumber = null
-              zoomRoom = "Ruang Rapat Manual"
-            }
-
-            return {
-              id: b.id,
-              code: `SOL-${b.id.slice(0, 4).toUpperCase()}`,
-              patientName: b.patientName,
-              patientContact: b.patientPhone || b.patientEmail,
-              counselorName: c?.fullName ? `${c.fullName}, ${c.title || ""}`.trim() : "Konselor",
-              counselorType,
-              date: dateStr,
-              timeRange,
-              hoursUntilSession,
-              status,
-              isPast,
-              zoomRoom,
-              zoomJoinUrl: b.zoomJoinUrl || "#",
-              zoomAccountId: b.zoomAccountId || null,
-              zoomSlotNumber,
-              zoomAccountName,
-              srqScore: 0,
-              hasSuicidalThoughts: false,
-              waiverSigned: !!b.waiverAcceptedAt,
-              paymentMethod: t?.paymentMethod || "Transfer Bank Manual",
-              paymentProvider: (t?.paymentProvider as any) || "manual",
-              referenceNumber: t?.referenceNumber || undefined,
-              adminNotes: t?.adminNotes || undefined,
-              amount: t?.netAmount ? Number(t.netAmount) : 150000,
-              hasSessionReport: Boolean(r.report?.id),
-              sessionReportId: r.report?.id || null,
-            }
-          })
-          setSessions(mapped)
+          const zoomAccountList =
+            (res as { activeAccounts?: Array<{ id: string; name: string | null }> }).activeAccounts ?? []
+          setSessions(
+            (res.data as AdminBookingRow[]).map((row) =>
+              mapAdminBookingRow(row, { zoomAccounts: zoomAccountList })
+            )
+          )
         } else {
           setSessions([])
         }
@@ -212,9 +137,11 @@ export default function DistilledSessionsPage() {
       } finally {
         setIsLoading(false)
       }
-    }
-    loadSessions()
   }, [])
+
+  React.useEffect(() => {
+    loadSessions()
+  }, [loadSessions])
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -266,70 +193,28 @@ export default function DistilledSessionsPage() {
     session: BookingSession,
     details: ManualPaymentDetails
   ) => {
-    // If real booking ID from database
-    if (session.id && !session.id.startsWith("ses-")) {
-      try {
-        await confirmManualPaymentAction({
-          bookingId: session.id,
-          paymentMethod: details.paymentMethod,
-          referenceNumber: details.referenceNumber,
-          adminNotes: details.adminNotes,
-        })
-      } catch (err) {
-        console.error("Failed to execute confirmManualPaymentAction:", err)
+    try {
+      const res = await confirmManualPaymentAction({
+        bookingId: session.id,
+        paymentMethod: details.paymentMethod,
+        referenceNumber: details.referenceNumber,
+        adminNotes: details.adminNotes,
+      })
+      if (!res.success) {
+        showToast(
+          `Pembayaran manual untuk ${session.code} (${session.patientName}) gagal dikonfirmasi: ${res.error ?? "kesalahan tidak diketahui"}.`
+        )
+        return
       }
+    } catch (err) {
+      console.error("Failed to execute confirmManualPaymentAction:", err)
+      showToast(`Pembayaran manual untuk ${session.code} (${session.patientName}) gagal dikonfirmasi.`)
+      return
     }
 
-    setSessions((prev) =>
-      prev.map((s) => {
-        if (s.id !== session.id) return s
-        const startTime = s.timeRange?.split(" - ")[0] || "09:00"
-        const endTime = s.timeRange?.split(" - ")[1] || "10:30"
-        const timing = resolveSessionTimingAndStatus({
-          date: s.date,
-          startTime,
-          endTime,
-          status: "confirmed",
-        })
-        return {
-          ...s,
-          status: timing.status,
-          isPast: timing.isPast,
-          zoomRoom: "Zoom Pro 1",
-          zoomJoinUrl: `https://zoom.us/j/88${Math.floor(10000000 + Math.random() * 90000000)}`,
-          paymentMethod: details.paymentMethod,
-          paymentProvider: "manual",
-          referenceNumber: details.referenceNumber,
-          adminNotes: details.adminNotes,
-        }
-      })
-    )
-
-    if (selectedSession?.id === session.id) {
-      setSelectedSession((prev) => {
-        if (!prev) return null
-        const startTime = prev.timeRange?.split(" - ")[0] || "09:00"
-        const endTime = prev.timeRange?.split(" - ")[1] || "10:30"
-        const timing = resolveSessionTimingAndStatus({
-          date: prev.date,
-          startTime,
-          endTime,
-          status: "confirmed",
-        })
-        return {
-          ...prev,
-          status: timing.status,
-          isPast: timing.isPast,
-          zoomRoom: "Zoom Pro 1",
-          zoomJoinUrl: `https://zoom.us/j/88${Math.floor(10000000 + Math.random() * 90000000)}`,
-          paymentMethod: details.paymentMethod,
-          paymentProvider: "manual",
-          referenceNumber: details.referenceNumber,
-          adminNotes: details.adminNotes,
-        }
-      })
-    }
-
+    // Sumber kebenaran adalah database: muat ulang agar link Zoom dan status memakai data asli.
+    setSelectedSession(null)
+    await loadSessions()
     showToast(
       `Pembayaran manual untuk ${session.code} (${session.patientName}) berhasil dikonfirmasi. Ruang Zoom telah dialokasikan dan email tiket telah dikirim.`
     )
@@ -1733,7 +1618,7 @@ export default function DistilledSessionsPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Tagihan:</span>
                       <span className="font-semibold text-muted-foreground line-through">
-                        Rp {selectedSession.amount.toLocaleString("id-ID")}
+                        {formatRupiahOrDash(selectedSession.amount)}
                       </span>
                     </div>
                     <div className="text-[11px] text-muted-foreground bg-muted/40 rounded-lg p-2.5 border border-border/60 leading-relaxed">
@@ -1751,16 +1636,21 @@ export default function DistilledSessionsPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Tagihan:</span>
                       <span className="font-semibold text-foreground">
-                        Rp {selectedSession.amount.toLocaleString("id-ID")}
+                        {formatRupiahOrDash(selectedSession.amount)}
                       </span>
                     </div>
                   </>
                 ) : (
                   <div className="flex items-center justify-between pt-2 border-t border-border/60">
                     <span className="text-muted-foreground">Pembayaran:</span>
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                      Lunas • Rp {selectedSession.amount.toLocaleString("id-ID")} ({selectedSession.paymentMethod})
-                    </span>
+                    {selectedSession.amount == null ? (
+                      <span className="text-muted-foreground">Belum ada data transaksi</span>
+                    ) : (
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        Lunas • {formatRupiahOrDash(selectedSession.amount)}
+                        {selectedSession.paymentMethod ? ` (${selectedSession.paymentMethod})` : ""}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -1851,6 +1741,10 @@ export default function DistilledSessionsPage() {
                     </Link>
                   </Button>
                 </div>
+              ) : !selectedSession.zoomJoinUrl ? (
+                <div className="w-full rounded-lg border border-dashed border-border/80 bg-muted/30 p-2.5 text-center text-xs text-muted-foreground">
+                  Tautan ruang video belum tersedia untuk sesi ini.
+                </div>
               ) : (
                 <Button
                   size="sm"
@@ -1904,9 +1798,9 @@ export default function DistilledSessionsPage() {
       <AdminManualBookingModal
         isOpen={isManualBookingModalOpen}
         onClose={() => setIsManualBookingModalOpen(false)}
-        onBookingCreated={(newSession) => {
-          setSessions((prev) => [newSession, ...prev])
-          showToast(`Sesi manual atas nama ${newSession.patientName} berhasil dibuat dan dikonfirmasi!`)
+        onBookingCreated={async (created) => {
+          await loadSessions()
+          showToast(`Sesi manual atas nama ${created.patientName} berhasil dibuat dan dikonfirmasi!`)
         }}
       />
     </div>
