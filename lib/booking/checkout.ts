@@ -36,6 +36,7 @@ import {
   isHoldExpired,
 } from "@/lib/booking/hold"
 import { createXenditInvoice, getXenditInvoice } from "@/lib/xendit"
+import { getXenditConfig } from "@/lib/config/integrations"
 import { dispatchFulfillmentJob } from "@/lib/fulfillment/qstash"
 
 export interface ActionResponse<T = any> {
@@ -422,6 +423,11 @@ export async function executeCreateGuestBooking(
 
     const data = parseResult.data
     const now = deps?.now ? deps.now() : new Date()
+
+    // Fail closed before reserving anything: no Xendit key means no payable invoice.
+    if (data.paymentProvider === "xendit" && !deps?.createInvoice) {
+      getXenditConfig()
+    }
 
     let schedule: any
     if (deps?.getSchedule) {

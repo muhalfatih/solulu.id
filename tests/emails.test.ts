@@ -89,14 +89,6 @@ describe("Resend Email Delivery Services (lib/fulfillment/emails.ts)", () => {
 
       consoleErrorSpy.mockRestore()
     })
-
-    it("uses mock fallback in dev/test environment when fetchFn is not provided", async () => {
-      process.env.RESEND_API_KEY = "mock"
-      const result = await sendPatientConfirmationEmail(mockPatientPayload)
-
-      expect(result.success).toBe(true)
-      expect(result.id).toBe("mock_patient_email_id")
-    })
   })
 
   describe("sendCounselorNotificationEmail", () => {

@@ -1,44 +1,48 @@
 import { fulfillBooking } from "./fulfill"
 import { getAppBaseUrl } from "@/lib/url"
+import {
+  getQstashConfig,
+  type IntegrationEnv,
+  type QstashConfig,
+} from "@/lib/config/integrations"
 
 export interface DispatchFulfillmentOptions {
   fetchFn?: typeof fetch
   directFulfillFn?: typeof fulfillBooking
-  forceRemote?: boolean
-  overrideToken?: string
-  overrideUrl?: string
+  env?: IntegrationEnv
+}
+
+export interface DispatchFulfillmentResult {
+  success: boolean
+  messageId?: string
+  error?: string
 }
 
 /**
- * Dispatches an asynchronous fulfillment task to Upstash QStash,
- * with automatic local/dev fallback when QStash credentials are not set.
+ * Publishes an asynchronous fulfillment task to Upstash QStash.
+ * Without QStash credentials the dispatch fails explicitly (success=false with
+ * an error naming the variable); there is no local "direct execution" path.
  */
 export async function dispatchFulfillmentJob(
   bookingId: string,
   options: DispatchFulfillmentOptions = {}
-): Promise<{ success: boolean; messageId?: string; directExecuted?: boolean }> {
+): Promise<DispatchFulfillmentResult> {
   const fetchFn = options.fetchFn ?? fetch
-  const qstashToken = options.overrideToken ?? process.env.QSTASH_TOKEN
-  const rawUrl = options.overrideUrl ?? process.env.QSTASH_URL ?? "https://qstash.upstash.io/v2"
-  const qstashUrl = rawUrl.endsWith("/v2") ? rawUrl : `${rawUrl.replace(/\/+$/, "")}/v2`
+
+  let qstash: QstashConfig
+  try {
+    qstash = getQstashConfig(options.env)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Konfigurasi QStash tidak valid."
+    console.error(`[QSTASH] Fulfillment booking ${bookingId} tidak dijadwalkan:`, message)
+    return { success: false, error: message }
+  }
+
+  const qstashToken = qstash.token
+  const qstashUrl = qstash.url
   let appBaseUrl = getAppBaseUrl()
   if (appBaseUrl.startsWith("http://localhost") || appBaseUrl.startsWith("http://127.0.0.1")) {
     appBaseUrl = "https://solulu.id"
-  }
-
-  // In local development or test without QStash, perform direct execution
-  const shouldUseDirect =
-    !options.forceRemote &&
-    (!qstashToken || qstashToken === "mock" || process.env.NODE_ENV === "test")
-
-  if (shouldUseDirect) {
-    console.log(`[QSTASH DEV] Direct fulfillment executed for booking ${bookingId}`)
-    const fulfillFn = options.directFulfillFn ?? fulfillBooking
-    // Execute asynchronously
-    fulfillFn(bookingId).catch((err) =>
-      console.error(`[QSTASH DEV] Error fulfilling booking ${bookingId}:`, err)
-    )
-    return { success: true, messageId: "mock_qstash_msg_id", directExecuted: true }
   }
 
   const destinationUrl = `${appBaseUrl}/api/jobs/fulfill-booking`
@@ -63,7 +67,7 @@ export async function dispatchFulfillmentJob(
       fulfillFn(bookingId).catch((e) =>
         console.error("Direct fulfillment fallback error:", e)
       )
-      return { success: false }
+      return { success: false, error: `QStash menolak publikasi: ${errText}` }
     }
 
     const data = await response.json()
@@ -75,6 +79,9 @@ export async function dispatchFulfillmentJob(
     fulfillFn(bookingId).catch((e) =>
       console.error("Direct fulfillment fallback error:", e)
     )
-    return { success: false }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Gagal menghubungi QStash",
+    }
   }
 }
