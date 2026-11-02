@@ -351,7 +351,7 @@ export async function getSessionReportAction(
       id: report?.id || "",
       bookingId: booking.id,
       counselorId: booking.counselorId,
-      mainIssue: report?.mainIssue || "Konsultasi Emosional & Stres",
+      mainIssue: report?.mainIssue ?? "",
       summary: report?.summary || "",
       actionPlan: report?.actionPlan || "",
       // Confidentiality Guard: internalNotes is STRICTLY excluded from Admin & Superadmin payloads
@@ -465,7 +465,7 @@ export async function submitSessionReportAction(
       const res = await deps.saveReport({
         bookingId,
         counselorId,
-        mainIssue: mainIssue || "Konsultasi Emosional & Stres",
+        mainIssue,
         summary,
         actionPlan: actionPlan || null,
         internalNotes: internalNotes || null,
@@ -486,7 +486,7 @@ export async function submitSessionReportAction(
       if (existing.length > 0) {
         reportId = existing[0].id
         const updatePayload: any = {
-          mainIssue: mainIssue || "Konsultasi Emosional & Stres",
+          mainIssue,
           summary,
           actionPlan: actionPlan || null,
           internalNotes: internalNotes || null,
@@ -510,7 +510,7 @@ export async function submitSessionReportAction(
         const insertPayload: any = {
           bookingId,
           counselorId,
-          mainIssue: mainIssue || "Konsultasi Emosional & Stres",
+          mainIssue,
           summary,
           actionPlan: actionPlan || null,
           internalNotes: internalNotes || null,
@@ -1058,7 +1058,7 @@ export async function recordSessionTimerAction(
           .values({
             bookingId,
             counselorId,
-            mainIssue: "Konsultasi Emosional & Stres",
+            mainIssue: "",
             summary: "Sesi konseling telah terekam melalui Floating Timer.",
             actualDurationMinutes: payload.actualDurationMinutes,
             timerStartedAt: timerStarted,

@@ -165,7 +165,7 @@ export async function fulfillSession(
     }
 
     const breakoutName = formatBreakoutRoomName(
-      bookingRow.bookingCode || "SL-1001",
+      bookingRow.bookingCode,
       counselorRow.fullName
     )
 

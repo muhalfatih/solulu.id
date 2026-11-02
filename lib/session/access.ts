@@ -20,6 +20,9 @@ import {
   type ClientSessionReportView,
 } from "./types"
 
+const MISSING_PAYER_EMAIL_ERROR =
+  "Email klien pada booking ini belum tersedia, sehingga invoice perpanjangan tidak dapat dibuat. Hubungi Admin."
+
 export interface SessionDataDependencies {
   findBookingByAccessToken?: (token: string) => Promise<any>
 }
@@ -74,9 +77,6 @@ export async function getGuestSessionByToken(
         }
       }
 
-      if (customRes.booking && !customRes.booking.bookingCode) {
-        customRes.booking.bookingCode = "SL-1001"
-      }
       if (customRes.booking && customRes.booking.isExtended === undefined) {
         customRes.booking.isExtended = false
         customRes.booking.extensionMinutes = 0
@@ -210,7 +210,7 @@ export async function getGuestSessionByToken(
       booking: {
         id: item.booking.id,
         accessToken: item.booking.accessToken,
-        bookingCode: item.booking.bookingCode || "SL-1001",
+        bookingCode: item.booking.bookingCode,
         patientName: item.booking.patientName,
         patientEmail: item.booking.patientEmail,
         patientPhone: item.booking.patientPhone,
@@ -354,8 +354,8 @@ export async function verifyClientPhoneAndUnlockReport(
       success: true,
       data: {
         report: safeReport,
-        patientName: custom.patientName || "Klien",
-        counselorName: custom.counselorName || "Konselor",
+        patientName: custom.patientName ?? "",
+        counselorName: custom.counselorName ?? "",
       },
     }
   }
@@ -473,7 +473,7 @@ export async function verifyClientPhoneAndUnlockReport(
 
     const clientReport: ClientSessionReportView = {
       id: report.id,
-      mainIssue: report.mainIssue || "Konsultasi Emosional & Stres",
+      mainIssue: report.mainIssue,
       summary: report.summary,
       actionPlan: report.actionPlan || null,
       followUpRecommendation: report.followUpRecommendation || null,
@@ -532,12 +532,16 @@ export async function processExtensionPayment(
           },
         }
       } else {
+        const payerEmail = typeof b.patientEmail === "string" ? b.patientEmail.trim() : ""
+        if (!payerEmail) {
+          return { success: false, error: MISSING_PAYER_EMAIL_ERROR }
+        }
         const createInvoiceFn = deps.createXenditInvoice || createXenditInvoice
         const appUrl = getAppBaseUrl()
         const invoice = await createInvoiceFn({
           externalId: `EXT-${b.bookingCode || b.id.slice(0, 8)}-${Date.now()}`,
           amount: b.extensionFee || 35000,
-          payerEmail: b.patientEmail || "pasien@example.com",
+          payerEmail,
           description: `Perpanjangan Sesi Konseling (${b.extensionMinutes || 30} menit)`,
           successRedirectUrl: `${appUrl}/session/${accessToken}?extend_status=success`,
           failureRedirectUrl: `${appUrl}/session/${accessToken}?extend_status=failed`,
@@ -589,6 +593,10 @@ export async function processExtensionPayment(
         },
       }
     } else {
+      const payerEmail = booking.patientEmail?.trim()
+      if (!payerEmail) {
+        return { success: false, error: MISSING_PAYER_EMAIL_ERROR }
+      }
       const appUrl = getAppBaseUrl()
       const fee = booking.extensionFee ? Number(booking.extensionFee) : 35000
       const externalId = `EXT-${booking.bookingCode || booking.id.slice(0, 8)}-${Date.now()}`
@@ -596,7 +604,7 @@ export async function processExtensionPayment(
       const invoice = await createXenditInvoice({
         externalId,
         amount: fee,
-        payerEmail: booking.patientEmail,
+        payerEmail,
         description: `Perpanjangan Sesi Konseling ${booking.bookingCode || ""} (${booking.extensionMinutes || 30} menit)`,
         successRedirectUrl: `${appUrl}/session/${accessToken}?extend_status=success`,
         failureRedirectUrl: `${appUrl}/session/${accessToken}?extend_status=failed`,

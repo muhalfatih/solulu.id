@@ -36,6 +36,13 @@
       "when": 1792835311980,
       "tag": "0004_late_warbound",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793640422841,
+      "tag": "0005_remove_fabricated_defaults",
+      "breakpoints": true
     }
   ]
 }

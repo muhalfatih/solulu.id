@@ -6,8 +6,7 @@ export const sessionReportSchema = z.object({
   mainIssue: z
     .string()
     .trim()
-    .min(3, "Permasalahan utama wajib diisi (minimal 3 karakter)")
-    .default("Konsultasi Emosional & Stres"),
+    .min(3, "Permasalahan utama wajib diisi (minimal 3 karakter)"),
   summary: z
     .string()
     .trim()

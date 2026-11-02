@@ -167,7 +167,7 @@ describe("Ticket 06: Client Session Room, Dual Payments & WhatsApp Report Gate",
           paymentMethod: "xendit",
         },
         {
-          findBooking: async () => ({ id: "b-client-601" }),
+          findBooking: async () => ({ id: "b-client-601", patientEmail: "nadia.rahma@example.com" }),
           updateBooking: updateSpy,
         }
       )
