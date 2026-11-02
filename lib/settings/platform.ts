@@ -1,8 +1,8 @@
 import { eq, sql } from "drizzle-orm"
 import { db } from "@/db"
 import { platformSettings } from "@/db/schema"
-import { cookies } from "next/headers"
-import { createClient } from "@/lib/supabase/server"
+import { requireStaffUser } from "@/lib/auth/staff"
+import { SUPERADMIN_ONLY } from "@/lib/auth/staff-role"
 
 export interface PlatformSettingsData {
   id?: string
@@ -152,30 +152,7 @@ export interface UpdatePlatformSettingsOptions {
 async function verifySuperadminPermission(
   customUser?: AuthContext | null
 ): Promise<boolean> {
-  if (customUser !== undefined) {
-    if (!customUser) return false
-    const role = customUser.app_metadata?.role || customUser.user_metadata?.role
-    return role === "superadmin"
-  }
-
-  try {
-    const cookieStore = await cookies()
-    const demoRole = cookieStore.get("solulu_demo_role")?.value
-    if (demoRole === "superadmin") {
-      return true
-    }
-
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return false
-    const role = user.app_metadata?.role || user.user_metadata?.role
-    return role === "superadmin"
-  } catch {
-    return false
-  }
+  return (await requireStaffUser(customUser, SUPERADMIN_ONLY)) !== null
 }
 
 /**
