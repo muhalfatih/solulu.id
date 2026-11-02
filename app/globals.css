@@ -172,12 +172,6 @@
 /* SURFACE ISOLATION: Admin vs Public Specific Component Tokens              */
 /* ========================================================================= */
 
-.theme-admin [data-slot="card"] {
-    border-radius: 0.75rem;
-    border: 1px solid var(--border);
-    background-color: var(--card);
-}
-
 .theme-public [data-slot="card"] {
     border-radius: 1rem;
     background-color: var(--card);
