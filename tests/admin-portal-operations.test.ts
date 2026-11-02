@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest"
-import { canRescheduleSession } from "../lib/admin/reschedule"
+import { canRescheduleSession } from "../lib/booking-cycle"
 import {
   validateVoucherEligibility,
   type PricingTierConfig,

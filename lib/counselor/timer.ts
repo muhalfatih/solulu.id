@@ -1,3 +1,5 @@
+import { overtimeBlocks } from "@/lib/booking-cycle"
+
 export type TimerStageKey =
   | "normal"
   | "warning_85"
@@ -127,7 +129,7 @@ export function calculateExtendFee(
   counselorType: "peer" | "psychologist",
   customRates?: { peerRate?: number; psychologistRate?: number }
 ): ExtendFeeCalculation {
-  if (durationMinutes <= 95) {
+  if (overtimeBlocks(durationMinutes) === 0) {
     return {
       isExtended: false,
       extensionMinutes: 0,
