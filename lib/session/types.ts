@@ -48,7 +48,7 @@ export interface SessionBookingData {
   patientEmail: string
   patientPhone: string
   initialNotes: string | null
-  status: "pending_payment" | "confirmed" | "completed" | "cancelled"
+  status: "pending_payment" | "confirmed" | "completed" | "no_show" | "cancelled" | "expired"
   zoomJoinUrl: string | null
   zoomMeetingId: string | null
   zoomAllocationMode?: "standalone" | "breakout_room" | string | null

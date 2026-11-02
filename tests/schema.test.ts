@@ -45,6 +45,8 @@ describe("Drizzle ORM Schema & Migrations", () => {
       "confirmed",
       "completed",
       "cancelled",
+      "no_show",
+      "expired",
     ]);
     expect(schema.transactionStatusEnum.enumValues).toEqual([
       "PENDING",

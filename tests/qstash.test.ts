@@ -168,7 +168,7 @@ describe("Upstash QStash Asynchronous Processing & Cron Architecture (ADR-0001 /
         return {
           success: true,
           releasedSlotsCount: 1,
-          cancelledBookingsCount: 1,
+          expiredBookingsCount: 1,
           expiredTransactionsCount: 1,
           vouchersRolledBackCount: 0,
           autoArchivedSessionsCount: 2,
