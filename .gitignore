@@ -46,12 +46,10 @@ next-env.d.ts
 .gemini/
 .windsurf/
 .v0/
-AGENTS.md
 CLAUDE.md
 *prd*.md
 *PRD*.md
 DESIGN.md
 PRODUCT.md
-docs/agents/
 skills-lock.json
 
