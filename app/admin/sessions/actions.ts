@@ -11,6 +11,7 @@ import {
   type ManualPaymentDependencies,
   type ConfirmManualPaymentResult,
 } from "@/lib/fulfillment/manual"
+import { evaluateNoShow, loadNoShowBookingFacts, noShowUpdate } from "@/lib/booking/no-show"
 
 /**
  * Admin Server Action to verify and confirm manual bank transfer payments.
@@ -186,8 +187,8 @@ export async function rejectManualPaymentAction(
 
 /**
  * Admin Server Action to mark a booking as No-Show (Spec 0003 - US 42).
- * Marks booking with isNoShow: true, noShowMarkedAt, and transitions status to 'completed'
- * without penalizing the counselor.
+ * Writes status 'no_show' (ADR-0008) once the 30 minute tolerance has elapsed
+ * (rule owned by lib/booking-cycle), without penalizing the counselor.
  */
 export async function markBookingNoShowAction(
   bookingId: string,
@@ -212,14 +213,18 @@ export async function markBookingNoShowAction(
       return { success: false, error: "Data pesanan booking tidak ditemukan." }
     }
 
+    const facts = await loadNoShowBookingFacts(bookingId)
+    const check = facts
+      ? evaluateNoShow(facts)
+      : { allowed: false, reason: "Jadwal sesi tidak ditemukan." }
+    if (!check.allowed) {
+      return { success: false, error: check.reason || "No-Show belum dapat ditandai." }
+    }
+
     await db.transaction(async (tx) => {
       await tx
         .update(bookings)
-        .set({
-          isNoShow: true,
-          noShowMarkedAt: new Date(),
-          status: "completed",
-        })
+        .set(noShowUpdate())
         .where(eq(bookings.id, bookingId))
 
       await tx

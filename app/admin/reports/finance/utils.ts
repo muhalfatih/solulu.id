@@ -1,3 +1,5 @@
+import type { BookingStatus } from "@/lib/booking-cycle"
+
 export interface FinanceLedgerItem {
   id: string
   bookingCode: string
@@ -19,7 +21,7 @@ export interface FinanceLedgerItem {
   totalAmount: number
   paymentMethod: "xendit" | "manual_bank_transfer"
   paymentStatus: "PENDING" | "PAID" | "EXPIRED" | "FAILED" | "VERIFIED"
-  bookingStatus: "pending_payment" | "confirmed" | "completed" | "cancelled"
+  bookingStatus: BookingStatus
   isExtended: boolean
   extensionMinutes: number
   extensionPaymentStatus?: "NONE" | "PENDING" | "PAID" | "REJECTED"
@@ -83,7 +85,7 @@ export function formatRupiah(amount: number): string {
 export function computeFinanceMetrics(items: FinanceLedgerItem[]): FinanceReportMetrics {
   const totalScheduledSessions = items.length
   const completedSessionsCount = items.filter(
-    (item) => item.bookingStatus === "completed"
+    (item) => item.bookingStatus === "completed" || item.bookingStatus === "no_show"
   ).length
 
   // Revenue is recognized for sessions that are PAID, VERIFIED, or confirmed/completed
@@ -92,7 +94,8 @@ export function computeFinanceMetrics(items: FinanceLedgerItem[]): FinanceReport
       item.paymentStatus === "PAID" ||
       item.paymentStatus === "VERIFIED" ||
       item.bookingStatus === "confirmed" ||
-      item.bookingStatus === "completed"
+      item.bookingStatus === "completed" ||
+      item.bookingStatus === "no_show"
   )
 
   const baseRevenue = revenueItems.reduce((acc, curr) => acc + curr.baseFee, 0)
@@ -181,7 +184,7 @@ export function generateFinanceCsv(items: FinanceLedgerItem[]): string {
       item.paymentMethod === "xendit" ? "Xendit Gateway" : "Transfer Manual"
 
     let sessionStatusLabel = "Menunggu Pembayaran"
-    if (item.isNoShow) {
+    if (item.isNoShow || item.bookingStatus === "no_show") {
       sessionStatusLabel = "No-Show"
     } else if (item.bookingStatus === "completed") {
       sessionStatusLabel = "Selesai"
@@ -189,6 +192,8 @@ export function generateFinanceCsv(items: FinanceLedgerItem[]): string {
       sessionStatusLabel = "Dikonfirmasi"
     } else if (item.bookingStatus === "cancelled") {
       sessionStatusLabel = "Dibatalkan"
+    } else if (item.bookingStatus === "expired") {
+      sessionStatusLabel = "Kedaluwarsa"
     }
 
     return [
