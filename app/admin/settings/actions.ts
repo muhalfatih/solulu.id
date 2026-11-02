@@ -7,60 +7,17 @@ import {
   type PlatformSettingsData,
   type AuthContext,
 } from "@/lib/settings/platform"
-import { cookies } from "next/headers"
-import { createClient } from "@/lib/supabase/server"
+import { requireStaffUser } from "@/lib/auth/staff"
+import { ADMIN_ROLES, SUPERADMIN_ONLY, hasStaffRole } from "@/lib/auth/staff-role"
 
 async function getAuthenticatedUser(
   customUser?: AuthContext | null
 ): Promise<{ user: AuthContext | null; isSuperadmin: boolean; isAdmin: boolean }> {
-  if (customUser !== undefined) {
-    if (!customUser) return { user: null, isSuperadmin: false, isAdmin: false }
-    const role = customUser.app_metadata?.role || customUser.user_metadata?.role
-    const isSuperadmin = role === "superadmin"
-    const isAdmin = role === "admin" || isSuperadmin
-    return { user: customUser, isSuperadmin, isAdmin }
-  }
-
-  try {
-    const cookieStore = await cookies()
-    const demoRole = cookieStore.get("solulu_demo_role")?.value
-    if (demoRole === "superadmin" || demoRole === "admin") {
-      const isSuperadmin = demoRole === "superadmin"
-      return {
-        user: {
-          id: `demo-${demoRole}-id`,
-          app_metadata: { role: demoRole },
-          user_metadata: { role: demoRole },
-        },
-        isSuperadmin,
-        isAdmin: true,
-      }
-    }
-
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return { user: null, isSuperadmin: false, isAdmin: false }
-    }
-
-    const role = user.app_metadata?.role || user.user_metadata?.role
-    const isSuperadmin = role === "superadmin"
-    const isAdmin = role === "admin" || isSuperadmin
-
-    return {
-      user: {
-        id: user.id,
-        app_metadata: user.app_metadata,
-        user_metadata: user.user_metadata,
-      },
-      isSuperadmin,
-      isAdmin,
-    }
-  } catch {
-    return { user: null, isSuperadmin: false, isAdmin: false }
+  const user = await requireStaffUser(customUser, ADMIN_ROLES)
+  return {
+    user,
+    isSuperadmin: hasStaffRole(user, SUPERADMIN_ONLY),
+    isAdmin: user !== null,
   }
 }
 

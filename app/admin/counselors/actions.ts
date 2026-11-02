@@ -1,7 +1,6 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
 import { eq, desc, sql, and, not, inArray } from "drizzle-orm"
 import { db } from "@/db"
 import { counselors, schedules, bookings, sessionReports } from "@/db/schema"
@@ -14,7 +13,6 @@ import {
 } from "@/lib/r2"
 import { getCounselorRadarAlert, type CounselorRadarAlert } from "@/lib/counselor/credentials"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { createClient } from "@/lib/supabase/server"
 import {
   createCounselorAdminSchema,
   updateCounselorAdminSchema,
@@ -29,6 +27,9 @@ import {
 } from "@/lib/schedules/concurrency"
 import { getSlotByStartTime } from "@/lib/schedules/slots"
 
+import { requireStaffUser } from "@/lib/auth/staff"
+import { ADMIN_ROLES } from "@/lib/auth/staff-role"
+
 export interface AdminAuthContext {
   id: string
   app_metadata?: Record<string, any>
@@ -38,34 +39,7 @@ export interface AdminAuthContext {
 export async function getAuthenticatedAdmin(
   customUser?: AdminAuthContext | null
 ): Promise<AdminAuthContext | null> {
-  if (customUser !== undefined) {
-    if (!customUser) return null
-    const role = customUser.app_metadata?.role || customUser.user_metadata?.role
-    return (role === "admin" || role === "superadmin") ? customUser : null
-  }
-
-  try {
-    const cookieStore = await cookies()
-    const demoRole = cookieStore.get("solulu_demo_role")?.value
-    if (demoRole === "admin" || demoRole === "superadmin") {
-      return {
-        id: `demo-${demoRole}-id`,
-        app_metadata: { role: demoRole },
-        user_metadata: { role: demoRole },
-      }
-    }
-
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return null
-    const role = user.app_metadata?.role || user.user_metadata?.role
-    return (role === "admin" || role === "superadmin") ? user : null
-  } catch {
-    return null
-  }
+  return requireStaffUser(customUser, ADMIN_ROLES)
 }
 
 /**

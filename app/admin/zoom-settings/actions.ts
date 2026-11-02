@@ -17,7 +17,6 @@ import {
   getZoomAccessToken,
   type ZoomAccountRecord,
 } from "@/lib/zoom/client"
-import { createClient } from "@/lib/supabase/server"
 
 import {
   zoomAccountInputSchema,
@@ -32,7 +31,8 @@ import {
 // AUTH & CONTEXT HELPERS
 // =============================================================================
 
-import { cookies } from "next/headers"
+import { requireStaffUser } from "@/lib/auth/staff"
+import { ADMIN_ROLES, SUPERADMIN_ONLY, getStaffRole } from "@/lib/auth/staff-role"
 
 export interface AuthContext {
   id: string
@@ -43,49 +43,13 @@ export interface AuthContext {
 async function getAuthenticatedAdmin(
   customUser?: AuthContext | null
 ): Promise<AuthContext | null> {
-  if (customUser !== undefined) {
-    if (!customUser) return null
-    const role = customUser.app_metadata?.role || customUser.user_metadata?.role
-    return (role === "admin" || role === "superadmin") ? customUser : null
-  }
-
-  try {
-    const cookieStore = await cookies()
-    const demoRole = cookieStore.get("solulu_demo_role")?.value
-    if (demoRole === "admin" || demoRole === "superadmin") {
-      return {
-        id: `demo-${demoRole}-id`,
-        app_metadata: { role: demoRole },
-        user_metadata: { role: demoRole },
-      }
-    }
-
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return null
-    const role = user.app_metadata?.role || user.user_metadata?.role
-    if (role !== "admin" && role !== "superadmin") return null
-
-    return {
-      id: user.id,
-      app_metadata: user.app_metadata,
-      user_metadata: user.user_metadata,
-    }
-  } catch {
-    return null
-  }
+  return requireStaffUser(customUser, ADMIN_ROLES)
 }
 
 async function getAuthenticatedSuperadmin(
   customUser?: AuthContext | null
 ): Promise<AuthContext | null> {
-  const admin = await getAuthenticatedAdmin(customUser)
-  if (!admin) return null
-  const role = admin.app_metadata?.role || admin.user_metadata?.role
-  return role === "superadmin" ? admin : null
+  return requireStaffUser(customUser, SUPERADMIN_ONLY)
 }
 
 // =============================================================================
@@ -427,7 +391,7 @@ export async function getZoomAccountsAction(options?: {
     }
   }
 
-  const role = admin.app_metadata?.role || admin.user_metadata?.role
+  const role = getStaffRole(admin)
   const userIsSuperadmin = role === "superadmin"
 
   const rows = await db
@@ -480,7 +444,7 @@ export async function revealZoomClientSecretAction(
     return { success: false, error: "Akses ditolak: Silakan login terlebih dahulu." }
   }
 
-  const role = admin.app_metadata?.role || admin.user_metadata?.role
+  const role = getStaffRole(admin)
   if (role !== "superadmin") {
     return {
       success: false,

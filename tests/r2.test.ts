@@ -20,11 +20,11 @@ describe("R2 Cloudflare S3 Client (lib/r2.ts)", () => {
   })
 
   it("resolves default configuration and endpoints", () => {
-    const config = getR2Config()
+    const config = getR2Config({ R2_ACCOUNT_ID: "acc123" })
     expect(config.publicBucketName).toBe("solulu-public")
     expect(config.privateBucketName).toBe("solulu-private")
     expect(config.publicDomain).toBe("https://cdn.solulu.id")
-    expect(config.endpoint).toBeDefined()
+    expect(config.endpoint).toBe("https://acc123.r2.cloudflarestorage.com")
   })
 
   it("generates sanitized, collision-resistant keys", () => {

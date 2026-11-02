@@ -1,10 +1,10 @@
 import * as React from "react"
 import type { Metadata } from "next"
-import { cookies } from "next/headers"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { OperatorAppSidebar } from "@/components/operator/operator-app-sidebar"
 import { OperatorHeader } from "@/components/operator/operator-header"
-import { createClient } from "@/lib/supabase/server"
+import { getSessionUser } from "@/lib/auth/staff"
+import { ADMIN_ROLES, hasStaffRole } from "@/lib/auth/staff-role"
 
 export const metadata: Metadata = {
   title: "Konsol Operator & Dispatcher Zoom | Solulu",
@@ -17,22 +17,8 @@ export default async function OperatorLayout({
 }: {
   children: React.ReactNode
 }) {
-  const cookieStore = await cookies()
-  const demoRole = cookieStore.get("solulu_demo_role")?.value
-  let isAdmin = demoRole === "admin" || demoRole === "superadmin"
-
-  if (!demoRole) {
-    try {
-      const supabase = await createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      const role = user?.app_metadata?.role || user?.user_metadata?.role
-      isAdmin = role === "admin" || role === "superadmin"
-    } catch {
-      // fallback
-    }
-  }
+  const user = await getSessionUser()
+  const isAdmin = hasStaffRole(user, ADMIN_ROLES)
 
   return (
     <SidebarProvider defaultOpen={true}>
