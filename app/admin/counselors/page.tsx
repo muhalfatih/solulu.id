@@ -1,5 +1,6 @@
 "use client"
 
+import { toast } from "sonner"
 import * as React from "react"
 import type { CounselorApplicant } from "@/lib/types/admin"
 import Link from "next/link"
@@ -153,7 +154,6 @@ export default function DistilledCounselorsPage() {
       )
     }
   }
-  const [toastMessage, setToastMessage] = React.useState<string | null>(null)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<"all" | "verified" | "pending" | "radar" | "active" | "suspended">("all")
 
@@ -242,8 +242,8 @@ export default function DistilledCounselorsPage() {
   }, [loadData])
 
   const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 4000)
+    if (/gagal|ditolak|kesalahan/i.test(msg)) toast.error(msg)
+    else toast.success(msg)
   }
 
   const handleApprove = async (id: string, name: string, email: string) => {
@@ -404,24 +404,6 @@ export default function DistilledCounselorsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-primary shrink-0" />
-            <span>{toastMessage}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => setToastMessage(null)}
-            className="size-6 text-muted-foreground hover:text-foreground"
-            aria-label="Tutup notifikasi"
-          >
-            <X className="size-3.5" />
-          </Button>
-        </div>
-      )}
 
       {/* 1. Header: Standardized Admin Page Header */}
       <AdminPageHeader

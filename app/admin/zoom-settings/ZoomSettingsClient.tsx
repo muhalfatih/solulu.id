@@ -1,5 +1,6 @@
 "use client"
 
+import { toast } from "sonner"
 import * as React from "react"
 import {
   ShieldAlert,
@@ -143,7 +144,6 @@ export function ZoomSettingsClient({
   const [accounts, setAccounts] = React.useState<ZoomAccountView[]>(initialAccounts)
   const [showSecret, setShowSecret] = React.useState<{ [key: string]: boolean }>({})
   const [copiedKey, setCopiedKey] = React.useState<string | null>(null)
-  const [toast, setToast] = React.useState<{ message: string; type: "success" | "error" } | null>(null)
 
   // Interactive Action States
   const [inspectingAccountId, setInspectingAccountId] = React.useState<string | null>(null)
@@ -239,8 +239,8 @@ export function ZoomSettingsClient({
   }, [selectedDate, accounts])
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 4500)
+    if (type === "error") toast.error(message)
+    else toast.success(message)
   }
 
   const toggleSecret = async (id: string, currentSecret?: string) => {
@@ -503,34 +503,6 @@ export function ZoomSettingsClient({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16 font-sans">
-      {/* Toast Notification */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 right-6 z-50 p-4 rounded-xl border text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md ${
-            toast.type === "success"
-              ? "bg-card border-primary/40 text-foreground"
-              : "bg-destructive/15 border-destructive/40 text-destructive-foreground"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {toast.type === "success" ? (
-              <Check className="size-4 text-primary shrink-0" />
-            ) : (
-              <AlertTriangle className="size-4 text-destructive shrink-0" />
-            )}
-            <span className="leading-relaxed">{toast.message}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setToast(null)}
-            className="size-6 text-muted-foreground hover:text-foreground shrink-0"
-            aria-label="Tutup notifikasi"
-          >
-            <X className="size-3.5" />
-          </Button>
-        </div>
-      )}
 
       {/* Page Header */}
       <AdminPageHeader

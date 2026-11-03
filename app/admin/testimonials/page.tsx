@@ -1,5 +1,6 @@
 "use client"
 
+import { toast } from "sonner"
 import * as React from "react"
 import type { TestimonialItem } from "@/lib/types/admin"
 import { TestimonialVariantA } from "./components/testimonial-variant-a"
@@ -19,13 +20,12 @@ import {
 export default function TestimonialsAdminPage() {
   const [items, setItems] = React.useState<TestimonialItem[]>([])
   const [specializationTopics, setSpecializationTopics] = React.useState<string[]>([])
-  const [toastMessage, setToastMessage] = React.useState<string | null>(null)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
 
   const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 3200)
+    if (/gagal|ditolak|kesalahan/i.test(msg)) toast.error(msg)
+    else toast.success(msg)
   }
 
   // Fetch real testimonials and active specializations directory from database on mount
@@ -205,29 +205,6 @@ export default function TestimonialsAdminPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16 font-sans">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md"
-        >
-          <div className="flex items-center gap-2">
-            <Check className="size-4 text-primary shrink-0" />
-            <span className="leading-relaxed">{toastMessage}</span>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => setToastMessage(null)}
-            className="size-6 text-muted-foreground hover:text-foreground cursor-pointer"
-            aria-label="Tutup notifikasi"
-          >
-            <X className="size-3.5" />
-          </Button>
-        </div>
-      )}
 
       {/* Header */}
       <AdminPageHeader
