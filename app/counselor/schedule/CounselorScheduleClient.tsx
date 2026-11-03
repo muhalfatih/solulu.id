@@ -817,7 +817,7 @@ export default function CounselorScheduleClient({
                   <Progress
                     value={commitment.percentage}
                     className={cn(
-                      "h-2.5 rounded-full transition-all",
+                      "h-2.5 rounded-full transition-colors",
                       commitment.isMet ? "[&>div]:bg-emerald-600" : "[&>div]:bg-amber-500"
                     )}
                   />
@@ -976,7 +976,7 @@ export default function CounselorScheduleClient({
                               >
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <div className="flex flex-col items-center justify-center p-2 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400 gap-1 text-center transition-all">
+                                    <div className="flex flex-col items-center justify-center p-2 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400 gap-1 text-center transition-colors">
                                       <CalendarOff className="size-4 shrink-0 text-rose-600 dark:text-rose-400" />
                                       <span className="text-xs font-semibold leading-tight">
                                         Izin / Cuti
@@ -1104,7 +1104,7 @@ export default function CounselorScheduleClient({
                                       onClick={() => handleToggleSlot(slot.slotIndex, day.date)}
                                       disabled={isToggling}
                                       className={cn(
-                                        "w-full flex flex-col items-center justify-center p-2.5 rounded-lg border border-emerald-500/40 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 gap-1 text-center transition-all",
+                                        "w-full flex flex-col items-center justify-center p-2.5 rounded-lg border border-emerald-500/40 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 gap-1 text-center transition-colors",
                                         "hover:bg-rose-500/15 hover:border-rose-500/40 hover:text-rose-700 dark:hover:text-rose-300 group cursor-pointer",
                                         isToggling && "opacity-50 cursor-wait"
                                       )}
@@ -1146,7 +1146,7 @@ export default function CounselorScheduleClient({
                                     onClick={() => handleToggleSlot(slot.slotIndex, day.date)}
                                     disabled={isToggling}
                                     className={cn(
-                                      "w-full flex flex-col items-center justify-center p-2.5 rounded-lg border border-dashed border-border bg-background hover:bg-emerald-500/10 hover:border-emerald-500/50 hover:text-emerald-700 dark:hover:text-emerald-300 text-muted-foreground gap-1 text-center transition-all cursor-pointer group",
+                                      "w-full flex flex-col items-center justify-center p-2.5 rounded-lg border border-dashed border-border bg-background hover:bg-emerald-500/10 hover:border-emerald-500/50 hover:text-emerald-700 dark:hover:text-emerald-300 text-muted-foreground gap-1 text-center transition-colors cursor-pointer group",
                                       isToggling && "opacity-50 cursor-wait"
                                     )}
                                   >
@@ -1318,7 +1318,7 @@ export default function CounselorScheduleClient({
                   <Progress
                     value={Math.min(100, Math.round((templateActiveCount / 10) * 100))}
                     className={cn(
-                      "h-2.5 rounded-full transition-all",
+                      "h-2.5 rounded-full transition-colors",
                       templateActiveCount >= 10 ? "[&>div]:bg-emerald-600" : "[&>div]:bg-amber-500"
                     )}
                   />
@@ -1458,7 +1458,7 @@ export default function CounselorScheduleClient({
                                 onClick={() => handleToggleTemplateCell(day.dayOfWeek, slot.slotIndex, day.dayName, slot.displayTime)}
                                 aria-pressed={isActive}
                                 className={cn(
-                                  "w-full h-16 rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-all text-xs font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 select-none",
+                                  "w-full h-16 rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-colors text-xs font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 select-none",
                                   isActive
                                     ? "bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 shadow-xs hover:bg-emerald-500/25 hover:border-emerald-500/60"
                                     : "bg-background/60 border border-dashed border-border/80 text-muted-foreground hover:bg-muted/50 hover:border-foreground/30 hover:text-foreground"

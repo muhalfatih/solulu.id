@@ -622,7 +622,7 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
                       </div>
                       <div className="h-1.5 w-24 rounded-full bg-muted overflow-hidden">
                         <div
-                          className={`h-full transition-all rounded-full ${
+                          className={`h-full transition-[width] rounded-full ${
                             isBreakout ? "bg-amber-500" : "bg-primary"
                           }`}
                           style={{

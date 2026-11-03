@@ -45,7 +45,7 @@ export function CounselorProfileClient({
   const [specializations, setSpecializations] = React.useState<string[]>(
     profile.specializations || []
   )
-  const availableSpecs = availableSpecializations
+  const availableSpecs = availableSpecializations ?? []
   const [avatarUrl, setAvatarUrl] = React.useState(profile.avatarR2Url || "")
 
   const [uploadingAvatar, setUploadingAvatar] = React.useState(false)
@@ -396,7 +396,7 @@ export function CounselorProfileClient({
               {/* Progress bar */}
               <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-emerald-500 transition-all duration-300"
+                  className="h-full bg-emerald-500 transition-[width] duration-300"
                   style={{ width: `${completenessPercentage}%` }}
                 />
               </div>
@@ -589,7 +589,7 @@ export function CounselorProfileClient({
                         key={spec}
                         aria-pressed={isSelected}
                         onClick={() => toggleSpec(spec)}
-                        className={`text-xs px-3 py-1.5 rounded-md border transition-all cursor-pointer flex items-center gap-1.5 select-none ${
+                        className={`text-xs px-3 py-1.5 rounded-md border transition-colors cursor-pointer flex items-center gap-1.5 select-none ${
                           isSelected
                             ? "bg-primary text-primary-foreground border-primary font-medium shadow-2xs"
                             : "bg-background text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"

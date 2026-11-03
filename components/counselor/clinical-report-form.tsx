@@ -438,7 +438,7 @@ export function ClinicalReportForm({
                     type="button"
                     onClick={() => setAttendanceStatus("attended")}
                     className={cn(
-                      "p-3 rounded-lg border text-left flex items-start gap-2.5 transition-all cursor-pointer",
+                      "p-3 rounded-lg border text-left flex items-start gap-2.5 transition-colors cursor-pointer",
                       attendanceStatus === "attended"
                         ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
                         : "border-border bg-card text-muted-foreground hover:bg-muted/40"
@@ -468,7 +468,7 @@ export function ClinicalReportForm({
                       }
                     }}
                     className={cn(
-                      "p-3 rounded-lg border text-left flex items-start gap-2.5 transition-all cursor-pointer",
+                      "p-3 rounded-lg border text-left flex items-start gap-2.5 transition-colors cursor-pointer",
                       attendanceStatus === "no_show"
                         ? "border-amber-500 bg-amber-500/10 text-foreground ring-1 ring-amber-500/30"
                         : "border-border bg-card text-muted-foreground hover:bg-muted/40"

@@ -295,7 +295,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
         id="floating-timer-minimized"
         aria-label="Timer Sesi Konseling (Minimalis)"
         className={cn(
-          "fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-2.5 rounded-full border shadow-lg backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-3",
+          "fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-2.5 rounded-full border shadow-lg backdrop-blur-md transition-colors duration-300 animate-in fade-in slide-in-from-bottom-3",
           currentStage.containerClassName,
           currentStage.glowClassName
         )}
@@ -358,7 +358,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
       role="region"
       aria-label="Floating Timer Konseling"
       className={cn(
-        "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[410px] rounded-2xl border shadow-2xl backdrop-blur-md transition-all duration-300 animate-in fade-in zoom-in-95",
+        "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[410px] rounded-2xl border shadow-2xl backdrop-blur-md transition-colors duration-300 animate-in fade-in zoom-in-95",
         currentStage.containerClassName,
         currentStage.glowClassName
       )}
@@ -585,7 +585,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
           {elapsedMinutes >= 96 && (
             <div
               className={cn(
-                "p-3.5 rounded-xl border flex flex-col gap-2.5 transition-all duration-300",
+                "p-3.5 rounded-xl border flex flex-col gap-2.5 transition-colors duration-300",
                 extensionRecorded
                   ? "border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
                   : "border-orange-500/40 bg-orange-500/10 text-orange-800 dark:text-orange-300"
