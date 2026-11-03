@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
       { source: "/tiket", destination: "/cek-sesi", permanent: true },
       { source: "/konselor/register", destination: "/apply", permanent: true },
       { source: "/admin/zoom", destination: "/admin/zoom-settings", permanent: true },
-      { source: "/admin/pricing", destination: "/admin/settings?tab=fees", permanent: true },
+      { source: "/admin/pricing", destination: "/admin/layanan", permanent: true },
       { source: "/admin/dashboard", destination: "/admin", permanent: true },
       { source: "/admin/operator", destination: "/operator", permanent: true },
       { source: "/counselor/schedules", destination: "/counselor/schedule", permanent: true },

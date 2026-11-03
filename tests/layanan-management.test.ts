@@ -300,3 +300,54 @@ describe("Layanan & Tarif page is wired in", () => {
     expect(src).not.toMatch(/INITIAL_ROLES|regularPrice: 85000/)
   })
 })
+
+describe("queryServices (tabel Layanan)", () => {
+  const mk = (id: string, over: Partial<ServiceLike>): ServiceLike => ({
+    id,
+    name: id,
+    slug: id,
+    description: null,
+    basePrice: "100",
+    promoPrice: null,
+    allowVoucher: true,
+    overtimeRatePer30Min: "0",
+    basePayoutPercent: 70,
+    overtimePayoutPercent: 80,
+    allowedCounselorTypes: ["peer"],
+    isActive: true,
+    sortOrder: 0,
+    ...over,
+  })
+  const all = [
+    mk("Beta", { basePrice: "300", sortOrder: 2 }),
+    mk("Alfa", { basePrice: "500", promoPrice: "100", sortOrder: 1, allowedCounselorTypes: ["psychologist"] }),
+    mk("Gamma", { isActive: false, sortOrder: 3 }),
+  ]
+  const st = (over: Partial<import("../lib/data-table/search-params").TableState> = {}) => ({
+    page: 1,
+    pageSize: 10,
+    sort: { key: "sortOrder", dir: "asc" as const },
+    filters: {},
+    ...over,
+  })
+
+  it("sorts by display order by default and by active price", async () => {
+    const { queryServices } = await import("../lib/services/list")
+    expect(queryServices(all, st()).rows.map((s) => s.id)).toEqual(["Alfa", "Beta", "Gamma"])
+    expect(queryServices(all, st({ sort: { key: "price", dir: "asc" } })).rows.map((s) => s.id)).toEqual([
+      "Alfa",
+      "Gamma",
+      "Beta",
+    ])
+  })
+
+  it("filters by status, type and text, and paginates", async () => {
+    const { queryServices } = await import("../lib/services/list")
+    expect(queryServices(all, st({ filters: { status: "inactive" } })).rows.map((s) => s.id)).toEqual(["Gamma"])
+    expect(queryServices(all, st({ filters: { type: "psychologist" } })).total).toBe(1)
+    expect(queryServices(all, st({ filters: { q: "bet" } })).rows.map((s) => s.id)).toEqual(["Beta"])
+    const p = queryServices(all, st({ page: 2, pageSize: 2 }))
+    expect(p.total).toBe(3)
+    expect(p.rows.map((s) => s.id)).toEqual(["Gamma"])
+  })
+})

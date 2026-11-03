@@ -1,7 +1,7 @@
-import { and, asc, eq, inArray } from "drizzle-orm"
+import { and, asc, count, eq, ilike, inArray } from "drizzle-orm"
 import { uniqueSlug } from "@/lib/services/validation"
 import { db } from "@/db"
-import { services, counselorServiceExclusions } from "@/db/schema"
+import { services, counselors, counselorServiceExclusions } from "@/db/schema"
 import { recordAudit } from "@/lib/audit/record"
 import type { RoleCarrier } from "@/lib/auth/staff-role"
 
@@ -208,4 +208,37 @@ export async function setCounselorServiceExclusionAudited(
       after: { serviceId, excluded },
     })
   })
+}
+
+export interface CounselorExclusionRow {
+  id: string
+  fullName: string
+  counselorType: "peer" | "psychologist"
+  excludedServiceIds: string[]
+}
+
+/** Konselor aktif terverifikasi (dipaginasi di server) beserta Layanan yang dimatikan untuknya. */
+export async function listCounselorsWithExclusions(opts: {
+  page: number
+  pageSize: number
+  q?: string
+}): Promise<{ rows: CounselorExclusionRow[]; total: number }> {
+  const where = and(
+    eq(counselors.isActive, true),
+    eq(counselors.verificationStatus, "verified"),
+    opts.q ? ilike(counselors.fullName, `%${opts.q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`) : undefined
+  )
+  const [{ value: total }] = await db.select({ value: count() }).from(counselors).where(where)
+  const rows = await db
+    .select({ id: counselors.id, fullName: counselors.fullName, counselorType: counselors.counselorType })
+    .from(counselors)
+    .where(where)
+    .orderBy(asc(counselors.fullName))
+    .limit(opts.pageSize)
+    .offset((opts.page - 1) * opts.pageSize)
+  const exclusions = await getExclusionsByCounselor(rows.map((r) => r.id))
+  return {
+    total: Number(total),
+    rows: rows.map((r) => ({ ...r, excludedServiceIds: exclusions.get(r.id) ?? [] })),
+  }
 }

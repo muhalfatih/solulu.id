@@ -199,7 +199,7 @@ function AdminSettingsContent() {
         {/* Header Portal Admin / Superadmin */}
         <AdminPageHeader
           title="Pengaturan Sistem & Operasional"
-          description="Pusat kendali parameter bisnis real-time: cutoff H-4 jam, kuota sesi, tarif extend, dan kanal pembayaran transfer manual."
+          description="Pusat kendali parameter bisnis real-time: cutoff H-4 jam, kuota sesi, voucher, dan kanal pembayaran transfer manual."
           icon={Sliders}
           badge={
             isLoading
@@ -324,7 +324,7 @@ function AdminSettingsContent() {
               className="text-xs font-medium gap-2 px-3 py-1.5"
             >
               <CreditCard data-icon="inline-start" />
-              <span>Tarif &amp; Extend Sesi</span>
+              <span>Voucher</span>
             </TabsTrigger>
             <TabsTrigger
               value="manual-transfer"
@@ -554,12 +554,7 @@ function AdminSettingsContent() {
 
           {/* TAB 2: TARIF & EXTEND SESI */}
           <TabsContent value="fees" className="flex flex-col gap-6 m-0 outline-none">
-            <FeesTab
-              formData={formData}
-              setFormData={setFormData}
-              isSuperadmin={isSuperadmin}
-              onFeedback={setFeedback}
-            />
+            <FeesTab isSuperadmin={isSuperadmin} />
           </TabsContent>
 
           {/* TAB 3: TRANSFER BANK MANUAL */}
