@@ -1,3 +1,5 @@
+import { getStaffRole } from "@/lib/auth/staff-role";
+
 export type UserWithRoles = {
   id: string;
   app_metadata?: {
@@ -46,7 +48,7 @@ export function evaluateRbac(
     return { type: "redirect", destination: redirectUrl };
   }
 
-  const role = user.app_metadata?.role || user.user_metadata?.role;
+  const role = getStaffRole(user);
 
   // 2. Admin routes
   if (isAdminRoute) {
@@ -94,17 +96,14 @@ export function evaluateRbac(
  * Checks if a user has the 'superadmin' role.
  */
 export function isSuperadmin(user: UserWithRoles): boolean {
-  if (!user) return false;
-  const role = user.app_metadata?.role || user.user_metadata?.role;
-  return role === "superadmin";
+  return getStaffRole(user) === "superadmin";
 }
 
 /**
  * Checks if a user has 'admin' or 'superadmin' role.
  */
 export function isAdminOrSuperadmin(user: UserWithRoles): boolean {
-  if (!user) return false;
-  const role = user.app_metadata?.role || user.user_metadata?.role;
+  const role = getStaffRole(user);
   return role === "admin" || role === "superadmin";
 }
 

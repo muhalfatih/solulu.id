@@ -1,5 +1,5 @@
 {
-  "id": "bcce61df-0510-4b88-ae8e-4f1ce0e5c47e",
+  "id": "54e57009-f396-43dc-ae70-c49f3118803a",
   "prevId": "1836960f-15f1-4312-9fbb-ad48ec0714b6",
   "version": "7",
   "dialect": "postgresql",
@@ -25,8 +25,7 @@
           "name": "booking_code",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'SL-1001'"
+          "notNull": true
         },
         "patient_name": {
           "name": "patient_name",
@@ -50,15 +49,13 @@
           "name": "gender",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "default": "'Lainnya'"
+          "notNull": false
         },
         "age": {
           "name": "age",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "default": 25
+          "notNull": false
         },
         "domicile": {
           "name": "domicile",
@@ -1260,8 +1257,7 @@
           "name": "main_issue",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'Konsultasi Emosional & Stres'"
+          "notNull": true
         },
         "summary": {
           "name": "summary",
@@ -1911,9 +1907,7 @@
         "pending_payment",
         "confirmed",
         "completed",
-        "cancelled",
-        "no_show",
-        "expired"
+        "cancelled"
       ]
     },
     "public.counselor_type_enum": {

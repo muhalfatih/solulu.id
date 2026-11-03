@@ -136,6 +136,7 @@ describe("End-to-End Simulation: Operational Edge Cases & Failure Scenarios (Pil
       // tanpa membedakan apakah sesi dihadiri atau no-show
       const dummyNoShowReport = {
         bookingId: "123e4567-e89b-12d3-a456-426614174000",
+        mainIssue: "Kecemasan akademik",
         summary: "Klien tidak hadir dalam panggilan Zoom sampai sesi berakhir (No-Show).",
         actionPlan: "Menjadwalkan kontak lanjutan via admin atau menawarkan sesi pengganti.",
       }
@@ -147,6 +148,7 @@ describe("End-to-End Simulation: Operational Edge Cases & Failure Scenarios (Pil
     it("2.4 Mendukung field attendanceStatus ('attended' vs 'no_show') pada sessionReportSchema", () => {
       const reportAttended = {
         bookingId: "123e4567-e89b-12d3-a456-426614174000",
+        mainIssue: "Kecemasan akademik",
         summary: "Sesi konseling berjalan lancar mengenai kecemasan akademik.",
         actionPlan: "Latihan pernapasan 4-7-8 dan pencatatan trigger harian.",
         attendanceStatus: "attended",
@@ -155,6 +157,7 @@ describe("End-to-End Simulation: Operational Edge Cases & Failure Scenarios (Pil
 
       const reportNoShow = {
         bookingId: "123e4567-e89b-12d3-a456-426614174000",
+        mainIssue: "Kecemasan akademik",
         summary: "Klien tidak hadir dalam panggilan Zoom setelah ditunggu 30 menit.",
         actionPlan: "Rekomendasi tindak lanjut oleh tim customer care Solulu.",
         attendanceStatus: "no_show",

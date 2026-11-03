@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
 import crypto from "crypto"
+import { getR2Credentials, type IntegrationEnv } from "@/lib/config/integrations"
 
 export interface R2Config {
   accountId?: string
@@ -14,38 +15,48 @@ export interface R2Config {
 
 let cachedS3Client: S3Client | null = null
 
-export function getR2Config(): R2Config {
+export function getR2Config(env: IntegrationEnv = process.env): R2Config {
   return {
-    accountId: process.env.R2_ACCOUNT_ID,
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    publicBucketName: process.env.R2_PUBLIC_BUCKET_NAME || "solulu-public",
-    privateBucketName: process.env.R2_PRIVATE_BUCKET_NAME || "solulu-private",
-    publicDomain: process.env.NEXT_PUBLIC_R2_PUBLIC_DOMAIN || "https://cdn.solulu.id",
+    accountId: env.R2_ACCOUNT_ID,
+    accessKeyId: env.R2_ACCESS_KEY_ID,
+    secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+    publicBucketName: env.R2_PUBLIC_BUCKET_NAME || "solulu-public",
+    privateBucketName: env.R2_PRIVATE_BUCKET_NAME || "solulu-private",
+    publicDomain: env.NEXT_PUBLIC_R2_PUBLIC_DOMAIN || "https://cdn.solulu.id",
     endpoint:
-      process.env.R2_ENDPOINT ||
-      (process.env.R2_ACCOUNT_ID
-        ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
-        : "https://fallback.r2.cloudflarestorage.com"),
+      env.R2_ENDPOINT ||
+      (env.R2_ACCOUNT_ID ? `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : undefined),
   }
 }
 
 /**
  * Returns an S3Client configured for Cloudflare R2.
+ * Throws an IntegrationConfigError naming the missing variable when R2
+ * credentials are absent; there are no placeholder credentials.
  */
-export function getR2Client(customConfig?: Partial<R2Config>): S3Client {
-  const config = { ...getR2Config(), ...customConfig }
-
+export function getR2Client(
+  customConfig?: Partial<R2Config>,
+  env: IntegrationEnv = process.env
+): S3Client {
   if (!customConfig && cachedS3Client) {
     return cachedS3Client
   }
 
+  const hasCustomCredentials = Boolean(customConfig?.accessKeyId && customConfig?.secretAccessKey)
+  const resolved = hasCustomCredentials
+    ? {
+        accessKeyId: customConfig!.accessKeyId as string,
+        secretAccessKey: customConfig!.secretAccessKey as string,
+        endpoint: customConfig!.endpoint ?? getR2Config(env).endpoint,
+      }
+    : getR2Credentials(env)
+
   const client = new S3Client({
     region: "auto",
-    endpoint: config.endpoint,
+    endpoint: customConfig?.endpoint ?? resolved.endpoint,
     credentials: {
-      accessKeyId: config.accessKeyId || "mock_r2_access_key",
-      secretAccessKey: config.secretAccessKey || "mock_r2_secret_key",
+      accessKeyId: resolved.accessKeyId,
+      secretAccessKey: resolved.secretAccessKey,
     },
   })
 

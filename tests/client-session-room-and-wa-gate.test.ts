@@ -167,15 +167,18 @@ describe("Ticket 06: Client Session Room, Dual Payments & WhatsApp Report Gate",
           paymentMethod: "xendit",
         },
         {
-          findBooking: async () => ({ id: "b-client-601" }),
+          findBooking: async () => ({ id: "b-client-601", patientEmail: "nadia.rahma@example.com" }),
           updateBooking: updateSpy,
+          createXenditInvoice: vi.fn().mockResolvedValue({
+            id: "inv_ext_601",
+            invoiceUrl: "https://checkout.xendit.co/web/inv_ext_601",
+          }),
         }
       )
 
       expect(res.success).toBe(true)
       expect(res.data?.status).toBe("PENDING")
-      expect(res.data?.paymentUrl).toBeDefined()
-      expect(res.data?.paymentUrl).not.toContain("mock_extend_invoice")
+      expect(res.data?.paymentUrl).toBe("https://checkout.xendit.co/web/inv_ext_601")
       expect(updateSpy).toHaveBeenCalledWith("b-client-601", {
         extensionPaymentMethod: "xendit",
       })

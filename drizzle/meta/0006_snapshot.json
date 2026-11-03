@@ -1,6 +1,6 @@
 {
-  "id": "a1f1fa21-e32e-40f6-b045-34b03aec3a48",
-  "prevId": "bcce61df-0510-4b88-ae8e-4f1ce0e5c47e",
+  "id": "af6bc3a1-53f5-4e33-bc7d-c311cf324d8e",
+  "prevId": "54e57009-f396-43dc-ae70-c49f3118803a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -25,8 +25,7 @@
           "name": "booking_code",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'SL-1001'"
+          "notNull": true
         },
         "patient_name": {
           "name": "patient_name",
@@ -50,15 +49,13 @@
           "name": "gender",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "default": "'Lainnya'"
+          "notNull": false
         },
         "age": {
           "name": "age",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "default": 25
+          "notNull": false
         },
         "domicile": {
           "name": "domicile",
@@ -285,64 +282,64 @@
         "bookings_schedule_id_schedules_id_fk": {
           "name": "bookings_schedule_id_schedules_id_fk",
           "tableFrom": "bookings",
+          "tableTo": "schedules",
           "columnsFrom": [
             "schedule_id"
           ],
-          "tableTo": "schedules",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "bookings_counselor_id_counselors_id_fk": {
           "name": "bookings_counselor_id_counselors_id_fk",
           "tableFrom": "bookings",
+          "tableTo": "counselors",
           "columnsFrom": [
             "counselor_id"
           ],
-          "tableTo": "counselors",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "bookings_screening_id_screenings_id_fk": {
           "name": "bookings_screening_id_screenings_id_fk",
           "tableFrom": "bookings",
+          "tableTo": "screenings",
           "columnsFrom": [
             "screening_id"
           ],
-          "tableTo": "screenings",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "bookings_zoom_account_id_zoom_accounts_id_fk": {
           "name": "bookings_zoom_account_id_zoom_accounts_id_fk",
           "tableFrom": "bookings",
+          "tableTo": "zoom_accounts",
           "columnsFrom": [
             "zoom_account_id"
           ],
-          "tableTo": "zoom_accounts",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "bookings_access_token_unique": {
           "name": "bookings_access_token_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "access_token"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -526,9 +523,9 @@
             }
           ],
           "isUnique": true,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_counselor_weekly_template_counselor": {
           "name": "idx_counselor_weekly_template_counselor",
@@ -541,24 +538,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "counselor_weekly_templates_counselor_id_counselors_id_fk": {
           "name": "counselor_weekly_templates_counselor_id_counselors_id_fk",
           "tableFrom": "counselor_weekly_templates",
+          "tableTo": "counselors",
           "columnsFrom": [
             "counselor_id"
           ],
-          "tableTo": "counselors",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -786,10 +783,10 @@
       "uniqueConstraints": {
         "counselors_user_id_unique": {
           "name": "counselors_user_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "user_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -854,10 +851,10 @@
       "uniqueConstraints": {
         "platform_pricing_counselor_type_unique": {
           "name": "platform_pricing_counselor_type_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "counselor_type"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1134,9 +1131,9 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         },
         "idx_schedule_counselor": {
           "name": "idx_schedule_counselor",
@@ -1155,24 +1152,24 @@
             }
           ],
           "isUnique": false,
-          "with": {},
+          "concurrently": false,
           "method": "btree",
-          "concurrently": false
+          "with": {}
         }
       },
       "foreignKeys": {
         "schedules_counselor_id_counselors_id_fk": {
           "name": "schedules_counselor_id_counselors_id_fk",
           "tableFrom": "schedules",
+          "tableTo": "counselors",
           "columnsFrom": [
             "counselor_id"
           ],
-          "tableTo": "counselors",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "cascade"
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1260,8 +1257,7 @@
           "name": "main_issue",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'Konsultasi Emosional & Stres'"
+          "notNull": true
         },
         "summary": {
           "name": "summary",
@@ -1325,38 +1321,38 @@
         "session_reports_booking_id_bookings_id_fk": {
           "name": "session_reports_booking_id_bookings_id_fk",
           "tableFrom": "session_reports",
+          "tableTo": "bookings",
           "columnsFrom": [
             "booking_id"
           ],
-          "tableTo": "bookings",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "session_reports_counselor_id_counselors_id_fk": {
           "name": "session_reports_counselor_id_counselors_id_fk",
           "tableFrom": "session_reports",
+          "tableTo": "counselors",
           "columnsFrom": [
             "counselor_id"
           ],
-          "tableTo": "counselors",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "session_reports_booking_id_unique": {
           "name": "session_reports_booking_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "booking_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1421,10 +1417,10 @@
       "uniqueConstraints": {
         "specializations_name_unique": {
           "name": "specializations_name_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "name"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1672,38 +1668,38 @@
         "transactions_booking_id_bookings_id_fk": {
           "name": "transactions_booking_id_bookings_id_fk",
           "tableFrom": "transactions",
+          "tableTo": "bookings",
           "columnsFrom": [
             "booking_id"
           ],
-          "tableTo": "bookings",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         },
         "transactions_voucher_id_vouchers_id_fk": {
           "name": "transactions_voucher_id_vouchers_id_fk",
           "tableFrom": "transactions",
+          "tableTo": "vouchers",
           "columnsFrom": [
             "voucher_id"
           ],
-          "tableTo": "vouchers",
           "columnsTo": [
             "id"
           ],
-          "onUpdate": "no action",
-          "onDelete": "no action"
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "transactions_xendit_invoice_id_unique": {
           "name": "transactions_xendit_invoice_id_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "xendit_invoice_id"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1779,10 +1775,10 @@
       "uniqueConstraints": {
         "vouchers_code_unique": {
           "name": "vouchers_code_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "code"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1883,10 +1879,10 @@
       "uniqueConstraints": {
         "zoom_accounts_email_unique": {
           "name": "zoom_accounts_email_unique",
+          "nullsNotDistinct": false,
           "columns": [
             "email"
-          ],
-          "nullsNotDistinct": false
+          ]
         }
       },
       "policies": {},
@@ -1964,10 +1960,10 @@
     }
   },
   "schemas": {},
-  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
+  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

@@ -1,4 +1,4 @@
--- Step 2 of 2 (ADR-0008). Runs after 0005 has added the 'no_show' and 'expired' enum values.
+-- Step 2 of 2 (ADR-0008). Runs after 0006 has added the 'no_show' and 'expired' enum values.
 -- Data-only and idempotent; no rows are deleted. bookings.is_no_show / no_show_marked_at are kept
 -- (deprecated, no longer read or written by the app) so nothing is lost.
 

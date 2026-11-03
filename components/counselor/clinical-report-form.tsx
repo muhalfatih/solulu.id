@@ -79,7 +79,7 @@ export function ClinicalReportForm({
   const { booking } = initialData
 
   const [attendanceStatus, setAttendanceStatus] = React.useState<"attended" | "no_show">("attended")
-  const [mainIssue, setMainIssue] = React.useState(initialData.mainIssue || "Konsultasi Emosional & Stres")
+  const [mainIssue, setMainIssue] = React.useState(initialData.mainIssue || "")
   const [summary, setSummary] = React.useState(initialData.summary || "")
   const [actionPlan, setActionPlan] = React.useState(initialData.actionPlan || "")
   const [internalNotes, setInternalNotes] = React.useState(initialData.internalNotes || "")

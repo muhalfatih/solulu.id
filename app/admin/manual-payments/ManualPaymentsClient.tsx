@@ -21,6 +21,7 @@ import {
   Calendar,
 } from "lucide-react"
 import { toast } from "sonner"
+import { formatRupiahOrDash } from "@/lib/utils"
 import {
   Card,
   CardContent,
@@ -139,13 +140,13 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
   const totalPending = items.length
   const initialPendingCount = items.filter((i) => i.paymentType === "initial").length
   const extensionPendingCount = items.filter((i) => i.paymentType === "extension").length
-  const totalNominal = items.reduce((acc, curr) => acc + curr.nominalAmount, 0)
+  const totalNominal = items.reduce((acc, curr) => acc + (curr.nominalAmount ?? 0), 0)
 
   // Handle Quick Open Confirm
   const handleOpenConfirm = (item: ManualPaymentQueueItem) => {
     setConfirmItem(item)
     setSelectedChannel(PAYMENT_METHODS[0])
-    setRefNumber(`MANUAL-${Math.floor(100000 + Math.random() * 900000)}`)
+    setRefNumber("")
     setConfirmNotes("Mutasi transfer bank diverifikasi oleh Admin.")
   }
 
@@ -441,7 +442,7 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
                       </TableCell>
 
                       <TableCell className="text-xs font-semibold font-mono text-emerald-600 dark:text-emerald-400">
-                        Rp {item.nominalAmount.toLocaleString("id-ID")}
+                        {formatRupiahOrDash(item.nominalAmount)}
                       </TableCell>
 
                       <TableCell>
@@ -505,7 +506,7 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
               Bukti Transfer Bank
             </DialogTitle>
             <DialogDescription className="text-xs">
-              {previewSlipItem?.bookingCode} • {previewSlipItem?.patientName} • Rp {previewSlipItem?.nominalAmount.toLocaleString("id-ID")}
+              {previewSlipItem?.bookingCode} • {previewSlipItem?.patientName} • {formatRupiahOrDash(previewSlipItem?.nominalAmount)}
             </DialogDescription>
           </DialogHeader>
 
@@ -549,7 +550,7 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
               <div className="flex justify-between text-muted-foreground">
                 <span>Nominal Seharusnya:</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                  Rp {previewSlipItem?.nominalAmount.toLocaleString("id-ID")}
+                  {formatRupiahOrDash(previewSlipItem?.nominalAmount)}
                 </span>
               </div>
               <div className="flex justify-between text-muted-foreground">
@@ -642,7 +643,7 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
               <div className="flex items-center justify-between pt-1 border-t border-border/60">
                 <span className="text-muted-foreground">Nominal Terverifikasi:</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm font-mono">
-                  Rp {confirmItem?.nominalAmount.toLocaleString("id-ID")}
+                  {formatRupiahOrDash(confirmItem?.nominalAmount)}
                 </span>
               </div>
             </div>
@@ -667,10 +668,13 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
               </Field>
 
               <Field>
-                <FieldLabel className="text-xs">Nomor Referensi Mutasi</FieldLabel>
+                <FieldLabel className="text-xs">
+                  Nomor Referensi Mutasi{confirmItem?.paymentType === "initial" ? " (wajib)" : ""}
+                </FieldLabel>
                 <Input
                   value={refNumber}
                   onChange={(e) => setRefNumber(e.target.value)}
+                  required={confirmItem?.paymentType === "initial"}
                   placeholder="Contoh: BCA-894123"
                   className="h-8 text-xs font-mono bg-background"
                 />
@@ -715,7 +719,10 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
               <Button
                 type="submit"
                 size="sm"
-                disabled={isSubmittingConfirm}
+                disabled={
+                  isSubmittingConfirm ||
+                  (confirmItem?.paymentType === "initial" && !refNumber.trim())
+                }
                 className="h-8 text-xs font-medium gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 {isSubmittingConfirm ? (

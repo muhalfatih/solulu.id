@@ -198,7 +198,7 @@ export async function getBookingsAdminAction(
       const dateStr = s?.date ? String(s.date) : ""
       const timeRange = s
         ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)}`
-        : "09:00 - 10:30"
+        : ""
 
       const stage = deriveStage({
         status: b.status,
@@ -256,7 +256,7 @@ export async function getBookingsAdminAction(
         reportDetails: rep?.id
           ? {
               id: rep.id,
-              mainIssue: rep.mainIssue || "Konsultasi Emosional & Stres",
+              mainIssue: rep.mainIssue,
               summary: rep.summary || "",
               actionPlan: rep.actionPlan || null,
               followUpRecommendation: rep.followUpRecommendation || null,

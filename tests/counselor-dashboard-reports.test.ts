@@ -61,6 +61,7 @@ describe("Issue #11: Counselor Dashboard, Session Reports & Profile", () => {
 
       const validReport = sessionReportSchema.safeParse({
         bookingId: "123e4567-e89b-12d3-a456-426614174000",
+        mainIssue: "Kecemasan menghadapi evaluasi kerja",
         summary: "Klien melaporkan kecemasan tinggi saat menghadapi evaluasi kerja bulanan.",
         actionPlan: "Menerapkan teknik grounding 5-4-3-2-1 dan reframing pikiran otomatis negatif.",
         followUpRecommendation: "Sesi lanjutan 1 minggu ke depan untuk evaluasi journaling cemas.",
@@ -213,6 +214,7 @@ describe("Issue #11: Counselor Dashboard, Session Reports & Profile", () => {
       const res = await submitSessionReportAction(
         {
           bookingId: "123e4567-e89b-12d3-a456-426614174000",
+          mainIssue: "Kecemasan menghadapi karir",
           summary: "Klien telah menyelesaikan sesi pertama dengan pembahasan pemicu kecemasan.",
           actionPlan: "Latihan pernapasan diafragma 2x sehari dan restrukturisasi kognitif.",
           followUpRecommendation: "Jadwalkan sesi follow-up minggu depan.",
@@ -240,6 +242,7 @@ describe("Issue #11: Counselor Dashboard, Session Reports & Profile", () => {
       const res = await submitSessionReportAction(
         {
           bookingId: "123e4567-e89b-12d3-a456-426614174000",
+          mainIssue: "Kecemasan menghadapi karir",
           summary: "Cemas", // < 20 chars
           actionPlan: "Napas dalam", // < 20 chars
         },
@@ -261,6 +264,7 @@ describe("Issue #11: Counselor Dashboard, Session Reports & Profile", () => {
       const res = await submitSessionReportAction(
         {
           bookingId: "123e4567-e89b-12d3-a456-426614174000",
+          mainIssue: "Kecemasan menghadapi karir",
           summary: "Ringkasan sesi konseling klinis yang valid dan melebihi 20 karakter.",
           actionPlan: "Rencana aksi konseling klinis yang valid dan melebihi 20 karakter.",
         },

@@ -912,7 +912,7 @@ export function BookingsClient({
                 Permasalahan Utama (Main Issue)
               </span>
               <div className="p-3 rounded-md bg-background border border-border text-foreground font-medium">
-                {selectedReportBooking?.reportDetails?.mainIssue || "Konsultasi Emosional & Stres"}
+                {selectedReportBooking?.reportDetails?.mainIssue || "-"}
               </div>
             </div>
 

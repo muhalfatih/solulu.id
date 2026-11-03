@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server"
 import { executeSlotCleanupAndArchiving } from "@/lib/cron/cleanup"
 import { maintainAutomaticScheduleBuffers } from "@/lib/cron/maintenance"
+import { getCronSecret, type IntegrationEnv } from "@/lib/config/integrations"
 
 export interface HandleCronRequestOptions {
   cleanupFn?: typeof executeSlotCleanupAndArchiving
   maintenanceFn?: typeof maintainAutomaticScheduleBuffers
   now?: Date
+  env?: IntegrationEnv
 }
 
 export async function handleCronRequest(
@@ -13,24 +15,27 @@ export async function handleCronRequest(
   options: HandleCronRequestOptions = {}
 ) {
   try {
-    // 1. Validate CRON_SECRET Bearer Token
+    // 1. Validate CRON_SECRET Bearer Token. An unconfigured secret fails closed.
+    let configuredSecret: string
+    try {
+      configuredSecret = getCronSecret(options.env)
+    } catch (configError) {
+      const message =
+        configError instanceof Error ? configError.message : "CRON_SECRET belum dikonfigurasi."
+      console.error("[CRON] Endpoint ditutup:", message)
+      return NextResponse.json({ error: message }, { status: 500 })
+    }
+    if (!configuredSecret) {
+      return NextResponse.json(
+        { error: "Konfigurasi CRON_SECRET belum dikonfigurasi atau masih berupa placeholder." },
+        { status: 500 }
+      )
+    }
+
     const authHeader = req.headers.get("authorization")
-    const configuredSecret = process.env.CRON_SECRET
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null
 
-    const token = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice(7).trim()
-      : null
-
-    const isAuthorized =
-      configuredSecret && token === configuredSecret
-        ? true
-        : !configuredSecret && token === "mock-cron-secret"
-        ? true
-        : process.env.NODE_ENV === "test" && token === "test-cron-secret"
-        ? true
-        : false
-
-    if (!isAuthorized) {
+    if (!token || token !== configuredSecret) {
       return NextResponse.json(
         { error: "Unauthorized: Invalid or missing CRON_SECRET bearer token" },
         { status: 401 }
