@@ -42,9 +42,9 @@ interface ManualPendingClientProps {
       counselorType: string
       counselorTypeDisplay: string
       avatarR2Url: string | null
-    }
+    } | null
     schedule: {
-      id: string
+      id: string | null
       date: string
       startTime: string
       endTime: string
@@ -122,7 +122,7 @@ export default function ManualPendingClient({ data }: ManualPendingClientProps) 
   const confirmationMessage = `Halo Admin Solulu, saya ingin mengirimkan bukti transfer untuk pemesanan konseling:
 - Nama Pasien: ${booking.patientName}
 - Kode Referensi: ${referenceNumber}
-- Konselor: ${counselor.fullName}
+- Konselor: ${counselor ? counselor.fullName : "Konselor Bebas"}
 - Jadwal: ${schedule.date} (${schedule.timeRange})
 - Nominal: ${formattedAmount}
 

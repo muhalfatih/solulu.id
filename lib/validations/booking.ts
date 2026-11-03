@@ -14,8 +14,7 @@ export const validateVoucherSchema = z.object({
 
 export type ValidateVoucherInput = z.infer<typeof validateVoucherSchema>
 
-export const createGuestBookingSchema = z
-  .object({
+const guestBookingBase = z.object({
     scheduleId: z.string().min(1, "ID slot jadwal tidak valid"),
     counselorId: z.string().min(1, "ID konselor tidak valid"),
     serviceId: z
@@ -66,10 +65,28 @@ export const createGuestBookingSchema = z
       message: "Metode pembayaran harus otomatis (Xendit) atau transfer manual",
     }),
     paymentMethod: z.string().trim().optional().nullable(), // e.g. "BCA", "Mandiri", "BRI", "QRIS Statis"
-  })
-  .refine((data) => data.patientEmail === data.patientEmailConfirm, {
+})
+
+const emailsMatch = {
+  check: (data: { patientEmail: string; patientEmailConfirm: string }) =>
+    data.patientEmail === data.patientEmailConfirm,
+  params: {
     message: "Konfirmasi email tidak cocok dengan email Anda",
     path: ["patientEmailConfirm"],
-  })
+  },
+}
+
+export const createGuestBookingSchema = guestBookingBase.refine(emailsMatch.check, emailsMatch.params)
 
 export type CreateGuestBookingInput = z.infer<typeof createGuestBookingSchema>
+
+/** Checkout Konselor Bebas (pool): slot dipesan lewat tanggal + indeks slot, tanpa konselor/jadwal. */
+export const createPoolBookingSchema = guestBookingBase
+  .omit({ scheduleId: true, counselorId: true })
+  .extend({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal sesi tidak valid"),
+    slotIndex: z.number().int().min(1, "Slot tidak valid").max(7, "Slot tidak valid"),
+  })
+  .refine(emailsMatch.check, emailsMatch.params)
+
+export type CreatePoolBookingInput = z.infer<typeof createPoolBookingSchema>

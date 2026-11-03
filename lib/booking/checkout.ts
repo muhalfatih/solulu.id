@@ -50,6 +50,7 @@ import {
 import { createXenditInvoice, getXenditInvoice } from "@/lib/xendit"
 import { getXenditConfig } from "@/lib/config/integrations"
 import { dispatchFulfillmentJob } from "@/lib/fulfillment/qstash"
+import { poolSlotDisplay } from "@/lib/pool/display"
 
 export interface ActionResponse<T = any> {
   success: boolean
@@ -839,14 +840,17 @@ export async function executeGetBookingByToken(
     counselorType: string
     counselorTypeDisplay: string
     avatarR2Url: string | null
-  }
+  } | null
   schedule: {
-    id: string
+    /** Kosong untuk booking Konselor Bebas yang belum diklaim. */
+    id: string | null
     date: string
     startTime: string
     endTime: string
     timeRange: string
   }
+  /** True: booking Konselor Bebas yang belum punya konselor (counselor = null). */
+  awaitingCounselor: boolean
   transaction: {
     id: string
     paymentProvider: string
@@ -878,8 +882,8 @@ export async function executeGetBookingByToken(
         transaction: transactions,
       })
       .from(bookings)
-      .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
-      .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
+      .leftJoin(counselors, eq(bookings.counselorId, counselors.id))
+      .leftJoin(schedules, eq(bookings.scheduleId, schedules.id))
       .leftJoin(transactions, eq(bookings.id, transactions.bookingId))
       .where(eq(bookings.accessToken, accessToken))
       .limit(1)
@@ -889,6 +893,10 @@ export async function executeGetBookingByToken(
     }
 
     const item = rows[0]
+    const poolSlot = item.schedule ? null : poolSlotDisplay(item.booking)
+    if (!item.schedule && !poolSlot) {
+      return { success: false, error: "Pemesanan dengan tautan ini tidak ditemukan" }
+    }
 
     // AUTO-SYNC GUARD FOR PAYMENT GATEWAY (XENDIT):
     // If booking is pending_payment and provider is xendit, check Xendit invoice status directly.
@@ -923,10 +931,12 @@ export async function executeGetBookingByToken(
             .set({ status: "confirmed" })
             .where(eq(bookings.id, item.booking.id))
 
-          await db
-            .update(schedules)
-            .set({ status: "booked" })
-            .where(eq(schedules.id, item.schedule.id))
+          if (item.schedule) {
+            await db
+              .update(schedules)
+              .set({ status: "booked" })
+              .where(eq(schedules.id, item.schedule.id))
+          }
 
           await dispatchFulfillmentJob(item.booking.id)
 
@@ -954,24 +964,35 @@ export async function executeGetBookingByToken(
           status: item.booking.status,
           createdAt: item.booking.createdAt,
         },
-        counselor: {
-          id: item.counselor.id,
-          fullName: item.counselor.fullName,
-          title: item.counselor.title,
-          counselorType: item.counselor.counselorType,
-          counselorTypeDisplay:
-            item.counselor.counselorType === "psychologist"
-              ? "Psikolog Klinis"
-              : "Konselor Sebaya",
-          avatarR2Url: item.counselor.avatarR2Url,
-        },
-        schedule: {
-          id: item.schedule.id,
-          date: item.schedule.date,
-          startTime: item.schedule.startTime,
-          endTime: item.schedule.endTime,
-          timeRange: formatTimeRange(item.schedule.startTime, item.schedule.endTime),
-        },
+        counselor: item.counselor
+          ? {
+              id: item.counselor.id,
+              fullName: item.counselor.fullName,
+              title: item.counselor.title,
+              counselorType: item.counselor.counselorType,
+              counselorTypeDisplay:
+                item.counselor.counselorType === "psychologist"
+                  ? "Psikolog Klinis"
+                  : "Konselor Sebaya",
+              avatarR2Url: item.counselor.avatarR2Url,
+            }
+          : null,
+        awaitingCounselor: !item.counselor,
+        schedule: item.schedule
+          ? {
+              id: item.schedule.id,
+              date: item.schedule.date,
+              startTime: item.schedule.startTime,
+              endTime: item.schedule.endTime,
+              timeRange: formatTimeRange(item.schedule.startTime, item.schedule.endTime),
+            }
+          : {
+              id: null,
+              date: poolSlot!.date,
+              startTime: poolSlot!.startTime,
+              endTime: poolSlot!.endTime,
+              timeRange: formatTimeRange(poolSlot!.startTime, poolSlot!.endTime),
+            },
         transaction: item.transaction
           ? {
               id: item.transaction.id,

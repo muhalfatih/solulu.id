@@ -24,7 +24,7 @@ export function buildBookingConditions(filters: Record<string, string>): SQL | u
     conditions.push(eq(bookings.counselorId, filters.counselor))
   }
   if (filters.slot) {
-    conditions.push(eq(schedules.slotIndex, Number(filters.slot)))
+    conditions.push(sql`coalesce(${schedules.slotIndex}, ${bookings.poolSlotIndex}) = ${Number(filters.slot)}`)
   }
   if (filters.report === "filled") {
     conditions.push(isNotNull(sessionReports.id))
@@ -52,7 +52,7 @@ const SORT_COLUMNS = {
   bookingCode: bookings.bookingCode,
   patientName: bookings.patientName,
   counselorName: counselors.fullName,
-  scheduleDate: schedules.date,
+  scheduleDate: sql`coalesce(${schedules.date}, ${bookings.poolDate})`,
   status: bookings.status,
 } as const
 

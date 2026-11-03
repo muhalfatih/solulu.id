@@ -1,5 +1,6 @@
 "use server"
 
+import { NO_COUNSELOR_LABEL, poolSlotDisplay } from "@/lib/pool/display"
 import { revalidatePath } from "next/cache"
 import { eq, or, and, desc } from "drizzle-orm"
 import { db } from "@/db"
@@ -154,11 +155,14 @@ export async function getManualPaymentsQueueAdminAction(options?: {
 
       const counselorTypeLabel =
         c?.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"
-      const dateStr = s?.date ? String(s.date) : ""
+      const pool = s ? null : poolSlotDisplay(b)
+      const dateStr = s?.date ? String(s.date) : (pool?.date ?? "")
       const timeRange = s
         ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)}`
-        : ""
-      const slotIndex = s?.slotIndex || 1
+        : pool
+          ? `${pool.startTime} - ${pool.endTime}`
+          : ""
+      const slotIndex = s?.slotIndex || pool?.slotIndex || 1
 
       // 1. Initial Booking Pending Transfer Check
       const isInitialPending =
@@ -186,7 +190,7 @@ export async function getManualPaymentsQueueAdminAction(options?: {
           patientPhone: b.patientPhone,
           patientEmail: b.patientEmail,
           counselorId: c?.id || "",
-          counselorName: c?.fullName || "Belum Ditugaskan",
+          counselorName: c?.fullName || NO_COUNSELOR_LABEL,
           counselorType: counselorTypeLabel,
           scheduleDate: dateStr,
           timeRange,
@@ -229,7 +233,7 @@ export async function getManualPaymentsQueueAdminAction(options?: {
           patientPhone: b.patientPhone,
           patientEmail: b.patientEmail,
           counselorId: c?.id || "",
-          counselorName: c?.fullName || "Belum Ditugaskan",
+          counselorName: c?.fullName || NO_COUNSELOR_LABEL,
           counselorType: counselorTypeLabel,
           scheduleDate: dateStr,
           timeRange,

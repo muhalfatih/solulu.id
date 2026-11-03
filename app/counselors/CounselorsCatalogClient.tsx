@@ -330,6 +330,13 @@ export default function CounselorsCatalogClient({
             Sesi ngobrol privat 90 menit via Zoom bareng Psikolog Klinis Berizin Resmi atau Teman Cerita Terlatih. Bebas cerita tanpa takut dihakimi, bisa langsung pilih jadwal tanpa ribet bikin akun.
           </p>
 
+          <Link
+            href={initialScreeningId ? `/booking/pool?screeningId=${initialScreeningId}` : "/booking/pool"}
+            className="text-sm font-medium text-purple-700 dark:text-purple-300 underline underline-offset-4"
+          >
+            Belum punya preferensi? Pilih Konselor Bebas
+          </Link>
+
           {/* 3 Core Trust Signals */}
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 pt-2 text-xs text-foreground/85">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/80 border border-border/70 font-medium shadow-2xs">
