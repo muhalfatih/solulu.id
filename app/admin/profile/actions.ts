@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, type AdminAuthContext } from "@/lib/auth/admin"
 import { getStaffRole } from "@/lib/auth/staff-role"
 
 type UpdateAuthUserFn = (
@@ -42,11 +42,11 @@ export async function getAdminProfileDataAction(options?: {
   }
 
   const role = (getStaffRole(admin) === "superadmin" ? "superadmin" : "admin") as "admin" | "superadmin"
-  const email = (admin.user_metadata?.email || (admin as any).email || "") as string
+  const email = admin.email ?? ""
   const phone = (admin.user_metadata?.phone || "") as string
-  const notifyUrgent = admin.user_metadata?.notifyUrgent ?? true
-  const notifyCounselor = admin.user_metadata?.notifyCounselor ?? true
-  const notifySession = admin.user_metadata?.notifySession ?? true
+  const notifyUrgent = admin.user_metadata?.notifyUrgent === true
+  const notifyCounselor = admin.user_metadata?.notifyCounselor === true
+  const notifySession = admin.user_metadata?.notifySession === true
 
   return {
     success: true,

@@ -627,7 +627,7 @@ export async function getCounselorProfileAction(deps?: {
     }
 
     const c = rows[0]
-    let counselorEmail = c.email || auth.user_metadata?.email || (auth as any).email || ""
+    let counselorEmail = c.email || ""
     if (!counselorEmail && c.userId) {
       try {
         const supabaseAdmin = createAdminClient()
