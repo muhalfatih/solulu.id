@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { eq, and, gte, inArray, sql } from "drizzle-orm"
 import { db } from "@/db"
+import { recordAudit } from "@/lib/audit/record"
 import { counselors, schedules, bookings, transactions, zoomAccounts } from "@/db/schema"
 import {
   computeEndTime,
@@ -497,22 +498,11 @@ export async function createAdminManualBookingAction(
       zoomStartUrl: data.manualMeetingUrl || null,
     }
 
-    let bookingRecord: any = null
-    if (options?.insertBookingFn) {
-      bookingRecord = await options.insertBookingFn(bookingPayload)
-    } else {
-      const [inserted] = await db
-        .insert(bookings)
-        .values(bookingPayload as any)
-        .returning()
-      bookingRecord = inserted
-    }
-
-    // 5. Insert Rp0 Audit Transaction
-    // Tarif pokok aktif Layanan sebelum diskon 100% (honor konselor tetap dihitung dari tarif ini).
+    // 5. Rp0 Audit Transaction. Tarif pokok aktif Layanan sebelum diskon 100%
+    // (honor konselor tetap dihitung dari tarif ini).
     const normalPrice = servicePrice.toFixed(2)
-    const txPayload = {
-      bookingId: bookingRecord.id,
+    const buildTxPayload = (bookingId: string) => ({
+      bookingId,
       paymentProvider: "admin_bypass",
       paymentMethod: "Admin Bypass (Rp 0)",
       referenceNumber: `ADMIN-BYPASS-${accessToken.slice(0, 8).toUpperCase()}`,
@@ -522,17 +512,51 @@ export async function createAdminManualBookingAction(
       status: "PAID",
       paidAt: new Date(),
       adminNotes: data.adminNotes,
-    }
+    })
 
+    let bookingRecord: any = null
     let transactionRecord: any = null
-    if (options?.insertTransactionFn) {
-      transactionRecord = await options.insertTransactionFn(txPayload)
+    if (options?.insertBookingFn || options?.insertTransactionFn) {
+      if (options.insertBookingFn) {
+        bookingRecord = await options.insertBookingFn(bookingPayload)
+      } else {
+        const [inserted] = await db.insert(bookings).values(bookingPayload as any).returning()
+        bookingRecord = inserted
+      }
+      const txPayload = buildTxPayload(bookingRecord.id)
+      if (options.insertTransactionFn) {
+        transactionRecord = await options.insertTransactionFn(txPayload)
+      } else {
+        const [insertedTx] = await db.insert(transactions).values(txPayload as any).returning()
+        transactionRecord = insertedTx
+      }
     } else {
-      const [insertedTx] = await db
-        .insert(transactions)
-        .values(txPayload as any)
-        .returning()
-      transactionRecord = insertedTx
+      // Booking, transaksi Rp0, dan Jejak Audit commit/rollback bersama.
+      await db.transaction(async (tx) => {
+        const [inserted] = await tx.insert(bookings).values(bookingPayload as any).returning()
+        const [insertedTx] = await tx
+          .insert(transactions)
+          .values(buildTxPayload(inserted.id) as any)
+          .returning()
+        await recordAudit(tx, {
+          actor: admin,
+          action: "booking.manual_create",
+          entityType: "booking",
+          entityId: inserted.id,
+          before: null,
+          after: {
+            bookingCode: inserted.bookingCode,
+            status: inserted.status,
+            counselorId: inserted.counselorId,
+            scheduleId: inserted.scheduleId,
+            serviceId: inserted.serviceId,
+            transactionId: insertedTx.id,
+            adminNotes: data.adminNotes,
+          },
+        })
+        bookingRecord = inserted
+        transactionRecord = insertedTx
+      })
     }
 
     // 6. Delegate technical fulfillment to the deep Session Fulfillment module

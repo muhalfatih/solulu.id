@@ -28,6 +28,7 @@ import {
 import { getSlotByStartTime } from "@/lib/schedules/slots"
 
 import { requireStaffUser } from "@/lib/auth/staff"
+import { recordAudit } from "@/lib/audit/record"
 import { ADMIN_ROLES } from "@/lib/auth/staff-role"
 
 export interface AdminAuthContext {
@@ -517,12 +518,30 @@ export async function updateCounselorVerificationStatusAction(
     if (options?.updateStatusFn) {
       updatedRecord = await options.updateStatusFn(counselorId, newStatus)
     } else {
-      const [updated] = await db
-        .update(counselors)
-        .set(setPayload)
-        .where(eq(counselors.id, counselorId))
-        .returning()
-      updatedRecord = updated
+      updatedRecord = await db.transaction(async (tx) => {
+        const [before] = await tx
+          .select({
+            verificationStatus: counselors.verificationStatus,
+            isActive: counselors.isActive,
+          })
+          .from(counselors)
+          .where(eq(counselors.id, counselorId))
+          .limit(1)
+        const [updated] = await tx
+          .update(counselors)
+          .set(setPayload)
+          .where(eq(counselors.id, counselorId))
+          .returning()
+        await recordAudit(tx, {
+          actor: admin,
+          action: "counselor.approval",
+          entityType: "counselor",
+          entityId: counselorId,
+          before,
+          after: { verificationStatus: updated?.verificationStatus, isActive: updated?.isActive },
+        })
+        return updated
+      })
     }
 
     try {

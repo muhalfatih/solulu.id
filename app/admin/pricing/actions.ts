@@ -5,10 +5,12 @@ import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counse
 import {
   listAllServices,
   updateServiceBySlug,
+  updateServiceBySlugAudited,
   type ServiceRecord,
   type ServicePatch,
 } from "@/lib/services/repository"
 import { requireStaffUser } from "@/lib/auth/staff"
+import { recordAudit } from "@/lib/audit/record"
 import { SUPERADMIN_ONLY } from "@/lib/auth/staff-role"
 
 const SUPERADMIN_ONLY_MESSAGE =
@@ -116,7 +118,7 @@ export async function updateRolePricingAction(
     const slug = SEED_SERVICE_SLUG[roleId]
     const updatedRow = options?.updateServiceFn
       ? await options.updateServiceFn(slug, patch)
-      : await updateServiceBySlug(slug, patch)
+      : await updateServiceBySlugAudited(slug, patch, superadmin)
     if (!updatedRow) {
       return { success: false, error: `Layanan "${slug}" belum ada di database.` }
     }
@@ -203,18 +205,29 @@ export async function createVoucherAdminAction(
   }
 
   try {
-    const [inserted] = await db
-      .insert(vouchers)
-      .values({
-        code: input.code.toUpperCase().trim(),
-        discountType: input.discountType,
-        discountValue: String(input.discountValue),
-        quota: input.quota,
-        usedCount: 0,
-        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
-        isActive: input.isActive ?? true,
+    const inserted = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(vouchers)
+        .values({
+          code: input.code.toUpperCase().trim(),
+          discountType: input.discountType,
+          discountValue: String(input.discountValue),
+          quota: input.quota,
+          usedCount: 0,
+          expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+          isActive: input.isActive ?? true,
+        })
+        .returning()
+      await recordAudit(tx, {
+        actor: superadmin,
+        action: "voucher.create",
+        entityType: "voucher",
+        entityId: row.id,
+        before: null,
+        after: row,
       })
-      .returning()
+      return row
+    })
 
     try {
       revalidatePath("/admin/pricing")
@@ -248,11 +261,23 @@ export async function toggleVoucherStatusAction(
   }
 
   try {
-    const [updated] = await db
-      .update(vouchers)
-      .set({ isActive })
-      .where(eq(vouchers.id, id))
-      .returning()
+    const updated = await db.transaction(async (tx) => {
+      const [before] = await tx.select().from(vouchers).where(eq(vouchers.id, id)).limit(1)
+      const [row] = await tx
+        .update(vouchers)
+        .set({ isActive })
+        .where(eq(vouchers.id, id))
+        .returning()
+      await recordAudit(tx, {
+        actor: superadmin,
+        action: "voucher.toggle",
+        entityType: "voucher",
+        entityId: id,
+        before,
+        after: row,
+      })
+      return row
+    })
 
     try {
       revalidatePath("/admin/pricing")
@@ -285,7 +310,18 @@ export async function deleteVoucherAdminAction(
   }
 
   try {
-    await db.delete(vouchers).where(eq(vouchers.id, id))
+    await db.transaction(async (tx) => {
+      const [before] = await tx.select().from(vouchers).where(eq(vouchers.id, id)).limit(1)
+      await tx.delete(vouchers).where(eq(vouchers.id, id))
+      await recordAudit(tx, {
+        actor: superadmin,
+        action: "voucher.delete",
+        entityType: "voucher",
+        entityId: id,
+        before,
+        after: null,
+      })
+    })
 
     try {
       revalidatePath("/admin/pricing")
