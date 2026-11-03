@@ -189,10 +189,19 @@ export async function getActiveZoomCapacityAction(options?: {
     }
   }
 
-  const capacity = await getActiveZoomCapacity()
-  return {
-    success: true,
-    data: capacity > 0 ? capacity : 1,
+  try {
+    const capacity = await getActiveZoomCapacity()
+    return {
+      success: true,
+      data: capacity > 0 ? capacity : 1,
+    }
+  } catch (error) {
+    console.error("[ZOOM CAPACITY] Gagal membaca kapasitas akun Zoom:", error)
+    return {
+      success: false,
+      error: "Gagal membaca kapasitas akun Zoom. Silakan coba lagi.",
+      data: 1,
+    }
   }
 }
 

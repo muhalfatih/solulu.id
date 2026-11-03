@@ -208,14 +208,12 @@ export async function getCounselorsCatalogAction(
     if (options?.getZoomCapacity) {
       maxPlatformConcurrency = await options.getZoomCapacity()
     } else {
-      try {
-        const cap = await getActiveZoomCapacity()
-        if (cap >= 4) {
-          maxPlatformConcurrency = 10
-        } else if (cap > 0) {
-          maxPlatformConcurrency = cap
-        }
-      } catch {}
+      const cap = await getActiveZoomCapacity()
+      if (cap >= 4) {
+        maxPlatformConcurrency = 10
+      } else if (cap > 0) {
+        maxPlatformConcurrency = cap
+      }
     }
 
     const now = new Date()

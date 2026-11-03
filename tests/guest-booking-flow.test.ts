@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from "vitest"
+
+// Zoom capacity is a DB read that now fails closed; isolate it in these unit tests.
+vi.mock("@/lib/zoom/active-capacity", () => ({ getActiveZoomCapacity: async () => 2 }))
 import {
   calculateDiscount,
   evaluateVoucherEligibility,

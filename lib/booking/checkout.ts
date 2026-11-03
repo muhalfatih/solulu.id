@@ -624,14 +624,12 @@ export async function executeCreateGuestBooking(
     if (deps?.getZoomCapacity) {
       effectiveLimit = await deps.getZoomCapacity()
     } else {
-      try {
-        const cap = await getActiveZoomCapacity()
-        if (cap >= 4) {
-          effectiveLimit = 10
-        } else if (cap > 0) {
-          effectiveLimit = cap
-        }
-      } catch {}
+      const cap = await getActiveZoomCapacity()
+      if (cap >= 4) {
+        effectiveLimit = 10
+      } else if (cap > 0) {
+        effectiveLimit = cap
+      }
     }
 
     if (overlapCount >= effectiveLimit) {

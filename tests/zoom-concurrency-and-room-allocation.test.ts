@@ -53,6 +53,16 @@ describe("Zoom Configuration (1 vs 2 Accounts) & Room Allocation Telemetry", () 
       expect(cap).toBe(2)
     })
 
+    it("propagates a fetch failure instead of inventing capacity", async () => {
+      await expect(
+        getActiveZoomCapacity({
+          fetchActiveAccounts: async () => {
+            throw new Error("db down")
+          },
+        })
+      ).rejects.toThrow("db down")
+    })
+
     it("ignores inactive accounts when calculating capacity", async () => {
       const cap = await getActiveZoomCapacity({
         fetchActiveAccounts: async () => [
