@@ -116,3 +116,16 @@ export function getR2Credentials(env: IntegrationEnv = process.env): R2Credentia
   }
   return { accessKeyId, secretAccessKey, endpoint }
 }
+
+export interface QstashSigningKeys {
+  current: string
+  next: string
+}
+
+/** Signing keys used to verify QStash-delivered requests; required outside test. */
+export function getQstashSigningKeys(env: IntegrationEnv = process.env): QstashSigningKeys {
+  return {
+    current: requireValue("QSTASH_CURRENT_SIGNING_KEY", env),
+    next: requireValue("QSTASH_NEXT_SIGNING_KEY", env),
+  }
+}
