@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from "drizzle-orm"
+import { and, eq, inArray, isNotNull, sql } from "drizzle-orm"
 import { db } from "@/db"
 import {
   bookings,
@@ -47,9 +47,15 @@ export const drizzleHonorStore: HonorStore = {
       .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
       .innerJoin(services, eq(bookings.serviceId, services.id))
       .leftJoin(sessionReports, eq(sessionReports.bookingId, bookings.id))
-      .where(and(...conditions))
+      .where(and(...conditions, isNotNull(bookings.counselorId)))
 
-    return rows.map(({ reportId, ...rest }): HonorSessionFacts => ({ ...rest, hasReport: reportId !== null }))
+    return rows.map(
+      ({ reportId, counselorId, ...rest }): HonorSessionFacts => ({
+        ...rest,
+        counselorId: counselorId as string,
+        hasReport: reportId !== null,
+      })
+    )
   },
 
   async loadExistingRows(counselorId) {
