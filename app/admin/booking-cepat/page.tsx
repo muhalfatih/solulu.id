@@ -27,6 +27,7 @@ export default async function BookingCepatPage({ searchParams }: { searchParams:
     )
   }
 
+  let data: { list: Awaited<ReturnType<typeof listBookingCepat>>; counselors: { id: string; fullName: string }[] }
   try {
     const [list, counselorRes] = await Promise.all([
       listBookingCepat({
@@ -41,15 +42,7 @@ export default async function BookingCepatPage({ searchParams }: { searchParams:
     const counselors = (counselorRes.success ? (counselorRes.data ?? []) : []).map(
       (c: { id: string; fullName: string }) => ({ id: c.id, fullName: c.fullName })
     )
-    return (
-      <BookingCepatClient
-        rows={list.rows}
-        total={list.total}
-        counselors={counselors}
-        state={state}
-        pathname={BOOKING_CEPAT_PATH}
-      />
-    )
+    data = { list, counselors }
   } catch (err) {
     console.error("[booking-cepat] gagal memuat halaman", err)
     return (
@@ -58,4 +51,14 @@ export default async function BookingCepatPage({ searchParams }: { searchParams:
       </div>
     )
   }
+
+  return (
+    <BookingCepatClient
+      rows={data.list.rows}
+      total={data.list.total}
+      counselors={data.counselors}
+      state={state}
+      pathname={BOOKING_CEPAT_PATH}
+    />
+  )
 }
