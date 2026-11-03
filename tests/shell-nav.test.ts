@@ -41,13 +41,14 @@ describe("Ticket 22: shared portal shell navigation", () => {
       "Payroll",
       "Voucher",
       "Template WA",
-      "Jejak Audit",
       "Layanan & Tarif",
     ]) {
       expect(titles).not.toContain(planned)
     }
     expect(titles).toContain("Booking")
     expect(titles).toContain("Verifikasi Transfer")
+    expect(flat("admin", "admin").map((i) => i.title)).not.toContain("Jejak Audit")
+    expect(titles).toContain("Jejak Audit")
   })
 
   it("every visible item points at an existing page", () => {
