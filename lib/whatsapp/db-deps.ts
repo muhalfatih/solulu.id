@@ -6,14 +6,22 @@ import type { PrepareDispatchDeps, SaveTemplateDeps } from "./service"
 import type { WaTemplateKey } from "./templates"
 
 export const saveTemplateDbDeps: SaveTemplateDeps = {
-  async upsertTemplate({ key, name, body, updatedBy }) {
-    await db
-      .insert(whatsappTemplates)
-      .values({ key, name, body, updatedBy })
-      .onConflictDoUpdate({
-        target: whatsappTemplates.key,
-        set: { name, body, updatedBy, updatedAt: new Date() },
-      })
+  async upsertTemplate({ key, name, body, updatedBy }, audit) {
+    await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select({ body: whatsappTemplates.body })
+        .from(whatsappTemplates)
+        .where(eq(whatsappTemplates.key, key))
+        .limit(1)
+      await tx
+        .insert(whatsappTemplates)
+        .values({ key, name, body, updatedBy })
+        .onConflictDoUpdate({
+          target: whatsappTemplates.key,
+          set: { name, body, updatedBy, updatedAt: new Date() },
+        })
+      await audit(tx, before ?? null)
+    })
   },
 }
 

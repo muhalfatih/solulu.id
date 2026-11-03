@@ -54,7 +54,31 @@ describe("Ticket 31: saving templates", () => {
       name: "Laporan Siap",
       body: "Halo {{nama_klien}}",
       updatedBy: "superadmin-id",
+    }, expect.any(Function))
+  })
+
+  it("records a whatsapp_template.update audit row via the transaction callback", async () => {
+    const values = vi.fn(async () => undefined)
+    const tx = { insert: vi.fn(() => ({ values })) }
+    const upsertTemplate = vi.fn(async (_input: unknown, audit: (t: typeof tx, b: { body: string } | null) => Promise<void>) => {
+      await audit(tx, { body: "lama" })
     })
+    const r = await saveWhatsAppTemplate(
+      { key: "laporan_siap", body: "Halo {{nama_klien}}" },
+      { upsertTemplate } as never,
+      user("superadmin")
+    )
+    expect(r.success).toBe(true)
+    expect(values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: "superadmin-id",
+        action: "whatsapp_template.update",
+        entityType: "whatsapp_template",
+        entityId: "laporan_siap",
+        before: { body: "lama" },
+        after: { body: "Halo {{nama_klien}}" },
+      })
+    )
   })
 
   it("rejects unknown placeholders and unknown keys without writing", async () => {

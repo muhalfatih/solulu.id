@@ -21,6 +21,7 @@ export const AUDIT_ACTIONS = [
   "payment.reject",
   "booking.manual_create",
   "counselor_document.download",
+  "whatsapp_template.update",
 ] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 
@@ -32,6 +33,7 @@ export const AUDIT_ENTITY_TYPES = [
   "counselor",
   "booking",
   "counselor_document",
+  "whatsapp_template",
 ] as const
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number]
 

@@ -3,6 +3,7 @@
  * untuk akses DB agar bisa diuji tanpa database. Server action di
  * app/admin/template-wa dan app/admin/dispatch-wa hanya membungkus modul ini.
  */
+import { recordAudit, type AuditExecutor } from "@/lib/audit/record"
 import { requireStaffUser } from "@/lib/auth/staff"
 import { OPERATOR_PORTAL_ROLES, SUPERADMIN_ONLY, type RoleCarrier } from "@/lib/auth/staff-role"
 import { formatDateId } from "@/lib/format/datetime"
@@ -29,7 +30,10 @@ export interface SaveTemplateDeps {
     name: string
     body: string
     updatedBy: string
-  }) => Promise<void>
+  },
+  /** Dipanggil di dalam transaksi yang sama dengan penulisan template (Jejak Audit #24). */
+  audit: (tx: AuditExecutor, before: { body: string } | null) => Promise<void>
+  ) => Promise<void>
 }
 
 /** Hanya Superadmin; placeholder tak dikenal ditolak sebelum menyentuh DB. */
@@ -45,12 +49,19 @@ export async function saveWhatsAppTemplate(
   const check = validateTemplateBody(input.body)
   if (!check.ok) return { success: false, error: check.error }
 
-  await deps.upsertTemplate({
-    key: input.key,
-    name: WA_TEMPLATE_META[input.key].name,
-    body: input.body,
-    updatedBy: user.id,
-  })
+  const key = input.key
+  await deps.upsertTemplate(
+    { key, name: WA_TEMPLATE_META[key].name, body: input.body, updatedBy: user.id },
+    (tx, before) =>
+      recordAudit(tx, {
+        actor: user,
+        action: "whatsapp_template.update",
+        entityType: "whatsapp_template",
+        entityId: key,
+        before: before ? { body: before.body } : null,
+        after: { body: input.body },
+      })
+  )
   return { success: true }
 }
 
