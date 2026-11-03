@@ -100,7 +100,7 @@ export const SHELL_NAV: Record<PortalKey, ShellNavGroup[]> = {
       title: "Sistem",
       items: [
         { title: "Layanan & Tarif", url: "/admin/layanan", icon: BadgeDollarSign, roles: ADMINS },
-        { title: "Voucher", url: "/admin/vouchers", icon: Tag, ready: false, roles: SUPERADMIN },
+        { title: "Voucher", url: "/admin/vouchers", icon: Tag, ready: true, roles: SUPERADMIN },
         { title: "Template WA", url: "/admin/template-wa", icon: MessageSquareText, roles: SUPERADMIN },
         { title: "Pengaturan", url: "/admin/settings", icon: Sliders, roles: SUPERADMIN },
         { title: "Akun Zoom", url: "/admin/zoom-settings", icon: Video, aliases: ["/admin/zoom"], roles: SUPERADMIN },

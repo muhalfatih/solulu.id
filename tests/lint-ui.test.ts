@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { compareToBaseline, countAnimatePulse, countCardOverrides, isCardStyleOverride } from "../scripts/lint-ui-lib.mjs"
+import { findViolations, countAnimatePulse, countCardOverrides, isCardStyleOverride } from "../scripts/lint-ui-lib.mjs"
 
 describe("Ticket 21: lint:ui Card rules", () => {
   it.each(["p-4", "px-6", "pt-0", "sm:py-2", "border", "border-b", "rounded-xl", "shadow-sm", "bg-muted", "text-primary", "ring-1", "[&>div]:p-2", "dark:bg-card"])(
@@ -45,34 +45,21 @@ describe("Ticket 21: lint:ui animate-pulse rule", () => {
   })
 })
 
-describe("Ticket 21: lint:ui baseline", () => {
-  const baseline = { "app/admin/a.tsx": { "card-override": 2 } }
-
-  it("passes when current violations equal or fall below the baseline", () => {
-    const { failures, improvements } = compareToBaseline(
-      { "app/admin/a.tsx": { "card-override": 1 } },
-      baseline
-    )
-    expect(failures).toEqual([])
-    expect(improvements).toHaveLength(1)
+describe("lint:ui zero tolerance", () => {
+  it("passes when there are no violations", () => {
+    expect(findViolations({})).toEqual([])
+    expect(findViolations({ "app/admin/a.tsx": { "card-override": 0 } })).toEqual([])
   })
 
-  it("fails when a file exceeds its baseline", () => {
-    const { failures } = compareToBaseline(
-      { "app/admin/a.tsx": { "card-override": 3 } },
-      baseline
-    )
-    expect(failures).toEqual([
-      { file: "app/admin/a.tsx", rule: "card-override", have: 3, max: 2 },
+  it("fails for every file and rule with a violation", () => {
+    expect(
+      findViolations({
+        "app/operator/new.tsx": { "animate-pulse": 1 },
+        "app/admin/a.tsx": { "card-override": 2, "animate-pulse": 0 },
+      })
+    ).toEqual([
+      { file: "app/admin/a.tsx", rule: "card-override", have: 2 },
+      { file: "app/operator/new.tsx", rule: "animate-pulse", have: 1 },
     ])
-  })
-
-  it("fails for violations in a file that is not in the baseline", () => {
-    const { failures } = compareToBaseline(
-      { "app/operator/new.tsx": { "animate-pulse": 1 } },
-      baseline
-    )
-    expect(failures).toHaveLength(1)
-    expect(failures[0].file).toBe("app/operator/new.tsx")
   })
 })

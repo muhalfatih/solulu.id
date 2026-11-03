@@ -644,7 +644,7 @@ export default function DistilledSessionsPage() {
 
           {/* CALENDAR VIEWS */}
           {isLoading ? (
-            <div className="rounded-2xl border border-border bg-card p-6 flex flex-col gap-4 animate-pulse">
+            <div className="rounded-2xl border border-border bg-card p-6 flex flex-col gap-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
                 {Array.from({ length: 7 }).map((_, i) => (
                   <div key={`cal-skel-${i}`} className="flex flex-col gap-2 p-3 rounded-xl border border-border/50 bg-muted/20">
@@ -727,7 +727,7 @@ export default function DistilledSessionsPage() {
                                     key={ses.id}
                                     type="button"
                                     onClick={() => handleOpenSession(ses)}
-                                    className={`group w-full text-left p-2 rounded-xl border transition-all cursor-pointer shadow-2xs relative ${
+                                    className={`group w-full text-left p-2 rounded-xl border transition-colors cursor-pointer shadow-2xs relative ${
                                       isExpired
                                         ? "bg-rose-500/10 border-rose-500/30 opacity-75 hover:opacity-100"
                                         : isPendingPayment
@@ -955,7 +955,7 @@ export default function DistilledSessionsPage() {
                     setMonthlyOverflowData(null)
                     handleOpenSession(ses)
                   }}
-                  className="p-3 rounded-xl hover:bg-muted/50 border border-transparent hover:border-border/60 transition-all cursor-pointer flex flex-col gap-2 group"
+                  className="p-3 rounded-xl hover:bg-muted/50 border border-transparent hover:border-border/60 transition-colors cursor-pointer flex flex-col gap-2 group"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -1023,7 +1023,7 @@ export default function DistilledSessionsPage() {
       {/* VIEW MODE 2: LIST VIEW (TABLE) */}
       {/* ========================================================================= */}
       {viewMode === "list" && (
-        <Card className="overflow-hidden shadow-xs">
+        <Card className="overflow-hidden">
           {/* Integrated Toolbar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-border bg-muted/20">
             <div className="relative flex-1 min-w-[220px] max-w-xs">

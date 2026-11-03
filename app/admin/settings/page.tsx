@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Video,
-  CreditCard,
   Building2,
   Receipt,
   Users,
@@ -68,7 +67,6 @@ import {
   updatePlatformSettingsAction,
 } from "./actions"
 import type { PlatformSettingsData } from "@/lib/settings/platform"
-import { FeesTab } from "./fees-tab"
 
 function AdminSettingsContent() {
   const searchParams = useSearchParams()
@@ -77,7 +75,7 @@ function AdminSettingsContent() {
   const [isSaving, setIsSaving] = React.useState(false)
   const [isSuperadmin, setIsSuperadmin] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState(
-    initialTab && ["operations", "fees", "manual-transfer", "screening"].includes(initialTab)
+    initialTab && ["operations", "manual-transfer", "screening"].includes(initialTab)
       ? initialTab
       : "operations"
   )
@@ -87,7 +85,7 @@ function AdminSettingsContent() {
   } | null>(null)
 
   React.useEffect(() => {
-    if (initialTab && ["operations", "fees", "manual-transfer", "screening"].includes(initialTab)) {
+    if (initialTab && ["operations", "manual-transfer", "screening"].includes(initialTab)) {
       setActiveTab(initialTab)
     }
   }, [initialTab])
@@ -245,7 +243,7 @@ function AdminSettingsContent() {
         {feedback && (
           <Alert
             variant={feedback.type === "error" ? "destructive" : "default"}
-            className="animate-in fade-in transition-all border shadow-xs"
+            className="animate-in fade-in transition-colors border shadow-xs"
           >
             {feedback.type === "success" ? (
               <CheckCircle2 className="size-4 text-foreground shrink-0 mt-0.5" />
@@ -322,13 +320,6 @@ function AdminSettingsContent() {
               <span>Parameter Operasional</span>
             </TabsTrigger>
             <TabsTrigger
-              value="fees"
-              className="text-xs font-medium gap-2 px-3 py-1.5"
-            >
-              <CreditCard data-icon="inline-start" />
-              <span>Voucher</span>
-            </TabsTrigger>
-            <TabsTrigger
               value="manual-transfer"
               className="text-xs font-medium gap-2 px-3 py-1.5"
             >
@@ -346,24 +337,24 @@ function AdminSettingsContent() {
 
           {/* TAB 1: PARAMETER OPERASIONAL */}
           <TabsContent value="operations" className="flex flex-col gap-6 m-0 outline-none">
-            <Card className="border border-border/80 shadow-xs">
-              <CardHeader className="pt-6 px-6 pb-5 border-b border-border/60">
+            <Card>
+              <CardHeader>
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <CardTitle className="text-base font-semibold text-foreground">
+                    <CardTitle className="text-base font-semibold">
                       Parameter Jadwal &amp; Batas Waktu Operasional
                     </CardTitle>
                     <Badge variant="outline" className="text-[11px]">
                       Master SOP v1.0
                     </Badge>
                   </div>
-                  <CardDescription className="text-xs leading-relaxed text-muted-foreground">
+                  <CardDescription className="text-xs leading-relaxed">
                     Aturan batasan waktu pemesanan, toleransi reschedule, penguncian checkout, dan kuota slot konseling harian.
                   </CardDescription>
                 </div>
               </CardHeader>
 
-              <CardContent className="pt-6 px-6 pb-6 flex flex-col gap-6">
+              <CardContent className="flex flex-col gap-6">
                 <FieldGroup className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* 1. Cutoff Pemesanan Baru */}
                   <Field>
@@ -577,25 +568,20 @@ function AdminSettingsContent() {
                 </FieldGroup>
               </CardContent>
 
-              <CardFooter className="pt-4 px-6 pb-4 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
+              <CardFooter className="flex items-center justify-between text-xs">
                 <span>Perubahan parameter langsung disinkronkan ke PostgreSQL.</span>
                 <span className="font-medium text-foreground">Status Sinkronisasi Aktif</span>
               </CardFooter>
             </Card>
           </TabsContent>
 
-          {/* TAB 2: TARIF & EXTEND SESI */}
-          <TabsContent value="fees" className="flex flex-col gap-6 m-0 outline-none">
-            <FeesTab isSuperadmin={isSuperadmin} />
-          </TabsContent>
-
           {/* TAB 3: TRANSFER BANK MANUAL */}
           <TabsContent value="manual-transfer" className="flex flex-col gap-6 m-0 outline-none">
-            <Card className="border border-border/80 shadow-xs">
-              <CardHeader className="pt-6 px-6 pb-5 border-b border-border/60">
+            <Card>
+              <CardHeader>
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <CardTitle className="text-base font-semibold text-foreground">
+                    <CardTitle className="text-base font-semibold">
                       Kanal Pembayaran Transfer Bank Manual
                     </CardTitle>
                     <Badge
@@ -605,13 +591,13 @@ function AdminSettingsContent() {
                       {formData.isManualPaymentEnabled ? "Kanal Aktif" : "Dinonaktifkan"}
                     </Badge>
                   </div>
-                  <CardDescription className="text-xs leading-relaxed text-muted-foreground">
+                  <CardDescription className="text-xs leading-relaxed">
                     Kelola ketersediaan opsi pembayaran manual serta instruksi nomor rekening klinik bagi calon pasien.
                   </CardDescription>
                 </div>
               </CardHeader>
 
-              <CardContent className="pt-6 px-6 pb-6 flex flex-col gap-6">
+              <CardContent className="flex flex-col gap-6">
                 {/* Toggle Enable/Disable Transfer Manual */}
                 <Field
                   orientation="horizontal"
@@ -673,11 +659,11 @@ function AdminSettingsContent() {
 
           {/* TAB 4: KUESIONER SRQ-20 */}
           <TabsContent value="screening" className="flex flex-col gap-6 m-0 outline-none">
-            <Card className="border border-border/80 shadow-xs">
-              <CardHeader className="pt-6 px-6 pb-5 border-b border-border/60">
+            <Card>
+              <CardHeader>
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <CardTitle className="text-base font-semibold text-foreground">
+                    <CardTitle className="text-base font-semibold">
                       Kebijakan Pengisian Kuesioner SRQ-20
                     </CardTitle>
                     <Badge
@@ -687,13 +673,13 @@ function AdminSettingsContent() {
                       {formData.isScreeningRequired ? "Skrining Wajib" : "Skrining Opsional"}
                     </Badge>
                   </div>
-                  <CardDescription className="text-xs leading-relaxed text-muted-foreground">
+                  <CardDescription className="text-xs leading-relaxed">
                     Tentukan apakah calon pasien wajib menyelesaikan 20 pertanyaan kuesioner kesehatan mental WHO sebelum booking.
                   </CardDescription>
                 </div>
               </CardHeader>
 
-              <CardContent className="pt-6 px-6 pb-6 flex flex-col gap-6">
+              <CardContent className="flex flex-col gap-6">
                 <Field
                   orientation="horizontal"
                   className="p-5 rounded-lg border border-border/70 bg-muted/15 flex items-center justify-between gap-4"
@@ -721,7 +707,7 @@ function AdminSettingsContent() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div
-                    className={`p-5 rounded-lg border transition-all flex flex-col gap-2.5 ${
+                    className={`p-5 rounded-lg border transition-colors flex flex-col gap-2.5 ${
                       !formData.isScreeningRequired
                         ? "bg-card border-foreground/30 shadow-xs ring-1 ring-foreground/5"
                         : "bg-muted/10 border-border/60 opacity-60"
@@ -736,7 +722,7 @@ function AdminSettingsContent() {
                   </div>
 
                   <div
-                    className={`p-5 rounded-lg border transition-all flex flex-col gap-2.5 ${
+                    className={`p-5 rounded-lg border transition-colors flex flex-col gap-2.5 ${
                       formData.isScreeningRequired
                         ? "bg-card border-foreground/30 shadow-xs ring-1 ring-foreground/5"
                         : "bg-muted/10 border-border/60 opacity-60"

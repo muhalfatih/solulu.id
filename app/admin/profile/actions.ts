@@ -42,8 +42,8 @@ export async function getAdminProfileDataAction(options?: {
   }
 
   const role = (getStaffRole(admin) === "superadmin" ? "superadmin" : "admin") as "admin" | "superadmin"
-  const email = (admin.user_metadata?.email || (admin as any).email || (role === "superadmin" ? "superadmin@solulu.id" : "admin@solulu.id")) as string
-  const phone = (admin.user_metadata?.phone || "0812-3456-7890") as string
+  const email = (admin.user_metadata?.email || (admin as any).email || "") as string
+  const phone = (admin.user_metadata?.phone || "") as string
   const notifyUrgent = admin.user_metadata?.notifyUrgent ?? true
   const notifyCounselor = admin.user_metadata?.notifyCounselor ?? true
   const notifySession = admin.user_metadata?.notifySession ?? true

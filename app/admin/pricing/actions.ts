@@ -92,6 +92,7 @@ export async function createVoucherAdminAction(
 
     try {
       revalidatePath("/admin/pricing")
+      revalidatePath("/admin/vouchers")
       revalidatePath("/admin/settings")
       revalidatePath("/booking")
     } catch {}
@@ -142,6 +143,7 @@ export async function toggleVoucherStatusAction(
 
     try {
       revalidatePath("/admin/pricing")
+      revalidatePath("/admin/vouchers")
       revalidatePath("/admin/settings")
       revalidatePath("/booking")
     } catch {}
@@ -186,6 +188,7 @@ export async function deleteVoucherAdminAction(
 
     try {
       revalidatePath("/admin/pricing")
+      revalidatePath("/admin/vouchers")
       revalidatePath("/admin/settings")
       revalidatePath("/booking")
     } catch {}

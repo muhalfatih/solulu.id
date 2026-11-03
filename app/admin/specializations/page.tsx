@@ -300,9 +300,9 @@ export default function SpecializationsAdminPage() {
       </div>
 
       {/* Table Card Container */}
-      <Card className="overflow-hidden shadow-xs">
+      <Card className="overflow-hidden">
         {/* Table Toolbar Header */}
-        <CardHeader className="p-4 border-b border-border/60">
+        <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             {/* Search Bar */}
             <div className="relative w-full sm:w-80">
@@ -372,7 +372,7 @@ export default function SpecializationsAdminPage() {
         </CardHeader>
 
         {/* Semantic Responsive Table */}
-        <CardContent className="p-0">
+        <CardContent>
           <Table className="text-xs">
             <TableHeader className="bg-muted/40">
               <TableRow className="border-border/60">

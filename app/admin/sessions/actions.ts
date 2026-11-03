@@ -11,6 +11,7 @@ import {
   type ManualPaymentDependencies,
   type ConfirmManualPaymentResult,
 } from "@/lib/fulfillment/manual"
+import { recordAudit } from "@/lib/audit/record"
 import { evaluateNoShow, loadNoShowBookingFacts, noShowUpdate } from "@/lib/booking/no-show"
 
 /**
@@ -142,6 +143,15 @@ export async function rejectManualPaymentAction(
     }
 
     await db.transaction(async (tx) => {
+      await recordAudit(tx, {
+        actor: admin,
+        action: "payment.reject",
+        entityType: "booking",
+        entityId: input.bookingId,
+        before: { status: booking.status },
+        after: { status: "cancelled", paymentStatus: "FAILED", reason: input.reason },
+      })
+
       // 1. Cancel booking
       await tx
         .update(bookings)
@@ -234,6 +244,15 @@ export async function markBookingNoShowAction(
         .update(schedules)
         .set({ status: "booked" })
         .where(eq(schedules.id, booking.scheduleId ?? NO_SCHEDULE_ID))
+
+      await recordAudit(tx, {
+        actor: admin,
+        action: "booking.no_show",
+        entityType: "booking",
+        entityId: bookingId,
+        before: { status: booking.status },
+        after: { status: "no_show" },
+      })
     })
 
     try {

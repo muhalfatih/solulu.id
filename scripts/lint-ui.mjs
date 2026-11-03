@@ -6,24 +6,20 @@
 //      shadcn CLI to diff every installed component against the live registry.
 //   2. Portal code (admin, operator, counselor) must not use a hand-written
 //      `animate-pulse` or restyle Card* (padding/border/radius/shadow/color).
-//      Violations that already exist are recorded per file in
-//      scripts/lint-ui-baseline.json; only NEW violations fail. Tickets #35/#36
-//      drive the baseline to zero.
+//      Zero tolerance: any violation fails.
 //
-// Flags: --write-baseline   rewrite the baseline from current violations
-//        --write-registry   re-pin the fingerprint after a CLI registry update
+// Flags://        --write-registry   re-pin the fingerprint after a CLI registry update
 //        --registry         diff against the live registry via the shadcn CLI
 import { createHash } from "node:crypto"
 import { execFileSync } from "node:child_process"
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { compareToBaseline, countViolations } from "./lint-ui-lib.mjs"
+import { countViolations, findViolations } from "./lint-ui-lib.mjs"
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const UI_DIR = path.join(ROOT, "components/ui")
 const REGISTRY_FILE = path.join(ROOT, "scripts/lint-ui-registry.json")
-const BASELINE_FILE = path.join(ROOT, "scripts/lint-ui-baseline.json")
 const PORTAL_DIRS = [
   "app/admin",
   "app/operator",
@@ -75,10 +71,6 @@ if (args.has("--write-registry")) {
   writeJson(REGISTRY_FILE, uiFingerprints())
   console.log("lint:ui registry fingerprint written")
 }
-if (args.has("--write-baseline")) {
-  writeJson(BASELINE_FILE, portalViolations())
-  console.log("lint:ui baseline written")
-}
 
 let failed = false
 
@@ -107,21 +99,12 @@ if (args.has("--registry")) {
   }
 }
 
-// 2. portal rules against the baseline
-const { failures, improvements } = compareToBaseline(portalViolations(), readJson(BASELINE_FILE))
-for (const f of failures) {
+// 2. portal rules (zero tolerance)
+for (const f of findViolations(portalViolations())) {
   failed = true
   const label = f.rule === "animate-pulse" ? "hand-written animate-pulse (use <Skeleton />)" : "Card* className restyles the card (layout classes only)"
-  console.error(`${f.file}: ${f.have} ${label}, baseline allows ${f.max}`)
-}
-if (improvements.length) {
-  const total = improvements.reduce((sum, i) => sum + (i.max - i.have), 0)
-  console.log(`lint:ui: ${total} baseline violation(s) fixed; run "npm run lint:ui -- --write-baseline" to lock it in.`)
+  console.error(`${f.file}: ${f.have} ${label}`)
 }
 
-const baselineTotal = Object.values(readJson(BASELINE_FILE)).reduce(
-  (sum, rules) => sum + Object.values(rules).reduce((a, b) => a + b, 0),
-  0
-)
-console.log(`lint:ui: ${failed ? "FAILED" : "ok"} (portal baseline: ${baselineTotal} known violation(s))`)
+console.log(`lint:ui: ${failed ? "FAILED" : "ok"}`)
 process.exit(failed ? 1 : 0)

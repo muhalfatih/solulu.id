@@ -337,7 +337,7 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
       )}
 
       {/* Main Header Card */}
-      <Card className="border-border/60 overflow-hidden shadow-xs">
+      <Card className="overflow-hidden">
         <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start md:items-center gap-4">
             <Avatar className="size-16 rounded-2xl border-2 border-border/80 shrink-0">
@@ -479,15 +479,15 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
       {/* Grid: 21 Data Fields in Structural Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Card 1: Informasi Kontak & Domisili (5 Fields) */}
-        <Card className="border-border/60 shadow-2xs">
-          <CardHeader className="pb-3 border-b border-border/40">
+        <Card>
+          <CardHeader>
             <div className="flex items-center gap-2">
               <User className="size-4 text-primary" />
               <CardTitle className="text-sm font-semibold">Identitas & Kontak</CardTitle>
             </div>
             <CardDescription className="text-xs">Data profil dasar dan kontak operasional</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4 flex flex-col gap-3 text-xs">
+          <CardContent className="flex flex-col gap-3 text-xs">
             <div>
               <span className="text-[11px] text-muted-foreground font-medium block">Nama Lengkap & Gelar</span>
               <span className="font-semibold text-foreground text-sm">{counselor.fullName}</span>
@@ -517,15 +517,15 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
         </Card>
 
         {/* Card 2: Kualifikasi & Praktik Klinis (6 Fields) */}
-        <Card className="border-border/60 shadow-2xs">
-          <CardHeader className="pb-3 border-b border-border/40">
+        <Card>
+          <CardHeader>
             <div className="flex items-center gap-2">
               <GraduationCap className="size-4 text-primary" />
               <CardTitle className="text-sm font-semibold">Kualifikasi Klinis</CardTitle>
             </div>
             <CardDescription className="text-xs">Pendidikan, asosiasi profesi, dan pengalaman</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4 flex flex-col gap-3 text-xs">
+          <CardContent className="flex flex-col gap-3 text-xs">
             <div>
               <span className="text-[11px] text-muted-foreground font-medium block">Jenis Mitra</span>
               <div className="mt-0.5">
@@ -564,12 +564,8 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
         </Card>
 
         {/* Card 3: Izin Praktik STR & SIPP (4 Fields + Expiry Radar) */}
-        <Card
-          className={`border-border/60 shadow-2xs ${
-            radar.hasRadarAlert ? "border-amber-400/50 dark:border-amber-700/50 bg-amber-500/5" : ""
-          }`}
-        >
-          <CardHeader className="pb-3 border-b border-border/40">
+        <Card>
+          <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Award className="size-4 text-primary" />
@@ -586,7 +582,7 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
             </div>
             <CardDescription className="text-xs">Nomor registrasi dan status kadaluarsa</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4 flex flex-col gap-3.5 text-xs">
+          <CardContent className="flex flex-col gap-3.5 text-xs">
             {isPsychologist ? (
               <>
                 {/* STR Status */}
@@ -641,12 +637,12 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
       {/* Bio & Operasional Platform (Tarif, Komisi, Kuota) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Bio Narrative */}
-        <Card className="md:col-span-2 border-border/60 shadow-2xs">
-          <CardHeader className="pb-3 border-b border-border/40">
+        <Card className="md:col-span-2">
+          <CardHeader>
             <CardTitle className="text-sm font-semibold">Bio & Pendekatan Konseling</CardTitle>
             <CardDescription className="text-xs">Deskripsi publik yang tampil pada profil klien</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4">
+          <CardContent>
             <p className="text-xs leading-relaxed text-foreground whitespace-pre-line">
               {counselor.bio || "Tidak ada deskripsi bio yang dicantumkan."}
             </p>
@@ -654,15 +650,15 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
         </Card>
 
         {/* Tarif & Operasional */}
-        <Card className="border-border/60 shadow-2xs">
-          <CardHeader className="pb-3 border-b border-border/40">
+        <Card>
+          <CardHeader>
             <div className="flex items-center gap-2">
               <DollarSign className="size-4 text-primary" />
               <CardTitle className="text-sm font-semibold">Tarif & Operasional</CardTitle>
             </div>
             <CardDescription className="text-xs">Pengaturan komisi dan komitmen jadwal</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4 flex flex-col gap-3 text-xs">
+          <CardContent className="flex flex-col gap-3 text-xs">
             <div>
               <span className="text-[11px] text-muted-foreground font-medium block">Tarif Sesi Per 90 Menit</span>
               <span className="font-semibold text-foreground text-sm">{formatCurrency(counselor.customFeeRate)}</span>
@@ -703,8 +699,8 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {counselor.attachments.map((doc, idx) => (
-            <Card key={doc.type} className="border-border/60 shadow-2xs hover:border-primary/40 transition-colors">
-              <CardContent className="p-4 flex flex-col justify-between h-full gap-3">
+            <Card key={doc.type} className="transition-colors">
+              <CardContent className="flex flex-col justify-between h-full gap-3">
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono uppercase text-muted-foreground">Lampiran #{idx + 1}</span>

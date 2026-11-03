@@ -629,7 +629,7 @@ export function BookingsClient({
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status Baru:</span>
                 <span className="font-semibold text-foreground">
-                  Status diubah ke <Badge variant="secondary" className="text-[10px]">completed</Badge> dengan flag <Badge variant="destructive" className="text-[10px]">is_no_show: true</Badge>
+                  Status diubah ke <Badge variant="destructive" className="text-[10px]">no_show</Badge>
                 </span>
               </div>
             </div>
