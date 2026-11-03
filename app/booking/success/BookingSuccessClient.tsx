@@ -14,7 +14,7 @@ import {
   HelpCircle,
   Video,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -114,7 +114,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
 
         {/* Primary CTA: Buka Halaman Sesi Saya Sekarang */}
         <div className="w-full mb-8">
-          <Button
+          <PublicButton
             asChild
             variant="public"
             size="pill-lg"
@@ -125,7 +125,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
               <span>Buka Halaman Sesi Saya Sekarang</span>
               <ArrowRight className="size-4" data-icon="inline-end" />
             </Link>
-          </Button>
+          </PublicButton>
           <p className="text-xs text-muted-foreground text-center mt-2.5">
             Anda dapat langsung mengakses ruang sesi tanpa perlu registrasi akun atau kata sandi.
           </p>
@@ -213,7 +213,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
                 <div className="flex-1 bg-background px-3 py-2 rounded-xl border border-border/80 text-xs font-mono truncate text-muted-foreground">
                   {sessionUrl}
                 </div>
-                <Button
+                <PublicButton
                   type="button"
                   variant="public-secondary"
                   size="pill-sm"
@@ -231,7 +231,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
                       <span>Salin</span>
                     </>
                   )}
-                </Button>
+                </PublicButton>
               </div>
             </div>
           </CardContent>

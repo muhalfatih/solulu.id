@@ -16,7 +16,7 @@ import {
   Lock,
 } from "lucide-react"
 import { PublicShell } from "@/components/public/public-shell"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import {
@@ -191,7 +191,7 @@ export default function CekSesiClient() {
                 <AlertDescription className="text-xs leading-relaxed flex flex-col gap-3 mt-1">
                   <span>{status.message}</span>
                   <div className="pt-1">
-                    <Button
+                    <PublicButton
                       asChild
                       variant="outline"
                       className="border-amber-500/40 hover:bg-amber-500/20 text-xs h-9 px-4 rounded-full font-semibold cursor-pointer"
@@ -200,7 +200,7 @@ export default function CekSesiClient() {
                         <MessageCircle data-icon="inline-start" className="size-3.5" />
                         <span>Bantuan Langsung WhatsApp</span>
                       </a>
-                    </Button>
+                    </PublicButton>
                   </div>
                 </AlertDescription>
               </Alert>
@@ -286,7 +286,7 @@ export default function CekSesiClient() {
               </FieldGroup>
 
               {/* Standard Public Primary Button (h-11, rounded-full, text-sm font-semibold, #7c3aed) */}
-              <Button
+              <PublicButton
                 type="submit"
                 id="btn-recover-submit"
                 disabled={isSubmitting}
@@ -305,7 +305,7 @@ export default function CekSesiClient() {
                     <span>Kirim Ulang Tautan Sesi</span>
                   </>
                 )}
-              </Button>
+              </PublicButton>
             </form>
 
             {/* Privacy Protection Callout (US-20) */}
@@ -333,7 +333,7 @@ export default function CekSesiClient() {
                 Hubungi Kami di WhatsApp
               </a>
             </span>
-            <Button
+            <PublicButton
               asChild
               variant="public-secondary"
               size="pill-sm"
@@ -342,7 +342,7 @@ export default function CekSesiClient() {
                 <span>Pesan Sesi Baru</span>
                 <ArrowRight className="size-3.5" data-icon="inline-end" />
               </Link>
-            </Button>
+            </PublicButton>
           </CardFooter>
         </Card>
       </div>

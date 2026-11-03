@@ -11,7 +11,7 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import {
@@ -233,7 +233,7 @@ export function SessionCountdownCard({
               </span>
               <div className="flex items-center gap-2 flex-wrap pt-1">
                 {onRefresh && (
-                  <Button
+                  <PublicButton
                     variant="outline"
                     size="sm"
                     onClick={onRefresh}
@@ -245,9 +245,9 @@ export function SessionCountdownCard({
                       className={isRefreshing ? "animate-spin" : ""}
                     />
                     {isRefreshing ? "Memeriksa..." : "Cek Ulang Ruang Zoom"}
-                  </Button>
+                  </PublicButton>
                 )}
-                <Button
+                <PublicButton
                   asChild
                   variant="outline"
                   size="sm"
@@ -256,7 +256,7 @@ export function SessionCountdownCard({
                   <a href={waPendingUrl} target="_blank" rel="noopener noreferrer">
                     Bantuan WhatsApp
                   </a>
-                </Button>
+                </PublicButton>
               </div>
             </AlertDescription>
           </Alert>
@@ -284,13 +284,13 @@ export function SessionCountdownCard({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button
+                <PublicButton
                   variant="ghost"
                   size="sm"
                   className="h-8 text-xs font-semibold text-primary hover:text-primary underline-offset-4 hover:underline rounded-full"
                 >
                   Klaim Reschedule / Refund 100%
-                </Button>
+                </PublicButton>
               </a>
             </div>
           </div>
@@ -300,7 +300,7 @@ export function SessionCountdownCard({
         {booking.status !== "cancelled" && state !== "ENDED" && !isFulfillmentPending && (
           <div className="flex flex-col gap-3">
             {isZoomActive && booking.zoomJoinUrl ? (
-              <Button
+              <PublicButton
                 asChild
                 variant="public"
                 size="pill-lg"
@@ -317,9 +317,9 @@ export function SessionCountdownCard({
                   <span>Masuk Ruang Zoom Sekarang</span>
                   <ExternalLink data-icon="inline-end" className="size-4 opacity-80 group-hover:translate-x-0.5 transition-transform" />
                 </a>
-              </Button>
+              </PublicButton>
             ) : (
-              <Button
+              <PublicButton
                 disabled
                 size="pill-lg"
                 id="btn-join-zoom-locked"
@@ -328,7 +328,7 @@ export function SessionCountdownCard({
               >
                 <Lock data-icon="inline-start" className="size-4 mr-1.5" />
                 <span>Masuk Ruang Zoom (Terkunci)</span>
-              </Button>
+              </PublicButton>
             )}
 
             <p className="text-xs text-center text-muted-foreground leading-relaxed">
@@ -350,13 +350,13 @@ export function SessionCountdownCard({
                   rel="noopener noreferrer"
                   className="shrink-0"
                 >
-                  <Button
+                  <PublicButton
                     variant="outline"
                     size="sm"
                     className="h-8 text-xs font-semibold rounded-full border-amber-500/30 hover:bg-amber-500/10 text-amber-800 dark:text-amber-300"
                   >
                     Lapor Bantuan CS
-                  </Button>
+                  </PublicButton>
                 </a>
               </div>
             )}

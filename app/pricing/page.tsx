@@ -12,7 +12,7 @@ import {
   CalendarCheck,
   Lock,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { PublicShell } from "@/components/public/public-shell"
 import { getPlatformPricing } from "@/lib/pricing/platform-pricing"
@@ -146,7 +146,7 @@ export default async function PublicPricingPage() {
             </CardContent>
 
             <CardFooter className="p-7 pt-4 border-t border-border/60">
-              <Button
+              <PublicButton
                 asChild
                 variant="public-secondary"
                 size="pill"
@@ -157,7 +157,7 @@ export default async function PublicPricingPage() {
                   <span>Pilih Konselor Sebaya</span>
                   <ArrowRight className="size-4" data-icon="inline-end" />
                 </Link>
-              </Button>
+              </PublicButton>
             </CardFooter>
           </Card>
 
@@ -237,7 +237,7 @@ export default async function PublicPricingPage() {
             </CardContent>
 
             <CardFooter className="p-7 pt-4 border-t border-border/60">
-              <Button
+              <PublicButton
                 asChild
                 variant="public"
                 size="pill"
@@ -248,7 +248,7 @@ export default async function PublicPricingPage() {
                   <span>Pilih Psikolog Klinis</span>
                   <ArrowRight className="size-4" data-icon="inline-end" />
                 </Link>
-              </Button>
+              </PublicButton>
             </CardFooter>
           </Card>
         </section>
@@ -363,7 +363,7 @@ export default async function PublicPricingPage() {
               Temukan konselor yang cocok dan amankan jadwalmu hari ini. 100% terjaga kerahasiaannya tanpa perlu ribet registrasi akun.
             </p>
           </div>
-          <Button
+          <PublicButton
             asChild
             className="h-11 px-6 text-sm font-semibold rounded-full bg-white text-purple-950 hover:bg-purple-50 shadow-sm shrink-0 cursor-pointer flex items-center gap-2"
           >
@@ -371,7 +371,7 @@ export default async function PublicPricingPage() {
               <span>Pilih Konselor Sekarang</span>
               <ArrowRight className="size-4" data-icon="inline-end" />
             </Link>
-          </Button>
+          </PublicButton>
         </section>
       </div>
     </PublicShell>

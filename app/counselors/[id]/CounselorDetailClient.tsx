@@ -30,7 +30,7 @@ import {
 
 import type { CatalogCounselorView, CatalogSlot } from "../actions"
 import type { PlatformSettingsData } from "@/lib/settings/platform"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -173,7 +173,7 @@ export default function CounselorDetailClient({
             </span>
           </nav>
 
-          <Button
+          <PublicButton
             variant="ghost"
             size="sm"
             asChild
@@ -183,7 +183,7 @@ export default function CounselorDetailClient({
               <ArrowLeft data-icon="inline-start" aria-hidden="true" />
               <span>Kembali ke Katalog</span>
             </Link>
-          </Button>
+          </PublicButton>
         </div>
       </div>
 
@@ -690,7 +690,7 @@ export default function CounselorDetailClient({
                 </div>
 
                 {/* 4. Action Button */}
-                <Button
+                <PublicButton
                   type="button"
                   variant="public"
                   size="pill"
@@ -705,7 +705,7 @@ export default function CounselorDetailClient({
                       : "Lanjut Isi Data Sesi"}
                   </span>
                   <ArrowRight data-icon="inline-end" aria-hidden="true" />
-                </Button>
+                </PublicButton>
 
                 {!selectedSlot && (
                   <p className="text-xs text-center text-muted-foreground leading-relaxed -mt-1">
@@ -758,7 +758,7 @@ export default function CounselorDetailClient({
           )}
         </div>
 
-        <Button
+        <PublicButton
           type="button"
           variant="public"
           size="sm"
@@ -773,7 +773,7 @@ export default function CounselorDetailClient({
         >
           <span>{selectedSlot ? "Lanjut Isi Data" : "Pilih Jadwal Sesi"}</span>
           <ArrowRight data-icon="inline-end" aria-hidden="true" />
-        </Button>
+        </PublicButton>
       </div>
     </div>
   )
