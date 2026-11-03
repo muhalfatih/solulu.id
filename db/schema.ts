@@ -75,6 +75,11 @@ export const zoomAccounts = pgTable("zoom_accounts", {
 // =============================================================================
 // 2. PRICING & VOUCHERS
 // =============================================================================
+/**
+ * @deprecated ADR-0010: tarif kini ada di `services` (Layanan). Tabel ini hanya
+ * dipertahankan sebagai sumber migrasi data ke `services` dan tidak boleh dibaca
+ * oleh kode aplikasi. Dapat di-drop pada migrasi lanjutan setelah verifikasi.
+ */
 export const platformPricing = pgTable("platform_pricing", {
   id: uuid("id").defaultRandom().primaryKey(),
   counselorType: counselorTypeEnum("counselor_type").notNull().unique(),
@@ -95,10 +100,34 @@ export const platformSettings = pgTable("platform_settings", {
   minCounselorWeeklySlots: integer("min_counselor_weekly_slots").default(10).notNull(), // Min 10 sesi / minggu
   noShowTimeoutMinutes: integer("no_show_timeout_minutes").default(30).notNull(), // Batas tunggu hadir 30 menit
   basePrice: numeric("base_price", { precision: 12, scale: 2 }).default("150000").notNull(),
-  counselorExtendFeePer30Min: numeric("counselor_extend_fee_per_30_min", { precision: 12, scale: 2 }).default("35000").notNull(), // Rp 35k/30m
-  psychologistExtendFeePer30Min: numeric("psychologist_extend_fee_per_30_min", { precision: 12, scale: 2 }).default("50000").notNull(), // Rp 50k/30m
+  // @deprecated ADR-0010: tarif overtime kini per Layanan (`services.overtime_rate_per_30_min`).
+  // Kolom dipertahankan agar migrasi non-destruktif; tidak dibaca kode aplikasi.
+  counselorExtendFeePer30Min: numeric("counselor_extend_fee_per_30_min", { precision: 12, scale: 2 }).default("35000").notNull(),
+  psychologistExtendFeePer30Min: numeric("psychologist_extend_fee_per_30_min", { precision: 12, scale: 2 }).default("50000").notNull(),
   isManualPaymentEnabled: boolean("is_manual_payment_enabled").default(true).notNull(),
   manualPaymentInstructions: text("manual_payment_instructions").default("Transfer ke Rekening BCA: 123-456-7890 a.n. Solulu Mental Health. Sertakan Kode Booking pada berita transfer."),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/**
+ * Layanan (ADR-0010): jenis konseling yang dijual. Durasi selalu 90 menit (tidak dikonfigurasi).
+ * Tidak pernah dihapus, hanya dinonaktifkan (`isActive`), karena booking dan payroll lama merujuknya.
+ */
+export const services = pgTable("services", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  basePrice: numeric("base_price", { precision: 12, scale: 2 }).notNull(),
+  promoPrice: numeric("promo_price", { precision: 12, scale: 2 }), // null = tidak ada promo
+  allowVoucher: boolean("allow_voucher").default(true).notNull(),
+  overtimeRatePer30Min: numeric("overtime_rate_per_30_min", { precision: 12, scale: 2 }).notNull(),
+  basePayoutPercent: integer("base_payout_percent").notNull(), // Bagi Hasil pokok (%)
+  overtimePayoutPercent: integer("overtime_payout_percent").notNull(), // Bagi Hasil overtime (%)
+  allowedCounselorTypes: counselorTypeEnum("allowed_counselor_types").array().notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -205,6 +234,28 @@ export const specializations = pgTable("specializations", {
 });
 
 // =============================================================================
+// 4B-2. PENGECUALIAN LAYANAN PER KONSELOR (ADR-0010)
+// Default: semua Layanan aktif yang tipenya cocok ditawarkan. Baris di sini =
+// Layanan yang dimatikan Admin untuk konselor tertentu.
+// =============================================================================
+export const counselorServiceExclusions = pgTable(
+  "counselor_service_exclusions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    counselorId: uuid("counselor_id")
+      .references(() => counselors.id, { onDelete: "cascade" })
+      .notNull(),
+    serviceId: uuid("service_id")
+      .references(() => services.id, { onDelete: "cascade" })
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_counselor_service_exclusion").on(table.counselorId, table.serviceId),
+  ]
+);
+
+// =============================================================================
 // 4C. COUNSELOR WEEKLY TEMPLATES (RECURRING BLUEPRINT 7x7 SLOTS)
 // =============================================================================
 export const counselorWeeklyTemplates = pgTable(
@@ -282,6 +333,13 @@ export const bookings = pgTable("bookings", {
     .references(() => counselors.id)
     .notNull(),
   screeningId: uuid("screening_id").references(() => screenings.id),
+
+  // Layanan yang dibeli + snapshot tarif pokok aktif SEBELUM voucher (ADR-0010).
+  // Perubahan tarif Layanan di kemudian hari tidak boleh menulis ulang riwayat.
+  serviceId: uuid("service_id")
+    .references(() => services.id)
+    .notNull(),
+  basePriceSnapshot: numeric("base_price_snapshot", { precision: 12, scale: 2 }).notNull(),
 
   // Triage / Screening Audit (Informative)
   bypassedRecommendation: boolean("bypassed_recommendation").default(false),
@@ -455,6 +513,10 @@ export const bookingsRelations = relations(bookings, ({ one }) => ({
   screening: one(screenings, {
     fields: [bookings.screeningId],
     references: [screenings.id],
+  }),
+  service: one(services, {
+    fields: [bookings.serviceId],
+    references: [services.id],
   }),
   zoomAccount: one(zoomAccounts, {
     fields: [bookings.zoomAccountId],
