@@ -45,16 +45,16 @@ export function AdminMetricCard({
     return (
       <Card
         size="sm"
-        className={cn("flex flex-col justify-between gap-3 shadow-2xs", className)}
+        className={className}
         {...props}
       >
-        <CardHeader className="p-4 pb-0 flex flex-row items-center justify-between gap-2">
-          <Skeleton className="h-3 w-24 bg-muted/80" />
-          {Icon && <Skeleton className="size-4 rounded-full bg-muted/60" />}
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
+          <Skeleton className="h-3 w-24" />
+          {Icon && <Skeleton className="size-4 rounded-full" />}
         </CardHeader>
-        <CardContent className="p-4 pt-1 flex flex-col gap-1.5">
-          <Skeleton className="h-8 w-24 bg-muted/80" />
-          <Skeleton className="h-3 w-36 bg-muted/60" />
+        <CardContent className="flex flex-col gap-1.5">
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-3 w-36" />
         </CardContent>
       </Card>
     )
@@ -77,14 +77,10 @@ export function AdminMetricCard({
   return (
     <Card
       size="sm"
-      className={cn(
-        "flex flex-col justify-between gap-3 transition-colors shadow-2xs",
-        variantStyles[effectiveVariant],
-        className
-      )}
+      className={cn("transition-colors", variantStyles[effectiveVariant], className)}
       {...props}
     >
-      <CardHeader className="p-4 pb-0 flex flex-row items-center justify-between gap-2">
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
           {title}
         </span>
@@ -93,7 +89,7 @@ export function AdminMetricCard({
           {Icon && <Icon className="size-3.5 text-muted-foreground/80" />}
         </div>
       </CardHeader>
-      <CardContent className="p-4 pt-1 flex flex-col gap-1">
+      <CardContent className="flex flex-col gap-1">
         <div className={cn("text-2xl sm:text-3xl font-bold tracking-tight tabular-nums", valueVariantStyles[effectiveVariant])}>
           {value}
         </div>

@@ -346,24 +346,24 @@ function AdminSettingsContent() {
 
           {/* TAB 1: PARAMETER OPERASIONAL */}
           <TabsContent value="operations" className="flex flex-col gap-6 m-0 outline-none">
-            <Card className="border border-border/80 shadow-xs">
-              <CardHeader className="pt-6 px-6 pb-5 border-b border-border/60">
+            <Card>
+              <CardHeader>
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <CardTitle className="text-base font-semibold text-foreground">
+                    <CardTitle className="text-base font-semibold">
                       Parameter Jadwal &amp; Batas Waktu Operasional
                     </CardTitle>
                     <Badge variant="outline" className="text-[11px]">
                       Master SOP v1.0
                     </Badge>
                   </div>
-                  <CardDescription className="text-xs leading-relaxed text-muted-foreground">
+                  <CardDescription className="text-xs leading-relaxed">
                     Aturan batasan waktu pemesanan, toleransi reschedule, penguncian checkout, dan kuota slot konseling harian.
                   </CardDescription>
                 </div>
               </CardHeader>
 
-              <CardContent className="pt-6 px-6 pb-6 flex flex-col gap-6">
+              <CardContent className="flex flex-col gap-6">
                 <FieldGroup className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* 1. Cutoff Pemesanan Baru */}
                   <Field>
@@ -577,7 +577,7 @@ function AdminSettingsContent() {
                 </FieldGroup>
               </CardContent>
 
-              <CardFooter className="pt-4 px-6 pb-4 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
+              <CardFooter className="flex items-center justify-between text-xs">
                 <span>Perubahan parameter langsung disinkronkan ke PostgreSQL.</span>
                 <span className="font-medium text-foreground">Status Sinkronisasi Aktif</span>
               </CardFooter>
@@ -591,11 +591,11 @@ function AdminSettingsContent() {
 
           {/* TAB 3: TRANSFER BANK MANUAL */}
           <TabsContent value="manual-transfer" className="flex flex-col gap-6 m-0 outline-none">
-            <Card className="border border-border/80 shadow-xs">
-              <CardHeader className="pt-6 px-6 pb-5 border-b border-border/60">
+            <Card>
+              <CardHeader>
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <CardTitle className="text-base font-semibold text-foreground">
+                    <CardTitle className="text-base font-semibold">
                       Kanal Pembayaran Transfer Bank Manual
                     </CardTitle>
                     <Badge
@@ -605,13 +605,13 @@ function AdminSettingsContent() {
                       {formData.isManualPaymentEnabled ? "Kanal Aktif" : "Dinonaktifkan"}
                     </Badge>
                   </div>
-                  <CardDescription className="text-xs leading-relaxed text-muted-foreground">
+                  <CardDescription className="text-xs leading-relaxed">
                     Kelola ketersediaan opsi pembayaran manual serta instruksi nomor rekening klinik bagi calon pasien.
                   </CardDescription>
                 </div>
               </CardHeader>
 
-              <CardContent className="pt-6 px-6 pb-6 flex flex-col gap-6">
+              <CardContent className="flex flex-col gap-6">
                 {/* Toggle Enable/Disable Transfer Manual */}
                 <Field
                   orientation="horizontal"
@@ -673,11 +673,11 @@ function AdminSettingsContent() {
 
           {/* TAB 4: KUESIONER SRQ-20 */}
           <TabsContent value="screening" className="flex flex-col gap-6 m-0 outline-none">
-            <Card className="border border-border/80 shadow-xs">
-              <CardHeader className="pt-6 px-6 pb-5 border-b border-border/60">
+            <Card>
+              <CardHeader>
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <CardTitle className="text-base font-semibold text-foreground">
+                    <CardTitle className="text-base font-semibold">
                       Kebijakan Pengisian Kuesioner SRQ-20
                     </CardTitle>
                     <Badge
@@ -687,13 +687,13 @@ function AdminSettingsContent() {
                       {formData.isScreeningRequired ? "Skrining Wajib" : "Skrining Opsional"}
                     </Badge>
                   </div>
-                  <CardDescription className="text-xs leading-relaxed text-muted-foreground">
+                  <CardDescription className="text-xs leading-relaxed">
                     Tentukan apakah calon pasien wajib menyelesaikan 20 pertanyaan kuesioner kesehatan mental WHO sebelum booking.
                   </CardDescription>
                 </div>
               </CardHeader>
 
-              <CardContent className="pt-6 px-6 pb-6 flex flex-col gap-6">
+              <CardContent className="flex flex-col gap-6">
                 <Field
                   orientation="horizontal"
                   className="p-5 rounded-lg border border-border/70 bg-muted/15 flex items-center justify-between gap-4"

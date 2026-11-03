@@ -570,7 +570,7 @@ export default function DistilledCounselorsPage() {
               Array.from({ length: 2 }).map((_, i) => (
                 <div
                   key={`applicant-skeleton-${i}`}
-                  className="rounded-2xl border border-border bg-card p-6 flex flex-col justify-between gap-6 shadow-xs animate-pulse"
+                  className="rounded-2xl border border-border bg-card p-6 flex flex-col justify-between gap-6 shadow-xs"
                 >
                   <div className="flex flex-col gap-5">
                     <div className="flex items-start justify-between gap-3">
@@ -840,7 +840,7 @@ export default function DistilledCounselorsPage() {
 
         {/* TAB 2: REGISTERED COUNSELORS DIRECTORY (Unified Surface) */}
         <TabsContent value="active" className="flex flex-col gap-0 mt-0">
-          <Card className="overflow-hidden shadow-xs">
+          <Card className="overflow-hidden">
             {/* Integrated Toolbar Header: Filter + Search + Stats in one surface */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-border bg-muted/20">
               <div className="relative flex-1 min-w-[220px] max-w-xs">
@@ -1062,7 +1062,7 @@ export default function DistilledCounselorsPage() {
                           <div className="mt-1 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                             <Badge
                               variant={c.radar.alertSeverity === "critical" ? "destructive" : "secondary"}
-                              className="text-[10px] font-bold gap-1 py-0.5 px-2 animate-pulse"
+                              className="text-[10px] font-bold gap-1 py-0.5 px-2"
                             >
                               <AlertTriangle className="size-3" />
                               Radar: {c.radar.alertMessage}

@@ -364,8 +364,8 @@ export function ApplicationsClient({
       </div>
 
       {/* Controls & Search */}
-      <Card className="border-border">
-        <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <Card>
+        <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="relative w-full sm:w-80">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -420,7 +420,7 @@ export function ApplicationsClient({
       </Card>
 
       {/* Applications Table */}
-      <Card className="border-border overflow-hidden shadow-xs">
+      <Card className="overflow-hidden">
         <div className="w-full overflow-hidden">
           <Table className="w-full text-xs">
             <TableHeader className="bg-muted/40">

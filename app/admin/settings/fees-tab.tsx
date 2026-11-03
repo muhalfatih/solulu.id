@@ -315,20 +315,20 @@ export function FeesTab({ isSuperadmin }: FeesTabProps) {
       )}
 
       {/* SECTION 3: MANAJEMEN KODE PROMO & KUPON DISKON */}
-      <Card className="border border-border/80 shadow-xs">
-        <CardHeader className="pt-6 px-6 pb-4 border-b border-border/60">
+      <Card>
+        <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <Tag className="size-4 text-primary" aria-hidden="true" />
-                <CardTitle className="text-base font-semibold text-foreground">
+                <CardTitle className="text-base font-semibold">
                   Manajemen Voucher &amp; Kupon Promo
                 </CardTitle>
                 <Badge variant="outline" className="text-[10px] font-mono">
                   {vouchers.length} Terdaftar
                 </Badge>
               </div>
-              <CardDescription className="text-xs leading-relaxed text-muted-foreground">
+              <CardDescription className="text-xs leading-relaxed">
                 Buat dan kelola kode kupon diskon persentase maupun nominal potongan langsung untuk pasien.
               </CardDescription>
             </div>
@@ -414,7 +414,7 @@ export function FeesTab({ isSuperadmin }: FeesTabProps) {
         </CardHeader>
 
         {/* Semantic Responsive Table */}
-        <CardContent className="p-0">
+        <CardContent>
           <Table className="text-xs">
             <TableHeader className="bg-muted/40">
               <TableRow className="border-border/60">

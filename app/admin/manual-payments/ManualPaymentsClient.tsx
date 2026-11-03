@@ -236,8 +236,8 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4 flex flex-col gap-1">
+        <Card>
+          <CardContent className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Total Menunggu</span>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-bold font-mono text-foreground">{totalPending}</span>
@@ -247,8 +247,8 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4 flex flex-col gap-1">
+        <Card>
+          <CardContent className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Booking Awal</span>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-bold font-mono text-foreground">{initialPendingCount}</span>
@@ -258,8 +258,8 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4 flex flex-col gap-1">
+        <Card>
+          <CardContent className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Pelunasan Extend</span>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-bold font-mono text-foreground">{extensionPendingCount}</span>
@@ -271,8 +271,8 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4 flex flex-col gap-1">
+        <Card>
+          <CardContent className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Nominal Menggantung</span>
             <div className="flex items-baseline justify-between">
               <span className="text-xl sm:text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
@@ -285,14 +285,14 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
       </div>
 
       {/* Main Content & Table */}
-      <Card className="border border-border/80 shadow-xs">
-        <CardHeader className="pb-3 border-b border-border/60">
+      <Card>
+        <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <CardTitle className="text-base font-semibold text-foreground">
+              <CardTitle className="text-base font-semibold">
                 Daftar Antrean Bukti Transfer
               </CardTitle>
-              <CardDescription className="text-xs text-muted-foreground">
+              <CardDescription className="text-xs">
                 Periksa slip mutasi bank sebelum melakukan konfirmasi lunas atau penolakan.
               </CardDescription>
             </div>
@@ -348,7 +348,7 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
           </div>
         </CardHeader>
 
-        <CardContent className="p-0">
+        <CardContent>
           {filteredItems.length === 0 ? (
             <Empty className="py-16">
               <EmptyMedia variant="icon">

@@ -629,7 +629,7 @@ export function ZoomSettingsClient({
       </div>
 
       {/* Dynamic Concurrency Timeline (Auto-Scale + Date Picker) */}
-      <Card className="p-5 flex flex-col gap-4 shadow-xs">
+      <Card className="flex flex-col gap-4">
         {/* Timeline Header Toolbar */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 border-b border-border/60 pb-3.5">
           <div className="flex items-center gap-2.5">
@@ -915,7 +915,7 @@ export function ZoomSettingsClient({
 
       {/* Empty State: If no Zoom accounts are configured in DB yet */}
       {accounts.length === 0 && (
-        <Card className="border-dashed p-10 flex flex-col items-center justify-center text-center gap-4 shadow-xs">
+        <Card className="flex flex-col items-center justify-center text-center gap-4">
           <div className="size-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
             <Video className="size-6" />
           </div>
@@ -965,7 +965,7 @@ export function ZoomSettingsClient({
             return (
               <Card
                 key={acc.id}
-                className="p-6 flex flex-col gap-5 shadow-xs transition-colors h-full"
+                className="flex flex-col gap-5 transition-colors h-full"
               >
                 {/* Card Header: Slot & Identity */}
                 <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-4">
@@ -988,7 +988,7 @@ export function ZoomSettingsClient({
                   >
                     <span
                       className={`size-2 rounded-full ${
-                        isLocked ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground"
+                        isLocked ? "bg-emerald-400" : "bg-muted-foreground"
                       }`}
                     />
                     <span>{isLocked ? "Sesi Aktif / Terikat" : "Siaga (Standby)"}</span>
@@ -1279,7 +1279,7 @@ export function ZoomSettingsClient({
 
           {/* If accounts < 4, show invitation card for next slot */}
           {accounts.length < 4 && (
-            <Card className="bg-card/50 border-dashed p-6 flex flex-col items-center justify-center text-center gap-4 h-full shadow-xs">
+            <Card className="flex flex-col items-center justify-center text-center gap-4 h-full">
               <div className="size-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
                 <Plus className="size-5" />
               </div>
@@ -1321,7 +1321,7 @@ export function ZoomSettingsClient({
       )}
 
       {/* Capacity Guard Info: Executive Architectural Note */}
-      <Card className="p-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground shadow-xs">
+      <Card className="flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2.5 min-w-0">
           <Server className="size-4 text-primary shrink-0" />
           <span>

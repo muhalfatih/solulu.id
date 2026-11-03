@@ -146,7 +146,7 @@ export function GalleryGrid({
           Array.from({ length: 8 }).map((_, i) => (
             <div
               key={`gallery-skel-${i}`}
-              className="rounded-xl overflow-hidden bg-muted/70 border border-border/80 shadow-xs aspect-video animate-pulse"
+              className="rounded-xl overflow-hidden bg-muted/70 border border-border/80 shadow-xs aspect-video"
             />
           ))
         ) : items.length === 0 ? (

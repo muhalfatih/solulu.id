@@ -449,7 +449,7 @@ export function CounselorSchedulesModal({
             </span>
             {reservedCount > 0 && (
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="size-1.5 rounded-full bg-amber-500" />
                 <span>{reservedCount} Hold</span>
               </span>
             )}
@@ -902,7 +902,7 @@ export function CounselorSchedulesModal({
                                         className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
                                         title={s.deleteRestrictionReason}
                                       >
-                                        <span className="size-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                                        <span className="size-1.5 rounded-full bg-amber-500 shrink-0" />
                                         <span>Hold</span>
                                       </span>
                                     ) : (
