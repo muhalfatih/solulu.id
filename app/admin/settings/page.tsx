@@ -15,7 +15,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Video,
-  CreditCard,
   Building2,
   Receipt,
   Users,
@@ -68,7 +67,6 @@ import {
   updatePlatformSettingsAction,
 } from "./actions"
 import type { PlatformSettingsData } from "@/lib/settings/platform"
-import { FeesTab } from "./fees-tab"
 
 function AdminSettingsContent() {
   const searchParams = useSearchParams()
@@ -77,7 +75,7 @@ function AdminSettingsContent() {
   const [isSaving, setIsSaving] = React.useState(false)
   const [isSuperadmin, setIsSuperadmin] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState(
-    initialTab && ["operations", "fees", "manual-transfer", "screening"].includes(initialTab)
+    initialTab && ["operations", "manual-transfer", "screening"].includes(initialTab)
       ? initialTab
       : "operations"
   )
@@ -87,7 +85,7 @@ function AdminSettingsContent() {
   } | null>(null)
 
   React.useEffect(() => {
-    if (initialTab && ["operations", "fees", "manual-transfer", "screening"].includes(initialTab)) {
+    if (initialTab && ["operations", "manual-transfer", "screening"].includes(initialTab)) {
       setActiveTab(initialTab)
     }
   }, [initialTab])
@@ -320,13 +318,6 @@ function AdminSettingsContent() {
             >
               <Clock data-icon="inline-start" />
               <span>Parameter Operasional</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="fees"
-              className="text-xs font-medium gap-2 px-3 py-1.5"
-            >
-              <CreditCard data-icon="inline-start" />
-              <span>Voucher</span>
             </TabsTrigger>
             <TabsTrigger
               value="manual-transfer"
@@ -582,11 +573,6 @@ function AdminSettingsContent() {
                 <span className="font-medium text-foreground">Status Sinkronisasi Aktif</span>
               </CardFooter>
             </Card>
-          </TabsContent>
-
-          {/* TAB 2: TARIF & EXTEND SESI */}
-          <TabsContent value="fees" className="flex flex-col gap-6 m-0 outline-none">
-            <FeesTab isSuperadmin={isSuperadmin} />
           </TabsContent>
 
           {/* TAB 3: TRANSFER BANK MANUAL */}
