@@ -1,6 +1,8 @@
 import { and, count, eq, isNotNull, lt, or, sql } from "drizzle-orm"
 import { db } from "@/db"
 import { bookings, counselorApplications, counselors } from "@/db/schema"
+import { CLAIM_CUTOFF_HOURS } from "@/lib/booking-cycle"
+import { countUnclaimedNearCutoff } from "@/lib/pool/store"
 import type { PortalKey, AttentionCounts } from "@/lib/shell/nav"
 
 /**
@@ -19,7 +21,7 @@ export async function getAttentionCounts(portal: PortalKey): Promise<AttentionCo
     }
   }
 
-  const [transfer, applications, credentials] = await Promise.all([
+  const [transfer, applications, credentials, pool] = await Promise.all([
     safe(async () => {
       const [row] = await db
         .select({ n: count() })
@@ -50,7 +52,9 @@ export async function getAttentionCounts(portal: PortalKey): Promise<AttentionCo
         )
       return row?.n ?? 0
     }),
+    // Booking pool belum diklaim yang sesinya dimulai dalam 4 jam sebelum Cutoff H-4 (sampai sesi mulai).
+    safe(() => countUnclaimedNearCutoff(CLAIM_CUTOFF_HOURS * 2)),
   ])
 
-  return { transfer, applications, credentials }
+  return { transfer, applications, credentials, pool }
 }

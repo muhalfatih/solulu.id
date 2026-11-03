@@ -36,7 +36,6 @@ describe("Ticket 22: shared portal shell navigation", () => {
     const titles = flat("admin", "superadmin").map((i) => i.title)
     for (const planned of [
       "Booking Cepat",
-      "Klien Tersedia",
       "Payroll",
       "Voucher",
       "Layanan & Tarif",
@@ -65,6 +64,14 @@ describe("Ticket 22: shared portal shell navigation", () => {
     expect(flat("admin", "superadmin").map((i) => i.url)).toContain("/admin/template-wa")
   })
 
+  it("Ticket 29: Klien Tersedia is visible to admins and counselors; unclaimed pool counts in Perlu Tindakan", () => {
+    expect(flat("admin", "admin").map((i) => i.url)).toContain("/admin/klien-tersedia")
+    const out = buildAttentionShortcuts("admin", { pool: 2 })
+    expect(out).toEqual([
+      { key: "pool", label: "Klien belum dapat konselor", count: 2, href: "/admin/klien-tersedia" },
+    ])
+  })
+
   it("never lists a duplicate url within a portal", () => {
     for (const portal of PORTALS) {
       const urls = flat(portal, "superadmin").map((i) => i.url)
@@ -81,6 +88,7 @@ describe("Ticket 22: shared portal shell navigation", () => {
     expect(flat("counselor", "counselor").map((i) => i.url)).toEqual([
       "/counselor/dashboard",
       "/counselor/schedule",
+      "/counselor/klien-tersedia",
       "/counselor/honor",
       "/counselor/profile",
     ])

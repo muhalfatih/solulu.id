@@ -20,6 +20,7 @@ export const AUDIT_ACTIONS = [
   "payment.verify",
   "payment.reject",
   "booking.manual_create",
+  "pool.assign",
   "counselor_document.download",
 ] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]

@@ -68,7 +68,7 @@ export const SHELL_NAV: Record<PortalKey, ShellNavGroup[]> = {
       items: [
         { title: "Booking", url: "/admin/bookings", icon: CalendarCheck },
         { title: "Booking Cepat", url: "/admin/booking-cepat", icon: Zap, ready: false, ticket: 30 },
-        { title: "Klien Tersedia", url: "/admin/klien-tersedia", icon: UserRoundSearch, ready: false, ticket: 29 },
+        { title: "Klien Tersedia", url: "/admin/klien-tersedia", icon: UserRoundSearch },
         { title: "Jadwal & Kalender", url: "/admin/sessions", icon: CalendarClock },
         { title: "Verifikasi Transfer", url: "/admin/manual-payments", icon: ReceiptText },
         { title: "Dispatch WhatsApp", url: "/admin/dispatch-wa", icon: Send },
@@ -125,6 +125,7 @@ export const SHELL_NAV: Record<PortalKey, ShellNavGroup[]> = {
       items: [
         { title: "Sesi Hari Ini", url: "/counselor/dashboard", icon: Clock },
         { title: "Jadwal Praktik", url: "/counselor/schedule", icon: CalendarClock },
+        { title: "Klien Tersedia", url: "/counselor/klien-tersedia", icon: UserRoundSearch },
       ],
     },
     {
@@ -188,6 +189,7 @@ const ATTENTION_DEFS: Record<PortalKey, { key: string; label: string; href: stri
     { key: "transfer", label: "Transfer menunggu", href: "/admin/manual-payments" },
     { key: "applications", label: "Pendaftaran baru", href: "/admin/counselors/applications" },
     { key: "credentials", label: "STR/SIPP < 60 hari", href: "/admin/counselors" },
+    { key: "pool", label: "Klien belum dapat konselor", href: "/admin/klien-tersedia" },
   ],
   operator: [],
   counselor: [],

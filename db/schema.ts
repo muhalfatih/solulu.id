@@ -335,12 +335,12 @@ export const bookings = pgTable("bookings", {
   initialNotes: text("initial_notes"), // (8) Catatan / Keluhan Awal
   informedConsentAcceptedAt: timestamp("informed_consent_accepted_at", { withTimezone: true }), // Checkbox Persetujuan
 
-  scheduleId: uuid("schedule_id")
-    .references(() => schedules.id)
-    .notNull(),
-  counselorId: uuid("counselor_id")
-    .references(() => counselors.id)
-    .notNull(),
+  // Booking Konselor Bebas (pool, ADR-0011): scheduleId dan counselorId NULL sampai
+  // konselor mengklaim / Admin menugaskan; slot yang dipesan disimpan di poolDate + poolSlotIndex.
+  scheduleId: uuid("schedule_id").references(() => schedules.id),
+  counselorId: uuid("counselor_id").references(() => counselors.id),
+  poolDate: date("pool_date"),
+  poolSlotIndex: integer("pool_slot_index"),
   screeningId: uuid("screening_id").references(() => screenings.id),
 
   // Layanan yang dibeli + snapshot tarif pokok aktif SEBELUM voucher (ADR-0010).
