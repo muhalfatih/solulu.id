@@ -100,6 +100,7 @@ export const platformSettings = pgTable("platform_settings", {
   bookingCutoffHours: integer("booking_cutoff_hours").default(4).notNull(), // Cutoff H-4 jam pemesanan
   rescheduleCutoffHours: integer("reschedule_cutoff_hours").default(4).notNull(), // Cutoff H-4 jam reschedule
   paymentHoldMinutes: integer("payment_hold_minutes").default(15).notNull(), // Kunci jadwal 15-30 menit
+  bookingCepatHoldMinutes: integer("booking_cepat_hold_minutes").default(60).notNull(), // Hold tautan Xendit Booking Cepat
   maxSlotQuota: integer("max_slot_quota").default(10).notNull(), // Maks. 10 sesi per slot
   minCounselorWeeklySlots: integer("min_counselor_weekly_slots").default(10).notNull(), // Min 10 sesi / minggu
   noShowTimeoutMinutes: integer("no_show_timeout_minutes").default(30).notNull(), // Batas tunggu hadir 30 menit
@@ -341,6 +342,8 @@ export const bookings = pgTable("bookings", {
   counselorId: uuid("counselor_id").references(() => counselors.id),
   poolDate: date("pool_date"),
   poolSlotIndex: integer("pool_slot_index"),
+  // Asal booking: 'public' (checkout klien) atau 'booking_cepat' (dibuat Admin dari WhatsApp, #30).
+  source: text("source").default("public").notNull(),
   screeningId: uuid("screening_id").references(() => screenings.id),
 
   // Layanan yang dibeli + snapshot tarif pokok aktif SEBELUM voucher (ADR-0010).

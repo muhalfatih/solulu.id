@@ -11,6 +11,7 @@ export interface PlatformSettingsData {
   bookingCutoffHours: number
   rescheduleCutoffHours: number
   paymentHoldMinutes: number
+  bookingCepatHoldMinutes: number
   maxSlotQuota: number
   minCounselorWeeklySlots: number
   noShowTimeoutMinutes: number
@@ -26,6 +27,7 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettingsData = {
   bookingCutoffHours: 4,
   rescheduleCutoffHours: 4,
   paymentHoldMinutes: 15,
+  bookingCepatHoldMinutes: 60,
   maxSlotQuota: 10,
   minCounselorWeeklySlots: 10,
   noShowTimeoutMinutes: 30,
@@ -51,6 +53,7 @@ async function ensureSettingsTable(): Promise<void> {
         booking_cutoff_hours integer NOT NULL DEFAULT 4,
         reschedule_cutoff_hours integer NOT NULL DEFAULT 4,
         payment_hold_minutes integer NOT NULL DEFAULT 15,
+        booking_cepat_hold_minutes integer NOT NULL DEFAULT 60,
         max_slot_quota integer NOT NULL DEFAULT 10,
         min_counselor_weekly_slots integer NOT NULL DEFAULT 10,
         no_show_timeout_minutes integer NOT NULL DEFAULT 30,
@@ -95,6 +98,8 @@ export async function getPlatformSettings(): Promise<PlatformSettingsData> {
         bookingCutoffHours: row.bookingCutoffHours ?? DEFAULT_PLATFORM_SETTINGS.bookingCutoffHours,
         rescheduleCutoffHours: row.rescheduleCutoffHours ?? DEFAULT_PLATFORM_SETTINGS.rescheduleCutoffHours,
         paymentHoldMinutes: row.paymentHoldMinutes ?? DEFAULT_PLATFORM_SETTINGS.paymentHoldMinutes,
+        bookingCepatHoldMinutes:
+          row.bookingCepatHoldMinutes ?? DEFAULT_PLATFORM_SETTINGS.bookingCepatHoldMinutes,
         maxSlotQuota: row.maxSlotQuota ?? DEFAULT_PLATFORM_SETTINGS.maxSlotQuota,
         minCounselorWeeklySlots: row.minCounselorWeeklySlots ?? DEFAULT_PLATFORM_SETTINGS.minCounselorWeeklySlots,
         noShowTimeoutMinutes: row.noShowTimeoutMinutes ?? DEFAULT_PLATFORM_SETTINGS.noShowTimeoutMinutes,
@@ -113,6 +118,7 @@ export async function getPlatformSettings(): Promise<PlatformSettingsData> {
           bookingCutoffHours: DEFAULT_PLATFORM_SETTINGS.bookingCutoffHours,
           rescheduleCutoffHours: DEFAULT_PLATFORM_SETTINGS.rescheduleCutoffHours,
           paymentHoldMinutes: DEFAULT_PLATFORM_SETTINGS.paymentHoldMinutes,
+          bookingCepatHoldMinutes: DEFAULT_PLATFORM_SETTINGS.bookingCepatHoldMinutes,
           maxSlotQuota: DEFAULT_PLATFORM_SETTINGS.maxSlotQuota,
           minCounselorWeeklySlots: DEFAULT_PLATFORM_SETTINGS.minCounselorWeeklySlots,
           noShowTimeoutMinutes: DEFAULT_PLATFORM_SETTINGS.noShowTimeoutMinutes,
@@ -174,6 +180,12 @@ export async function updatePlatformSettings(
   if (data.paymentHoldMinutes !== undefined && (data.paymentHoldMinutes < 5 || data.paymentHoldMinutes > 60)) {
     throw new Error("Durasi kunci jadwal pembayaran harus antara 5 hingga 60 menit.")
   }
+  if (
+    data.bookingCepatHoldMinutes !== undefined &&
+    (data.bookingCepatHoldMinutes < 15 || data.bookingCepatHoldMinutes > 240)
+  ) {
+    throw new Error("Durasi hold Booking Cepat harus antara 15 hingga 240 menit.")
+  }
   if (data.maxSlotQuota !== undefined && (data.maxSlotQuota < 1 || data.maxSlotQuota > 50)) {
     throw new Error("Kuota maksimal per slot harus antara 1 hingga 50 sesi.")
   }
@@ -193,6 +205,7 @@ export async function updatePlatformSettings(
     const newBookingCutoff = data.bookingCutoffHours !== undefined ? data.bookingCutoffHours : current.bookingCutoffHours
     const newRescheduleCutoff = data.rescheduleCutoffHours !== undefined ? data.rescheduleCutoffHours : current.rescheduleCutoffHours
     const newHoldMinutes = data.paymentHoldMinutes !== undefined ? data.paymentHoldMinutes : current.paymentHoldMinutes
+    const newCepatHold = data.bookingCepatHoldMinutes !== undefined ? data.bookingCepatHoldMinutes : current.bookingCepatHoldMinutes
     const newMaxQuota = data.maxSlotQuota !== undefined ? data.maxSlotQuota : current.maxSlotQuota
     const newWeeklyTarget = data.minCounselorWeeklySlots !== undefined ? data.minCounselorWeeklySlots : current.minCounselorWeeklySlots
     const newNoShowTimeout = data.noShowTimeoutMinutes !== undefined ? data.noShowTimeoutMinutes : current.noShowTimeoutMinutes
@@ -210,6 +223,7 @@ export async function updatePlatformSettings(
           bookingCutoffHours: newBookingCutoff,
           rescheduleCutoffHours: newRescheduleCutoff,
           paymentHoldMinutes: newHoldMinutes,
+          bookingCepatHoldMinutes: newCepatHold,
           maxSlotQuota: newMaxQuota,
           minCounselorWeeklySlots: newWeeklyTarget,
           noShowTimeoutMinutes: newNoShowTimeout,
@@ -225,6 +239,8 @@ export async function updatePlatformSettings(
             bookingCutoffHours: newBookingCutoff,
             rescheduleCutoffHours: newRescheduleCutoff,
             paymentHoldMinutes: newHoldMinutes,
+            bookingCepatHoldMinutes: newCepatHold,
+          bookingCepatHoldMinutes: newCepatHold,
             maxSlotQuota: newMaxQuota,
             minCounselorWeeklySlots: newWeeklyTarget,
             noShowTimeoutMinutes: newNoShowTimeout,
@@ -246,6 +262,7 @@ export async function updatePlatformSettings(
           bookingCutoffHours: newBookingCutoff,
           rescheduleCutoffHours: newRescheduleCutoff,
           paymentHoldMinutes: newHoldMinutes,
+          bookingCepatHoldMinutes: newCepatHold,
           maxSlotQuota: newMaxQuota,
           minCounselorWeeklySlots: newWeeklyTarget,
           noShowTimeoutMinutes: newNoShowTimeout,
@@ -262,6 +279,7 @@ export async function updatePlatformSettings(
       bookingCutoffHours: newBookingCutoff,
       rescheduleCutoffHours: newRescheduleCutoff,
       paymentHoldMinutes: newHoldMinutes,
+      bookingCepatHoldMinutes: newCepatHold,
       maxSlotQuota: newMaxQuota,
       minCounselorWeeklySlots: newWeeklyTarget,
       noShowTimeoutMinutes: newNoShowTimeout,

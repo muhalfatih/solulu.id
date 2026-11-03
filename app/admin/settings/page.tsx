@@ -97,6 +97,7 @@ function AdminSettingsContent() {
     bookingCutoffHours: 4,
     rescheduleCutoffHours: 4,
     paymentHoldMinutes: 15,
+    bookingCepatHoldMinutes: 60,
     maxSlotQuota: 10,
     minCounselorWeeklySlots: 10,
     noShowTimeoutMinutes: 30,
@@ -144,6 +145,7 @@ function AdminSettingsContent() {
         bookingCutoffHours: Number(formData.bookingCutoffHours),
         rescheduleCutoffHours: Number(formData.rescheduleCutoffHours),
         paymentHoldMinutes: Number(formData.paymentHoldMinutes),
+        bookingCepatHoldMinutes: Number(formData.bookingCepatHoldMinutes),
         maxSlotQuota: Number(formData.maxSlotQuota),
         minCounselorWeeklySlots: Number(formData.minCounselorWeeklySlots),
         noShowTimeoutMinutes: Number(formData.noShowTimeoutMinutes),
@@ -447,6 +449,36 @@ function AdminSettingsContent() {
                         setFormData({
                           ...formData,
                           paymentHoldMinutes: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className="text-sm font-medium"
+                    />
+                  </Field>
+
+                  {/* 3b. Hold Booking Cepat */}
+                  <Field>
+                    <div className="flex items-center justify-between">
+                      <FieldLabel htmlFor="bookingCepatHoldMinutes" className="text-xs font-semibold">
+                        Hold Tautan Booking Cepat (Menit)
+                      </FieldLabel>
+                      <Badge variant="secondary" className="text-[10px] h-4">
+                        Default 60
+                      </Badge>
+                    </div>
+                    <FieldDescription className="text-xs text-muted-foreground">
+                      Lama slot ditahan untuk tautan Xendit yang dikirim Admin lewat WhatsApp sebelum otomatis dilepas.
+                    </FieldDescription>
+                    <Input
+                      id="bookingCepatHoldMinutes"
+                      type="number"
+                      min={15}
+                      max={240}
+                      disabled={isLoading || isSaving || !isSuperadmin}
+                      value={formData.bookingCepatHoldMinutes}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          bookingCepatHoldMinutes: parseInt(e.target.value) || 0,
                         })
                       }
                       className="text-sm font-medium"

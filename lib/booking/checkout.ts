@@ -28,6 +28,7 @@ import {
   evaluateVoucherEligibility,
   type VoucherRecord,
 } from "@/lib/booking/voucher"
+import { holdExpiresAt } from "@/lib/booking-cycle"
 import {
   computeHoldExpiry,
   generateSessionAccessToken,
@@ -91,7 +92,37 @@ export interface BookingContextData {
   } | null
 }
 
+/** Eksekutor transaksi (tx Drizzle atau pengganti uji) yang diteruskan ke hook `inTransaction`. */
+export type CheckoutTx = Pick<typeof db, "insert" | "update">
+
+export interface CheckoutCreatedContext {
+  bookingId: string
+  transactionId: string
+  scheduleId: string
+  counselorId: string
+  serviceId: string
+  accessToken: string
+  referenceNumber: string
+  grossAmount: number
+  netAmount: number
+  reservedUntil: Date
+}
+
+/**
+ * Opsi jalur checkout. `source: "booking_cepat"` (Admin, dari WhatsApp #30) memakai jalur yang sama
+ * dengan klien, kecuali: hold Booking Cepat (default 60 menit), tanpa batas anti-hoarding dan lead time,
+ * dan booking diberi `source = booking_cepat`. `inTransaction` berjalan di transaksi yang sama dengan
+ * pembuatan booking sehingga Jejak Audit dan pelunasan oleh Admin commit/rollback bersama.
+ */
+export interface CheckoutOptions {
+  source?: "public" | "booking_cepat"
+  holdMinutes?: number
+  inTransaction?: (tx: CheckoutTx, ctx: CheckoutCreatedContext) => Promise<void>
+}
+
 export interface BookingDependencies {
+  /** Pengganti `tx` untuk hook `inTransaction` pada jalur DI `reserveSlotAndCreateBooking`. */
+  executor?: CheckoutTx
   getCounselor?: (counselorId: string) => Promise<any>
   getSchedule?: (scheduleId: string) => Promise<any>
   getServices?: () => Promise<ServiceLike[]>
@@ -313,7 +344,11 @@ export async function executeGetBookingContext(
       }
     }
 
-    const leadTime = deps?.leadTimeMinutes ?? MIN_BOOKING_LEAD_TIME_MINUTES
+    if (schedule.counselorId && schedule.counselorId !== data.counselorId) {
+      return { success: false, error: "Slot jadwal tidak dimiliki konselor yang dipilih." }
+    }
+
+    const leadTime = deps?.leadTimeMinutes ?? (isCepat ? 0 : MIN_BOOKING_LEAD_TIME_MINUTES)
     const bookableCheck = isSlotBookable(schedule.date, schedule.startTime, now, leadTime)
     if (!bookableCheck.bookable) {
       return {
@@ -416,7 +451,8 @@ export async function executeGetBookingContext(
  */
 export async function executeCreateGuestBooking(
   input: CreateGuestBookingInput,
-  deps?: BookingDependencies
+  deps?: BookingDependencies,
+  options: CheckoutOptions = {}
 ): Promise<ActionResponse<{
   bookingId: string
   accessToken: string
@@ -438,6 +474,7 @@ export async function executeCreateGuestBooking(
 
     const data = parseResult.data
     const now = deps?.now ? deps.now() : new Date()
+    const isCepat = options.source === "booking_cepat"
 
     // Fail closed before reserving anything: no Xendit key means no payable invoice.
     if (data.paymentProvider === "xendit" && !deps?.createInvoice) {
@@ -499,8 +536,10 @@ export async function executeCreateGuestBooking(
       }
     }
 
-    // Anti-hoarding check: Max 1 active unexpired reservation per patient
-    if (deps?.checkExistingPendingHold) {
+    // Anti-hoarding check: Max 1 active unexpired reservation per patient (tidak berlaku untuk Booking Cepat)
+    if (isCepat) {
+      // Admin boleh menahan beberapa slot untuk klien yang sama.
+    } else if (deps?.checkExistingPendingHold) {
       const hasHold = await deps.checkExistingPendingHold(data.patientEmail, data.patientPhone)
       if (hasHold) {
         return {
@@ -663,7 +702,9 @@ export async function executeCreateGuestBooking(
 
     const accessToken = generateSessionAccessToken()
     const referenceNumber = generateReferenceNumber(now)
-    const reservedUntil = computeHoldExpiry(now)
+    const reservedUntil = isCepat
+      ? holdExpiresAt(now, "booking_cepat", options.holdMinutes)
+      : computeHoldExpiry(now)
     const appUrl = getAppBaseUrl()
 
     let bookingId: string
@@ -693,6 +734,20 @@ export async function executeCreateGuestBooking(
       })
       bookingId = res.bookingId
       transactionId = res.transactionId
+      if (options.inTransaction && deps.executor) {
+        await options.inTransaction(deps.executor, {
+          bookingId,
+          transactionId,
+          scheduleId: schedule.id,
+          counselorId: counselor.id,
+          serviceId: service.id,
+          accessToken,
+          referenceNumber,
+          grossAmount,
+          netAmount,
+          reservedUntil,
+        })
+      }
     } else {
       const txResult = await db.transaction(async (tx) => {
         await tx
@@ -726,6 +781,7 @@ export async function executeCreateGuestBooking(
             serviceId: service.id,
             basePriceSnapshot: String(grossAmount),
             status: "pending_payment",
+            source: isCepat ? "booking_cepat" : "public",
           })
           .returning({ id: bookings.id })
 
@@ -743,6 +799,21 @@ export async function executeCreateGuestBooking(
             status: "PENDING",
           })
           .returning({ id: transactions.id })
+
+        if (options.inTransaction) {
+          await options.inTransaction(tx, {
+            bookingId: newBooking.id,
+            transactionId: newTx.id,
+            scheduleId: schedule.id,
+            counselorId: counselor.id,
+            serviceId: service.id,
+            accessToken,
+            referenceNumber,
+            grossAmount,
+            netAmount,
+            reservedUntil,
+          })
+        }
 
         return {
           bookingId: newBooking.id,
@@ -765,7 +836,9 @@ export async function executeCreateGuestBooking(
         amount: netAmount,
         payerEmail: data.patientEmail,
         description: `Konseling Solulu: ${counselor.fullName} (${schedule.date} ${timeFormatted})`,
-        invoiceDuration: 900,
+        invoiceDuration: isCepat
+          ? Math.round((reservedUntil.getTime() - now.getTime()) / 1000)
+          : 900,
         successRedirectUrl: `${appUrl}/booking/success?token=${accessToken}`,
         failureRedirectUrl: `${appUrl}/booking?counselorId=${counselor.id}&scheduleId=${schedule.id}&error=payment_cancelled`,
       })

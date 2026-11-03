@@ -67,7 +67,7 @@ export const SHELL_NAV: Record<PortalKey, ShellNavGroup[]> = {
       title: "Operasional",
       items: [
         { title: "Booking", url: "/admin/bookings", icon: CalendarCheck },
-        { title: "Booking Cepat", url: "/admin/booking-cepat", icon: Zap, ready: false, ticket: 30 },
+        { title: "Booking Cepat", url: "/admin/booking-cepat", icon: Zap },
         { title: "Klien Tersedia", url: "/admin/klien-tersedia", icon: UserRoundSearch },
         { title: "Jadwal & Kalender", url: "/admin/sessions", icon: CalendarClock },
         { title: "Verifikasi Transfer", url: "/admin/manual-payments", icon: ReceiptText },

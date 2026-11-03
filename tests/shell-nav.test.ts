@@ -37,7 +37,6 @@ describe("Ticket 22: shared portal shell navigation", () => {
   it("hides items whose page does not exist yet", () => {
     const titles = flat("admin", "superadmin").map((i) => i.title)
     for (const planned of [
-      "Booking Cepat",
       "Voucher",
     ]) {
       expect(titles).not.toContain(planned)
@@ -45,6 +44,7 @@ describe("Ticket 22: shared portal shell navigation", () => {
     expect(titles).toContain("Layanan & Tarif")
     expect(titles).toContain("Booking")
     expect(titles).toContain("Klien Tersedia")
+    expect(titles).toContain("Booking Cepat")
     expect(titles).toContain("Payroll")
     expect(titles).toContain("Laporan Keuangan")
     expect(titles).toContain("Verifikasi Transfer")
