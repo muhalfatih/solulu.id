@@ -54,8 +54,8 @@ export default function GalleryAdminPage() {
           date: new Date(r.createdAt).toLocaleDateString("id-ID", {
             day: "2-digit",
             month: "short",
-            year: "numeric",
-          }),
+            year: "numeric", timeZone: "Asia/Jakarta"
+}),
           isCensoredAndConsented: r.isCensoredAndConsented ?? true,
           uploadedBy: "Admin",
         }))

@@ -207,8 +207,8 @@ export default function DistilledCounselorsPage() {
             appliedAt: new Date(app.createdAt).toLocaleDateString("id-ID", {
               day: "numeric",
               month: "short",
-              year: "numeric",
-            }),
+              year: "numeric", timeZone: "Asia/Jakarta"
+}),
             status: app.status as any,
             education: app.counselorType === "psychologist" ? "S2 Profesi Psikologi" : "S1 Psikologi",
             bio: app.bio || "",

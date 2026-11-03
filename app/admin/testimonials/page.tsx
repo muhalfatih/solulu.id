@@ -58,8 +58,8 @@ export default function TestimonialsAdminPage() {
             ? new Date(r.createdAt).toLocaleDateString("id-ID", {
                 day: "2-digit",
                 month: "short",
-                year: "numeric",
-              })
+                year: "numeric", timeZone: "Asia/Jakarta"
+})
             : "Baru saja",
           isActive: r.isActive,
           isFeatured: r.isFeatured ?? r.isActive,

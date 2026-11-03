@@ -391,8 +391,8 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
                           <span className="text-[10px] text-muted-foreground">
                             {new Date(item.createdAt).toLocaleDateString("id-ID", {
                               day: "numeric",
-                              month: "short",
-                            })}
+                              month: "short", timeZone: "Asia/Jakarta"
+})}
                           </span>
                         </div>
                       </TableCell>

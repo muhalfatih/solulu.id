@@ -241,8 +241,8 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
   const registeredDateFormatted = new Date(counselor.createdAt).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
-    year: "numeric",
-  })
+    year: "numeric", timeZone: "Asia/Jakarta"
+})
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-20">

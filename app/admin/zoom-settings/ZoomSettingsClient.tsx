@@ -1155,7 +1155,7 @@ export function ZoomSettingsClient({
                       <div className="flex items-center gap-1.5 font-sans">
                         <span className="text-muted-foreground text-xs">
                           {acc.tokenExpiresAt
-                            ? `Kedaluwarsa: ${new Date(acc.tokenExpiresAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB`
+                            ? `Kedaluwarsa: ${new Date(acc.tokenExpiresAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB`
                             : "Auto-refresh S2S Aktif"}
                         </span>
                         <Badge variant={acc.isActive ? "default" : "secondary"} className="text-[10px] h-4">

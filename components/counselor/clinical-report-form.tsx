@@ -102,7 +102,7 @@ export function ClinicalReportForm({
   const [manualStartTime, setManualStartTime] = React.useState<string>(() => {
     if (initialData.timerStartedAt) {
       return new Date(initialData.timerStartedAt)
-        .toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })
+        .toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta" })
         .replace(".", ":")
     }
     return defaultTimes.start
@@ -111,7 +111,7 @@ export function ClinicalReportForm({
   const [manualEndTime, setManualEndTime] = React.useState<string>(() => {
     if (initialData.timerStoppedAt) {
       return new Date(initialData.timerStoppedAt)
-        .toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })
+        .toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta" })
         .replace(".", ":")
     }
     return defaultTimes.end
@@ -514,8 +514,8 @@ export function ClinicalReportForm({
                           ? new Date(initialData.timerStartedAt).toLocaleTimeString("id-ID", {
                               hour: "2-digit",
                               minute: "2-digit",
-                              hour12: false,
-                            }) + " WIB"
+                              hour12: false, timeZone: "Asia/Jakarta"
+}) + " WIB"
                           : "-"}
                       </span>
                     </div>
@@ -526,8 +526,8 @@ export function ClinicalReportForm({
                           ? new Date(initialData.timerStoppedAt).toLocaleTimeString("id-ID", {
                               hour: "2-digit",
                               minute: "2-digit",
-                              hour12: false,
-                            }) + " WIB"
+                              hour12: false, timeZone: "Asia/Jakarta"
+}) + " WIB"
                           : "-"}
                       </span>
                     </div>
