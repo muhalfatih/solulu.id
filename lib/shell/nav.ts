@@ -105,7 +105,7 @@ export const SHELL_NAV: Record<PortalKey, ShellNavGroup[]> = {
         { title: "Template WA", url: "/admin/template-wa", icon: MessageSquareText, ready: false, ticket: 31 },
         { title: "Pengaturan", url: "/admin/settings", icon: Sliders },
         { title: "Akun Zoom", url: "/admin/zoom-settings", icon: Video, aliases: ["/admin/zoom"] },
-        { title: "Jejak Audit", url: "/admin/audit", icon: History, ready: false, ticket: 24 },
+        { title: "Jejak Audit", url: "/admin/audit", icon: History, roles: SUPERADMIN },
       ],
     },
   ],
