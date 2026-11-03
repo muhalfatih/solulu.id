@@ -82,7 +82,7 @@ export function BookingCepatClient({
         getCounselorAvailableSlotsAction(counselorId),
       ])
       if (cancelled) return
-      if (svc.success) setServices(svc.data.map((s) => ({ id: s.id, label: s.name })))
+      if (svc.success) setServices(svc.data.map((s) => ({ id: s.serviceId, label: s.name })))
       else toast.error(svc.error ?? "Gagal memuat Layanan.")
       if (slt.success) {
         setSlots(

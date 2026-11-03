@@ -344,11 +344,7 @@ export async function executeGetBookingContext(
       }
     }
 
-    if (schedule.counselorId && schedule.counselorId !== data.counselorId) {
-      return { success: false, error: "Slot jadwal tidak dimiliki konselor yang dipilih." }
-    }
-
-    const leadTime = deps?.leadTimeMinutes ?? (isCepat ? 0 : MIN_BOOKING_LEAD_TIME_MINUTES)
+    const leadTime = deps?.leadTimeMinutes ?? MIN_BOOKING_LEAD_TIME_MINUTES
     const bookableCheck = isSlotBookable(schedule.date, schedule.startTime, now, leadTime)
     if (!bookableCheck.bookable) {
       return {
@@ -506,7 +502,11 @@ export async function executeCreateGuestBooking(
       }
     }
 
-    const leadTime = deps?.leadTimeMinutes ?? MIN_BOOKING_LEAD_TIME_MINUTES
+    if (schedule.counselorId && schedule.counselorId !== data.counselorId) {
+      return { success: false, error: "Slot jadwal tidak dimiliki konselor yang dipilih." }
+    }
+
+    const leadTime = deps?.leadTimeMinutes ?? (isCepat ? 0 : MIN_BOOKING_LEAD_TIME_MINUTES)
     const bookableCheck = isSlotBookable(schedule.date, schedule.startTime, now, leadTime)
     if (!bookableCheck.bookable) {
       return {

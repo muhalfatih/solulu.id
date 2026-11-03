@@ -78,7 +78,7 @@ describe("Ticket 06: Client Session Room, Dual Payments & WhatsApp Report Gate",
       expect(res.success).toBe(true)
       expect(res.data?.booking.accessToken).toBe("tok_nanoid32_client_session_room_001")
       expect(res.data?.booking.bookingCode).toBe("SL-4821")
-      expect(res.data?.counselor.fullName).toBe("Dimas Pratama, S.Psi.")
+      expect(res.data?.counselor?.fullName).toBe("Dimas Pratama, S.Psi.")
       expect(res.data?.schedule.timeRange).toBe("14:00 – 16:00 WIB")
     })
 

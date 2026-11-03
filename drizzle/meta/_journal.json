@@ -99,6 +99,13 @@
       "when": 1793680908430,
       "tag": "0013_booking_reschedules",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793692927158,
+      "tag": "0014_booking_cepat",
+      "breakpoints": true
     }
   ]
 }

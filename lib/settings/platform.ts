@@ -240,7 +240,6 @@ export async function updatePlatformSettings(
             rescheduleCutoffHours: newRescheduleCutoff,
             paymentHoldMinutes: newHoldMinutes,
             bookingCepatHoldMinutes: newCepatHold,
-          bookingCepatHoldMinutes: newCepatHold,
             maxSlotQuota: newMaxQuota,
             minCounselorWeeklySlots: newWeeklyTarget,
             noShowTimeoutMinutes: newNoShowTimeout,

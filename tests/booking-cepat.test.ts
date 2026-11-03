@@ -106,7 +106,7 @@ describe("Ticket 30: Booking Cepat", () => {
   it("cara Xendit: hold 60 menit, tautan bayar, URL WhatsApp, audit, belum difulfill", async () => {
     const { deps, audits, reserved, fulfill } = setup()
     const res = await createBookingCepat({ ...client, payment: { way: "xendit" } }, deps, admin)
-    expect(res.success).toBe(true)
+    expect(res.success, JSON.stringify(res)).toBe(true)
     if (!res.success) return
     expect(res.data.paymentUrl).toBe("https://checkout.xendit.test/inv-1")
     expect(res.data.waUrl).toMatch(/^https:\/\/wa\.me\/628123456789\?text=/)
@@ -131,7 +131,7 @@ describe("Ticket 30: Booking Cepat", () => {
       deps,
       admin
     )
-    expect(res.success).toBe(true)
+    expect(res.success, JSON.stringify(res)).toBe(true)
     if (!res.success) return
     expect(res.data.fulfilled).toBe(true)
     expect(fulfill).toHaveBeenCalledWith("b-1", { source: "manual_bank" })
@@ -162,7 +162,7 @@ describe("Ticket 30: Booking Cepat", () => {
       deps,
       admin
     )
-    expect(res.success).toBe(true)
+    expect(res.success, JSON.stringify(res)).toBe(true)
     if (!res.success) return
     expect(res.data.netAmount).toBe(0)
     expect(fulfill).toHaveBeenCalledWith("b-1", { source: "admin_bypass" })
