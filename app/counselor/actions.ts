@@ -646,7 +646,7 @@ export async function getCounselorProfileAction(deps?: {
       specializations: (c.specializations as string[]) || [],
       avatarR2Url: c.avatarR2Url,
       isActive: c.isActive,
-      email: counselorEmail || "-",
+      email: counselorEmail || undefined,
     }
 
     return { success: true, data: profile }
