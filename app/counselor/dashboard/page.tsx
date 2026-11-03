@@ -25,7 +25,7 @@ export default async function CounselorDashboardPage() {
       initialSessions={sessions}
       summarySlot={
         <>
-          <HonorSummary summary={honor} error={honorRes.success ? null : honorRes.error} />
+          <HonorSummary summary={honor} error={honorRes.success ? null : (honorRes.error ?? null)} />
           <PoolSummary items={poolRes.success ? poolRes.data : []} error={poolRes.success ? null : poolRes.error} />
         </>
       }
