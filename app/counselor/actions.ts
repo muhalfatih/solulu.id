@@ -14,7 +14,7 @@ import {
 import { formatTimeRange } from "@/lib/schedules/concurrency"
 import { calculateExtendFee } from "@/lib/counselor/timer"
 import { applyOvertimeCorrection } from "@/lib/session/overtime-store"
-import type { OvertimeCorrectionPlan } from "@/lib/session/overtime"
+import { currentOvertimeBlocks, type OvertimeCorrectionPlan } from "@/lib/session/overtime"
 import { getAuthenticatedCounselor, resolveCounselorId } from "@/lib/counselor/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
 import {
@@ -300,6 +300,10 @@ export async function getSessionReportAction(
           booking: bookings,
           schedule: schedules,
           screening: screenings,
+          service: {
+            overtimeRatePer30Min: services.overtimeRatePer30Min,
+            overtimePayoutPercent: services.overtimePayoutPercent,
+          },
           report: {
             id: sessionReports.id,
             bookingId: sessionReports.bookingId,
@@ -320,6 +324,7 @@ export async function getSessionReportAction(
         .from(bookings)
         .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
         .leftJoin(screenings, eq(bookings.screeningId, screenings.id))
+        .leftJoin(services, eq(bookings.serviceId, services.id))
         .leftJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
         .where(eq(bookings.id, bookingId))
         .limit(1),
@@ -330,7 +335,7 @@ export async function getSessionReportAction(
       return { success: false, error: "Sesi konseling tidak ditemukan." }
     }
 
-    const { booking, schedule, screening, report } = rows[0]
+    const { booking, schedule, screening, report, service } = rows[0]
 
     if (!isAdminOrSuper && booking.counselorId !== counselorId) {
       return { success: false, error: "Anda hanya dapat melihat catatan sesi Anda sendiri (RLS)." }
@@ -353,6 +358,14 @@ export async function getSessionReportAction(
       timerStartedAt: report?.timerStartedAt ? report.timerStartedAt.toISOString() : null,
       timerStoppedAt: report?.timerStoppedAt ? report.timerStoppedAt.toISOString() : null,
       createdAt: report ? report.createdAt.toISOString() : new Date().toISOString(),
+      overtime: service
+        ? {
+            blocks: currentOvertimeBlocks(booking),
+            ratePer30Min: Number(service.overtimeRatePer30Min),
+            payoutPercent: service.overtimePayoutPercent,
+            paymentStatus: booking.extensionPaymentStatus || "NONE",
+          }
+        : undefined,
       booking: {
         id: booking.id,
         patientName: booking.patientName,

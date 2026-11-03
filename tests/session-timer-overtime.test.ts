@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, it, expect, vi } from "vitest"
 import { submitSessionReportAction, recordSessionExtensionAction } from "@/app/counselor/actions"
 import type { CounselorAuthContext } from "@/lib/counselor/types"
@@ -121,6 +123,20 @@ describe("Koreksi blok di Laporan Sesi", () => {
     expect(sessionReportSchema.safeParse({ ...base, overtimeBlocks: 2 }).success).toBe(false)
     expect(sessionReportSchema.safeParse({ ...base, overtimeBlocks: -1 }).success).toBe(false)
     expect(sessionReportSchema.safeParse(base).success).toBe(true)
+  })
+})
+
+describe("Timer Melayang: aksesibilitas chime", () => {
+  const source = readFileSync(join(process.cwd(), "components/counselor/FloatingTimer.tsx"), "utf8")
+
+  it("chime dapat dibisukan lewat tombol toggle yang terbaca screen reader", () => {
+    expect(source).toContain('id="btn-timer-chime-mute"')
+    expect(source).toContain("aria-pressed={chimeMuted}")
+  })
+
+  it("jam yang berdetak tidak berada di region live; hanya pengumuman menit 80 yang diumumkan", () => {
+    expect(source).not.toMatch(/<aside[^>]*aria-live/)
+    expect(source).toContain('role="status"')
   })
 })
 

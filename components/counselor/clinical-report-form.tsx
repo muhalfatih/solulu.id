@@ -38,6 +38,9 @@ import {
   getAttachmentDownloadUrlAction,
 } from "@/app/counselor/actions"
 import type { SessionReportDetailView } from "@/lib/counselor/types"
+import { MAX_OVERTIME_BLOCKS } from "@/lib/booking-cycle"
+import { overtimeCharge, overtimeHonor } from "@/lib/services/pricing"
+import { formatRupiah } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 
 export interface ClinicalReportFormProps {
@@ -125,6 +128,15 @@ export function ClinicalReportForm({
     if (diff <= 0) diff += 24 * 60
     return diff
   }, [hasRecordedTimer, initialData.actualDurationMinutes, manualStartTime, manualEndTime])
+
+  const overtime = initialData.overtime
+  const [overtimeBlockCount, setOvertimeBlockCount] = React.useState<number>(overtime?.blocks ?? 0)
+  const overtimeLocked =
+    overtime?.paymentStatus === "PENDING" || overtime?.paymentStatus === "PAID"
+  const overtimeBill = overtime ? overtimeCharge(overtimeBlockCount, overtime.ratePer30Min) : 0
+  const overtimeCounselorHonor = overtime
+    ? overtimeHonor(overtimeBlockCount, overtime.ratePer30Min, overtime.payoutPercent)
+    : 0
 
   const [uploading, setUploading] = React.useState(false)
   const [uploadError, setUploadError] = React.useState<string | null>(null)
@@ -249,6 +261,7 @@ export function ClinicalReportForm({
         actualDurationMinutes: calculatedDurationMinutes,
         timerStartedAt: submitTimerStartedAt || undefined,
         timerStoppedAt: submitTimerStoppedAt || undefined,
+        overtimeBlocks: overtime ? overtimeBlockCount : undefined,
       })
 
       if (res.success && res.data) {
@@ -582,6 +595,77 @@ export function ClinicalReportForm({
                   {!isDurationValid && (
                     <span className="text-[11px] text-destructive font-medium">
                       Durasi sesi tidak valid (minimal 15 menit, maksimal 180 menit).
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Perpanjangan Sesi: dicatat otomatis oleh Timer Melayang, dapat dikoreksi di sini */}
+              {overtime && (
+                <div
+                  className="flex flex-col gap-3 p-4 rounded-xl border border-border/80 bg-muted/20"
+                  data-testid="overtime-correction"
+                >
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-xs font-semibold text-foreground">
+                      Perpanjangan Sesi (blok 30 menit)
+                    </span>
+                    <Badge variant="outline" className="text-[11px] font-medium">
+                      {overtime.paymentStatus === "PAID"
+                        ? "Tagihan Lunas"
+                        : overtime.paymentStatus === "PENDING"
+                          ? "Menunggu Verifikasi Pembayaran"
+                          : "Belum Ditagih"}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Blok dicatat otomatis begitu sesi melewati menit 95. Koreksi bila hitungan timer tidak sesuai
+                    (maksimal {MAX_OVERTIME_BLOCKS} blok, batas sesi 120 menit). Tagihan klien memakai tarif overtime Layanan.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <Field>
+                      <FieldLabel htmlFor="overtime-blocks" className="text-xs font-medium">
+                        Jumlah Blok
+                      </FieldLabel>
+                      <Input
+                        id="overtime-blocks"
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={MAX_OVERTIME_BLOCKS}
+                        step={1}
+                        value={overtimeBlockCount}
+                        disabled={overtimeLocked}
+                        onChange={(e) => {
+                          const n = Math.trunc(Number(e.target.value))
+                          setOvertimeBlockCount(
+                            Number.isFinite(n) ? Math.min(Math.max(n, 0), MAX_OVERTIME_BLOCKS) : 0
+                          )
+                        }}
+                        className="h-9 font-mono text-xs"
+                      />
+                    </Field>
+                    <div className="flex flex-col p-2.5 rounded-lg bg-background border border-border/70">
+                      <span className="text-[11px] text-muted-foreground">Tagihan ke Klien</span>
+                      <span className="text-sm font-bold font-mono" data-testid="overtime-bill">
+                        {formatRupiah(overtimeBill)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col p-2.5 rounded-lg bg-background border border-border/70">
+                      <span className="text-[11px] text-muted-foreground">Honor Overtime Anda</span>
+                      <span className="text-sm font-bold font-mono" data-testid="overtime-honor">
+                        {formatRupiah(overtimeCounselorHonor)}
+                      </span>
+                    </div>
+                  </div>
+                  {overtimeLocked && (
+                    <span className="text-[11px] text-muted-foreground">
+                      Tagihan sudah diproses klien sehingga blok tidak dapat diubah. Hubungi Admin bila ada kekeliruan.
+                    </span>
+                  )}
+                  {overtimeBill > 0 && !overtimeLocked && (
+                    <span className="text-[11px] text-muted-foreground">
+                      Laporan klien terkunci sampai tagihan perpanjangan lunas.
                     </span>
                   )}
                 </div>

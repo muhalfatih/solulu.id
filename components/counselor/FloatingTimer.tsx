@@ -20,6 +20,8 @@ import {
   Sparkles,
   Loader2,
   UserCheck,
+  Volume2,
+  VolumeX,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -32,8 +34,14 @@ import {
   calculateExtendFee,
   formatTimerDisplay,
   getTimerProgressPercentage,
+  advanceTimer,
+  crossesChimeMinute,
+  shouldAutoRecordOvertime,
+  CHIME_MESSAGE,
+  HARD_STOP_SECONDS,
   type TimerStageInfo,
 } from "@/lib/counselor/timer"
+import { playChime, readChimeMuted, writeChimeMuted } from "@/lib/counselor/chime"
 import {
   recordSessionExtensionAction,
   recordSessionTimerAction,
@@ -65,6 +73,26 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
   const [isClientAdmitted, setIsClientAdmitted] = React.useState<boolean>(Boolean(session.operatorAdmittedAt))
   const [isAdmittingClient, setIsAdmittingClient] = React.useState<boolean>(false)
   const autoAdmittedOnceRef = React.useRef<boolean>(false)
+
+  // Chime menit 80: dapat dibisukan; pengumuman screen reader hanya sekali lewat region status.
+  const [chimeMuted, setChimeMuted] = React.useState<boolean>(false)
+  const [srAnnouncement, setSrAnnouncement] = React.useState<string>("")
+  const previousElapsedRef = React.useRef<number>(0)
+  const autoRecordStartedRef = React.useRef<boolean>(false)
+  const chimeMutedRef = React.useRef<boolean>(false)
+
+  React.useEffect(() => {
+    const muted = readChimeMuted()
+    chimeMutedRef.current = muted
+    setChimeMuted(muted)
+  }, [])
+
+  const handleToggleChimeMuted = () => {
+    const next = !chimeMuted
+    chimeMutedRef.current = next
+    setChimeMuted(next)
+    writeChimeMuted(next)
+  }
 
   // Track stages for notification triggers
   const lastTriggeredStageRef = React.useRef<string>("normal")
@@ -130,14 +158,8 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
 
     if (isRunning) {
       interval = setInterval(() => {
-        setElapsedSeconds((prev) => {
-          // Hard stop at 120 minutes (7200 seconds)
-          if (prev >= 120 * 60) {
-            setIsRunning(false)
-            return 120 * 60
-          }
-          return prev + 1
-        })
+        // Berhenti otomatis di menit 120 (lihat efek hard stop di bawah).
+        setElapsedSeconds((prev) => advanceTimer(prev).elapsedSeconds)
       }, 1000)
     }
 
@@ -145,6 +167,20 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
       if (interval) clearInterval(interval)
     }
   }, [isRunning])
+
+  // 1b. Chime menit 80 (sekali) dan hard stop menit 120
+  React.useEffect(() => {
+    const previous = previousElapsedRef.current
+    previousElapsedRef.current = elapsedSeconds
+
+    if (crossesChimeMinute(previous, elapsedSeconds)) {
+      setSrAnnouncement(CHIME_MESSAGE)
+      if (!chimeMutedRef.current) playChime()
+    }
+    if (elapsedSeconds >= HARD_STOP_SECONDS) {
+      setIsRunning(false)
+    }
+  }, [elapsedSeconds])
 
   // 2. Stage Transition Alert & Toast Triggers
   React.useEffect(() => {
@@ -176,7 +212,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
           {
             id: "timer-alert-96m",
             duration: 8000,
-            description: "Durasi melebihi 95 menit. Klik 'Catat Perpanjangan' untuk memperbarui billing database.",
+            description: "Durasi melebihi 95 menit. Perpanjangan dicatat otomatis; koreksi jumlah blok di Laporan Sesi bila perlu.",
           }
         )
       }
@@ -206,8 +242,8 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
     }
   }
 
-  // Record Extension in DB
-  const handleRecordExtension = async () => {
+  // Record Extension in DB (otomatis di menit 96; tombol hanya fallback bila gagal)
+  const handleRecordExtension = React.useCallback(async () => {
     setIsSavingExtension(true)
     try {
       const res = await recordSessionExtensionAction(session.id)
@@ -227,7 +263,14 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
     } finally {
       setIsSavingExtension(false)
     }
-  }
+  }, [session.id])
+
+  React.useEffect(() => {
+    if (autoRecordStartedRef.current) return
+    if (!shouldAutoRecordOvertime(elapsedMinutes, extensionRecorded)) return
+    autoRecordStartedRef.current = true
+    void handleRecordExtension()
+  }, [elapsedMinutes, extensionRecorded, handleRecordExtension])
 
   // Record timer duration when ending
   const handleEndSession = async () => {
@@ -257,6 +300,9 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
           currentStage.glowClassName
         )}
       >
+        <p role="status" aria-live="polite" className="sr-only">
+          {srAnnouncement}
+        </p>
         <div className="flex items-center gap-2">
           <span
             className={cn(
@@ -311,13 +357,16 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
       id="floating-timer-widget"
       role="region"
       aria-label="Floating Timer Konseling"
-      aria-live="polite"
       className={cn(
         "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[410px] rounded-2xl border shadow-2xl backdrop-blur-md transition-all duration-300 animate-in fade-in zoom-in-95",
         currentStage.containerClassName,
         currentStage.glowClassName
       )}
     >
+      {/* Satu-satunya region live: hanya berisi pengumuman menit 80, bukan detik berjalan. */}
+      <p role="status" aria-live="polite" className="sr-only">
+        {srAnnouncement}
+      </p>
       <Card className="border-0 bg-background/95 shadow-none overflow-hidden">
         {/* Header Bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/70 bg-muted/40">
@@ -345,6 +394,21 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
           </div>
 
           <div className="flex items-center gap-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-7 rounded-lg text-muted-foreground hover:text-foreground"
+              onClick={handleToggleChimeMuted}
+              aria-pressed={chimeMuted}
+              aria-label={chimeMuted ? "Aktifkan chime menit 80" : "Bisukan chime menit 80"}
+              id="btn-timer-chime-mute"
+            >
+              {chimeMuted ? (
+                <VolumeX className="size-3.5" aria-hidden="true" />
+              ) : (
+                <Volume2 className="size-3.5" aria-hidden="true" />
+              )}
+            </Button>
             <Button
               size="icon"
               variant="ghost"
@@ -402,6 +466,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
             <div className="w-full flex flex-col gap-1 pt-2">
               <div className="flex items-center justify-between text-[10px] font-medium text-muted-foreground">
                 <span>0m</span>
+                <span className="text-muted-foreground">80m (Chime)</span>
                 <span className="text-amber-700 dark:text-amber-400">85m (Warning)</span>
                 <span className="text-sky-700 dark:text-sky-400">90-95m (Grace)</span>
                 <span className="text-orange-700 dark:text-orange-400">96m (Extend)</span>
@@ -541,7 +606,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
                       : "border-orange-500/40 bg-orange-500/20 text-orange-800 dark:text-orange-200"
                   )}
                 >
-                  {extensionRecorded ? "Tercatat di DB" : "Perlu Dicatat"}
+                  {extensionRecorded ? "Tercatat Otomatis" : "Belum Tercatat"}
                 </Badge>
               </div>
 
@@ -576,7 +641,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
                   ) : (
                     <>
                       <CreditCard className="size-3.5" data-icon="inline-start" />
-                      <span>Catat Perpanjangan ke Database</span>
+                      <span>Coba Catat Ulang Perpanjangan</span>
                     </>
                   )}
                 </Button>
