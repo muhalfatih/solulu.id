@@ -142,21 +142,27 @@ export type HoldSource = "public" | "booking_cepat"
 export const SLOT_HOLD_MINUTES = 17
 export const BOOKING_CEPAT_HOLD_MINUTES = 60
 
-export function holdMinutes(source: HoldSource = "public"): number {
-  return source === "booking_cepat" ? BOOKING_CEPAT_HOLD_MINUTES : SLOT_HOLD_MINUTES
+/**
+ * `minutesOverride` is the Booking Cepat hold from Platform Settings (Superadmin);
+ * it is ignored for public holds, which are fixed by the Xendit invoice duration.
+ */
+export function holdMinutes(source: HoldSource = "public", minutesOverride?: number): number {
+  if (source !== "booking_cepat") return SLOT_HOLD_MINUTES
+  return minutesOverride && minutesOverride > 0 ? minutesOverride : BOOKING_CEPAT_HOLD_MINUTES
 }
 
-export function holdExpiresAt(startedAt: Date, source: HoldSource = "public"): Date {
-  return new Date(startedAt.getTime() + holdMinutes(source) * 60_000)
+export function holdExpiresAt(startedAt: Date, source: HoldSource = "public", minutesOverride?: number): Date {
+  return new Date(startedAt.getTime() + holdMinutes(source, minutesOverride) * 60_000)
 }
 
 export function isHoldExpired(
   startedAt: Date | string,
   source: HoldSource = "public",
-  now: Date = new Date()
+  now: Date = new Date(),
+  minutesOverride?: number
 ): boolean {
   const start = typeof startedAt === "string" ? new Date(startedAt) : startedAt
-  return now.getTime() > holdExpiresAt(start, source).getTime()
+  return now.getTime() > holdExpiresAt(start, source, minutesOverride).getTime()
 }
 
 // ---------------------------------------------------------------------------

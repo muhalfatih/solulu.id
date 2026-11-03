@@ -261,6 +261,9 @@ export async function executeSlotCleanupAndArchiving(
       vouchersRolledBackCount += poolExpiry.vouchersRolledBack
 
       // Step B: Auto-archive sessions >2 hours past endTime (status = 'confirmed' -> 'completed')
+      // Booking pool tanpa konselor (scheduleId NULL) sengaja tidak ikut di sini (inner join): tidak ada
+      // sesi yang berlangsung, jadi tidak boleh 'completed' (honor) maupun di-refund otomatis. Mereka tetap
+      // 'confirmed' dan terhitung di Perlu Tindakan (countUnclaimedNearCutoff) sampai Admin menindaklanjuti.
       // Find confirmed sessions
       const confirmedSessions = await tx
         .select({

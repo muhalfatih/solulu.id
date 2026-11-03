@@ -9,6 +9,7 @@ import {
   platformSettings,
 } from "@/db/schema"
 import { formatTimeRange } from "@/lib/schedules/concurrency"
+import { resolveSessionSchedule } from "@/lib/pool/display"
 import { formatIndonesianDate } from "@/lib/session/time"
 import { normalizeIndonesianPhone, extensionPaymentSchema } from "@/lib/validations/session"
 import { createXenditInvoice, getXenditInvoice } from "@/lib/xendit"
@@ -127,8 +128,8 @@ export async function getGuestSessionByToken(
           },
         })
         .from(bookings)
-        .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
-        .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
+        .leftJoin(counselors, eq(bookings.counselorId, counselors.id))
+        .leftJoin(schedules, eq(bookings.scheduleId, schedules.id))
         .leftJoin(transactions, eq(bookings.id, transactions.bookingId))
         .leftJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
         .where(or(eq(bookings.accessToken, cleanToken), eq(bookings.bookingCode, cleanToken)))
@@ -145,6 +146,18 @@ export async function getGuestSessionByToken(
 
     const item = rows[0]
     const settings = settingsRows[0]
+
+    // Booking Konselor Bebas belum diklaim: tanpa konselor, jadwal dari slot pool (ADR-0011).
+    const sessionSchedule = resolveSessionSchedule(item.schedule, {
+      poolDate: item.booking.poolDate,
+      poolSlotIndex: item.booking.poolSlotIndex,
+    })
+    if (!sessionSchedule) {
+      return {
+        success: false,
+        error: "Sesi konseling dengan tautan ini tidak ditemukan",
+      }
+    }
 
     // AUTO-SYNC EXTENSION PAYMENT VIA XENDIT (Zero-Friction Client Experience)
     // If extension is pending with Xendit, check Xendit invoice status directly
@@ -232,26 +245,28 @@ export async function getGuestSessionByToken(
         extensionProofR2Key: item.booking.extensionProofR2Key,
         createdAt: item.booking.createdAt,
       },
-      counselor: {
-        id: item.counselor.id,
-        fullName: item.counselor.fullName,
-        title: item.counselor.title,
-        counselorType: item.counselor.counselorType as any,
-        counselorTypeDisplay:
-          item.counselor.counselorType === "psychologist"
-            ? "Psikolog Klinis"
-            : "Konselor Sebaya",
-        bio: item.counselor.bio,
-        specializations: item.counselor.specializations || [],
-        avatarR2Url: item.counselor.avatarR2Url,
-      },
+      counselor: item.counselor
+        ? {
+            id: item.counselor.id,
+            fullName: item.counselor.fullName,
+            title: item.counselor.title,
+            counselorType: item.counselor.counselorType as any,
+            counselorTypeDisplay:
+              item.counselor.counselorType === "psychologist"
+                ? "Psikolog Klinis"
+                : "Konselor Sebaya",
+            bio: item.counselor.bio,
+            specializations: item.counselor.specializations || [],
+            avatarR2Url: item.counselor.avatarR2Url,
+          }
+        : null,
       schedule: {
-        id: item.schedule.id,
-        date: item.schedule.date,
-        startTime: item.schedule.startTime,
-        endTime: item.schedule.endTime,
-        timeRange: formatTimeRange(item.schedule.startTime, item.schedule.endTime),
-        formattedDate: formatIndonesianDate(item.schedule.date),
+        id: sessionSchedule.id,
+        date: sessionSchedule.date,
+        startTime: sessionSchedule.startTime,
+        endTime: sessionSchedule.endTime,
+        timeRange: formatTimeRange(sessionSchedule.startTime, sessionSchedule.endTime),
+        formattedDate: formatIndonesianDate(sessionSchedule.date),
       },
       transaction: item.transaction
         ? {

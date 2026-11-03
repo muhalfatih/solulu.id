@@ -225,7 +225,12 @@ export function createPoolStore(database: Database = db): PoolStore {
   }
 }
 
-/** Jumlah booking pool belum diklaim yang sesinya dimulai dalam `withinHours` jam (termasuk yang lewat cutoff). */
+/**
+ * Jumlah booking pool belum diklaim yang sesinya dimulai dalam `withinHours` jam, termasuk yang sudah
+ * lewat cutoff dan yang jam sesinya sudah lewat (tanpa batas bawah): booking pool tanpa konselor tidak
+ * pernah diarsipkan otomatis (lihat cron/cleanup), jadi tetap tampil di Perlu Tindakan sampai Admin
+ * menugaskan atau membatalkan/refund secara manual.
+ */
 export async function countUnclaimedNearCutoff(
   withinHours: number,
   database: Database = db
@@ -239,7 +244,6 @@ export async function countUnclaimedNearCutoff(
         isNull(bookings.counselorId),
         isNotNull(bookings.poolDate),
         isNotNull(bookings.poolSlotIndex),
-        sql`((${bookings.poolDate}::timestamp + make_interval(hours => 6 + 2 * ${bookings.poolSlotIndex})) AT TIME ZONE 'Asia/Jakarta') > now()`,
         sql`((${bookings.poolDate}::timestamp + make_interval(hours => 6 + 2 * ${bookings.poolSlotIndex})) AT TIME ZONE 'Asia/Jakarta') <= now() + make_interval(hours => ${withinHours})`
       )
     )

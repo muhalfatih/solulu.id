@@ -125,7 +125,9 @@ export interface SessionPlatformSettings {
 
 export interface SessionPageData {
   booking: SessionBookingData
-  counselor: SessionCounselorData
+  /** Null: booking Konselor Bebas yang belum diklaim / ditugaskan (ADR-0011). */
+  counselor: SessionCounselorData | null
+  /** Untuk booking pool tanpa konselor: slot yang dipesan (id kosong). */
   schedule: SessionScheduleData
   transaction: SessionTransactionData | null
   report?: ClientSessionReportView | null
