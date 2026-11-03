@@ -37,10 +37,8 @@ describe("Ticket 22: shared portal shell navigation", () => {
     for (const planned of [
       "Booking Cepat",
       "Klien Tersedia",
-      "Dispatch WhatsApp",
       "Payroll",
       "Voucher",
-      "Template WA",
       "Jejak Audit",
       "Layanan & Tarif",
     ]) {
@@ -57,6 +55,13 @@ describe("Ticket 22: shared portal shell navigation", () => {
         expect(existsSync(join(dir, "page.tsx")), `${item.url} has no page`).toBe(true)
       }
     }
+  })
+
+  it("Ticket 31: Dispatch WhatsApp is for admin and operator; Template WA is superadmin only", () => {
+    expect(flat("admin", "admin").map((i) => i.url)).toContain("/admin/dispatch-wa")
+    expect(flat("operator", "operator").map((i) => i.url)).toContain("/operator/dispatch-wa")
+    expect(flat("admin", "admin").map((i) => i.url)).not.toContain("/admin/template-wa")
+    expect(flat("admin", "superadmin").map((i) => i.url)).toContain("/admin/template-wa")
   })
 
   it("never lists a duplicate url within a portal", () => {
