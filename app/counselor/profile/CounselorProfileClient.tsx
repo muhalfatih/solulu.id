@@ -18,6 +18,7 @@ import {
   Key,
   Mail,
 } from "lucide-react"
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,8 +28,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { FieldGroup, Field, FieldLabel, FieldDescription, FieldError } from "@/components/ui/field"
 import { updateCounselorProfileAction, updateCounselorPasswordAction } from "@/app/counselor/actions"
-import { getActiveSpecializationsAction } from "@/app/admin/specializations/actions"
-import { SOLULU_SPECIALIZATION_PRESETS } from "@/lib/validations/counselor-admin"
 import type { CounselorProfileView } from "@/lib/counselor/types"
 
 interface CounselorProfileClientProps {
@@ -46,33 +45,8 @@ export function CounselorProfileClient({
   const [specializations, setSpecializations] = React.useState<string[]>(
     profile.specializations || []
   )
-  const [availableSpecs, setAvailableSpecs] = React.useState<string[]>(
-    availableSpecializations && availableSpecializations.length > 0
-      ? availableSpecializations
-      : [...SOLULU_SPECIALIZATION_PRESETS]
-  )
+  const availableSpecs = availableSpecializations
   const [avatarUrl, setAvatarUrl] = React.useState(profile.avatarR2Url || "")
-
-  const [isLoadingSpecs, setIsLoadingSpecs] = React.useState(
-    !availableSpecializations || availableSpecializations.length === 0
-  )
-
-  // Sync active specializations from database on mount
-  React.useEffect(() => {
-    async function loadSpecs() {
-      try {
-        const res = await getActiveSpecializationsAction()
-        if (res.success && res.data && res.data.length > 0) {
-          setAvailableSpecs(res.data.map((s: any) => s.name))
-        }
-      } catch {
-        // Fallback to initial
-      } finally {
-        setIsLoadingSpecs(false)
-      }
-    }
-    loadSpecs()
-  }, [])
 
   const [uploadingAvatar, setUploadingAvatar] = React.useState(false)
   const [uploadError, setUploadError] = React.useState<string | null>(null)
@@ -321,15 +295,15 @@ export function CounselorProfileClient({
         {/* Left Column: Avatar, Identity, Completeness Telemetry (4 cols) */}
         <div className="lg:col-span-4 flex flex-col gap-6">
           {/* Card: Avatar & Public Identity */}
-          <Card className="border border-border/70 shadow-xs bg-card">
-            <CardHeader className="p-6 pb-4 border-b border-border/60">
-              <CardTitle className="text-base font-bold text-foreground">Foto Avatar Publik</CardTitle>
-              <CardDescription className="text-xs text-muted-foreground">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base font-bold">Foto Avatar Publik</CardTitle>
+              <CardDescription className="text-xs">
                 Tampil di katalog konselor dan halaman pemesanan pasien.
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="p-6 flex flex-col items-center text-center gap-4">
+            <CardContent className="flex flex-col items-center text-center gap-4">
               <div className="relative size-32 rounded-xl border-2 border-border/70 overflow-hidden bg-muted/40 shadow-2xs">
                 <Avatar className="size-full rounded-none">
                   {avatarUrl ? (
@@ -405,20 +379,20 @@ export function CounselorProfileClient({
           </Card>
 
           {/* Card: Completeness Telemetry */}
-          <Card className="border border-border/70 shadow-xs bg-card">
-            <CardHeader className="p-6 pb-4 border-b border-border/60">
+          <Card>
+            <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-bold text-foreground">Kelengkapan Profil</CardTitle>
+                <CardTitle className="text-base font-bold">Kelengkapan Profil</CardTitle>
                 <span className="text-xs font-bold tabular-nums text-foreground">
                   {completenessPercentage}%
                 </span>
               </div>
-              <CardDescription className="text-xs text-muted-foreground">
+              <CardDescription className="text-xs">
                 Kesiapan informasi sebelum sesi dapat dipesan pasien.
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="p-6 flex flex-col gap-4">
+            <CardContent className="flex flex-col gap-4">
               {/* Progress bar */}
               <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                 <div
@@ -457,17 +431,17 @@ export function CounselorProfileClient({
         {/* Right Column: Credentials, Bio, Specializations, Save Button (8 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-6">
           {/* Card: Kredensial & Pendekatan Klinis */}
-          <Card className="border border-border/70 shadow-xs bg-card">
-            <CardHeader className="p-6 pb-4 border-b border-border/60">
-              <CardTitle className="text-base font-bold text-foreground">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base font-bold">
                 Kredensial & Pendekatan Konseling
               </CardTitle>
-              <CardDescription className="text-xs text-muted-foreground">
+              <CardDescription className="text-xs">
                 Informasi gelar akademis dan modalitas terapi yang Anda gunakan.
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="p-6 flex flex-col gap-5">
+            <CardContent className="flex flex-col gap-5">
               <FieldGroup className="flex flex-col gap-5">
                 {/* Readonly Name, Email & Editable Title */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -496,7 +470,7 @@ export function CounselorProfileClient({
                       </span>
                     </div>
                     <Input
-                      value={profile.email || "-"}
+                      value={profile.email ?? "Tidak tersedia"}
                       disabled
                       className="bg-muted text-foreground font-mono text-sm h-10 cursor-not-allowed select-all"
                     />
@@ -575,18 +549,18 @@ export function CounselorProfileClient({
           </Card>
 
           {/* Card: Topik Fokus & Spesialisasi */}
-          <Card className="border border-border/70 shadow-xs bg-card">
-            <CardHeader className="p-6 pb-4 border-b border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <Card>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-base font-bold text-foreground">
+                  <CardTitle className="text-base font-bold">
                     Topik Fokus & Spesialisasi
                   </CardTitle>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium text-primary bg-primary/10 border border-primary/20">
                     Database Resmi
                   </span>
                 </div>
-                <CardDescription className="text-xs text-muted-foreground">
+                <CardDescription className="text-xs">
                   Pilih topik resmi yang relevan dengan ranah keahlian praktik Anda.
                 </CardDescription>
               </div>
@@ -596,17 +570,15 @@ export function CounselorProfileClient({
               </span>
             </CardHeader>
 
-            <CardContent className="p-6 flex flex-col gap-5">
+            <CardContent className="flex flex-col gap-5">
               {/* Available Database Specialization Chips */}
-              {isLoadingSpecs ? (
-                <div className="flex flex-wrap gap-2 pt-1" id="loading-specs-skeleton">
-                  {Array.from({ length: 8 }).map((_, idx) => (
-                    <div
-                      key={idx}
-                      className="h-8 w-28 bg-muted/70 animate-pulse rounded-md"
-                    />
-                  ))}
-                </div>
+              {availableSpecs.length === 0 ? (
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyTitle>Belum ada spesialisasi aktif</EmptyTitle>
+                    <EmptyDescription>Admin belum mengaktifkan spesialisasi apa pun.</EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
               ) : (
                 <div className="flex flex-wrap gap-2 pt-1">
                   {availableSpecs.map((spec) => {
@@ -689,24 +661,24 @@ export function CounselorProfileClient({
           </Card>
 
           {/* Card: Keamanan Akun & Perubahan Kata Sandi */}
-          <Card className="border border-border/70 shadow-xs bg-card">
-            <CardHeader className="p-6 pb-4 border-b border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <Card>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-base font-bold text-foreground">
+                  <CardTitle className="text-base font-bold">
                     Keamanan & Kata Sandi Akun
                   </CardTitle>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium text-emerald-600 bg-emerald-500/10 border border-emerald-500/20">
                     Supabase Auth
                   </span>
                 </div>
-                <CardDescription className="text-xs text-muted-foreground">
+                <CardDescription className="text-xs">
                   Perbarui kata sandi sementara Anda untuk memastikan keamanan akses portal konselor.
                 </CardDescription>
               </div>
             </CardHeader>
 
-            <CardContent className="p-6 flex flex-col gap-5">
+            <CardContent className="flex flex-col gap-5">
               {passwordFeedback && (
                 <Alert
                   className={`text-xs ${
@@ -788,7 +760,8 @@ export function CounselorProfileClient({
           </Card>
 
           {/* Action Bar Card */}
-          <Card className="border border-border/70 shadow-xs bg-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <Card>
+            <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <span className="text-xs text-muted-foreground leading-relaxed">
               Perubahan profil akan segera diperbarui di katalog publik Solulu.
             </span>
@@ -812,6 +785,7 @@ export function CounselorProfileClient({
                 </>
               )}
             </Button>
+            </CardContent>
           </Card>
         </div>
       </form>

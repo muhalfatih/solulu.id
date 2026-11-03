@@ -602,7 +602,7 @@ export default function CounselorScheduleClient({
                 <span>Kalender Mingguan</span>
                 {scheduleMode === "automatic" && (
                   <span
-                    className="size-2 rounded-full bg-emerald-500 animate-pulse ml-1"
+                    className="size-2 rounded-full bg-emerald-500 ml-1"
                     title="Mode Otomatis Aktif"
                   />
                 )}
@@ -686,8 +686,8 @@ export default function CounselorScheduleClient({
           <TabsContent value="weekly-calendar" className="flex flex-col gap-6 m-0">
             {/* Automatic Mode Status Banner / Guide */}
             {scheduleMode === "automatic" ? (
-              <Card className="border-emerald-500/30 bg-emerald-500/5 shadow-xs overflow-hidden">
-                <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <Card className="overflow-hidden">
+                <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-start sm:items-center gap-3">
                     <div className="size-10 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                       <Sparkles className="size-5" />
@@ -723,8 +723,8 @@ export default function CounselorScheduleClient({
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border-border/80 bg-muted/20 shadow-xs overflow-hidden">
-                <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <Card className="overflow-hidden">
+                <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-start sm:items-center gap-3">
                     <div className="size-10 rounded-xl bg-muted text-muted-foreground flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                       <Clock className="size-5" />
@@ -757,8 +757,8 @@ export default function CounselorScheduleClient({
             )}
 
             {/* Weekly Quota Commitment Progress Card */}
-            <Card className="border-border/80 shadow-xs overflow-hidden">
-              <CardContent className="p-5 md:p-6 flex flex-col gap-4">
+            <Card className="overflow-hidden">
+              <CardContent className="flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div
@@ -1197,8 +1197,8 @@ export default function CounselorScheduleClient({
             </div>
 
             {/* Quota Commitment & Automation Switch Card */}
-            <Card className="border-border/80 shadow-xs overflow-hidden">
-              <CardContent className="p-5 md:p-6 flex flex-col gap-5">
+            <Card className="overflow-hidden">
+              <CardContent className="flex flex-col gap-5">
                 {/* Switch Row */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/60">
                   <div className="flex items-start gap-3">
@@ -1501,7 +1501,7 @@ export default function CounselorScheduleClient({
               <div className="flex items-center gap-2">
                 {hasUnsavedChanges ? (
                   <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
-                    <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+                    <span className="size-2 rounded-full bg-amber-500" />
                     <span>Perubahan template belum disimpan</span>
                   </div>
                 ) : (

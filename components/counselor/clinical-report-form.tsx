@@ -321,8 +321,8 @@ export function ClinicalReportForm({
       )}
 
       {/* Patient & Session Context Card */}
-      <Card className="border border-border/80 shadow-xs bg-muted/20">
-        <CardContent className="p-4 sm:p-5 flex flex-col gap-4">
+      <Card>
+        <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-base shrink-0">
@@ -387,8 +387,8 @@ export function ClinicalReportForm({
 
       {/* Main Report Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <Card className="border border-border/80 shadow-xs">
-          <CardHeader className="pb-4 border-b border-border/60">
+        <Card>
+          <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -421,7 +421,7 @@ export function ClinicalReportForm({
             </div>
           </CardHeader>
 
-          <CardContent className="pt-6">
+          <CardContent>
             <FieldGroup className="flex flex-col gap-6">
               {/* Field 0: Status Kehadiran Sesi (Attendance Status) */}
               <div className="flex flex-col gap-2.5 p-4 rounded-xl border border-border/80 bg-muted/20">
@@ -989,7 +989,7 @@ export function ClinicalReportForm({
             </FieldGroup>
           </CardContent>
 
-          <CardFooter className="flex items-center justify-between gap-3 pt-6 border-t border-border/60">
+          <CardFooter className="flex items-center justify-between gap-3">
             {isModal && onCancel ? (
               <Button
                 type="button"

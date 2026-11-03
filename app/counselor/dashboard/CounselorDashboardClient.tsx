@@ -26,6 +26,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { Card, CardContent } from "@/components/ui/card"
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -70,6 +71,7 @@ type CounselorDashboardFilter =
 export function CounselorDashboardClient({ initialSessions, summarySlot }: CounselorDashboardClientProps) {
   const router = useRouter()
   const [sessions, setSessions] = React.useState<CounselorUpcomingSessionView[]>(initialSessions)
+  const globalHostKey = sessions.find((s) => s.zoomHostKey)?.zoomHostKey ?? null
   const [filter, setFilter] = React.useState<CounselorDashboardFilter>("all")
   const [completingId, setCompletingId] = React.useState<string | null>(null)
   const [confirmSession, setConfirmSession] = React.useState<CounselorUpcomingSessionView | null>(null)
@@ -265,7 +267,8 @@ export function CounselorDashboardClient({ initialSessions, summarySlot }: Couns
 
       {summarySlot}
 
-      {/* 6-Digit Zoom Host Key Clinical Access Banner (Ticket 4) */}
+      {/* 6-Digit Zoom Host Key Clinical Access Banner (Ticket 4); hanya tampil bila ada Host Key nyata */}
+      {globalHostKey && (
       <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-primary/25 bg-primary/5 dark:bg-primary/10 gap-3">
         <div className="flex items-center gap-3">
           <div className="size-9 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
@@ -289,17 +292,14 @@ export function CounselorDashboardClient({ initialSessions, summarySlot }: Couns
             className="px-3.5 py-1.5 rounded-lg bg-background border border-border/80 font-mono font-bold text-base text-foreground tracking-widest shadow-2xs"
             id="counselor-global-host-key-display"
           >
-            {sessions.find((s) => s.zoomHostKey)?.zoomHostKey || "849201"}
+            {globalHostKey}
           </div>
           <Button
             variant="outline"
             size="sm"
             className="h-9 gap-1.5 text-xs font-semibold border-border/80"
             onClick={() =>
-              handleCopyText(
-                sessions.find((s) => s.zoomHostKey)?.zoomHostKey || "849201",
-                "Host Key disalin ke clipboard"
-              )
+              handleCopyText(globalHostKey, "Host Key disalin ke clipboard")
             }
             id="btn-copy-global-host-key"
           >
@@ -308,6 +308,7 @@ export function CounselorDashboardClient({ initialSessions, summarySlot }: Couns
           </Button>
         </div>
       </div>
+      )}
 
       {errorMessage && (
         <div
@@ -503,26 +504,26 @@ export function CounselorDashboardClient({ initialSessions, summarySlot }: Couns
         </div>
 
         {filteredSessions.length === 0 ? (
-          <Card className="border border-dashed border-border/80 bg-muted/20">
-            <CardContent className="py-12 flex flex-col items-center justify-center text-center gap-3">
-              <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <Calendar className="size-6" aria-hidden="true" />
-              </div>
-              <div className="flex flex-col gap-1 max-w-sm">
-                <p className="text-sm font-semibold text-foreground">Tidak Ada Sesi pada Status Ini</p>
-                <p className="text-xs text-muted-foreground">
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Calendar />
+              </EmptyMedia>
+              <EmptyTitle>Tidak Ada Sesi pada Status Ini</EmptyTitle>
+              <EmptyDescription>
                   {filter === "pending_payment"
                     ? "Tidak ada pasien yang sedang menunggu proses pembayaran."
                     : filter === "in_session"
                     ? "Saat ini tidak ada sesi yang sedang berlangsung."
                     : "Belum ada sesi pada kategori ini. Anda dapat membuka slot praktik baru."}
-                </p>
-              </div>
-              <Button asChild size="sm" className="mt-2 text-xs">
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button asChild size="sm">
                 <Link href="/counselor/schedule">Buka Slot Praktik Baru</Link>
               </Button>
-            </CardContent>
-          </Card>
+            </EmptyContent>
+          </Empty>
         ) : (
           <div className="flex flex-col gap-3.5">
             {filteredSessions.map((session) => {
@@ -536,27 +537,27 @@ export function CounselorDashboardClient({ initialSessions, summarySlot }: Couns
                 <Card
                   key={session.id}
                   id={`session-card-${session.id}`}
-                  className={cn(
-                    "border shadow-2xs transition-all relative overflow-hidden",
-                    isOngoing && "border-emerald-500/50 ring-2 ring-emerald-500/20 bg-emerald-500/[0.02]",
-                    isSessionToday && isConfirmed && "border-primary/40 ring-1 ring-primary/15",
-                    isPendingPayment && "border-amber-500/35 bg-amber-500/[0.015]",
-                    !isOngoing && !isPendingPayment && !(isSessionToday && isConfirmed) && "border-border/80 bg-card hover:border-foreground/20"
-                  )}
+                  className="relative overflow-hidden"
                 >
-                  {/* Subtle top indicator bar for ongoing sessions */}
-                  {isOngoing && (
-                    <div className="h-1 w-full bg-emerald-500" aria-hidden="true" />
+                  {/* Penanda status di tepi atas kartu */}
+                  {(isOngoing || isPendingPayment || (isSessionToday && isConfirmed)) && (
+                    <div
+                      className={cn(
+                        "h-1 w-full",
+                        isOngoing ? "bg-emerald-500" : isPendingPayment ? "bg-amber-500" : "bg-primary"
+                      )}
+                      aria-hidden="true"
+                    />
                   )}
 
-                  <CardContent className="p-5 sm:p-6 flex flex-col gap-4">
+                  <CardContent className="flex flex-col gap-4">
                     {/* Top Row: Date, Time & Uniform Status Badges */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-border/60">
                       <div className="flex items-center gap-2 flex-wrap text-xs">
                         {isOngoing && (
                           <Badge
                             variant="outline"
-                            className="text-xs bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border-emerald-500/30 font-bold py-0.5 px-2 animate-pulse"
+                            className="text-xs bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border-emerald-500/30 font-bold py-0.5 px-2"
                           >
                             Live Sekarang
                           </Badge>
@@ -725,7 +726,7 @@ export function CounselorDashboardClient({ initialSessions, summarySlot }: Couns
                                 className={cn(
                                   "gap-2 text-xs h-9 font-semibold shadow-xs focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                                   isOngoing
-                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-500/30 animate-pulse"
+                                    ? "bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-500/30"
                                     : "bg-emerald-600 hover:bg-emerald-700 text-white"
                                 )}
                                 id={`btn-zoom-${session.id}`}
@@ -797,16 +798,17 @@ export function CounselorDashboardClient({ initialSessions, summarySlot }: Couns
                             </Button>
 
                             {/* Ticket 4: 6-Digit Host Key Badge */}
+                            {session.zoomHostKey && (
                             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/80 border border-border/80 text-xs">
                               <KeyRound className="size-3 text-primary shrink-0" aria-hidden="true" />
                               <span className="text-muted-foreground font-medium text-[11px]">Host Key:</span>
                               <span className="font-mono font-bold text-foreground tracking-wider text-xs">
-                                {session.zoomHostKey || "849201"}
+                                {session.zoomHostKey}
                               </span>
                               <button
                                 type="button"
-                                onClick={() => handleCopyText(session.zoomHostKey || "849201", "Host Key disalin")}
-                                className="ml-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                                onClick={() => handleCopyText(session.zoomHostKey!, "Host Key disalin")}
+                                className="ml-0.5 rounded-sm text-muted-foreground hover:text-foreground cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                                 aria-label="Salin 6-digit Host Key Zoom"
                                 title="Salin 6-digit Host Key Zoom"
                                 id={`btn-copy-card-host-key-${session.id}`}
@@ -814,6 +816,7 @@ export function CounselorDashboardClient({ initialSessions, summarySlot }: Couns
                                 <Copy className="size-3" aria-hidden="true" />
                               </button>
                             </div>
+                            )}
                           </>
                         ) : isCompleted ? (
                           <span className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">

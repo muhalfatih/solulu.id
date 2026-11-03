@@ -390,8 +390,8 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
            ========================================================================= */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:gap-4">
           {/* Card 1: Total Sesi Hari Ini */}
-          <Card className="shadow-xs">
-            <CardHeader className="p-4 pb-2">
+          <Card>
+            <CardHeader>
               <CardDescription className="flex items-center justify-between text-xs font-medium">
                 <span>Total Sesi Terjadwal</span>
                 <Users className="size-4 text-muted-foreground" />
@@ -400,21 +400,21 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
                 {data.summary.totalSessions}
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
+            <CardContent>
               <p className="text-xs text-muted-foreground">
-                Pada tanggal {selectedDate}
+                Pada tanggal {new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${selectedDate}T00:00:00Z`))}
               </p>
             </CardContent>
           </Card>
 
           {/* Card 2: Slot Aktif Saat Ini */}
-          <Card className="shadow-xs">
-            <CardHeader className="p-4 pb-2">
+          <Card>
+            <CardHeader>
               <CardDescription className="flex items-center justify-between text-xs font-medium">
                 <span>Slot Aktif Sekarang</span>
                 <Clock className="size-4 text-emerald-500" />
               </CardDescription>
-              <CardTitle className="text-2xl font-bold text-foreground">
+              <CardTitle className="text-2xl font-bold">
                 {data.summary.currentSlotIndex ? (
                   <span className="text-emerald-600 dark:text-emerald-400">
                     Slot {data.summary.currentSlotIndex}
@@ -424,7 +424,7 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
+            <CardContent>
               <p className="text-xs text-muted-foreground">
                 {data.summary.currentSlotIndex
                   ? `${data.slots[data.summary.currentSlotIndex - 1]?.displayTime}`
@@ -434,8 +434,8 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
           </Card>
 
           {/* Card 3: Slot Mode Breakout */}
-          <Card className="shadow-xs">
-            <CardHeader className="p-4 pb-2">
+          <Card>
+            <CardHeader>
               <CardDescription className="flex items-center justify-between text-xs font-medium">
                 <span>Slot Mode Breakout</span>
                 <Layers className="size-4 text-amber-500" />
@@ -447,7 +447,7 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
                 </span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
+            <CardContent>
               <p className="text-xs text-muted-foreground">
                 {data.summary.breakoutSlotsCount > 0
                   ? "Butuh pemanduan Host di Zoom 4"
@@ -457,8 +457,8 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
           </Card>
 
           {/* Card 4: Status Kehadiran Klien */}
-          <Card className="shadow-xs">
-            <CardHeader className="p-4 pb-2">
+          <Card>
+            <CardHeader>
               <CardDescription className="flex items-center justify-between text-xs font-medium">
                 <span>Kehadiran (Admit)</span>
                 <UserCheck className="size-4 text-primary" />
@@ -470,7 +470,7 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
                 </span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
+            <CardContent>
               <p className="text-xs text-muted-foreground">
                 {data.summary.totalPendingAdmit > 0 ? (
                   <span className="text-amber-600 dark:text-amber-400 font-medium">
@@ -546,12 +546,10 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
             return (
               <Card
                 key={slot.slotIndex}
-                className={`transition-all overflow-hidden border ${
-                  slot.isCurrent
-                    ? "ring-2 ring-primary border-primary shadow-sm"
-                    : "shadow-xs"
-                }`}
+                className="overflow-hidden"
+                data-current={slot.isCurrent || undefined}
               >
+                {slot.isCurrent && <div className="h-1 w-full bg-primary" aria-hidden="true" />}
                 {/* Slot Card Header */}
                 <div
                   className={`flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between cursor-pointer select-none transition-colors ${
