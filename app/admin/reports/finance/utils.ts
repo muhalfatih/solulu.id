@@ -11,7 +11,7 @@ export interface FinanceLedgerItem {
   patientName: string
   patientPhone: string
   patientEmail: string
-  counselorId: string
+  counselorId: string | null
   counselorName: string
   counselorTitle: string
   counselorType: "peer" | "psychologist"

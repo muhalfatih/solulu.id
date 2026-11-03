@@ -20,6 +20,7 @@ export const AUDIT_ACTIONS = [
   "payment.verify",
   "payment.reject",
   "booking.manual_create",
+  "pool.assign",
   "counselor_document.download",
   "whatsapp_template.update",
   "payroll.close",

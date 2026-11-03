@@ -18,6 +18,9 @@ import { evaluateNoShow, loadNoShowBookingFacts, noShowUpdate } from "@/lib/book
  * Triggers dynamic Zoom host allocation, updates transaction/booking/schedule,
  * and sends confirmation emails to patient and counselor.
  */
+/** Booking pool belum punya jadwal; UUID nol tidak cocok dengan baris mana pun. */
+const NO_SCHEDULE_ID = "00000000-0000-0000-0000-000000000000"
+
 export async function confirmManualPaymentAction(
   input: ConfirmManualPaymentInput,
   deps?: ManualPaymentDependencies
@@ -149,7 +152,7 @@ export async function rejectManualPaymentAction(
       await tx
         .update(schedules)
         .set({ status: "available", reservedUntil: null })
-        .where(eq(schedules.id, booking.scheduleId))
+        .where(eq(schedules.id, booking.scheduleId ?? NO_SCHEDULE_ID))
 
       // 3. Mark transaction as FAILED with rejection reason
       await tx
@@ -230,7 +233,7 @@ export async function markBookingNoShowAction(
       await tx
         .update(schedules)
         .set({ status: "booked" })
-        .where(eq(schedules.id, booking.scheduleId))
+        .where(eq(schedules.id, booking.scheduleId ?? NO_SCHEDULE_ID))
     })
 
     try {

@@ -346,7 +346,7 @@ export async function getSessionReportAction(
     const detail: SessionReportDetailView = {
       id: report?.id || "",
       bookingId: booking.id,
-      counselorId: booking.counselorId,
+      counselorId: booking.counselorId ?? "",
       mainIssue: report?.mainIssue ?? "",
       summary: report?.summary || "",
       actionPlan: report?.actionPlan || "",

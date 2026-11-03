@@ -50,6 +50,9 @@ async function updateBookingPaymentAudited(
   })
 }
 
+/** Booking pool belum punya jadwal; UUID nol tidak cocok dengan baris mana pun. */
+const NO_SCHEDULE_ID = "00000000-0000-0000-0000-000000000000"
+
 export interface ManualPaymentQueueItem {
   id: string
   bookingCode: string
@@ -465,7 +468,7 @@ export async function rejectManualPaymentAdminAction(
           status: "available",
           reservedUntil: null,
         })
-        .where(eq(schedules.id, booking.scheduleId))
+        .where(eq(schedules.id, booking.scheduleId ?? NO_SCHEDULE_ID))
 
       // 3. Mark transaction as FAILED
       await tx

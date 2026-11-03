@@ -13,7 +13,7 @@ export interface NoShowBookingFacts {
   id: string
   status: BookingStatus
   counselorId: string | null
-  scheduleId: string
+  scheduleId: string | null
   accessToken: string | null
   /** "YYYY-MM-DD" in WIB */
   scheduleDate: string
