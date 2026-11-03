@@ -34,7 +34,7 @@ export interface EmailSendResult {
  * Resolves Resend configuration. A missing or placeholder key is reported as a
  * failed send naming the variable, never as a pretend success.
  */
-function resolveResend(
+export function resolveResend(
   options: EmailSenderOptions
 ): { config: ResendConfig; failure?: undefined } | { config?: undefined; failure: EmailSendResult } {
   try {

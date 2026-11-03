@@ -5,6 +5,7 @@ import {
   sessionStartAt,
   stageLabel,
 } from "@/lib/booking-cycle"
+import { NO_COUNSELOR_LABEL, poolSlotDisplay } from "@/lib/pool/display"
 import type { AdminBookingItem } from "./actions"
 
 export interface BookingJoinRow {
@@ -23,10 +24,14 @@ export function mapBookingRow(r: BookingJoinRow): AdminBookingItem {
 
   const counselorTypeLabel =
     c?.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"
-  const dateStr = s?.date ? String(s.date) : ""
+  // Booking Konselor Bebas yang belum diklaim: tidak ada baris jadwal, slot ada di pool_date/pool_slot_index.
+  const pool = s ? null : poolSlotDisplay(b)
+  const dateStr = s?.date ? String(s.date) : (pool?.date ?? "")
   const timeRange = s
     ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)}`
-    : ""
+    : pool
+      ? `${pool.startTime} - ${pool.endTime}`
+      : ""
 
   const stage = deriveStage({
     status: b.status,
@@ -36,10 +41,10 @@ export function mapBookingRow(r: BookingJoinRow): AdminBookingItem {
     hasReport: Boolean(rep?.id),
   })
   const noShowCheck =
-    s?.date && s?.startTime
+    dateStr && (s?.startTime || pool)
       ? canMarkNoShow({
           status: b.status,
-          sessionStart: sessionStartAt(String(s.date), s.startTime),
+          sessionStart: sessionStartAt(dateStr, s?.startTime ?? pool!.startTime),
           timerStartedAt: rep?.timerStartedAt ?? null,
         })
       : { allowed: false }
@@ -56,13 +61,13 @@ export function mapBookingRow(r: BookingJoinRow): AdminBookingItem {
     domicile: b.domicile,
     initialNotes: b.initialNotes,
     counselorId: c?.id || "",
-    counselorName: c?.fullName || "Belum Ditugaskan",
+    counselorName: c?.fullName || NO_COUNSELOR_LABEL,
     counselorTitle: c?.title || "",
     counselorType: counselorTypeLabel,
     scheduleDate: dateStr,
-    slotIndex: s?.slotIndex || 1,
-    startTime: s?.startTime ? s.startTime.slice(0, 5) : "08:00",
-    endTime: s?.endTime ? s.endTime.slice(0, 5) : "10:00",
+    slotIndex: s?.slotIndex || pool?.slotIndex || 1,
+    startTime: s?.startTime ? s.startTime.slice(0, 5) : (pool?.startTime ?? "08:00"),
+    endTime: s?.endTime ? s.endTime.slice(0, 5) : (pool?.endTime ?? "10:00"),
     timeRange,
     zoomMeetingId: b.zoomMeetingId,
     zoomJoinUrl: b.zoomJoinUrl,

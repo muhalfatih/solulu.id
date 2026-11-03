@@ -1,6 +1,7 @@
-import { eq, and, lt, inArray, sql } from "drizzle-orm"
+import { eq, and, lt, inArray, isNull, isNotNull, sql } from "drizzle-orm"
 import { db } from "@/db"
 import { bookings, schedules, transactions, vouchers } from "@/db/schema"
+import { SLOT_HOLD_MINUTES } from "@/lib/booking/hold"
 
 export interface CleanupResult {
   success: boolean
@@ -58,6 +59,69 @@ export async function expireHeldBookings(
     .set({ status: "expired" })
     .where(inArray(bookings.id, bookingIds))
   return bookingIds.length
+}
+
+export interface PoolHoldRow {
+  bookingId: string
+  transactionId: string | null
+  transactionStatus: string | null
+  voucherId: string | null
+}
+
+/**
+ * Booking Konselor Bebas tidak punya baris jadwal yang ditahan, jadi hold-nya
+ * kedaluwarsa SLOT_HOLD_MINUTES setelah booking dibuat. Murni, untuk diuji tanpa DB.
+ */
+export function isPoolHoldExpired(createdAt: Date, now: Date = new Date()): boolean {
+  return now.getTime() - createdAt.getTime() > SLOT_HOLD_MINUTES * 60_000
+}
+
+/** Rencana pelepasan hold pool: booking yang dikedaluwarsakan, transaksi PENDING, dan voucher yang dikembalikan. */
+export function planPoolHoldExpiry(rows: PoolHoldRow[]) {
+  const unique = (xs: (string | null)[]) => Array.from(new Set(xs.filter((x): x is string => Boolean(x))))
+  return {
+    bookingIds: unique(rows.map((r) => r.bookingId)),
+    transactionIds: unique(rows.filter((r) => r.transactionStatus === "PENDING").map((r) => r.transactionId)),
+    voucherIds: rows.filter((r) => r.transactionStatus === "PENDING" && r.voucherId).map((r) => r.voucherId as string),
+  }
+}
+
+/** Mengkedaluwarsakan hold booking pool (pending_payment tanpa konselor) yang lewat batas. */
+async function expirePoolHolds(tx: Pick<typeof db, "select" | "update">, now: Date) {
+  const cutoff = new Date(now.getTime() - SLOT_HOLD_MINUTES * 60_000)
+  const rows = await tx
+    .select({
+      bookingId: bookings.id,
+      transactionId: transactions.id,
+      transactionStatus: transactions.status,
+      voucherId: transactions.voucherId,
+    })
+    .from(bookings)
+    .leftJoin(transactions, eq(bookings.id, transactions.bookingId))
+    .where(
+      and(
+        eq(bookings.status, "pending_payment"),
+        isNull(bookings.counselorId),
+        isNotNull(bookings.poolDate),
+        lt(bookings.createdAt, cutoff)
+      )
+    )
+  const plan = planPoolHoldExpiry(rows)
+  const expiredBookings = await expireHeldBookings(tx, plan.bookingIds)
+  if (plan.transactionIds.length > 0) {
+    await tx.update(transactions).set({ status: "EXPIRED" }).where(inArray(transactions.id, plan.transactionIds))
+  }
+  for (const vId of plan.voucherIds) {
+    await tx
+      .update(vouchers)
+      .set({ usedCount: sql`GREATEST(0, ${vouchers.usedCount} - 1)` })
+      .where(eq(vouchers.id, vId))
+  }
+  return {
+    expiredBookings,
+    expiredTransactions: plan.transactionIds.length,
+    vouchersRolledBack: plan.voucherIds.length,
+  }
 }
 
 /**
@@ -189,6 +253,12 @@ export async function executeSlotCleanupAndArchiving(
           vouchersRolledBackCount++
         }
       }
+
+      // Step A2: hold booking Konselor Bebas (tanpa baris jadwal) yang lewat batas
+      const poolExpiry = await expirePoolHolds(tx, now)
+      expiredBookingsCount += poolExpiry.expiredBookings
+      expiredTransactionsCount += poolExpiry.expiredTransactions
+      vouchersRolledBackCount += poolExpiry.vouchersRolledBack
 
       // Step B: Auto-archive sessions >2 hours past endTime (status = 'confirmed' -> 'completed')
       // Find confirmed sessions

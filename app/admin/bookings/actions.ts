@@ -166,7 +166,7 @@ export async function getBookingsAdminAction(
     }
 
     if (filters?.slotIndex && filters.slotIndex > 0) {
-      conditions.push(eq(schedules.slotIndex, filters.slotIndex))
+      conditions.push(sql`coalesce(${schedules.slotIndex}, ${bookings.poolSlotIndex}) = ${filters.slotIndex}`)
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined

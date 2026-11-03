@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       })
       .from(transactions)
       .innerJoin(bookings, eq(transactions.bookingId, bookings.id))
-      .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
+      .leftJoin(schedules, eq(bookings.scheduleId, schedules.id))
       .where(or(...conditions))
       .limit(1)
 
@@ -156,12 +156,15 @@ export async function POST(req: Request) {
         })
         .where(eq(bookings.id, booking.id))
 
-      await db
-        .update(schedules)
-        .set({
-          status: "booked",
-        })
-        .where(eq(schedules.id, schedule.id))
+      // Booking Konselor Bebas belum punya baris jadwal (schedule null) sampai diklaim/ditugaskan.
+      if (schedule) {
+        await db
+          .update(schedules)
+          .set({
+            status: "booked",
+          })
+          .where(eq(schedules.id, schedule.id))
+      }
 
       // 6. Decoupled Asynchronous Dispatch to QStash (<1s)
       const dispatch = await dispatchFulfillmentJob(booking.id)

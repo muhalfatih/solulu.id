@@ -101,14 +101,15 @@ export async function getBookingByTokenAction(
     counselorType: string
     counselorTypeDisplay: string
     avatarR2Url: string | null
-  }
+  } | null
   schedule: {
-    id: string
+    id: string | null
     date: string
     startTime: string
     endTime: string
     timeRange: string
   }
+  awaitingCounselor: boolean
   transaction: {
     id: string
     paymentProvider: string
