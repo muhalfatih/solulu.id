@@ -14,7 +14,8 @@ import {
   type SlotCapacityRow,
 } from "@/lib/admin-metrics/dashboard"
 import { eachDay, parseRangeKey, rangeForKey } from "@/lib/admin-metrics/range"
-import { buildProfitLoss, comparisonRange } from "@/lib/finance"
+import { buildAttentionItems, loadAdminDashboard, urgentCount } from "@/lib/admin-metrics"
+import { buildProfitLoss, comparisonRange, type HonorStore } from "@/lib/finance"
 
 const NOW = new Date("2026-11-18T03:00:00Z") // 18 Nov 2026 10.00 WIB
 
@@ -164,6 +165,49 @@ describe("Dashboard Admin: Keterisian Slot dan heatmap", () => {
     expect(map.rows[0].cells[0]).toEqual({ day: "2026-11-16", opened: 4, booked: 2, level: 3 })
     expect(map.rows[2].cells[1]).toMatchObject({ opened: 2, booked: 2, level: 5 })
     expect(map.rows[6].cells[6].level).toBeNull()
+  })
+})
+
+describe("Dashboard Admin: loadAdminDashboard (store in-memory)", () => {
+  const range = { from: "2026-11-16", to: "2026-11-30" }
+
+  const honorStore: HonorStore = {
+    loadSessionFacts: async () => [],
+    loadExistingRows: async () => [],
+    loadClosedPeriodStarts: async () => new Set<string>(),
+    saveRows: async () => {},
+  }
+
+  it("menggabungkan seluruh bagian dan menandai Perlu Tindakan null bila query gagal", async () => {
+    const data = await loadAdminDashboard({
+      range,
+      now: NOW,
+      honorStore,
+      metricsStore: {
+        loadPaidPayments: async () => [],
+        loadSlotCapacity: async () => [{ date: "2026-11-18", slotIndex: 2, opened: 3, booked: 1 }],
+        loadAttention: async () => {
+          throw new Error("db down")
+        },
+      },
+    })
+    expect(data.attention).toHaveLength(5)
+    expect(data.attention.every((a) => a.count === null)).toBe(true)
+    expect(data.kpis.keterisian).toMatchObject({ opened: 3, booked: 1 })
+    expect(data.heatmap.rows[1].cells.find((c) => c.day === "2026-11-18")).toMatchObject({ booked: 1, opened: 3 })
+  })
+
+  it("Perlu Tindakan membawa hitungan dan tautan tiap antrean", () => {
+    const items = buildAttentionItems({ pool: 2, reports: 0, transfer: 5, credentials: 1, applications: 3 })
+    expect(items.map((i) => [i.key, i.count])).toEqual([
+      ["pool", 2],
+      ["reports", 0],
+      ["transfer", 5],
+      ["credentials", 1],
+      ["applications", 3],
+    ])
+    expect(items.every((i) => i.href.startsWith("/admin/"))).toBe(true)
+    expect(urgentCount(items)).toBe(4)
   })
 })
 
