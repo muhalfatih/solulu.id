@@ -54,6 +54,12 @@
   "app/counselor/dashboard/loading.tsx": {
     "animate-pulse": 18
   },
+  "app/counselor/honor/HonorSayaClient.tsx": {
+    "card-override": 1
+  },
+  "app/counselor/honor/loading.tsx": {
+    "animate-pulse": 4
+  },
   "app/counselor/profile/CounselorProfileClient.tsx": {
     "animate-pulse": 1,
     "card-override": 26
