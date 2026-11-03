@@ -31,7 +31,7 @@ export function mapBookingRow(r: BookingJoinRow): AdminBookingItem {
   const stage = deriveStage({
     status: b.status,
     counselorAssigned: Boolean(b.counselorId),
-    rescheduleCount: b.rescheduleCount,
+    rescheduleCount: b.rescheduleCount + b.adminRescheduleCount,
     timerStartedAt: rep?.timerStartedAt ?? null,
     hasReport: Boolean(rep?.id),
   })
