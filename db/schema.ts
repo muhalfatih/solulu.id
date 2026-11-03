@@ -645,6 +645,39 @@ export const auditLogs = pgTable(
   })
 );
 
+// =============================================================================
+// WHATSAPP TEMPLATES & DISPATCH LOG (#31)
+// =============================================================================
+// Teks baku berparameter yang dikelola Superadmin. `key` tetap (lihat lib/whatsapp/templates.ts).
+export const whatsappTemplates = pgTable("whatsapp_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  key: text("key").notNull().unique(), // 'dispatch_link_sesi' | 'laporan_siap'
+  name: text("name").notNull(),
+  body: text("body").notNull(), // placeholder {{nama_klien}} {{tanggal}} {{slot}} {{link_sesi}} {{nama_konselor}}
+  updatedBy: uuid("updated_by"), // auth.users.id Superadmin terakhir
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Setiap klik kirim = satu baris "Sudah Dikirim" (template, booking, oleh siapa, kapan).
+export const whatsappDispatches = pgTable(
+  "whatsapp_dispatches",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    bookingId: uuid("booking_id")
+      .references(() => bookings.id, { onDelete: "cascade" })
+      .notNull(),
+    templateId: uuid("template_id").references(() => whatsappTemplates.id, { onDelete: "set null" }),
+    templateKey: text("template_key").notNull(),
+    sentBy: uuid("sent_by").notNull(), // auth.users.id staf yang mengklik
+    sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("idx_wa_dispatch_booking").on(table.bookingId, table.templateKey, table.sentAt)]
+);
+
+export type WhatsappTemplate = typeof whatsappTemplates.$inferSelect;
+export type WhatsappDispatch = typeof whatsappDispatches.$inferSelect;
+
 // Type helpers inferred from schema
 export type CounselorWeeklyTemplate = typeof counselorWeeklyTemplates.$inferSelect;
 export type NewCounselorWeeklyTemplate = typeof counselorWeeklyTemplates.$inferInsert;
