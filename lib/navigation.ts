@@ -14,6 +14,7 @@ import {
   Clock,
   Calendar,
   UserCheck,
+  Wallet,
 } from "lucide-react"
 
 export interface NavItem {
@@ -133,6 +134,12 @@ export const COUNSELOR_NAV_ITEMS: NavItem[] = [
     aliases: ["/counselor/schedules"],
   },
   {
+    href: "/counselor/honor",
+    label: "Honor Saya",
+    icon: Wallet,
+    description: "Honor per Periode Payroll, honor tertahan, dan alasannya",
+  },
+  {
     href: "/counselor/profile",
     label: "Profil & Berkas Legalitas",
     icon: UserCheck,
@@ -158,6 +165,7 @@ const ROUTE_SEGMENT_LABELS: Record<string, string> = {
   gallery: "Galeri Kegiatan",
   testimonials: "Kurasi Testimoni",
   profile: "Profil Saya",
+  honor: "Honor Saya",
   schedules: "Jadwal Praktik Mingguan",
   schedule: "Jadwal Praktik Mingguan",
   applications: "Aplikasi Calon Konselor",
