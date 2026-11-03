@@ -1,4 +1,6 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi } from "vitest"
+import { submitSessionReportAction, recordSessionExtensionAction } from "@/app/counselor/actions"
+import type { CounselorAuthContext } from "@/lib/counselor/types"
 import {
   CHIME_MINUTE,
   advanceTimer,
@@ -119,5 +121,86 @@ describe("Koreksi blok di Laporan Sesi", () => {
     expect(sessionReportSchema.safeParse({ ...base, overtimeBlocks: 2 }).success).toBe(false)
     expect(sessionReportSchema.safeParse({ ...base, overtimeBlocks: -1 }).success).toBe(false)
     expect(sessionReportSchema.safeParse(base).success).toBe(true)
+  })
+})
+
+describe("recordSessionExtensionAction: idempoten", () => {
+  it("tidak menimpa blok yang sudah tercatat (mis. hasil koreksi atau pencatatan ganda)", async () => {
+    const update = vi.fn()
+    const dbClient: any = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          innerJoin: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue([
+                {
+                  booking: {
+                    id: BOOKING_ID,
+                    isExtended: true,
+                    extensionMinutes: 30,
+                    extensionFee: "35000.00",
+                    extensionPaymentStatus: "PAID",
+                  },
+                  service: { overtimeRatePer30Min: "60000.00" },
+                },
+              ]),
+            }),
+          }),
+        }),
+      }),
+      update,
+    }
+    const res = await recordSessionExtensionAction(BOOKING_ID, {
+      currentUser: { id: "u", counselorId: "c-1", app_metadata: { role: "counselor" }, user_metadata: { role: "counselor" } },
+      dbClient,
+    })
+    expect(res.success).toBe(true)
+    expect(res.data?.fee).toBe(35000)
+    expect(update).not.toHaveBeenCalled()
+  })
+})
+
+describe("submitSessionReportAction: koreksi overtime", () => {
+  const counselorAuth: CounselorAuthContext = {
+    id: "counselor-user-1",
+    counselorId: "c-1",
+    app_metadata: { role: "counselor" },
+    user_metadata: { role: "counselor" },
+  }
+  const input = {
+    bookingId: BOOKING_ID,
+    mainIssue: "Stres akademik",
+    summary: "Ringkasan dinamika sesi yang cukup panjang.",
+  }
+  const deps = (applyOvertimeCorrection: (...a: any[]) => Promise<any>) => ({
+    currentUser: counselorAuth,
+    getBooking: async () => ({ id: BOOKING_ID, counselorId: "c-1", status: "confirmed" }),
+    saveReport: vi.fn().mockResolvedValue({ id: "rep-1" }),
+    applyOvertimeCorrection,
+  })
+
+  it("meneruskan koreksi blok ke penyimpanan sebelum laporan disimpan", async () => {
+    const apply = vi.fn().mockResolvedValue({ ok: true, update: {}, blocks: 0, fee: 0 })
+    const d = deps(apply)
+    const res = await submitSessionReportAction({ ...input, overtimeBlocks: 0 }, d)
+    expect(res.success).toBe(true)
+    expect(apply).toHaveBeenCalledWith(BOOKING_ID, "c-1", 0)
+    expect(d.saveReport).toHaveBeenCalled()
+  })
+
+  it("tidak menyentuh overtime bila blok tidak dikirim", async () => {
+    const apply = vi.fn()
+    const res = await submitSessionReportAction(input, deps(apply))
+    expect(res.success).toBe(true)
+    expect(apply).not.toHaveBeenCalled()
+  })
+
+  it("menggagalkan simpan laporan bila koreksi ditolak", async () => {
+    const apply = vi.fn().mockResolvedValue({ ok: false, error: "Tagihan sudah lunas." })
+    const d = deps(apply)
+    const res = await submitSessionReportAction({ ...input, overtimeBlocks: 0 }, d)
+    expect(res.success).toBe(false)
+    expect(res.error).toContain("Tagihan sudah lunas")
+    expect(d.saveReport).not.toHaveBeenCalled()
   })
 })
