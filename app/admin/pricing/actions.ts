@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, type AdminAuthContext } from "@/lib/auth/admin"
 import { requireStaffUser } from "@/lib/auth/staff"
 import { recordAudit } from "@/lib/audit/record"
 import { SUPERADMIN_ONLY } from "@/lib/auth/staff-role"

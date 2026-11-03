@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { eq, desc, and } from "drizzle-orm"
 import { db } from "@/db"
 import { testimonials } from "@/db/schema"
-import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, AdminAuthContext } from "@/lib/auth/admin"
 
 /**
  * Public action to retrieve featured active testimonials for the public homepage.

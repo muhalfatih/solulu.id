@@ -9,7 +9,7 @@ import {
   transactions,
   sessionReports,
 } from "@/db/schema"
-import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, type AdminAuthContext } from "@/lib/auth/admin"
 import {
   type FinanceLedgerItem,
   type FinanceReportMetrics,

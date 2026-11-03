@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { eq, desc, asc } from "drizzle-orm"
 import { db } from "@/db"
 import { specializations } from "@/db/schema"
-import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, AdminAuthContext } from "@/lib/auth/admin"
 
 export interface SpecializationItem {
   id: string

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { eq, desc } from "drizzle-orm"
 import { db } from "@/db"
 import { publicDocumentations } from "@/db/schema"
-import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, AdminAuthContext } from "@/lib/auth/admin"
 
 export interface GalleryInput {
   title: string

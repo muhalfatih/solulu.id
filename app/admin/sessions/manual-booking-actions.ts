@@ -14,7 +14,7 @@ import {
   parseTimeToMinutes,
 } from "@/lib/schedules/concurrency"
 import { generateSessionAccessToken } from "@/lib/booking/hold"
-import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, type AdminAuthContext } from "@/lib/auth/admin"
 import {
   adminManualBookingSchema,
   type AdminManualBookingInput,
