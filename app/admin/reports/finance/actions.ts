@@ -117,8 +117,6 @@ export async function getFinanceReportDataAction(params?: {
         baseFee = Number(r.grossAmount)
       } else if (r.customFeeRate && Number(r.customFeeRate) > 0) {
         baseFee = Number(r.customFeeRate)
-      } else {
-        baseFee = r.counselorType === "psychologist" ? 150000 : 85000
       }
 
       // Compute total amount (base session fee + any extension fee):

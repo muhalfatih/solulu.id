@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest"
 import {
   canClaim,
   isPoolOfferable,
+  keepsPoolReserve,
   isPastClaimCutoff,
   deriveStage,
   CLAIM_CUTOFF_HOURS,
@@ -25,6 +26,18 @@ describe("isPoolOfferable (ADR-0011)", () => {
     expect(isPoolOfferable({ poolBookings: 0, eligibleCounselors: 0 })).toBe(false)
     expect(isPoolOfferable({ poolBookings: 2, eligibleCounselors: 2 })).toBe(false)
     expect(isPoolOfferable({ poolBookings: 3, eligibleCounselors: 2 })).toBe(false)
+  })
+})
+
+describe("keepsPoolReserve (ADR-0011 guarantee on other paths)", () => {
+  it("lets a slot be used when enough eligible counselors remain for every pool booking", () => {
+    expect(keepsPoolReserve({ poolBookings: 0, eligibleCounselorsAfter: 0 })).toBe(true)
+    expect(keepsPoolReserve({ poolBookings: 1, eligibleCounselorsAfter: 1 })).toBe(true)
+    expect(keepsPoolReserve({ poolBookings: 2, eligibleCounselorsAfter: 3 })).toBe(true)
+  })
+  it("blocks using the last eligible free slot a paid pool booking depends on", () => {
+    expect(keepsPoolReserve({ poolBookings: 1, eligibleCounselorsAfter: 0 })).toBe(false)
+    expect(keepsPoolReserve({ poolBookings: 3, eligibleCounselorsAfter: 2 })).toBe(false)
   })
 })
 

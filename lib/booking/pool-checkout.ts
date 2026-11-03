@@ -20,7 +20,7 @@ import {
 import { CLAIM_CUTOFF_HOURS } from "@/lib/booking-cycle"
 import { formatTimeRange, isSlotBookable, MAX_PLATFORM_CONCURRENCY } from "@/lib/schedules/concurrency"
 import { FIXED_SLOTS, getSlotByIndex } from "@/lib/schedules/slots"
-import { getPoolOffer } from "@/lib/pool/store"
+import { getPoolOffer, lockPoolSlot } from "@/lib/pool/store"
 import { activePrice, toServicePricingView, type ServiceLike, type ServicePricingView } from "@/lib/services/pricing"
 import { getServiceById, listAllServices } from "@/lib/services/repository"
 import { createXenditInvoice } from "@/lib/xendit"
@@ -195,7 +195,7 @@ async function defaultCreatePoolBooking(
 ): Promise<{ bookingId: string; transactionId: string } | null> {
   return db.transaction(async (tx) => {
     // Serialisasi checkout pada slot yang sama; lock dilepas saat transaksi selesai.
-    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`pool:${params.date}:${params.slotIndex}`}))`)
+    await lockPoolSlot(tx as unknown as typeof db, params.date, params.slotIndex)
 
     const offer = await getPoolOffer(
       { date: params.date, slotIndex: params.slotIndex, serviceId: params.serviceId },

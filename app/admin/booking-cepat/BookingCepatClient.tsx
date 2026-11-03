@@ -123,7 +123,7 @@ export function BookingCepatClient({
       way === "xendit"
         ? { way }
         : way === "transfer"
-          ? { way, proofR2Key: proofKey, referenceNumber: referenceNumber || null }
+          ? { way, proofR2Key: proofKey, referenceNumber }
           : { way, reason }
     setSubmitting(true)
     setResult(null)
@@ -313,7 +313,7 @@ export function BookingCepatClient({
                   {proofKey ? <span className="text-xs text-muted-foreground">Terunggah: {proofKey}</span> : null}
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="ref">Nomor referensi (opsional)</Label>
+                  <Label htmlFor="ref">Nomor referensi transfer</Label>
                   <Input id="ref" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} />
                 </div>
               </>

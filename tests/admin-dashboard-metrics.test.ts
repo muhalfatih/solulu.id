@@ -23,7 +23,8 @@ describe("Dashboard Admin: filter rentang", () => {
   it("default dan nilai tidak dikenal jatuh ke Periode Payroll berjalan", () => {
     expect(parseRangeKey(undefined)).toBe("period")
     expect(parseRangeKey("bogus")).toBe("period")
-    expect(rangeForKey("period", NOW)).toEqual({ from: "2026-11-16", to: "2026-11-30" })
+    // US64: rentang berjalan berhenti di hari ini agar pembanding (hari sama tepat sebelumnya) adil
+    expect(rangeForKey("period", NOW)).toEqual({ from: "2026-11-16", to: "2026-11-18" })
   })
 
   it("prev-period, 7d, 30d, month", () => {
@@ -31,7 +32,7 @@ describe("Dashboard Admin: filter rentang", () => {
     expect(rangeForKey("prev-period", new Date("2026-11-03T03:00:00Z"))).toEqual({ from: "2026-10-16", to: "2026-10-31" })
     expect(rangeForKey("7d", NOW)).toEqual({ from: "2026-11-12", to: "2026-11-18" })
     expect(rangeForKey("30d", NOW)).toEqual({ from: "2026-10-20", to: "2026-11-18" })
-    expect(rangeForKey("month", NOW)).toEqual({ from: "2026-11-01", to: "2026-11-30" })
+    expect(rangeForKey("month", NOW)).toEqual({ from: "2026-11-01", to: "2026-11-18" })
   })
 
   it("memakai tanggal WIB, bukan UTC", () => {

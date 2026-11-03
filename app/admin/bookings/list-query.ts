@@ -3,7 +3,7 @@ import { db } from "@/db"
 import { bookings, counselors, schedules, sessionReports } from "@/db/schema"
 import type { TableState } from "@/lib/data-table/search-params"
 import type { AdminBookingItem, BookingCounselorOption } from "./actions"
-import { mapBookingRow } from "./map-row"
+import { mapBookingRow, payrollClosedColumn } from "./map-row"
 import { BOOKING_STATUS_VALUES } from "./table-config"
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -84,6 +84,7 @@ export async function listBookingsPage(state: TableState): Promise<BookingsPage>
         counselor: counselors,
         schedule: schedules,
         report: sessionReports,
+        payrollClosed: payrollClosedColumn,
       })
       .from(bookings)
       .leftJoin(counselors, eq(bookings.counselorId, counselors.id))

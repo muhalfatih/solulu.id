@@ -28,6 +28,14 @@ export function addDays(date: string, n: number): string {
   return new Date(Date.UTC(y, m - 1, d) + n * DAY_MS).toISOString().slice(0, 10)
 }
 
+/**
+ * Rentang yang sedang berjalan berhenti di hari ini (US64): pembanding memakai jumlah hari
+ * yang sama tepat sebelumnya, jadi 3 hari awal periode tidak dibandingkan dengan 15 hari penuh.
+ */
+function upToToday(end: string, today: string): string {
+  return end < today ? end : today
+}
+
 export function rangeForKey(key: RangeKey, now: Date): DateRange {
   const today = wibDateOf(now)
   switch (key) {
@@ -44,11 +52,11 @@ export function rangeForKey(key: RangeKey, now: Date): DateRange {
       const [y, m] = today.split("-").map(Number)
       const last = new Date(Date.UTC(y, m, 0)).getUTCDate()
       const mm = String(m).padStart(2, "0")
-      return { from: `${y}-${mm}-01`, to: `${y}-${mm}-${String(last).padStart(2, "0")}` }
+      return { from: `${y}-${mm}-01`, to: upToToday(`${y}-${mm}-${String(last).padStart(2, "0")}`, today) }
     }
     default: {
       const period = payrollPeriodFor(today)
-      return { from: period.startDate, to: period.endDate }
+      return { from: period.startDate, to: upToToday(period.endDate, today) }
     }
   }
 }

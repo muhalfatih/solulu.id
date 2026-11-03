@@ -127,7 +127,7 @@ describe("Ticket 30: Booking Cepat", () => {
   it("cara transfer: transaksi PAID + bukti, audit, lalu fulfillSession manual_bank", async () => {
     const { deps, audits, updates, fulfill } = setup()
     const res = await createBookingCepat(
-      { ...client, payment: { way: "transfer", proofR2Key: "uploads/bukti.jpg" } },
+      { ...client, payment: { way: "transfer", proofR2Key: "uploads/bukti.jpg", referenceNumber: "TRF-778812" } },
       deps,
       admin
     )
@@ -137,7 +137,19 @@ describe("Ticket 30: Booking Cepat", () => {
     expect(fulfill).toHaveBeenCalledWith("b-1", { source: "manual_bank" })
     expect(updates.some((u) => u.values.status === "PAID")).toBe(true)
     expect(updates.some((u) => u.values.manualPaymentProofR2Key === "uploads/bukti.jpg")).toBe(true)
+    expect(updates.some((u) => u.values.referenceNumber === "TRF-778812")).toBe(true)
     expect(audits).toHaveLength(1)
+  })
+
+  it("transfer tanpa nomor referensi ditolak (tidak dikarang sistem)", async () => {
+    const { deps, audits } = setup()
+    const res = await createBookingCepat(
+      { ...client, payment: { way: "transfer", proofR2Key: "uploads/bukti.jpg" } },
+      deps,
+      admin
+    )
+    expect(res.success).toBe(false)
+    expect(audits).toHaveLength(0)
   })
 
   it("transfer tanpa bukti ditolak", async () => {

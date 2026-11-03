@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { eq, and, gte, inArray, sql } from "drizzle-orm"
 import { db } from "@/db"
+import { keepsPoolReserveWithout, POOL_RESERVE_MESSAGE } from "@/lib/pool/store"
 import { recordAudit } from "@/lib/audit/record"
 import { counselors, schedules, bookings, transactions, zoomAccounts } from "@/db/schema"
 import {
@@ -479,10 +480,13 @@ export async function createAdminManualBookingAction(
       if (options?.updateScheduleStatusFn) {
         await options.updateScheduleStatusFn(scheduleId!, "booked")
       } else {
-        await db
-          .update(schedules)
-          .set({ status: "booked" })
-          .where(eq(schedules.id, scheduleId!))
+        const kept = await db.transaction(async (tx) => {
+          // ADR-0011: jadwal terakhir yang dibutuhkan booking Konselor Bebas tidak boleh dipakai.
+          if (!(await keepsPoolReserveWithout(scheduleId!, tx as unknown as typeof db))) return false
+          await tx.update(schedules).set({ status: "booked" }).where(eq(schedules.id, scheduleId!))
+          return true
+        })
+        if (!kept) return { success: false, error: POOL_RESERVE_MESSAGE }
       }
     }
 

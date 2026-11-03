@@ -11,6 +11,7 @@ import {
   zoomAccounts,
 } from "@/db/schema"
 import { isServiceOfferedBy } from "@/lib/services/pricing"
+import { keepsPoolReserveWithout } from "@/lib/pool/store"
 import { deleteZoomMeeting, getZoomAccessToken } from "@/lib/zoom/client"
 import { fulfillSession } from "@/lib/fulfillment/fulfill"
 import { getPlatformSettings } from "@/lib/settings/platform"
@@ -84,6 +85,7 @@ export function createRescheduleDeps(): RescheduleDeps {
             // Booking lama sebelum Layanan ada: aturan tipe tetap berlaku, Layanan nonaktif tidak memblokir reschedule.
             return isServiceOfferedBy({ ...svc, isActive: true }, c, excluded.map((e) => e.serviceId))
           },
+          keepsPoolReserveWithout: (id) => keepsPoolReserveWithout(id, trx as unknown as typeof db),
           claimSlot: async (id) => {
             const claimed = await trx
               .update(schedules)

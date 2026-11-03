@@ -7,7 +7,7 @@ import { bookings, counselors, schedules, transactions, sessionReports } from "@
 import { getAuthenticatedAdmin, AdminAuthContext } from "@/lib/auth/admin"
 import { recordAudit } from "@/lib/audit/record"
 import { getAppBaseUrl } from "@/lib/url"
-import { mapBookingRow } from "./map-row"
+import { mapBookingRow, payrollClosedColumn } from "./map-row"
 import {
   evaluateNoShow,
   loadNoShowBookingFacts,
@@ -179,6 +179,7 @@ export async function getBookingsAdminAction(
           counselor: counselors,
           schedule: schedules,
           report: sessionReports,
+          payrollClosed: payrollClosedColumn,
         })
         .from(bookings)
         .leftJoin(counselors, eq(bookings.counselorId, counselors.id))

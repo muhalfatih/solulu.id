@@ -1,5 +1,6 @@
 import { eq, and, sql } from "drizzle-orm"
 import { db } from "@/db"
+import { keepsPoolReserveWithout, POOL_RESERVE_MESSAGE } from "@/lib/pool/store"
 import {
   counselors,
   schedules,
@@ -748,6 +749,10 @@ export async function executeCreateGuestBooking(
       }
     } else {
       const txResult = await db.transaction(async (tx) => {
+        // ADR-0011: jangan pakai jadwal terakhir yang dibutuhkan booking Konselor Bebas di slot ini.
+        if (!(await keepsPoolReserveWithout(schedule.id, tx as unknown as typeof db))) {
+          throw new Error(POOL_RESERVE_MESSAGE)
+        }
         await tx
           .update(schedules)
           .set({

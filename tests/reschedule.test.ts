@@ -62,7 +62,8 @@ describe("rules (Modul Siklus Booking)", () => {
 function makeWorld(
   over: Partial<RescheduleBookingFacts> = {},
   failAudit = false,
-  counselorsNotOffering: string[] = []
+  counselorsNotOffering: string[] = [],
+  poolReserved: string[] = []
 ) {
   const booking: RescheduleBookingFacts = {
     id: "b1",
@@ -98,6 +99,7 @@ function makeWorld(
       ref.bookingId === booking.id || ref.accessToken === booking.accessToken ? { ...booking } : null,
     loadSlot: async (id) => (slots.get(id) ? { ...slots.get(id)! } : null),
     counselorOffersBookingService: async (_bookingId, counselorId) => !counselorsNotOffering.includes(counselorId),
+    keepsPoolReserveWithout: async (id) => !poolReserved.includes(id),
     claimSlot: async (id) => {
       const s = slots.get(id)!
       if (s.status !== "available") return false
@@ -275,6 +277,14 @@ describe("rescheduleByAdmin", () => {
     expect(res.error).toMatch(/Layanan/)
     expect(w.booking.counselorId).toBe("c1")
     expect(w.audit).toHaveLength(0)
+  })
+
+  it("refuses a slot that a paid Konselor Bebas booking still depends on (ADR-0011)", async () => {
+    const w = makeWorld({}, false, [], ["s-other"])
+    const res = await rescheduleByAdmin({ bookingId: "b1", newScheduleId: "s-other", actor: admin }, w.deps)
+    expect(res.success).toBe(false)
+    expect(res.error).toMatch(/Konselor Bebas/)
+    expect(w.booking.scheduleId).toBe("s-old")
   })
 
   it("works inside the client cutoff and after the quota is used", async () => {

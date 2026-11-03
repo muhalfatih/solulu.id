@@ -21,7 +21,11 @@ export const bookingCepatSchema = z.object({
     z.object({
       way: z.literal("transfer"),
       proofR2Key: z.string().trim().min(1, "Unggah bukti transfer terlebih dahulu"),
-      referenceNumber: z.string().trim().max(100).optional().nullable(),
+      referenceNumber: z
+        .string({ error: "Nomor referensi transfer wajib diisi" })
+        .trim()
+        .min(1, "Nomor referensi transfer wajib diisi")
+        .max(100, "Nomor referensi maksimal 100 karakter"),
     }),
     z.object({
       way: z.literal("manual_zero"),

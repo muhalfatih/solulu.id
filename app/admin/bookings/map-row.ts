@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm"
 import { bookings, counselors, schedules, sessionReports } from "@/db/schema"
 import {
   canMarkNoShow,
@@ -13,7 +14,16 @@ export interface BookingJoinRow {
   counselor: typeof counselors.$inferSelect | null
   schedule: typeof schedules.$inferSelect | null
   report: typeof sessionReports.$inferSelect | null
+  /** Honor sesi ini sudah masuk Periode Payroll yang ditutup (tahap "Payroll Ditutup"). */
+  payrollClosed?: boolean
 }
+
+/** Kolom select untuk `BookingJoinRow.payrollClosed`. */
+export const payrollClosedColumn = sql<boolean>`exists (
+  select 1 from counselor_honors h
+  join payroll_periods p on p.id = h.base_period_id
+  where h.booking_id = ${bookings.id} and p.status = 'closed'
+)`
 
 /** Memetakan satu baris join Booking ke bentuk yang ditampilkan di tabel admin. */
 export function mapBookingRow(r: BookingJoinRow): AdminBookingItem {
@@ -39,6 +49,7 @@ export function mapBookingRow(r: BookingJoinRow): AdminBookingItem {
     rescheduleCount: b.rescheduleCount + b.adminRescheduleCount,
     timerStartedAt: rep?.timerStartedAt ?? null,
     hasReport: Boolean(rep?.submittedAt),
+    payrollClosed: Boolean(r.payrollClosed),
   })
   const noShowCheck =
     dateStr && (s?.startTime || pool)
@@ -66,8 +77,8 @@ export function mapBookingRow(r: BookingJoinRow): AdminBookingItem {
     counselorType: counselorTypeLabel,
     scheduleDate: dateStr,
     slotIndex: s?.slotIndex || pool?.slotIndex || 1,
-    startTime: s?.startTime ? s.startTime.slice(0, 5) : (pool?.startTime ?? "08:00"),
-    endTime: s?.endTime ? s.endTime.slice(0, 5) : (pool?.endTime ?? "10:00"),
+    startTime: s?.startTime ? s.startTime.slice(0, 5) : (pool?.startTime ?? ""),
+    endTime: s?.endTime ? s.endTime.slice(0, 5) : (pool?.endTime ?? ""),
     timeRange,
     zoomMeetingId: b.zoomMeetingId,
     zoomJoinUrl: b.zoomJoinUrl,

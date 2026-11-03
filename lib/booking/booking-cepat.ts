@@ -113,7 +113,7 @@ export function buildInTransactionHook(
         .set({
           paymentProvider: "manual",
           paymentMethod: "Transfer Bank (bukti diunggah Admin)",
-          referenceNumber: payment.referenceNumber || ctx.referenceNumber,
+          referenceNumber: payment.referenceNumber,
           status: "PAID",
           paidAt: now,
           adminNotes: "Booking Cepat: bukti transfer diunggah Admin",

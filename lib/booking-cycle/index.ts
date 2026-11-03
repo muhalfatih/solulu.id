@@ -266,6 +266,15 @@ export function isPoolOfferable(input: { poolBookings: number; eligibleCounselor
   return input.poolBookings < input.eligibleCounselors
 }
 
+/**
+ * Jaminan pool di jalur lain (checkout langsung, Booking Cepat, reschedule, cuti):
+ * slot konselor boleh dipakai hanya bila sesudahnya masih ada cukup konselor yang
+ * memenuhi syarat untuk setiap booking pool yang belum ditugaskan di slot itu.
+ */
+export function keepsPoolReserve(input: { poolBookings: number; eligibleCounselorsAfter: number }): boolean {
+  return input.poolBookings <= input.eligibleCounselorsAfter
+}
+
 export interface ClaimInput {
   status: BookingStatus
   /** Booking pool sudah punya konselor. */

@@ -7,7 +7,7 @@ import {
   schedules,
   services,
 } from "@/db/schema"
-import { isPoolOfferable } from "@/lib/booking-cycle"
+import { isPoolOfferable, keepsPoolReserve } from "@/lib/booking-cycle"
 import { FIXED_SLOTS, getSlotByIndex } from "@/lib/schedules/slots"
 import type { CounselorSlotContext, PoolBooking, PoolStore } from "./claim"
 
@@ -57,6 +57,56 @@ export async function getPoolOffer(
   const eligibleCounselors = eligible?.n ?? 0
   const poolBookings = pool?.n ?? 0
   return { offerable: isPoolOfferable({ poolBookings, eligibleCounselors }), poolBookings, eligibleCounselors }
+}
+
+/** Kunci per slot yang sama dengan checkout pool; dilepas saat transaksi selesai. */
+export async function lockPoolSlot(database: Database, date: string, slotIndex: number): Promise<void> {
+  await database.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`pool:${date}:${slotIndex}`}))`)
+}
+
+export const POOL_RESERVE_MESSAGE =
+  "Slot ini dicadangkan untuk klien Konselor Bebas yang sudah membayar. Pilih slot atau konselor lain."
+
+/**
+ * Panggil di dalam transaksi SEBELUM jadwal `scheduleId` dipakai (reserve/booked/cuti).
+ * Mengunci slot lalu memastikan booking pool yang belum ditugaskan di slot itu masih
+ * punya cukup konselor yang memenuhi syarat tanpa jadwal ini (ADR-0011).
+ */
+export async function keepsPoolReserveWithout(scheduleId: string, database: Database): Promise<boolean> {
+  const [target] = await database
+    .select({ date: schedules.date, slotIndex: schedules.slotIndex })
+    .from(schedules)
+    .where(eq(schedules.id, scheduleId))
+    .limit(1)
+  if (!target) return true
+  const date = String(target.date)
+  await lockPoolSlot(database, date, target.slotIndex)
+
+  const pending = await database
+    .select({ serviceId: bookings.serviceId })
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.poolDate, date),
+        eq(bookings.poolSlotIndex, target.slotIndex),
+        isNull(bookings.counselorId),
+        inArray(bookings.status, ["pending_payment", "confirmed"])
+      )
+    )
+  if (pending.length === 0) return true
+
+  const serviceIds = [...new Set(pending.map((p) => p.serviceId).filter((id): id is string => Boolean(id)))]
+  for (const serviceId of serviceIds) {
+    const [eligible] = await database
+      .select({ n: count() })
+      .from(schedules)
+      .innerJoin(counselors, eq(schedules.counselorId, counselors.id))
+      .innerJoin(services, eq(services.id, serviceId))
+      .where(and(eligibleFreeScheduleWhere(date, target.slotIndex, serviceId), sql`${schedules.id} <> ${scheduleId}`))
+    // Sama konservatifnya dengan penawaran: semua booking pool di slot ini dihitung per Layanan.
+    if (!keepsPoolReserve({ poolBookings: pending.length, eligibleCounselorsAfter: eligible?.n ?? 0 })) return false
+  }
+  return true
 }
 
 export interface PoolQueueItem {

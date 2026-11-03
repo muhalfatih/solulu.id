@@ -72,6 +72,8 @@ export interface RescheduleTx {
    * tidak dimatikan Admin untuk konselor itu (US14/US18).
    */
   counselorOffersBookingService(bookingId: string, counselorId: string): Promise<boolean>
+  /** ADR-0011: mengunci slot; false bila jadwal ini dibutuhkan booking Konselor Bebas. */
+  keepsPoolReserveWithout(scheduleId: string): Promise<boolean>
   /** Atomik: tandai Booked hanya bila masih Available; false bila keduluan. */
   claimSlot(scheduleId: string): Promise<boolean>
   releaseSlot(scheduleId: string): Promise<void>
@@ -155,6 +157,9 @@ async function applyReschedule(
   slot: RescheduleSlot,
   by: { initiatedBy: "client" | "admin"; actorId: string | null }
 ): Promise<StaleZoomMeeting | null> {
+  if (!(await tx.keepsPoolReserveWithout(slot.id))) {
+    reject("Slot ini dicadangkan untuk klien Konselor Bebas yang sudah membayar. Pilih slot lain.")
+  }
   if (!(await tx.claimSlot(slot.id))) reject("Slot yang dipilih baru saja diambil. Silakan pilih slot lain.")
   await tx.releaseSlot(booking.scheduleId)
   await tx.updateBooking(booking.id, {

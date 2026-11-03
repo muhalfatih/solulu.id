@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { eq, and, sql, gte, lte, inArray } from "drizzle-orm"
 import { db, type DbClient } from "@/db"
+import { keepsPoolReserveWithout } from "@/lib/pool/store"
 import { schedules, bookings, counselors, counselorWeeklyTemplates } from "@/db/schema"
 import { FIXED_SLOTS, type FixedSlot } from "@/lib/schedules/slots"
 import {
@@ -602,14 +603,20 @@ export async function submitLeaveRequestAction(
           if (options?.saveLeaveSlots) {
             await options.saveLeaveSlots([{ id: existing.id, isLeave: true, leaveReason }])
           } else {
-            await db
-              .update(schedules)
-              .set({
-                isLeave: true,
-                leaveReason,
-                status: "cancelled",
-              })
-              .where(eq(schedules.id, existing.id))
+            const applied = await db.transaction(async (tx) => {
+              // ADR-0011: jadwal yang dibutuhkan booking Konselor Bebas tidak bisa dijadikan cuti.
+              if (!(await keepsPoolReserveWithout(existing.id, tx as unknown as typeof db))) return false
+              await tx
+                .update(schedules)
+                .set({
+                  isLeave: true,
+                  leaveReason,
+                  status: "cancelled",
+                })
+                .where(eq(schedules.id, existing.id))
+              return true
+            })
+            if (!applied) continue
           }
           affectedSlotsCount++
         } else {
