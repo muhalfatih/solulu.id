@@ -66,7 +66,7 @@ export function HonorSayaClient({ view, error }: HonorSayaClientProps) {
       )}
 
       {view && view.held.lines.length > 0 && (
-        <Card className="border-amber-300/70">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Lock className="size-4" aria-hidden />

@@ -116,22 +116,15 @@ export function countViolations(source) {
 }
 
 /**
- * Compares current violations with the baseline. New or increased violations
- * fail; decreases are reported so the baseline can be tightened.
+ * Zero tolerance: every violation found in a portal file is a failure.
+ * Returns one entry per file and rule with the number of occurrences.
  */
-export function compareToBaseline(current, baseline) {
+export function findViolations(current) {
   const failures = []
-  const improvements = []
-  const files = new Set([...Object.keys(current), ...Object.keys(baseline)])
-  for (const file of [...files].sort()) {
-    const now = current[file] ?? {}
-    const allowed = baseline[file] ?? {}
-    for (const rule of new Set([...Object.keys(now), ...Object.keys(allowed)])) {
-      const have = now[rule] ?? 0
-      const max = allowed[rule] ?? 0
-      if (have > max) failures.push({ file, rule, have, max })
-      else if (have < max) improvements.push({ file, rule, have, max })
+  for (const file of Object.keys(current).sort()) {
+    for (const [rule, have] of Object.entries(current[file])) {
+      if (have > 0) failures.push({ file, rule, have })
     }
   }
-  return { failures, improvements }
+  return failures
 }

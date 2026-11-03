@@ -149,8 +149,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
     [elapsedMinutes, session.overtimeRatePer30Min]
   )
 
-  // Host Key fallback
-  const hostKey = session.zoomHostKey || "849201"
+  const hostKey = session.zoomHostKey
 
   // 1. Tick Interval
   React.useEffect(() => {
@@ -230,6 +229,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
 
   // Copy Host Key
   const handleCopyHostKey = async () => {
+    if (!hostKey) return
     try {
       await navigator.clipboard.writeText(hostKey)
       setCopiedKey(true)
@@ -295,7 +295,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
         id="floating-timer-minimized"
         aria-label="Timer Sesi Konseling (Minimalis)"
         className={cn(
-          "fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-2.5 rounded-full border shadow-lg backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-3",
+          "fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-2.5 rounded-full border shadow-lg backdrop-blur-md transition-colors duration-300 animate-in fade-in slide-in-from-bottom-3",
           currentStage.containerClassName,
           currentStage.glowClassName
         )}
@@ -358,7 +358,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
       role="region"
       aria-label="Floating Timer Konseling"
       className={cn(
-        "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[410px] rounded-2xl border shadow-2xl backdrop-blur-md transition-all duration-300 animate-in fade-in zoom-in-95",
+        "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[410px] rounded-2xl border shadow-2xl backdrop-blur-md transition-colors duration-300 animate-in fade-in zoom-in-95",
         currentStage.containerClassName,
         currentStage.glowClassName
       )}
@@ -367,7 +367,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
       <p role="status" aria-live="polite" className="sr-only">
         {srAnnouncement}
       </p>
-      <Card className="border-0 bg-background/95 shadow-none overflow-hidden">
+      <Card className="overflow-hidden">
         {/* Header Bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/70 bg-muted/40">
           <div className="flex items-center gap-2">
@@ -432,7 +432,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
           </div>
         </div>
 
-        <CardContent className="p-4 flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-4">
           {/* Main Digital Clock & Stage Banner */}
           <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-muted/30 border border-border/70 relative overflow-hidden text-center gap-1.5">
             <span className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground">
@@ -446,9 +446,9 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
                 className={cn(
                   "font-mono text-4xl sm:text-5xl font-black tracking-tight tabular-nums transition-colors duration-300",
                   currentStage.color === "green" && "text-emerald-700 dark:text-emerald-400",
-                  currentStage.color === "amber" && "text-amber-700 dark:text-amber-400 animate-pulse",
+                  currentStage.color === "amber" && "text-amber-700 dark:text-amber-400",
                   currentStage.color === "blue" && "text-sky-700 dark:text-sky-400",
-                  currentStage.color === "orange" && "text-orange-700 dark:text-orange-400 animate-pulse",
+                  currentStage.color === "orange" && "text-orange-700 dark:text-orange-400",
                   currentStage.color === "red" && "text-rose-600 dark:text-rose-400 animate-bounce"
                 )}
               >
@@ -490,7 +490,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
                   Host Key Zoom (6 Digit)
                 </span>
                 <span className="font-mono text-base font-bold text-foreground tracking-wider" id="zoom-host-key-text">
-                  {hostKey}
+                  {hostKey ?? "Belum tersedia"}
                 </span>
               </div>
             </div>
@@ -503,6 +503,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
                     variant="outline"
                     className="h-8 gap-1.5 text-xs font-semibold border-border/80"
                     onClick={handleCopyHostKey}
+                    disabled={!hostKey}
                     id="btn-copy-host-key"
                   >
                     {copiedKey ? (
@@ -584,7 +585,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
           {elapsedMinutes >= 96 && (
             <div
               className={cn(
-                "p-3.5 rounded-xl border flex flex-col gap-2.5 transition-all duration-300",
+                "p-3.5 rounded-xl border flex flex-col gap-2.5 transition-colors duration-300",
                 extensionRecorded
                   ? "border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
                   : "border-orange-500/40 bg-orange-500/10 text-orange-800 dark:text-orange-300"
@@ -706,7 +707,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
               className={cn(
                 "flex-1 h-9 gap-1.5 text-xs font-semibold shadow-xs",
                 elapsedSeconds >= 120 * 60
-                  ? "bg-rose-600 hover:bg-rose-700 text-white animate-pulse"
+                  ? "bg-rose-600 hover:bg-rose-700 text-white"
                   : "bg-primary text-primary-foreground"
               )}
               onClick={handleEndSession}
