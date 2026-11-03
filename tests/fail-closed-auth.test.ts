@@ -41,8 +41,8 @@ import { getAuthenticatedAdmin } from "@/app/admin/counselors/actions"
 import { getAuthenticatedOperator } from "@/app/operator/actions"
 import { getAuthenticatedCounselor } from "@/lib/counselor/auth"
 import { updatePlatformSettingsAction } from "@/app/admin/settings/actions"
+import { setServiceActiveAction } from "@/app/admin/layanan/actions"
 import {
-  updateRolePricingAction,
   createVoucherAdminAction,
   toggleVoucherStatusAction,
   deleteVoucherAdminAction,
@@ -140,36 +140,10 @@ describe("demo cookies grant no access to any portal", () => {
 describe("tarif and voucher changes are Superadmin-only (Admin is read-only)", () => {
   const admin = { id: "a1", app_metadata: { role: "admin" } }
   const superadmin = { id: "s1", app_metadata: { role: "superadmin" } }
-  const pricing = { regularPrice: 100000, salePrice: 90000, isSaleActive: false, allowVoucher: true }
-
-  it("denies updateRolePricingAction for Admin", async () => {
-    const result = await updateRolePricingAction("sebaya", pricing, { currentUser: admin })
+  it("denies Layanan mutations for Admin", async () => {
+    const result = await setServiceActiveAction("svc-1", false, { currentUser: admin })
     expect(result.success).toBe(false)
-    expect(result.error).toContain("Superadmin")
-  })
-
-  it("allows updateRolePricingAction for Superadmin", async () => {
-    const result = await updateRolePricingAction("sebaya", pricing, {
-      currentUser: superadmin,
-      updateServiceFn: async (slug) => ({
-        id: "svc-1",
-        name: "Partner Cerita",
-        slug,
-        description: null,
-        basePrice: "100000.00",
-        promoPrice: null,
-        allowVoucher: true,
-        overtimeRatePer30Min: "35000.00",
-        basePayoutPercent: 70,
-        overtimePayoutPercent: 80,
-        allowedCounselorTypes: ["peer"],
-        isActive: true,
-        sortOrder: 1,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }),
-    })
-    expect(result.success).toBe(true)
+    if (!result.success) expect(result.error).toContain("Superadmin")
   })
 
   it("denies voucher mutations for Admin before touching the database", async () => {

@@ -54,27 +54,11 @@ import {
   FieldDescription,
 } from "@/components/ui/field"
 import {
-  getPlatformPricingAction,
-  updateRolePricingAction,
   getVouchersAdminAction,
   createVoucherAdminAction,
   toggleVoucherStatusAction,
   deleteVoucherAdminAction,
 } from "@/app/admin/pricing/actions"
-import type { PlatformSettingsData } from "@/lib/settings/platform"
-
-export interface RolePricingState {
-  id: "sebaya" | "psikolog"
-  title: string
-  subtitle: string
-  badge: string
-  duration: string
-  regularPrice: number
-  isSaleActive: boolean
-  salePrice: number
-  allowVoucher: boolean
-  overtimeRate: number
-}
 
 export interface VoucherItem {
   id: string
@@ -88,54 +72,18 @@ export interface VoucherItem {
   expiryDate: string
 }
 
-const INITIAL_ROLES: RolePricingState[] = [
-  {
-    id: "sebaya",
-    title: "Konselor Sebaya",
-    subtitle: "Pendampingan emosional, stres ringan hingga sedang (Lulusan S1 Psikologi).",
-    badge: "Non-Klinis",
-    duration: "90 Menit",
-    regularPrice: 85000,
-    isSaleActive: true,
-    salePrice: 49000,
-    allowVoucher: true,
-    overtimeRate: 35000,
-  },
-  {
-    id: "psikolog",
-    title: "Psikolog Klinis",
-    subtitle: "Intervensi klinis psikoterapeutik, rujukan SRQ-20 & asesmen mendalam.",
-    badge: "Izin Praktik STR/SIPP",
-    duration: "90 Menit",
-    regularPrice: 150000,
-    isSaleActive: true,
-    salePrice: 129000,
-    allowVoucher: true,
-    overtimeRate: 60000,
-  },
-]
-
 interface FeesTabProps {
-  formData: PlatformSettingsData
-  setFormData: React.Dispatch<React.SetStateAction<PlatformSettingsData>>
   isSuperadmin: boolean
-  onFeedback?: (feedback: { type: "success" | "error"; message: string } | null) => void
 }
 
-export function FeesTab({
-  formData,
-  setFormData,
-  isSuperadmin,
-  onFeedback,
-}: FeesTabProps) {
-  const [roles, setRoles] = React.useState<RolePricingState[]>(INITIAL_ROLES)
+/** Tab voucher. Tarif Layanan dikelola di /admin/layanan (Superadmin saja yang dapat mengubah). */
+export function FeesTab({ isSuperadmin }: FeesTabProps) {
   const [vouchers, setVouchers] = React.useState<VoucherItem[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "exhausted">("all")
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
-  const [isSavingPricing, setIsSavingPricing] = React.useState(false)
 
   // Create Voucher Modal State
   const [isModalOpen, setIsModalOpen] = React.useState(false)
@@ -159,28 +107,7 @@ export function FeesTab({
     setIsLoading(true)
     setErrorMessage(null)
     try {
-      const [pricingRes, vouchersRes] = await Promise.all([
-        getPlatformPricingAction(),
-        getVouchersAdminAction(),
-      ])
-
-      if (pricingRes.success && pricingRes.data) {
-        const { peer, psychologist } = pricingRes.data
-        setRoles((prev) =>
-          prev.map((role) => {
-            const source = role.id === "sebaya" ? peer : psychologist
-            if (!source) return role
-            return {
-              ...role,
-              regularPrice: source.basePrice,
-              isSaleActive: source.isSaleActive,
-              salePrice: source.promoPrice,
-              allowVoucher: source.allowVoucher,
-              overtimeRate: source.overtimeRatePer30Min,
-            }
-          })
-        )
-      }
+      const vouchersRes = await getVouchersAdminAction()
 
       if (vouchersRes.success && vouchersRes.data) {
         const mappedVouchers: VoucherItem[] = vouchersRes.data.map((v: any) => {
@@ -224,7 +151,7 @@ export function FeesTab({
         setVouchers([])
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Gagal memuat tarif dan data voucher.")
+      setErrorMessage(err.message || "Gagal memuat data voucher.")
     } finally {
       setIsLoading(false)
     }
@@ -233,47 +160,6 @@ export function FeesTab({
   React.useEffect(() => {
     loadData()
   }, [loadData])
-
-  const handleUpdateRole = (id: "sebaya" | "psikolog", field: Partial<RolePricingState>) => {
-    setRoles((prev) => prev.map((r) => (r.id === id ? { ...r, ...field } : r)))
-  }
-
-  const handleSaveAllPricingAndExtend = async () => {
-    setIsSavingPricing(true)
-    setErrorMessage(null)
-    try {
-      // Simpan tarif 90 menit dan tarif overtime masing-masing Layanan (ADR-0010)
-      for (const role of roles) {
-        const res = await updateRolePricingAction(role.id, {
-          regularPrice: role.regularPrice,
-          salePrice: role.salePrice,
-          isSaleActive: role.isSaleActive,
-          allowVoucher: role.allowVoucher,
-          overtimeRatePer30Min: role.overtimeRate,
-        })
-        if (!res.success) throw new Error(res.error)
-      }
-
-      showToast("Seluruh konfigurasi tarif layanan & extend sesi berhasil disimpan ke database.")
-      if (onFeedback) {
-        onFeedback({
-          type: "success",
-          message: "Konfigurasi tarif layanan dan extend sesi berhasil diperbarui di database produksi.",
-        })
-      }
-    } catch (err: any) {
-      const msg = err.message || "Gagal menyimpan tarif ke database."
-      setErrorMessage(msg)
-      if (onFeedback) {
-        onFeedback({
-          type: "error",
-          message: msg,
-        })
-      }
-    } finally {
-      setIsSavingPricing(false)
-    }
-  }
 
   const handleToggleVoucherStatus = async (voucher: VoucherItem) => {
     const nextActive = voucher.status !== "active"
@@ -377,8 +263,6 @@ export function FeesTab({
     return matchQuery && matchStatus
   })
 
-  const peerRole = roles.find((r) => r.id === "sebaya") || INITIAL_ROLES[0]
-  const psychologistRole = roles.find((r) => r.id === "psikolog") || INITIAL_ROLES[1]
   const activeVouchersCount = vouchers.filter((v) => v.status === "active").length
 
   return (
@@ -430,323 +314,6 @@ export function FeesTab({
         </Alert>
       )}
 
-      {/* SECTION 1 & 2: KONFIGURASI TARIF RESMI & EXTEND FEES */}
-      <Card className="border border-border/80 shadow-xs">
-        <CardHeader className="pt-6 px-6 pb-5 border-b border-border/60">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <DollarSign className="size-4 text-primary" aria-hidden="true" />
-                  <span>Tarif Konseling 90 Menit &amp; Perpanjangan Sesi (+30 Menit)</span>
-                </CardTitle>
-                <Badge variant="outline" className="text-[11px] font-mono">
-                  SOP Terintegrasi
-                </Badge>
-              </div>
-              <CardDescription className="text-xs leading-relaxed text-muted-foreground">
-                Konfigurasi harga patokan 90 menit per jenis layanan, diskon promo, opsi voucher, serta biaya perpanjangan sesi tambahan.
-              </CardDescription>
-            </div>
-
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleSaveAllPricingAndExtend}
-              disabled={isSavingPricing || isLoading}
-              className="gap-2 font-medium cursor-pointer shadow-xs shrink-0 self-start sm:self-center"
-            >
-              {isSavingPricing ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Save className="size-3.5" />
-              )}
-              <span>{isSavingPricing ? "Menyimpan Tarif..." : "Simpan Tarif & Extend"}</span>
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent className="pt-6 px-6 pb-6 flex flex-col gap-6">
-          {/* Subheading Layanan 90 Menit */}
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              1. Tarif Sesi Standar (90 Menit)
-            </span>
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <ShieldCheck className="size-3.5 text-primary shrink-0" aria-hidden="true" />
-              <span className="hidden sm:inline">Biaya gateway Xendit diserap platform</span>
-            </div>
-          </div>
-
-          {/* 2-Column Grid: Role Sebaya & Role Psikolog */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
-            {isLoading ? (
-              Array.from({ length: 2 }).map((_, i) => (
-                <Card
-                  key={`pricing-skel-${i}`}
-                  className="p-5 flex flex-col justify-between gap-5 shadow-xs"
-                >
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
-                      <Skeleton className="h-5 w-36 rounded" />
-                      <Skeleton className="h-5 w-24 rounded" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 items-end">
-                      <div className="flex flex-col gap-1.5">
-                        <Skeleton className="h-4 w-20 rounded" />
-                        <Skeleton className="h-9 w-full rounded-md" />
-                      </div>
-                      <div className="flex flex-col gap-1.5">
-                        <Skeleton className="h-4 w-20 rounded" />
-                        <Skeleton className="h-9 w-full rounded-md" />
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))
-            ) : (
-              roles.map((role) => {
-                const discountNominal = Math.max(0, role.regularPrice - role.salePrice)
-                const discountPercent =
-                  role.regularPrice > 0 ? Math.round((discountNominal / role.regularPrice) * 100) : 0
-                const activePrice = role.isSaleActive ? role.salePrice : role.regularPrice
-
-                return (
-                  <Card
-                    key={role.id}
-                    className="p-5 flex flex-col justify-between gap-5 shadow-xs hover:border-primary/30 transition-colors bg-muted/10"
-                  >
-                    <div className="flex flex-col gap-4">
-                      {/* Role Header */}
-                      <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-foreground text-sm tracking-tight">
-                            {role.title}
-                          </span>
-                          <Badge
-                            variant={role.id === "psikolog" ? "default" : "secondary"}
-                            className="text-[10px] py-0 px-2 font-medium"
-                          >
-                            {role.badge}
-                          </Badge>
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] text-muted-foreground">Tarif Aktif:</span>
-                          <span className="text-sm font-bold text-foreground font-mono tabular-nums">
-                            Rp {activePrice.toLocaleString("id-ID")}
-                          </span>
-                          {role.isSaleActive && discountPercent > 0 && (
-                            <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
-                              (-{discountPercent}%)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {role.subtitle}
-                      </p>
-
-                      {/* Pricing Inputs */}
-                      <div className={`grid ${role.isSaleActive ? "grid-cols-2 gap-3" : "grid-cols-1"} items-end`}>
-                        {/* Tarif Reguler */}
-                        <div className="flex flex-col gap-1.5">
-                          <Label
-                            htmlFor={`reg-${role.id}`}
-                            className="text-[11px] font-medium text-muted-foreground"
-                          >
-                            Tarif Reguler 90 Menit
-                          </Label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono select-none">
-                              Rp
-                            </span>
-                            <Input
-                              id={`reg-${role.id}`}
-                              type="number"
-                              step="5000"
-                              min="0"
-                              value={role.regularPrice}
-                              onChange={(e) =>
-                                handleUpdateRole(role.id, { regularPrice: Number(e.target.value) || 0 })
-                              }
-                              className="pl-9 h-9 text-xs font-semibold bg-background font-mono tabular-nums"
-                              aria-label={`Tarif reguler ${role.title}`}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Tarif Promo */}
-                        {role.isSaleActive && (
-                          <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center justify-between">
-                              <Label
-                                htmlFor={`sale-val-${role.id}`}
-                                className="text-[11px] font-medium text-primary flex items-center gap-1"
-                              >
-                                <span>Tarif Promo</span>
-                              </Label>
-                              {discountPercent > 0 && (
-                                <span className="text-[10px] font-mono font-medium text-emerald-600 dark:text-emerald-400">
-                                  Hemat Rp {discountNominal.toLocaleString("id-ID")}
-                                </span>
-                              )}
-                            </div>
-                            <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-primary font-mono font-semibold select-none">
-                                Rp
-                              </span>
-                              <Input
-                                id={`sale-val-${role.id}`}
-                                type="number"
-                                step="5000"
-                                min="0"
-                                value={role.salePrice}
-                                onChange={(e) =>
-                                  handleUpdateRole(role.id, { salePrice: Number(e.target.value) || 0 })
-                                }
-                                className="pl-9 h-9 text-xs font-bold text-primary bg-background font-mono tabular-nums border-primary/40 focus-visible:border-primary"
-                                aria-label={`Tarif promo ${role.title}`}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Toggles */}
-                      <div className="flex flex-col gap-2.5 pt-2 border-t border-border/40">
-                        {/* Toggle Promo */}
-                        <div className="flex items-center justify-between gap-2">
-                          <Label
-                            htmlFor={`toggle-sale-${role.id}`}
-                            className="text-xs text-foreground cursor-pointer select-none flex items-center gap-1.5"
-                          >
-                            <span>Aktifkan Harga Promo</span>
-                          </Label>
-                          <Switch
-                            id={`toggle-sale-${role.id}`}
-                            checked={role.isSaleActive}
-                            onCheckedChange={(checked) =>
-                              handleUpdateRole(role.id, { isSaleActive: checked })
-                            }
-                            aria-label={`Aktifkan harga promo ${role.title}`}
-                          />
-                        </div>
-
-                        {/* Toggle Voucher */}
-                        <div className="flex items-center justify-between gap-2">
-                          <Label
-                            htmlFor={`toggle-voucher-${role.id}`}
-                            className="text-xs text-foreground cursor-pointer select-none"
-                          >
-                            Izinkan Kupon Diskon Tambahan
-                          </Label>
-                          <Switch
-                            id={`toggle-voucher-${role.id}`}
-                            checked={role.allowVoucher}
-                            onCheckedChange={(checked) =>
-                              handleUpdateRole(role.id, { allowVoucher: checked })
-                            }
-                            aria-label={`Izinkan voucher untuk ${role.title}`}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                )
-              })
-            )}
-          </div>
-
-          {/* Subheading Extend Sesi (+30 Menit) */}
-          <div className="flex flex-col gap-3 pt-3 border-t border-border/60">
-            <div className="flex items-center gap-2">
-              <Sparkles className="size-4 text-primary" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                2. Tarif Perpanjangan Sesi Tambahan (+30 Menit)
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Biaya perpanjangan ini diterapkan secara otomatis saat konselor memperpanjang sesi di floating timer konseling. Klien akan menerima invoice perpanjangan di halaman sesi konseling mereka.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Extend Fee Konselor Sebaya */}
-              <div className="p-4 rounded-lg border border-border/70 bg-muted/15 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-foreground">
-                    Extend Konselor Sebaya (+30 Menit)
-                  </span>
-                  <Badge variant="secondary" className="text-[10px]">
-                    Non-Klinis
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Tarif tambahan per 30 menit perpanjangan sesi dengan Konselor Sebaya (Lulusan S1 Psikologi).
-                </p>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono select-none">
-                    Rp
-                  </span>
-                  <Input
-                    id="overtime-rate-sebaya"
-                    type="number"
-                    step="5000"
-                    min="0"
-                    disabled={isLoading || isSavingPricing || !isSuperadmin}
-                    value={roles[0].overtimeRate}
-                    onChange={(e) =>
-                      handleUpdateRole("sebaya", { overtimeRate: Number(e.target.value) })
-                    }
-                    className="pl-9 text-xs font-semibold bg-background font-mono tabular-nums"
-                  />
-                </div>
-              </div>
-
-              {/* Extend Fee Psikolog Klinis */}
-              <div className="p-4 rounded-lg border border-border/70 bg-muted/15 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-foreground">
-                    Extend Psikolog Klinis (+30 Menit)
-                  </span>
-                  <Badge variant="default" className="text-[10px]">
-                    STR/SIPP Aktif
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Tarif tambahan per 30 menit perpanjangan sesi dengan Psikolog Klinis berizin praktik resmi.
-                </p>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono select-none">
-                    Rp
-                  </span>
-                  <Input
-                    id="overtime-rate-psikolog"
-                    type="number"
-                    step="5000"
-                    min="0"
-                    disabled={isLoading || isSavingPricing || !isSuperadmin}
-                    value={roles[1].overtimeRate}
-                    onChange={(e) =>
-                      handleUpdateRole("psikolog", { overtimeRate: Number(e.target.value) })
-                    }
-                    className="pl-9 text-xs font-semibold bg-background font-mono tabular-nums"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <Alert className="bg-muted/30 border-border/70 text-muted-foreground text-xs">
-            <Info className="size-4 text-foreground shrink-0 mt-0.5" />
-            <AlertDescription className="text-xs leading-relaxed">
-              Sistem perpanjangan sesi Solulu sepenuhnya transparan. Invoice perpanjangan otomatis tercatat dalam rekap keuangan admin dan laporan sesi konselor akan terkunci bagi klien sampai pembayaran extend diselesaikan.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-
       {/* SECTION 3: MANAJEMEN KODE PROMO & KUPON DISKON */}
       <Card className="border border-border/80 shadow-xs">
         <CardHeader className="pt-6 px-6 pb-4 border-b border-border/60">
@@ -769,6 +336,7 @@ export function FeesTab({
             <Button
               size="sm"
               onClick={() => setIsModalOpen(true)}
+              disabled={!isSuperadmin}
               className="gap-1.5 font-medium shadow-xs shrink-0 self-start sm:self-center"
             >
               <Plus className="size-3.5" aria-hidden="true" />

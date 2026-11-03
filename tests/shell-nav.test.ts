@@ -19,11 +19,13 @@ describe("Ticket 22: shared portal shell navigation", () => {
     expect(Object.keys(SHELL_NAV).sort()).toEqual(["admin", "counselor", "operator"])
   })
 
-  it("shows the Sistem group only to superadmin", () => {
-    const adminGroups = getVisibleNav("admin", "admin").map((g) => g.title)
+  it("shows Sistem to superadmin; Admin sees only the read-only Layanan & Tarif in it", () => {
+    const adminGroups = getVisibleNav("admin", "admin")
     const superGroups = getVisibleNav("admin", "superadmin").map((g) => g.title)
-    expect(adminGroups).not.toContain("Sistem")
     expect(superGroups).toContain("Sistem")
+    expect(adminGroups.find((g) => g.title === "Sistem")?.items.map((i) => i.title)).toEqual([
+      "Layanan & Tarif",
+    ])
     expect(getVisibleNav("admin", null)).toEqual([])
   })
 
@@ -37,10 +39,10 @@ describe("Ticket 22: shared portal shell navigation", () => {
     for (const planned of [
       "Booking Cepat",
       "Voucher",
-      "Layanan & Tarif",
     ]) {
       expect(titles).not.toContain(planned)
     }
+    expect(titles).toContain("Layanan & Tarif")
     expect(titles).toContain("Booking")
     expect(titles).toContain("Klien Tersedia")
     expect(titles).toContain("Payroll")
@@ -131,7 +133,7 @@ describe("Ticket 22: shared portal shell navigation", () => {
       "/tiket": "/cek-sesi",
       "/konselor/register": "/apply",
       "/admin/zoom": "/admin/zoom-settings",
-      "/admin/pricing": "/admin/settings?tab=fees",
+      "/admin/pricing": "/admin/layanan",
       "/admin/dashboard": "/admin",
       "/admin/operator": "/operator",
       "/counselor/schedules": "/counselor/schedule",
