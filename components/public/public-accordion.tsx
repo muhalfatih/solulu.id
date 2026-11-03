@@ -3,15 +3,18 @@
 import * as React from "react"
 import { Accordion as AccordionPrimitive } from "radix-ui"
 import { ChevronDown } from "lucide-react"
-import { Accordion } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils"
 
 /**
  * Public-site accordion (purple card items, rotating chevron). Built on the
- * radix primitive plus the registry `Accordion` root so that
+ * radix primitive so that
  * `components/ui/accordion.tsx` can be reset to the shadcn registry version.
  */
-const PublicAccordion = Accordion
+function PublicAccordion({
+  ...props
+}: React.ComponentProps<typeof AccordionPrimitive.Root>) {
+  return <AccordionPrimitive.Root data-slot="accordion" {...props} />
+}
 
 function PublicAccordionItem({
   className,
