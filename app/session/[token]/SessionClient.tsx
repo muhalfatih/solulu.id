@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ShieldCheck, ArrowLeft, Clock, Lock, BadgeCheck, Sparkles } from "lucide-react"
 import { PublicShell } from "@/components/public/public-shell"
 import { SessionCountdownCard } from "./components/SessionCountdownCard"
+import { RescheduleCard } from "./components/RescheduleCard"
 import { PaymentVerificationWaitingCard } from "./components/PaymentVerificationWaitingCard"
 import { CancelledBookingNoticeCard } from "./components/CancelledBookingNoticeCard"
 import { CompletedSessionReportCard } from "./components/CompletedSessionReportCard"
@@ -273,6 +274,12 @@ export default function SessionClient({ initialData }: SessionClientProps) {
                 onRefresh={handleRefresh}
                 isRefreshing={isRefreshing}
               />
+            )}
+
+            {data.booking.status === "confirmed" && (
+              <div className="print:hidden">
+                <RescheduleCard accessToken={data.booking.accessToken} />
+              </div>
             )}
 
             <div className="print:hidden">

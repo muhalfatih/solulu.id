@@ -23,6 +23,7 @@ import {
   Eye,
 } from "lucide-react"
 import { toast } from "sonner"
+import { RescheduleAdminDialog } from "./RescheduleAdminDialog"
 import {
   Card,
   CardContent,
@@ -104,6 +105,9 @@ export function BookingsClient({
 
   // Send WhatsApp Without Report Confirmation Dialog
   const [confirmSendWithoutReportItem, setConfirmSendWithoutReportItem] = React.useState<AdminBookingItem | null>(null)
+
+  // Reschedule Admin Dialog State
+  const [rescheduleItem, setRescheduleItem] = React.useState<AdminBookingItem | null>(null)
 
   // No-Show Dialog State
   const [noShowItem, setNoShowItem] = React.useState<AdminBookingItem | null>(null)
@@ -353,6 +357,19 @@ export function BookingsClient({
                               </Button>
                             )}
 
+                            {b.status === "confirmed" && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setRescheduleItem(b)}
+                                className="h-7 text-[11px] gap-1 cursor-pointer"
+                              >
+                                <Calendar className="size-3" data-icon="inline-start" />
+                                <span>Reschedule</span>
+                              </Button>
+                            )}
+
                             {/* 1. Tombol Tandai No-Show (Syarat: Tidak hadir dalam 30 menit) */}
                             {b.canMarkNoShow ? (
                               <Button
@@ -560,6 +577,13 @@ export function BookingsClient({
           />
         </CardContent>
       </Card>
+
+      <RescheduleAdminDialog
+        booking={rescheduleItem}
+        counselors={counselorOptions}
+        onClose={() => setRescheduleItem(null)}
+        onDone={() => router.refresh()}
+      />
 
       {/* DIALOG KONFIRMASI TANDAI NO-SHOW */}
       <Dialog open={Boolean(noShowItem)} onOpenChange={(open) => !open && setNoShowItem(null)}>
