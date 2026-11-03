@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
+import { getStaffRole } from "@/lib/auth/staff-role"
 import { eq, and, sql, desc, asc } from "drizzle-orm"
 import { db } from "@/db"
 import { bookings, schedules, screenings, sessionReports, counselors, zoomAccounts, platformSettings } from "@/db/schema"
@@ -278,7 +278,7 @@ export async function getSessionReportAction(
     return { success: false, error: "Akses ditolak. Silakan login terlebih dahulu." }
   }
 
-  const role = auth.app_metadata?.role || auth.user_metadata?.role
+  const role = getStaffRole(auth)
   const counselorId = await resolveCounselorId(auth)
 
   if (deps?.getReportData) {
@@ -286,7 +286,7 @@ export async function getSessionReportAction(
     if (!report) {
       return { success: false, error: "Laporan sesi tidak ditemukan." }
     }
-    if (role !== "admin" && report.counselorId !== counselorId) {
+    if (role !== "admin" && role !== "superadmin" && report.counselorId !== counselorId) {
       return { success: false, error: "Anda hanya dapat melihat catatan sesi Anda sendiri (RLS)." }
     }
     const safeReport: SessionReportDetailView = { ...report }
@@ -351,7 +351,7 @@ export async function getSessionReportAction(
       id: report?.id || "",
       bookingId: booking.id,
       counselorId: booking.counselorId,
-      mainIssue: report?.mainIssue || "Konsultasi Emosional & Stres",
+      mainIssue: report?.mainIssue ?? "",
       summary: report?.summary || "",
       actionPlan: report?.actionPlan || "",
       // Confidentiality Guard: internalNotes is STRICTLY excluded from Admin & Superadmin payloads
@@ -465,7 +465,7 @@ export async function submitSessionReportAction(
       const res = await deps.saveReport({
         bookingId,
         counselorId,
-        mainIssue: mainIssue || "Konsultasi Emosional & Stres",
+        mainIssue,
         summary,
         actionPlan: actionPlan || null,
         internalNotes: internalNotes || null,
@@ -486,7 +486,7 @@ export async function submitSessionReportAction(
       if (existing.length > 0) {
         reportId = existing[0].id
         const updatePayload: any = {
-          mainIssue: mainIssue || "Konsultasi Emosional & Stres",
+          mainIssue,
           summary,
           actionPlan: actionPlan || null,
           internalNotes: internalNotes || null,
@@ -510,7 +510,7 @@ export async function submitSessionReportAction(
         const insertPayload: any = {
           bookingId,
           counselorId,
-          mainIssue: mainIssue || "Konsultasi Emosional & Stres",
+          mainIssue,
           summary,
           actionPlan: actionPlan || null,
           internalNotes: internalNotes || null,
@@ -832,51 +832,6 @@ export async function updateCounselorPasswordAction(
 }
 
 /**
- * Switches the active demo counselor identity for testing and simulation.
- */
-export async function switchDemoCounselorAction(counselorId: string) {
-  const cookieStore = await cookies()
-  cookieStore.set("solulu_demo_role", "counselor", {
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24,
-  })
-  cookieStore.set("solulu_demo_counselor_id", counselorId, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24,
-  })
-  safeRevalidatePath("/counselor/dashboard")
-  safeRevalidatePath("/counselor/profile")
-  safeRevalidatePath("/counselor/schedules")
-  return { success: true }
-}
-
-/**
- * Returns available real counselors in the database for the switcher dropdown.
- */
-export async function getCounselorsListForSwitchAction() {
-  try {
-    const rows = await db
-      .select({
-        id: counselors.id,
-        fullName: counselors.fullName,
-        title: counselors.title,
-        counselorType: counselors.counselorType,
-      })
-      .from(counselors)
-      .where(eq(counselors.isActive, true))
-      .orderBy(counselors.fullName)
-
-    return { success: true, data: rows }
-  } catch (err: any) {
-    return { success: false, error: err.message, data: [] }
-  }
-}
-
-/**
  * Ticket 04: Automatically records 30-minute extension fee in PostgreSQL bookings table.
  * Standard extend rules:
  * - Sebaya (Peer Counselor): Rp 35.000
@@ -1058,7 +1013,7 @@ export async function recordSessionTimerAction(
           .values({
             bookingId,
             counselorId,
-            mainIssue: "Konsultasi Emosional & Stres",
+            mainIssue: "",
             summary: "Sesi konseling telah terekam melalui Floating Timer.",
             actualDurationMinutes: payload.actualDurationMinutes,
             timerStartedAt: timerStarted,

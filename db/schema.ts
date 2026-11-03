@@ -14,6 +14,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { generateBookingCode } from "../lib/booking/code";
 
 // =============================================================================
 // ENUMS
@@ -262,14 +263,14 @@ export const schedules = pgTable(
 export const bookings = pgTable("bookings", {
   id: uuid("id").defaultRandom().primaryKey(),
   accessToken: text("access_token").notNull().unique(), // Nanoid(32) for URL /session/[token]
-  bookingCode: text("booking_code").notNull().default("SL-1001"), // e.g. "SL-4821" for Zoom display name
+  bookingCode: text("booking_code").notNull().$defaultFn(generateBookingCode), // e.g. "SL-7K2M9Q"; dibuat generator saat insert, tanpa default SQL
 
   // Client Identity (8 Data + Informed Consent)
   patientName: text("patient_name").notNull(), // (1) Nama Lengkap / Panggilan
   patientEmail: text("patient_email").notNull(), // (2) Email
   patientPhone: text("patient_phone").notNull(), // (3) Nomor WhatsApp
-  gender: text("gender").default("Lainnya"), // (4) Jenis Kelamin
-  age: integer("age").default(25), // (5) Umur
+  gender: text("gender"), // (4) Jenis Kelamin
+  age: integer("age"), // (5) Umur
   domicile: text("domicile"), // (6) Domisili
   religion: text("religion"), // (7) Agama
   initialNotes: text("initial_notes"), // (8) Catatan / Keluhan Awal
@@ -362,7 +363,7 @@ export const sessionReports = pgTable("session_reports", {
     .notNull(),
 
   // Client-Visible Fields (Tampil di Web & Cetak PDF Klien)
-  mainIssue: text("main_issue").notNull().default("Konsultasi Emosional & Stres"), // Permasalahan Utama
+  mainIssue: text("main_issue").notNull(), // Permasalahan Utama
   summary: text("summary").notNull(), // Ringkasan Dinamika Sesi
   actionPlan: text("action_plan"), // Saran / Tindak Lanjut (Opsional)
   followUpRecommendation: text("follow_up_recommendation"),

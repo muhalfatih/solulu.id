@@ -14,6 +14,7 @@ import {
   Ban,
 } from "lucide-react"
 import type { BookingSession } from "@/lib/types/admin"
+import { formatRupiahOrDash } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -80,8 +81,8 @@ export function ManualPaymentModal({
   React.useEffect(() => {
     if (session) {
       setPaymentMethod(PAYMENT_METHODS[0])
-      setReferenceNumber(`REF-${Math.floor(100000 + Math.random() * 900000)}`)
-      setAdminNotes("Transfer manual telah diverifikasi di mutasi bank oleh Admin.")
+      setReferenceNumber("")
+      setAdminNotes("")
       setShowRejectView(false)
       setRejectionReason(REJECTION_REASONS[0])
       setRejectionNotes("")
@@ -94,6 +95,7 @@ export function ManualPaymentModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!referenceNumber.trim()) return
     setIsProcessing(true)
 
     setTimeout(() => {
@@ -173,7 +175,7 @@ export function ManualPaymentModal({
           <div className="flex items-center justify-between pt-1 border-t border-border/60">
             <span className="text-muted-foreground">Total Tagihan Sesi:</span>
             <span className="font-bold text-primary text-sm font-mono">
-              Rp {session.amount.toLocaleString("id-ID")}
+              {formatRupiahOrDash(session.amount)}
             </span>
           </div>
         </div>
@@ -290,6 +292,7 @@ export function ManualPaymentModal({
                 id="ref-number"
                 value={referenceNumber}
                 onChange={(e) => setReferenceNumber(e.target.value)}
+                required
                 placeholder="Contoh: BCA-982173 / WA-0812..."
                 className="h-8 text-xs bg-background font-mono"
               />
@@ -309,15 +312,15 @@ export function ManualPaymentModal({
               />
             </div>
 
-            {/* Concurrency Guard Status */}
+            {/* Zoom allocation notice (no availability claim: result is known only after confirm) */}
             <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-3 flex items-start gap-2.5 text-xs text-emerald-800 dark:text-emerald-300">
               <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
               <div className="flex flex-col gap-0.5 leading-snug">
                 <span className="font-semibold text-emerald-700 dark:text-emerald-400">
-                  Pemeriksaan Kuota Host Zoom Lolos
+                  Alokasi Zoom Otomatis
                 </span>
                 <span className="text-[11px] text-muted-foreground">
-                  Tersedia 1 akun Zoom Pro bebas bentrok. Ruang meeting dan email tiket akses pasien akan dibuat otomatis seketika.
+                  Setelah dikonfirmasi, sistem mencari akun Zoom Pro bebas bentrok, membuat ruang meeting, dan mengirim email tiket akses ke klien.
                 </span>
               </div>
             </div>
@@ -350,7 +353,7 @@ export function ManualPaymentModal({
                 <Button
                   type="submit"
                   size="sm"
-                  disabled={isProcessing}
+                  disabled={isProcessing || !referenceNumber.trim()}
                   className="h-8 text-xs font-medium gap-1.5 cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   {isProcessing ? (

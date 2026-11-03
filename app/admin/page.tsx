@@ -3,6 +3,8 @@
 import * as React from "react"
 import Link from "next/link"
 import type { BookingSession } from "@/lib/types/admin"
+import { formatRupiahOrDash } from "@/lib/utils"
+import { mapAdminBookingRow, type AdminBookingRow } from "@/lib/admin/booking-session"
 import { getBookingsAdminAction } from "./sessions/actions"
 import { getCounselorApplicationsAction } from "./counselors/applications/actions"
 import { getAdminDashboardMetricsAction, type AdminDashboardMetrics } from "./actions"
@@ -85,61 +87,13 @@ export default function DistilledAdminDashboard() {
       }
 
       if (bookingsRes.success && bookingsRes.data) {
-        const mapped: BookingSession[] = bookingsRes.data.map((row: any) => {
-          const b = row.booking
-          const c = row.counselor
-          const s = row.schedule
-          const t = row.transaction
-          const counselorType =
-            c?.counselorType === "psychologist"
-              ? "Psikolog Klinis"
-              : "Konselor Sebaya"
-          const dateStr = s?.date ? String(s.date) : ""
-          const timeRange = s
-            ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)} WIB`
-            : "09:00 - 10:30 WIB"
-
-          const timing = resolveSessionTimingAndStatus({
-            date: s?.date,
-            startTime: s?.startTime,
-            endTime: s?.endTime,
-            status: b.status,
-          })
-          const hoursUntilSession = timing.hoursUntilSession
-          const status = timing.status
-          const isPast = timing.isPast
-
-          return {
-            id: b.id,
-            code: `SOL-${b.id.slice(0, 4).toUpperCase()}`,
-            patientName: b.patientName,
-            patientContact: b.patientPhone || b.patientEmail,
-            counselorName: c?.fullName
-              ? `${c.fullName}, ${c.title || ""}`.trim()
-              : "Konselor",
-            counselorType,
-            date: dateStr,
-            timeRange,
-            hoursUntilSession,
-            status,
-            isPast,
-            zoomRoom: b.zoomMeetingId
-              ? `Ruang #${b.zoomMeetingId.slice(-3)}`
-              : "Belum Dijadwalkan",
-            zoomJoinUrl: b.zoomJoinUrl || "#",
-            srqScore: 0,
-            hasSuicidalThoughts: false,
-            waiverSigned: !!b.waiverAcceptedAt,
-            paymentMethod: t?.paymentMethod || "Transfer Bank Manual",
-            paymentProvider: (t?.paymentProvider as any) || "manual",
-            referenceNumber: t?.referenceNumber || undefined,
-            adminNotes: t?.adminNotes || undefined,
-            amount: t?.netAmount ? Number(t.netAmount) : 150000,
-            hasSessionReport: Boolean(row.report?.id),
-            sessionReportId: row.report?.id || null,
-          }
-        })
-        setAllSessions(mapped)
+        const zoomAccountList =
+          (bookingsRes as { activeAccounts?: Array<{ id: string; name: string | null }> }).activeAccounts ?? []
+        setAllSessions(
+          (bookingsRes.data as AdminBookingRow[]).map((row) =>
+            mapAdminBookingRow(row, { zoomAccounts: zoomAccountList, timeRangeSuffix: " WIB" })
+          )
+        )
       } else {
         setAllSessions([])
       }
@@ -195,37 +149,27 @@ export default function DistilledAdminDashboard() {
   }
 
   const handleConfirmPayment = async (session: BookingSession, details: ManualPaymentDetails) => {
-    if (session.id && !session.id.startsWith("ses-")) {
-      try {
-        await confirmManualPaymentAction({
-          bookingId: session.id,
-          paymentMethod: details.paymentMethod,
-          referenceNumber: details.referenceNumber,
-          adminNotes: details.adminNotes,
-        })
-      } catch (err) {
-        console.error("Failed to execute confirmManualPaymentAction:", err)
-      }
-    }
-
-    setAllSessions((prev) =>
-      prev.map((s) => {
-        if (s.id !== session.id) return s
-        return {
-          ...s,
-          status: "confirmed",
-          zoomRoom: "Zoom Pro 1",
-          zoomJoinUrl: `https://zoom.us/j/88${Math.floor(10000000 + Math.random() * 90000000)}`,
-          paymentMethod: details.paymentMethod,
-          paymentProvider: "manual",
-          referenceNumber: details.referenceNumber,
-          adminNotes: details.adminNotes,
-        }
+    const amountLabel = session.amount != null ? ` senilai Rp ${session.amount.toLocaleString("id-ID")}` : ""
+    try {
+      const res = await confirmManualPaymentAction({
+        bookingId: session.id,
+        paymentMethod: details.paymentMethod,
+        referenceNumber: details.referenceNumber,
+        adminNotes: details.adminNotes,
       })
-    )
-    setVerificationNotice(
-      `Pembayaran sesi ${session.code} (${session.patientName}) senilai Rp ${session.amount.toLocaleString("id-ID")} berhasil diverifikasi via ${details.paymentMethod}. Ruang Zoom telah dialokasikan.`
-    )
+      if (res.success) {
+        setVerificationNotice(
+          `Pembayaran sesi ${session.code} (${session.patientName})${amountLabel} berhasil diverifikasi via ${details.paymentMethod}. Ruang Zoom telah dialokasikan.`
+        )
+      } else {
+        setVerificationNotice(
+          `Pembayaran sesi ${session.code} (${session.patientName}) gagal diverifikasi: ${res.error ?? "kesalahan tidak diketahui"}.`
+        )
+      }
+    } catch (err) {
+      console.error("Failed to execute confirmManualPaymentAction:", err)
+      setVerificationNotice(`Pembayaran sesi ${session.code} (${session.patientName}) gagal diverifikasi.`)
+    }
     loadData()
     setTimeout(() => {
       setVerificationNotice((cur) => (cur?.includes(session.code) ? null : cur))
@@ -818,7 +762,7 @@ export default function DistilledAdminDashboard() {
                           {session.patientName}
                         </span>
                         <span className="font-bold tabular-nums text-foreground text-xs shrink-0">
-                          Rp {session.amount.toLocaleString("id-ID")}
+                          {formatRupiahOrDash(session.amount)}
                         </span>
                       </div>
 

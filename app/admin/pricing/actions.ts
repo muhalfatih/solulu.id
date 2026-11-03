@@ -8,6 +8,11 @@ import {
   type PlatformPricingData,
 } from "@/lib/pricing/platform-pricing"
 import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counselors/actions"
+import { requireStaffUser } from "@/lib/auth/staff"
+import { SUPERADMIN_ONLY } from "@/lib/auth/staff-role"
+
+const SUPERADMIN_ONLY_MESSAGE =
+  "Akses ditolak: Hanya peran Superadmin yang berwenang mengubah tarif dan voucher. Admin hanya dapat melihat."
 
 export async function getPlatformPricingAction(): Promise<{
   success: boolean
@@ -35,11 +40,11 @@ export async function updateRolePricingAction(
   error?: string
   message?: string
 }> {
-  const admin = await getAuthenticatedAdmin(options?.currentUser)
-  if (!admin) {
+  const superadmin = await requireStaffUser(options?.currentUser, SUPERADMIN_ONLY)
+  if (!superadmin) {
     return {
       success: false,
-      error: "Akses ditolak: Diperlukan role Admin atau Superadmin.",
+      error: SUPERADMIN_ONLY_MESSAGE,
     }
   }
 
@@ -125,11 +130,11 @@ export async function createVoucherAdminAction(
   input: VoucherInput,
   options?: { currentUser?: AdminAuthContext | null }
 ) {
-  const admin = await getAuthenticatedAdmin(options?.currentUser)
-  if (!admin) {
+  const superadmin = await requireStaffUser(options?.currentUser, SUPERADMIN_ONLY)
+  if (!superadmin) {
     return {
       success: false,
-      error: "Akses ditolak: Diperlukan role Admin.",
+      error: SUPERADMIN_ONLY_MESSAGE,
     }
   }
 
@@ -170,11 +175,11 @@ export async function toggleVoucherStatusAction(
   isActive: boolean,
   options?: { currentUser?: AdminAuthContext | null }
 ) {
-  const admin = await getAuthenticatedAdmin(options?.currentUser)
-  if (!admin) {
+  const superadmin = await requireStaffUser(options?.currentUser, SUPERADMIN_ONLY)
+  if (!superadmin) {
     return {
       success: false,
-      error: "Akses ditolak: Diperlukan role Admin.",
+      error: SUPERADMIN_ONLY_MESSAGE,
     }
   }
 
@@ -207,11 +212,11 @@ export async function deleteVoucherAdminAction(
   id: string,
   options?: { currentUser?: AdminAuthContext | null }
 ) {
-  const admin = await getAuthenticatedAdmin(options?.currentUser)
-  if (!admin) {
+  const superadmin = await requireStaffUser(options?.currentUser, SUPERADMIN_ONLY)
+  if (!superadmin) {
     return {
       success: false,
-      error: "Akses ditolak: Diperlukan role Admin.",
+      error: SUPERADMIN_ONLY_MESSAGE,
     }
   }
 

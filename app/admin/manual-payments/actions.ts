@@ -35,7 +35,7 @@ export interface ManualPaymentQueueItem {
   timeRange: string
   slotIndex: number
   paymentType: "initial" | "extension"
-  nominalAmount: number
+  nominalAmount: number | null
   paymentMethod: string
   manualPaymentStatus: string
   extensionPaymentStatus: string
@@ -126,7 +126,7 @@ export async function getManualPaymentsQueueAdminAction(options?: {
       const dateStr = s?.date ? String(s.date) : ""
       const timeRange = s
         ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)}`
-        : "09:00 - 10:30"
+        : ""
       const slotIndex = s?.slotIndex || 1
 
       // 1. Initial Booking Pending Transfer Check
@@ -145,13 +145,8 @@ export async function getManualPaymentsQueueAdminAction(options?: {
           }
         }
 
-        const nominal = t?.netAmount
-          ? Number(t.netAmount)
-          : c?.customFeeRate
-          ? Number(c.customFeeRate)
-          : c?.counselorType === "psychologist"
-          ? 250000
-          : 150000
+        // Tidak ada nominal tebakan: tanpa transaksi, nominal kosong dan UI menampilkan "-".
+        const nominal = t?.netAmount != null ? Number(t.netAmount) : null
 
         items.push({
           id: b.id,
@@ -193,7 +188,7 @@ export async function getManualPaymentsQueueAdminAction(options?: {
           }
         }
 
-        const extNominal = Number(b.extensionFee) || (c?.counselorType === "psychologist" ? 50000 : 35000)
+        const extNominal = Number(b.extensionFee) > 0 ? Number(b.extensionFee) : null
 
         items.push({
           id: b.id,
@@ -290,7 +285,13 @@ export async function confirmManualPaymentAdminAction(
     }
 
     // Initial Booking Payment Confirmation
-    const refNum = referenceNumber?.trim() || `MANUAL-${Math.floor(100000 + Math.random() * 900000)}`
+    const refNum = referenceNumber?.trim()
+    if (!refNum) {
+      return {
+        success: false,
+        error: "Nomor referensi transfer wajib diisi (ambil dari bukti transfer atau mutasi rekening).",
+      }
+    }
     const channel = paymentMethod || "Transfer Bank BCA (Manual)"
 
     const confirmFn = options?.confirmPaymentFn || confirmManualPayment

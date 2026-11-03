@@ -49,12 +49,11 @@ import {
   getActiveZoomCapacityAction,
   createAdminManualBookingAction,
 } from "../manual-booking-actions"
-import type { BookingSession } from "@/lib/types/admin"
 
 export interface AdminManualBookingModalProps {
   isOpen: boolean
   onClose: () => void
-  onBookingCreated: (session: BookingSession) => void
+  onBookingCreated: (created: { bookingId: string; patientName: string }) => void | Promise<void>
 }
 
 const DEFAULT_ADMIN_NOTES = "Booking manual via Admin Console"
@@ -274,40 +273,8 @@ export function AdminManualBookingModal({
         bookingId: res.data.bookingId,
       })
 
-      // Notify parent to append or update session list
-      const selectedCounselor = counselorsList.find((c) => c.id === selectedCounselorId)
-      const newSessionObj: BookingSession = {
-        id: res.data.bookingId,
-        code: `SOL-${res.data.accessToken.slice(0, 6).toUpperCase()}`,
-        patientName,
-        patientContact: `${patientPhone} • ${patientEmail}`,
-        counselorName: selectedCounselor?.fullName || "Mitra Konselor",
-        counselorType:
-          selectedCounselor?.counselorType === "psychologist"
-            ? "Psikolog Klinis"
-            : "Konselor Sebaya",
-        date: scheduleMode === "adhoc" ? adhocDate : "Hari Ini",
-        timeRange:
-          scheduleMode === "adhoc"
-            ? formatTimeRange(adhocStartTime, adhocEndTime)
-            : "19:00 – 20:30 WIB",
-        hoursUntilSession: 24,
-        status: "confirmed",
-        zoomRoom: createZoom ? "Zoom Pro 1" : "Ruang Rapat Manual",
-        zoomJoinUrl:
-          manualMeetingUrl ||
-          `https://zoom.us/j/88${Math.floor(10000000 + Math.random() * 90000000)}`,
-        srqScore: 0,
-        hasSuicidalThoughts: false,
-        waiverSigned: true,
-        paymentProvider: "manual",
-        paymentMethod: "Admin Bypass (Rp 0)",
-        referenceNumber: `ADMIN-BYPASS-${res.data.accessToken.slice(0, 8).toUpperCase()}`,
-        adminNotes: DEFAULT_ADMIN_NOTES,
-        amount: 0,
-      }
-
-      onBookingCreated(newSessionObj)
+      // Induk memuat ulang daftar sesi dari database; tidak ada baris lokal yang dikarang.
+      onBookingCreated({ bookingId: res.data.bookingId, patientName })
     } catch (err: any) {
       setErrorMessage(err.message || "Terjadi kesalahan saat memproses booking.")
     } finally {

@@ -17,9 +17,6 @@ import {
   X,
   CreditCard,
   Video,
-  ChevronDown,
-  ChevronUp,
-  FastForward,
   Sparkles,
   Loader2,
   UserCheck,
@@ -57,7 +54,6 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
   const [elapsedSeconds, setElapsedSeconds] = React.useState<number>(0)
   const [isRunning, setIsRunning] = React.useState<boolean>(true)
   const [isMinimized, setIsMinimized] = React.useState<boolean>(false)
-  const [showSimControls, setShowSimControls] = React.useState<boolean>(false)
   const [copiedKey, setCopiedKey] = React.useState<boolean>(false)
   const [isSavingExtension, setIsSavingExtension] = React.useState<boolean>(false)
   const [extensionRecorded, setExtensionRecorded] = React.useState<boolean>(session.isExtended)
@@ -248,11 +244,6 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
     onCompleteSession(session)
   }
 
-  // Fast-Forward Helpers for Testing & Browser Automation
-  const jumpToSeconds = (seconds: number) => {
-    setElapsedSeconds(seconds)
-    setIsRunning(true)
-  }
 
   // Minimized Compact Pill
   if (isMinimized) {
@@ -659,63 +650,6 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
               <CheckCircle2 className="size-3.5" data-icon="inline-start" />
               <span>Akhiri Sesi & Buat Catatan</span>
             </Button>
-          </div>
-
-          {/* QA / Dogfooding Simulation Fast-Forward Controls */}
-          <div className="pt-2 border-t border-border/60 flex flex-col gap-1.5">
-            <button
-              type="button"
-              className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer py-1"
-              onClick={() => setShowSimControls(!showSimControls)}
-              id="btn-toggle-sim-controls"
-            >
-              <span className="flex items-center gap-1.5">
-                <FastForward className="size-3 text-primary" data-icon="inline-start" />
-                <span>Simulasi Transisi Waktu (Uji SOP)</span>
-              </span>
-              {showSimControls ? <ChevronUp className="size-3" data-icon="inline-start" /> : <ChevronDown className="size-3" data-icon="inline-start" />}
-            </button>
-
-            {showSimControls && (
-              <div className="grid grid-cols-2 gap-1.5 pt-1.5 animate-in fade-in">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-7 text-[10px] font-medium justify-start"
-                  onClick={() => jumpToSeconds(84 * 60 + 55)}
-                  id="btn-jump-85m"
-                >
-                  Ke 84:55 (Tes 85m Amber)
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-7 text-[10px] font-medium justify-start"
-                  onClick={() => jumpToSeconds(89 * 60 + 55)}
-                  id="btn-jump-90m"
-                >
-                  Ke 89:55 (Tes 90m Grace)
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-7 text-[10px] font-medium justify-start"
-                  onClick={() => jumpToSeconds(95 * 60 + 55)}
-                  id="btn-jump-96m"
-                >
-                  Ke 95:55 (Tes 96m Extend)
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-7 text-[10px] font-medium justify-start"
-                  onClick={() => jumpToSeconds(119 * 60 + 55)}
-                  id="btn-jump-120m"
-                >
-                  Ke 119:55 (Tes 120m Stop)
-                </Button>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

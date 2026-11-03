@@ -1,4 +1,4 @@
-import crypto from "crypto"
+import { getXenditConfig, type IntegrationEnv } from "@/lib/config/integrations"
 
 export interface CreateInvoiceParams {
   externalId: string
@@ -19,41 +19,31 @@ export interface XenditInvoiceResponse {
   amount: number
 }
 
+export interface XenditClientOptions {
+  env?: IntegrationEnv
+  fetchFn?: typeof fetch
+}
+
+function basicAuthHeader(secretKey: string): string {
+  return `Basic ${Buffer.from(`${secretKey}:`).toString("base64")}`
+}
+
 /**
- * Creates an invoice with Xendit or generates a simulated invoice in mock/test mode.
+ * Creates a real invoice with Xendit. Throws an IntegrationConfigError naming
+ * XENDIT_SECRET_KEY when the key is missing; there is no simulated invoice.
  */
 export async function createXenditInvoice(
-  params: CreateInvoiceParams
+  params: CreateInvoiceParams,
+  options: XenditClientOptions = {}
 ): Promise<XenditInvoiceResponse> {
-  const secretKey = process.env.XENDIT_SECRET_KEY
+  const { secretKey } = getXenditConfig(options.env)
+  const fetchFn = options.fetchFn ?? fetch
 
-  const isMock =
-    !secretKey ||
-    secretKey.startsWith("xnd_development_...") ||
-    secretKey === "mock" ||
-    process.env.NODE_ENV === "test"
-
-  if (isMock) {
-    const mockId = `mock_inv_${crypto.randomBytes(8).toString("hex")}`
-    const expiry = new Date(Date.now() + (params.invoiceDuration || 900) * 1000).toISOString()
-
-    return {
-      id: mockId,
-      externalId: params.externalId,
-      status: "PENDING",
-      invoiceUrl: params.successRedirectUrl,
-      expiryDate: expiry,
-      amount: params.amount,
-    }
-  }
-
-  const authHeader = `Basic ${Buffer.from(`${secretKey}:`).toString("base64")}`
-
-  const response = await fetch("https://api.xendit.co/v2/invoices", {
+  const response = await fetchFn("https://api.xendit.co/v2/invoices", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: authHeader,
+      Authorization: basicAuthHeader(secretKey),
     },
     body: JSON.stringify({
       external_id: params.externalId,
@@ -85,36 +75,25 @@ export async function createXenditInvoice(
 
 /**
  * Retrieves an invoice from Xendit to verify its current payment status.
+ * Returns null when Xendit reports no such invoice or cannot be reached.
  */
-export async function getXenditInvoice(invoiceId: string): Promise<any | null> {
-  const secretKey = process.env.XENDIT_SECRET_KEY
-
-  if (
-    !secretKey ||
-    secretKey.startsWith("xnd_development_...") ||
-    secretKey === "mock" ||
-    process.env.NODE_ENV === "test"
-  ) {
-    if (invoiceId.startsWith("mock_inv_")) {
-      return {
-        id: invoiceId,
-        status: "PAID",
-        payment_method: "MOCK_PAYMENT",
-      }
-    }
-  }
-
+export async function getXenditInvoice(
+  invoiceId: string,
+  options: XenditClientOptions = {}
+): Promise<any | null> {
+  const { secretKey } = getXenditConfig(options.env)
   if (!secretKey) return null
 
-  const authHeader = `Basic ${Buffer.from(`${secretKey}:`).toString("base64")}`
+  const fetchFn = options.fetchFn ?? fetch
 
   try {
-    const response = await fetch(`https://api.xendit.co/v2/invoices/${encodeURIComponent(invoiceId)}`, {
-      method: "GET",
-      headers: {
-        Authorization: authHeader,
-      },
-    })
+    const response = await fetchFn(
+      `https://api.xendit.co/v2/invoices/${encodeURIComponent(invoiceId)}`,
+      {
+        method: "GET",
+        headers: { Authorization: basicAuthHeader(secretKey) },
+      }
+    )
 
     if (!response.ok) {
       return null
