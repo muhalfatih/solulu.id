@@ -32,6 +32,7 @@ import {
 // =============================================================================
 
 import { requireStaffUser } from "@/lib/auth/staff"
+import { recordAudit } from "@/lib/audit/record"
 import { ADMIN_ROLES, SUPERADMIN_ONLY, getStaffRole } from "@/lib/auth/staff-role"
 
 export interface AuthContext {
@@ -116,7 +117,18 @@ export async function handleSaveZoomAccount(
   }
 
   try {
-    const [inserted] = await db.insert(zoomAccounts).values(payload).returning()
+    const inserted = await db.transaction(async (tx) => {
+      const [row] = await tx.insert(zoomAccounts).values(payload).returning()
+      await recordAudit(tx, {
+        actor: superadmin,
+        action: "zoom_account.create",
+        entityType: "zoom_account",
+        entityId: row.id,
+        before: null,
+        after: row,
+      })
+      return row
+    })
     return { success: true, data: inserted }
   } catch (err: any) {
     if (err?.code === "23505" || err?.message?.includes("unique")) {
@@ -192,11 +204,23 @@ export async function handleUpdateZoomAccount(
   }
 
   try {
-    const [updated] = await db
-      .update(zoomAccounts)
-      .set(dataToUpdate)
-      .where(eq(zoomAccounts.id, id))
-      .returning()
+    const updated = await db.transaction(async (tx) => {
+      const [before] = await tx.select().from(zoomAccounts).where(eq(zoomAccounts.id, id)).limit(1)
+      const [row] = await tx
+        .update(zoomAccounts)
+        .set(dataToUpdate)
+        .where(eq(zoomAccounts.id, id))
+        .returning()
+      await recordAudit(tx, {
+        actor: superadmin,
+        action: "zoom_account.update",
+        entityType: "zoom_account",
+        entityId: id,
+        before,
+        after: row,
+      })
+      return row
+    })
 
     return { success: true, data: updated }
   } catch (err: any) {
@@ -250,7 +274,18 @@ export async function handleDeleteZoomAccount(
     return { success: true }
   }
 
-  await db.delete(zoomAccounts).where(eq(zoomAccounts.id, id))
+  await db.transaction(async (tx) => {
+    const [before] = await tx.select().from(zoomAccounts).where(eq(zoomAccounts.id, id)).limit(1)
+    await tx.delete(zoomAccounts).where(eq(zoomAccounts.id, id))
+    await recordAudit(tx, {
+      actor: superadmin,
+      action: "zoom_account.delete",
+      entityType: "zoom_account",
+      entityId: id,
+      before,
+      after: null,
+    })
+  })
   return { success: true }
 }
 

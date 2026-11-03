@@ -6,6 +6,8 @@ import { db } from "@/db"
 import { bookings, counselors, schedules, transactions, zoomAccounts } from "@/db/schema"
 import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
 import { generatePresignedGetUrl } from "@/lib/r2"
+import { recordAudit } from "@/lib/audit/record"
+import type { RoleCarrier } from "@/lib/auth/staff-role"
 import {
   confirmManualPayment,
   type ConfirmManualPaymentInput,
@@ -20,6 +22,32 @@ function safeRevalidatePaths(...paths: string[]) {
   } catch {
     // Safe fallback in test environments
   }
+}
+
+const PAYMENT_AUDIT_FIELDS = {
+  status: bookings.status,
+  manualPaymentStatus: bookings.manualPaymentStatus,
+  extensionPaymentStatus: bookings.extensionPaymentStatus,
+}
+
+/** Ubah status pembayaran Booking + catat Jejak Audit (sebelum/sesudah) dalam satu transaksi. */
+async function updateBookingPaymentAudited(
+  bookingId: string,
+  values: Partial<typeof bookings.$inferInsert>,
+  audit: { actor: RoleCarrier; action: "payment.verify" | "payment.reject"; context?: Record<string, unknown> }
+) {
+  await db.transaction(async (tx) => {
+    const [before] = await tx.select(PAYMENT_AUDIT_FIELDS).from(bookings).where(eq(bookings.id, bookingId)).limit(1)
+    const [after] = await tx.update(bookings).set(values).where(eq(bookings.id, bookingId)).returning(PAYMENT_AUDIT_FIELDS)
+    await recordAudit(tx, {
+      actor: audit.actor,
+      action: audit.action,
+      entityType: "booking",
+      entityId: bookingId,
+      before,
+      after: { ...after, ...audit.context },
+    })
+  })
 }
 
 export interface ManualPaymentQueueItem {
@@ -269,12 +297,11 @@ export async function confirmManualPaymentAdminAction(
           extensionPaymentStatus: "PAID",
         })
       } else {
-        await db
-          .update(bookings)
-          .set({
-            extensionPaymentStatus: "PAID",
-          })
-          .where(eq(bookings.id, bookingId))
+        await updateBookingPaymentAudited(
+          bookingId,
+          { extensionPaymentStatus: "PAID" },
+          { actor: admin, action: "payment.verify", context: { paymentType } }
+        )
       }
 
       safeRevalidatePaths("/admin/manual-payments", "/admin/bookings", "/admin/sessions")
@@ -317,13 +344,15 @@ export async function confirmManualPaymentAdminAction(
         status: "confirmed",
       })
     } else {
-      await db
-        .update(bookings)
-        .set({
-          manualPaymentStatus: "VERIFIED",
-          status: "confirmed",
-        })
-        .where(eq(bookings.id, bookingId))
+      await updateBookingPaymentAudited(
+        bookingId,
+        { manualPaymentStatus: "VERIFIED", status: "confirmed" },
+        {
+          actor: admin,
+          action: "payment.verify",
+          context: { paymentType: "booking", paymentMethod: channel, referenceNumber: refNum },
+        }
+      )
     }
 
     safeRevalidatePaths("/admin/manual-payments", "/admin/bookings", "/admin/sessions")
@@ -382,12 +411,11 @@ export async function rejectManualPaymentAdminAction(
     }
 
     if (paymentType === "extension") {
-      await db
-        .update(bookings)
-        .set({
-          extensionPaymentStatus: "REJECTED",
-        })
-        .where(eq(bookings.id, bookingId))
+      await updateBookingPaymentAudited(
+        bookingId,
+        { extensionPaymentStatus: "REJECTED" },
+        { actor: admin, action: "payment.reject", context: { paymentType, reason } }
+      )
 
       safeRevalidatePaths("/admin/manual-payments", "/admin/bookings", "/admin/sessions")
 
@@ -409,6 +437,18 @@ export async function rejectManualPaymentAdminAction(
     }
 
     await db.transaction(async (tx) => {
+      await recordAudit(tx, {
+        actor: admin,
+        action: "payment.reject",
+        entityType: "booking",
+        entityId: bookingId,
+        before: {
+          status: booking.status,
+          manualPaymentStatus: booking.manualPaymentStatus,
+        },
+        after: { status: "cancelled", manualPaymentStatus: "REJECTED", reason },
+      })
+
       // 1. Mark booking cancelled & payment rejected
       await tx
         .update(bookings)

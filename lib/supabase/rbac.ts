@@ -30,6 +30,9 @@ export type RbacDecision =
  *   - role != 'counselor' -> redirect to `/admin/dashboard` (if admin) or `/unauthorized`
  *   - role == 'counselor' -> allow
  */
+/** Halaman /admin/* yang hanya boleh dibuka Superadmin (Admin biasa ditolak). */
+export const SUPERADMIN_ONLY_PATHS = ["/admin/audit"] as const;
+
 export function evaluateRbac(
   user: UserWithRoles,
   pathname: string
@@ -52,6 +55,12 @@ export function evaluateRbac(
 
   // 2. Admin routes
   if (isAdminRoute) {
+    const superadminOnly = SUPERADMIN_ONLY_PATHS.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`)
+    );
+    if (superadminOnly && role === "admin") {
+      return { type: "redirect", destination: "/unauthorized" };
+    }
     if (role === "admin" || role === "superadmin") {
       return { type: "allow" };
     }

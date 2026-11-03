@@ -619,8 +619,36 @@ export const sessionReportsRelations = relations(sessionReports, ({ one }) => ({
   }),
 }));
 
+// =============================================================================
+// JEJAK AUDIT (#24) - append-only. Tidak ada jalur update/delete: trigger DB
+// menolak UPDATE/DELETE/TRUNCATE (lihat migrasi audit_log) dan kode aplikasi
+// hanya mengekspor insert (lib/audit/record.ts) dan select (lib/audit/query.ts).
+// =============================================================================
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    actorId: text("actor_id"), // Supabase auth user id; null untuk aksi sistem
+    actorRole: text("actor_role"),
+    action: text("action").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id"),
+    ip: text("ip"),
+    before: jsonb("before"),
+    after: jsonb("after"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    createdAtIdx: index("audit_logs_created_at_idx").on(table.createdAt),
+    actorIdx: index("audit_logs_actor_idx").on(table.actorId),
+    entityIdx: index("audit_logs_entity_idx").on(table.entityType, table.entityId),
+  })
+);
+
 // Type helpers inferred from schema
 export type CounselorWeeklyTemplate = typeof counselorWeeklyTemplates.$inferSelect;
 export type NewCounselorWeeklyTemplate = typeof counselorWeeklyTemplates.$inferInsert;
 export type ScheduleMode = (typeof scheduleModeEnum.enumValues)[number];
 
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type NewAuditLog = typeof auditLogs.$inferInsert;

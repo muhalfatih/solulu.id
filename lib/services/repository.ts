@@ -1,6 +1,8 @@
 import { asc, eq, inArray } from "drizzle-orm"
 import { db } from "@/db"
 import { services, counselorServiceExclusions } from "@/db/schema"
+import { recordAudit } from "@/lib/audit/record"
+import type { RoleCarrier } from "@/lib/auth/staff-role"
 
 export type ServiceRecord = typeof services.$inferSelect
 export type ServicePatch = Partial<
@@ -60,4 +62,33 @@ export async function updateServiceBySlug(
     .where(eq(services.slug, slug))
     .returning()
   return rows[0] ?? null
+}
+
+/**
+ * Ubah tarif Layanan + catat Jejak Audit (sebelum/sesudah) dalam satu transaksi.
+ * Gagal menulis audit membatalkan perubahan tarif.
+ */
+export async function updateServiceBySlugAudited(
+  slug: string,
+  patch: ServicePatch,
+  actor: RoleCarrier
+): Promise<ServiceRecord | null> {
+  return db.transaction(async (tx) => {
+    const [before] = await tx.select().from(services).where(eq(services.slug, slug)).limit(1)
+    if (!before) return null
+    const [after] = await tx
+      .update(services)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(services.slug, slug))
+      .returning()
+    await recordAudit(tx, {
+      actor,
+      action: "pricing.update",
+      entityType: "service",
+      entityId: before.id,
+      before,
+      after,
+    })
+    return after ?? null
+  })
 }

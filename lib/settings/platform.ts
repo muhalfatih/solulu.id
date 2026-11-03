@@ -3,6 +3,7 @@ import { db } from "@/db"
 import { platformSettings } from "@/db/schema"
 import { requireStaffUser } from "@/lib/auth/staff"
 import { SUPERADMIN_ONLY } from "@/lib/auth/staff-role"
+import { AuditWriteError, recordAudit } from "@/lib/audit/record"
 
 export interface PlatformSettingsData {
   id?: string
@@ -199,25 +200,12 @@ export async function updatePlatformSettings(
     const newManualEnabled = data.isManualPaymentEnabled !== undefined ? data.isManualPaymentEnabled : current.isManualPaymentEnabled
     const newManualInstructions = data.manualPaymentInstructions !== undefined ? data.manualPaymentInstructions : current.manualPaymentInstructions
 
-    await db
-      .insert(platformSettings)
-      .values({
-        id: "default",
-        isScreeningRequired: newRequired,
-        bookingCutoffHours: newBookingCutoff,
-        rescheduleCutoffHours: newRescheduleCutoff,
-        paymentHoldMinutes: newHoldMinutes,
-        maxSlotQuota: newMaxQuota,
-        minCounselorWeeklySlots: newWeeklyTarget,
-        noShowTimeoutMinutes: newNoShowTimeout,
-        basePrice: newBasePrice,
-        isManualPaymentEnabled: newManualEnabled,
-        manualPaymentInstructions: newManualInstructions,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: platformSettings.id,
-        set: {
+    // Perubahan pengaturan + Jejak Audit commit/rollback bersama (#24).
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(platformSettings)
+        .values({
+          id: "default",
           isScreeningRequired: newRequired,
           bookingCutoffHours: newBookingCutoff,
           rescheduleCutoffHours: newRescheduleCutoff,
@@ -229,8 +217,44 @@ export async function updatePlatformSettings(
           isManualPaymentEnabled: newManualEnabled,
           manualPaymentInstructions: newManualInstructions,
           updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: platformSettings.id,
+          set: {
+            isScreeningRequired: newRequired,
+            bookingCutoffHours: newBookingCutoff,
+            rescheduleCutoffHours: newRescheduleCutoff,
+            paymentHoldMinutes: newHoldMinutes,
+            maxSlotQuota: newMaxQuota,
+            minCounselorWeeklySlots: newWeeklyTarget,
+            noShowTimeoutMinutes: newNoShowTimeout,
+            basePrice: newBasePrice,
+            isManualPaymentEnabled: newManualEnabled,
+            manualPaymentInstructions: newManualInstructions,
+            updatedAt: new Date(),
+          },
+        })
+      await recordAudit(tx, {
+        actor: options.currentUser,
+        action: "settings.update",
+        entityType: "platform_settings",
+        entityId: "default",
+        before: current,
+        after: {
+          ...current,
+          isScreeningRequired: newRequired,
+          bookingCutoffHours: newBookingCutoff,
+          rescheduleCutoffHours: newRescheduleCutoff,
+          paymentHoldMinutes: newHoldMinutes,
+          maxSlotQuota: newMaxQuota,
+          minCounselorWeeklySlots: newWeeklyTarget,
+          noShowTimeoutMinutes: newNoShowTimeout,
+          basePrice: newBasePrice,
+          isManualPaymentEnabled: newManualEnabled,
+          manualPaymentInstructions: newManualInstructions,
         },
       })
+    })
 
     cachedSettings = {
       id: "default",
@@ -247,6 +271,7 @@ export async function updatePlatformSettings(
       updatedAt: new Date(),
     }
   } catch (error: any) {
+    if (error instanceof AuditWriteError) throw error
     if (error?.message?.includes("Akses ditolak") || error?.message?.includes("harus antara") || error?.message?.includes("tidak boleh")) {
       throw error
     }

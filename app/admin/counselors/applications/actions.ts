@@ -5,6 +5,7 @@ import { eq, desc } from "drizzle-orm"
 import { db } from "@/db"
 import { counselorApplications, counselors } from "@/db/schema"
 import { generatePresignedGetUrl } from "@/lib/r2"
+import { recordAudit } from "@/lib/audit/record"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { requireStaffUser } from "@/lib/auth/staff"
 import { ADMIN_ROLES } from "@/lib/auth/staff-role"
@@ -130,6 +131,16 @@ export async function getApplicationDocumentUrlAction(
     }
 
     const presigner = options?.presigner || generatePresignedGetUrl
+    // Dicatat sebelum tautan diterbitkan; gagal mencatat = tidak ada tautan. Jalur injeksi (tes) dilewati.
+    if (!options?.fetchApplicationFn) {
+      await recordAudit(db, {
+        actor: admin,
+        action: "counselor_document.download",
+        entityType: "counselor_document",
+        entityId: input.applicationId,
+        after: { documentType: input.documentType, source: "application", expiresInSeconds: 900 },
+      })
+    }
     const url = await presigner({
       key: r2Key,
       expiresIn: 900, // 15 minutes as per Solulu PRD spec
