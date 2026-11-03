@@ -103,7 +103,7 @@ export interface CounselorDetailData {
       isExpired: boolean
       label: string
       formattedDate: string | null
-      badgeVariant: "destructive" | "warning" | "default" | "secondary" | "outline"
+      badgeVariant: "destructive" | "default" | "secondary" | "outline"
     }
     sippStatus: {
       status: string
@@ -112,7 +112,7 @@ export interface CounselorDetailData {
       isExpired: boolean
       label: string
       formattedDate: string | null
-      badgeVariant: "destructive" | "warning" | "default" | "secondary" | "outline"
+      badgeVariant: "destructive" | "default" | "secondary" | "outline"
     }
   }
   attachments: CounselorAttachment[]
@@ -307,7 +307,7 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
                   Radar Peringatan Kredensial Izin Praktik Kemenkes
                 </span>
                 <Badge
-                  variant={radar.alertSeverity === "critical" ? "destructive" : "warning"}
+                  variant={radar.alertSeverity === "critical" ? "destructive" : "secondary"}
                   className="text-[10px] uppercase font-bold"
                 >
                   {radar.alertSeverity === "critical" ? "Tindakan Mendesak" : "Perhatian Khusus"}
@@ -577,7 +577,7 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
               </div>
               {isPsychologist && (
                 <Badge
-                  variant={radar.hasRadarAlert ? (radar.alertSeverity === "critical" ? "destructive" : "warning") : "outline"}
+                  variant={radar.hasRadarAlert ? (radar.alertSeverity === "critical" ? "destructive" : "secondary") : "outline"}
                   className="text-[10px]"
                 >
                   {radar.hasRadarAlert ? "Radar Aktif" : "Kredensial Sah"}

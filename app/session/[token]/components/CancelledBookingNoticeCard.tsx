@@ -3,9 +3,9 @@
 import * as React from "react"
 import Link from "next/link"
 import { AlertCircle, Calendar, MessageCircle, ArrowRight, ShieldCheck, HeartHandshake } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton as Button } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/public/public-card"
 import type { SessionBookingData, SessionScheduleData, SessionCounselorData } from "@/lib/session/types"
 
 interface CancelledBookingNoticeCardProps {

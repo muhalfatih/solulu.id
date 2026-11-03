@@ -101,24 +101,8 @@ describe("Ticket 18: public pages avoid non-registry ui variants", () => {
   })
 })
 
-describe("Ticket 18: PublicButton resolves to the legacy rendering", () => {
-  const variants = ["public", "public-secondary", "public-white"] as const
-  const sizes = ["pill", "pill-sm", "pill-lg"] as const
-
-  const classSet = (value: string) => value.split(/\s+/).filter(Boolean).sort()
-
-  // The legacy variants still exist in components/ui until the reset ticket,
-  // so they are the independent reference for "looks identical".
-  // Button renders cn(buttonVariants(...)); mirror that merge step.
-  const legacyVariants = buttonVariants as unknown as (opts: {
-    variant?: string
-    size?: string
-    className?: string
-  }) => string
-  const legacy = (opts: { variant: string; size: string }) =>
-    cn(legacyVariants(opts))
-
-  const wrapped = (variant: PublicButtonVariant, size: PublicButtonSize, className?: string) => {
+describe("Ticket 21: PublicButton reproduces the pre-reset public rendering on the registry Button", () => {
+  const rendered = (variant: PublicButtonVariant, size: PublicButtonSize, className?: string) => {
     const r = resolvePublicButton(variant, size)
     return cn(
       buttonVariants({
@@ -129,38 +113,51 @@ describe("Ticket 18: PublicButton resolves to the legacy rendering", () => {
     )
   }
 
-  for (const variant of variants) {
-    it(`variant ${variant} with default size matches legacy`, () => {
-      expect(classSet(wrapped(variant, "default"))).toEqual(
-        classSet(legacy({ variant, size: "default" }))
-      )
-    })
-    for (const size of sizes) {
-      it(`variant ${variant} with size ${size} matches legacy`, () => {
-        expect(classSet(wrapped(variant, size))).toEqual(
-          classSet(legacy({ variant, size }))
-        )
-      })
+  it.each(["public", "public-secondary", "public-white"] as const)(
+    "variant %s keeps the brand look and the roomier legacy default padding",
+    (variant) => {
+      const cls = rendered(variant, "default").split(/\s+/)
+      expect(cls).toContain("font-semibold")
+      expect(cls).toContain("px-3")
+      expect(cls).not.toContain("px-2.5")
     }
-  }
+  )
+
+  it("public brand variant stays purple", () => {
+    expect(rendered("public", "default")).toContain("bg-[#7c3aed]")
+  })
+
+  it.each([
+    ["pill", "h-11", "px-6"],
+    ["pill-sm", "h-9", "px-4"],
+    ["pill-lg", "h-12", "px-7"],
+  ] as const)("size %s is a rounded-full pill", (size, height, px) => {
+    const cls = rendered("public", size).split(/\s+/)
+    expect(cls).toContain("rounded-full")
+    expect(cls).toContain(height)
+    expect(cls).toContain(px)
+  })
+
+  it("restores the legacy sm and lg padding for registry sizes", () => {
+    expect(rendered("outline", "sm").split(/\s+/)).toEqual(
+      expect.arrayContaining(["gap-1.5", "text-xs"])
+    )
+    expect(rendered("outline", "lg").split(/\s+/)).toEqual(
+      expect.arrayContaining(["gap-2", "px-4"])
+    )
+  })
 
   it("keeps caller className last so overrides still win", () => {
-    const cls = wrapped("public", "pill", "w-full rounded-lg")
+    const cls = rendered("public", "pill", "w-full rounded-lg")
     expect(cls).toContain("w-full")
     expect(cls).toContain("rounded-lg")
     expect(cls).not.toContain("rounded-full")
   })
 
-  it("passes registry variants with pill sizes (e.g. outline + pill-sm) like legacy", () => {
-    expect(classSet(wrapped("outline", "pill-sm"))).toEqual(
-      classSet(legacy({ variant: "outline", size: "pill-sm" }))
-    )
-  })
-
-  it("passes plain registry variants and sizes through untouched", () => {
-    expect(resolvePublicButton("ghost", "sm")).toEqual({
+  it("passes icon sizes through untouched", () => {
+    expect(resolvePublicButton("ghost", "icon")).toEqual({
       variant: "ghost",
-      size: "sm",
+      size: "icon",
       className: "",
     })
   })

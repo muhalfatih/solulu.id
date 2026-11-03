@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { PublicButton } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/public/public-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { EmergencyHotlineBanner } from "@/components/screening/EmergencyHotlineBanner";
 import {

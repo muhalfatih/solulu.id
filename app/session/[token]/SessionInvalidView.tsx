@@ -9,7 +9,7 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@/components/ui/card"
+} from "@/components/public/public-card"
 import { PublicShell } from "@/components/public/public-shell"
 
 interface SessionInvalidViewProps {

@@ -21,7 +21,7 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@/components/ui/card"
+} from "@/components/public/public-card"
 import {
   calculateSessionTimeInfo,
   getSessionCountdown,

@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { AlertTriangle, RefreshCcw, Home, MessageSquare } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton as Button } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
 
 export default function GlobalError({

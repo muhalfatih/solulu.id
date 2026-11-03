@@ -13,7 +13,7 @@ import {
   Lock,
 } from "lucide-react"
 import { PublicButton } from "@/components/public/public-button"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/public/public-card"
 import { PublicShell } from "@/components/public/public-shell"
 import { getStartingPricesByCounselorType } from "@/lib/services/catalog"
 import { formatRupiah } from "@/lib/utils"

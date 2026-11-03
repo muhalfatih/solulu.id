@@ -23,7 +23,7 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@/components/ui/card"
+} from "@/components/public/public-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PublicShell } from "@/components/public/public-shell"
 import { FaqAccordion } from "@/components/public/FaqAccordion"
