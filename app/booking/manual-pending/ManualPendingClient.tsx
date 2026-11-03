@@ -16,7 +16,7 @@ import {
   HelpCircle,
   Calendar,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -182,7 +182,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                   <span className="text-base sm:text-lg font-bold font-mono tracking-tight text-foreground">
                     {referenceNumber}
                   </span>
-                  <Button
+                  <PublicButton
                     type="button"
                     variant="ghost"
                     size="sm"
@@ -194,7 +194,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                     ) : (
                       <Copy className="size-3.5" />
                     )}
-                  </Button>
+                  </PublicButton>
                 </div>
               </div>
 
@@ -207,7 +207,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                   <span className="text-lg sm:text-xl font-bold tabular-nums font-heading text-primary dark:text-purple-300">
                     {formattedAmount}
                   </span>
-                  <Button
+                  <PublicButton
                     type="button"
                     variant="ghost"
                     size="sm"
@@ -219,7 +219,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                     ) : (
                       <Copy className="size-3.5" />
                     )}
-                  </Button>
+                  </PublicButton>
                 </div>
               </div>
             </div>
@@ -259,7 +259,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                   </div>
                   <span className="text-xs text-muted-foreground">a.n. {acc.accountHolder}</span>
                 </div>
-                <Button
+                <PublicButton
                   type="button"
                   variant="public-secondary"
                   size="pill-sm"
@@ -277,7 +277,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                       <span>Salin Rekening</span>
                     </>
                   )}
-                </Button>
+                </PublicButton>
               </div>
             ))}
           </CardContent>
@@ -314,7 +314,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
             </div>
           </CardContent>
           <CardFooter className="p-6 sm:p-7 border-t border-border/40 bg-muted/10 flex flex-col sm:flex-row gap-3">
-            <Button
+            <PublicButton
               asChild
               variant="public"
               size="pill-lg"
@@ -324,8 +324,8 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                 <MessageCircle className="size-4" data-icon="inline-start" />
                 <span>Konfirmasi via WhatsApp Sekarang</span>
               </a>
-            </Button>
-            <Button
+            </PublicButton>
+            <PublicButton
               asChild
               variant="public-secondary"
               size="pill-lg"
@@ -335,7 +335,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                 <span>Buka Halaman Sesi</span>
                 <ArrowRight className="size-4" data-icon="inline-end" />
               </Link>
-            </Button>
+            </PublicButton>
           </CardFooter>
         </Card>
       </div>

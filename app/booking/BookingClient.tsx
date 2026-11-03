@@ -22,7 +22,7 @@ import {
   Check,
   Heart,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -538,7 +538,7 @@ export default function BookingClient({
                       </span>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         {["Bank BCA", "Bank Mandiri", "Bank BRI"].map((bank) => (
-                          <Button
+                          <PublicButton
                             key={bank}
                             type="button"
                             variant={manualBank === bank ? "public" : "outline"}
@@ -550,7 +550,7 @@ export default function BookingClient({
                               <Check className="size-3.5 mr-1" data-icon="inline-start" />
                             )}
                             <span>{bank}</span>
-                          </Button>
+                          </PublicButton>
                         ))}
                       </div>
                       <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed mt-0.5">
@@ -681,21 +681,21 @@ export default function BookingClient({
                             </span>
                           </div>
                         </div>
-                        <Button asChild variant="public" size="pill-sm" className="w-full text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white">
+                        <PublicButton asChild variant="public" size="pill-sm" className="w-full text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white">
                           <Link href={`/screening?counselorId=${counselor.id}&scheduleId=${schedule.id}`}>
                             <span>Isi Skrining SRQ-20 Sekarang</span>
                             <ArrowRight className="size-3.5" />
                           </Link>
-                        </Button>
+                        </PublicButton>
                       </div>
                     ) : (
                       <div className="p-4 rounded-xl bg-muted/30 border border-border/60 text-xs text-muted-foreground flex items-center justify-between gap-2">
                         <span>Ingin memberi konteks emosional ke konselor?</span>
-                        <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs text-primary font-medium">
+                        <PublicButton asChild variant="link" size="sm" className="h-auto p-0 text-xs text-primary font-medium">
                           <Link href={`/screening?counselorId=${counselor.id}&scheduleId=${schedule.id}`}>
                             Isi Skrining (Opsional)
                           </Link>
-                        </Button>
+                        </PublicButton>
                       </div>
                     )}
                   </div>
@@ -717,7 +717,7 @@ export default function BookingClient({
                             className="h-9 rounded-xl text-xs sm:text-sm font-mono tracking-wider uppercase border-border/80"
                             disabled={isValidatingVoucher || !allowVoucher}
                           />
-                          <Button
+                          <PublicButton
                             type="button"
                             variant="public-secondary"
                             size="pill-sm"
@@ -730,7 +730,7 @@ export default function BookingClient({
                             ) : (
                               <span>Terapkan</span>
                             )}
-                          </Button>
+                          </PublicButton>
                         </div>
                         {selectedService && !allowVoucher && (
                           <span className="text-[11px] text-muted-foreground">
@@ -754,7 +754,7 @@ export default function BookingClient({
                             </div>
                           </div>
                         </div>
-                        <Button
+                        <PublicButton
                           type="button"
                           variant="ghost"
                           size="sm"
@@ -762,7 +762,7 @@ export default function BookingClient({
                           className="h-7 text-xs text-destructive hover:bg-destructive/10 px-2.5 rounded-full cursor-pointer"
                         >
                           Hapus
-                        </Button>
+                        </PublicButton>
                       </div>
                     )}
                   </div>
@@ -800,7 +800,7 @@ export default function BookingClient({
                 </CardContent>
 
                 <CardFooter className="p-6 sm:p-7 border-t border-border/40 bg-muted/10 flex flex-col gap-3.5">
-                  <Button
+                  <PublicButton
                     type="submit"
                     variant="public"
                     size="pill-lg"
@@ -825,7 +825,7 @@ export default function BookingClient({
                         <ArrowRight className="size-4" data-icon="inline-end" />
                       </>
                     )}
-                  </Button>
+                  </PublicButton>
 
                   {isScreeningRequired && !screening && (
                     <span className="text-xs text-amber-600 dark:text-amber-400 text-center font-medium">

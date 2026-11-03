@@ -1,7 +1,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { Compass, Search, MessageSquare, ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import {
   Card,
   CardHeader,
@@ -61,19 +61,19 @@ export function SessionInvalidView({ token, error }: SessionInvalidViewProps) {
             )}
 
             <div className="flex flex-col gap-3">
-              <Button asChild variant="public" size="pill" className="w-full h-11">
+              <PublicButton asChild variant="public" size="pill" className="w-full h-11">
                 <Link href="/cek-sesi" className="flex items-center justify-center gap-2">
                   <Search data-icon="inline-start" className="size-4" />
                   <span>Cari Sesi Saya di /cek-sesi</span>
                 </Link>
-              </Button>
+              </PublicButton>
 
-              <Button asChild variant="public-secondary" size="pill" className="w-full h-11">
+              <PublicButton asChild variant="public-secondary" size="pill" className="w-full h-11">
                 <a href={helpDeskUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
                   <MessageSquare data-icon="inline-start" className="size-4" />
                   <span>Bantuan Tim Solulu via WhatsApp</span>
                 </a>
-              </Button>
+              </PublicButton>
             </div>
           </CardContent>
 

@@ -1,7 +1,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { MessageSquare, LifeBuoy, HeartPulse } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import {
   Card,
   CardHeader,
@@ -43,7 +43,7 @@ export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
           <p className="text-xs text-muted-foreground leading-relaxed">
             Mengalami kesulitan mikrofon, kamera, atau akses ruangan?
           </p>
-          <Button
+          <PublicButton
             asChild
             size="pill-sm"
             id="btn-whatsapp-support"
@@ -53,7 +53,7 @@ export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
               <MessageSquare data-icon="inline-start" className="size-3.5 mr-1.5" />
               <span>Hubungi Tim Solulu via WhatsApp</span>
             </a>
-          </Button>
+          </PublicButton>
         </CardContent>
       </Card>
 

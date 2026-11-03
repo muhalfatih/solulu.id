@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Compass, Home, Search, HeartHandshake, PhoneCall, ArrowRight } from "lucide-react"
 import { PublicShell } from "@/components/public/public-shell"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 
 export default function NotFound() {
   return (
@@ -33,7 +33,7 @@ export default function NotFound() {
 
           {/* Quick Recovery Options */}
           <div className="w-full flex flex-col gap-2.5 pt-1">
-            <Button
+            <PublicButton
               asChild
               variant="public"
               size="pill-lg"
@@ -44,10 +44,10 @@ export default function NotFound() {
                 <span>Kembali ke Beranda Solulu</span>
                 <ArrowRight className="size-4 ml-2" />
               </Link>
-            </Button>
+            </PublicButton>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full pt-1">
-              <Button
+              <PublicButton
                 asChild
                 variant="outline"
                 size="pill"
@@ -57,9 +57,9 @@ export default function NotFound() {
                   <Search className="size-3.5 mr-1.5 text-purple-600 dark:text-purple-400" />
                   <span>Cek Tautan Sesi</span>
                 </Link>
-              </Button>
+              </PublicButton>
 
-              <Button
+              <PublicButton
                 asChild
                 variant="outline"
                 size="pill"
@@ -69,7 +69,7 @@ export default function NotFound() {
                   <HeartHandshake className="size-3.5 mr-1.5 text-purple-600 dark:text-purple-400" />
                   <span>Pilih Konselor</span>
                 </Link>
-              </Button>
+              </PublicButton>
             </div>
           </div>
 

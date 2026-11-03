@@ -15,7 +15,7 @@ import {
   BadgeCheck,
   Calendar,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import {
   Card,
   CardHeader,
@@ -216,7 +216,7 @@ export default async function HomePage() {
           <div className="flex flex-col items-center gap-4 pt-1 w-full sm:w-auto animate-hero-fade-up [animation-delay:320ms]">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
               {/* Standardized Hero Primary: size="pill-lg" (48px, even padding) */}
-              <Button
+              <PublicButton
                 asChild
                 variant="public"
                 size="pill-lg"
@@ -227,10 +227,10 @@ export default async function HomePage() {
                   <span>Pilih Jadwal Konseling</span>
                   <ArrowRight className="size-4" data-icon="inline-end" aria-hidden="true" />
                 </Link>
-              </Button>
+              </PublicButton>
 
               {/* Standardized Hero Secondary: size="pill-lg" (48px, even padding, matching typography) */}
-              <Button
+              <PublicButton
                 asChild
                 variant="public-secondary"
                 size="pill-lg"
@@ -240,7 +240,7 @@ export default async function HomePage() {
                 <Link href="#harga">
                   <span>Lihat Pilihan &amp; Tarif</span>
                 </Link>
-              </Button>
+              </PublicButton>
             </div>
 
             {/* Social Proof Row */}
@@ -586,7 +586,7 @@ export default async function HomePage() {
                 </CardContent>
 
                 <CardFooter className="p-6 sm:p-7 pt-2">
-                  <Button
+                  <PublicButton
                     asChild
                     variant="public-secondary"
                     size="pill"
@@ -597,7 +597,7 @@ export default async function HomePage() {
                       <span>Pilih Konselor Sebaya</span>
                       <ArrowRight className="size-3.5" data-icon="inline-end" aria-hidden="true" />
                     </Link>
-                  </Button>
+                  </PublicButton>
                 </CardFooter>
               </Card>
             </ScrollReveal>
@@ -678,7 +678,7 @@ export default async function HomePage() {
                 </CardContent>
 
                 <CardFooter className="p-6 sm:p-7 pt-2">
-                  <Button
+                  <PublicButton
                     asChild
                     variant="public"
                     size="pill"
@@ -689,7 +689,7 @@ export default async function HomePage() {
                       <span>Pilih Psikolog Klinis</span>
                       <ArrowRight className="size-3.5" data-icon="inline-end" aria-hidden="true" />
                     </Link>
-                  </Button>
+                  </PublicButton>
                 </CardFooter>
               </Card>
             </ScrollReveal>
@@ -711,7 +711,7 @@ export default async function HomePage() {
             </div>
 
             {/* Standardized Header Action: size="pill-sm" (h-9, px-4) */}
-            <Button
+            <PublicButton
               asChild
               variant="public-secondary"
               size="pill-sm"
@@ -722,7 +722,7 @@ export default async function HomePage() {
                 <span>Lihat Semua Konselor</span>
                 <ArrowRight className="size-3.5" data-icon="inline-end" aria-hidden="true" />
               </Link>
-            </Button>
+            </PublicButton>
           </ScrollReveal>
 
           {featuredCounselors.length > 0 ? (
@@ -828,7 +828,7 @@ export default async function HomePage() {
 
                     {/* 3. Action Button */}
                     <CardFooter className="px-5 sm:px-6 pb-5 sm:pb-6 pt-0">
-                      <Button
+                      <PublicButton
                         asChild
                         variant="public"
                         size="pill"
@@ -839,7 +839,7 @@ export default async function HomePage() {
                           <span>Pilih Jadwal Konseling</span>
                           <ArrowRight className="size-3.5" data-icon="inline-end" aria-hidden="true" />
                         </Link>
-                      </Button>
+                      </PublicButton>
                     </CardFooter>
                   </Card>
                 </ScrollReveal>
@@ -857,9 +857,9 @@ export default async function HomePage() {
             <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 max-w-sm">
               Jadwal konsultasi baru sedang disinkronkan oleh tim admin. Silakan periksa ketersediaan langsung di halaman katalog.
             </p>
-            <Button asChild variant="public" size="pill" className="mt-5">
+            <PublicButton asChild variant="public" size="pill" className="mt-5">
               <Link href="/counselors">Buka Katalog Konselor</Link>
-            </Button>
+            </PublicButton>
           </div>
         )}
       </div>
@@ -986,7 +986,7 @@ export default async function HomePage() {
               </div>
 
               {/* Standardized Footer CTA: size="pill-lg" (48px, even padding, matching Hero) */}
-              <Button
+              <PublicButton
                 asChild
                 variant="public-white"
                 size="pill-lg"
@@ -997,7 +997,7 @@ export default async function HomePage() {
                   <span>Pilih Jadwal Konseling Sekarang</span>
                   <ArrowRight className="size-4" data-icon="inline-end" aria-hidden="true" />
                 </Link>
-              </Button>
+              </PublicButton>
 
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-purple-200/80 font-medium tabular-nums pt-2 border-t border-white/10 w-full max-w-lg">
                 <span>90 Menit Penuh</span>

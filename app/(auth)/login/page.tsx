@@ -16,7 +16,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import {
   Card,
   CardContent,
@@ -325,7 +325,7 @@ function LoginForm() {
               </CardContent>
 
               <CardFooter className="px-6 sm:px-7 pb-6 sm:pb-7 flex flex-col gap-3.5 pt-2">
-                <Button
+                <PublicButton
                   type="submit"
                   variant="public"
                   size="pill"
@@ -340,7 +340,7 @@ function LoginForm() {
                       <ArrowRight className="size-4" data-icon="inline-end" aria-hidden="true" />
                     </span>
                   )}
-                </Button>
+                </PublicButton>
 
                 <div className="p-2.5 rounded-2xl bg-muted/20 border border-border/40 text-center text-[11px] text-muted-foreground leading-relaxed">
                   Khusus tenaga ahli &amp; tim operasional. Pasien dapat langsung masuk ke ruang telekonseling melalui tautan pada konfirmasi pemesanan.
