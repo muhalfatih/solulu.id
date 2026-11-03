@@ -27,3 +27,34 @@ export function poolSlotDisplay(booking: {
     endTime: slot.endTime.slice(0, 5),
   }
 }
+
+export interface SessionScheduleLike {
+  id: string
+  date: string
+  startTime: string
+  endTime: string
+}
+
+/**
+ * Jadwal sesi untuk /session/[token]: baris jadwal konselor bila ada, kalau tidak
+ * slot pool (booking Konselor Bebas belum diklaim, id kosong). Null bila keduanya tidak ada.
+ */
+export function resolveSessionSchedule(
+  schedule: SessionScheduleLike | null,
+  booking: { poolDate: string | null; poolSlotIndex: number | null }
+): SessionScheduleLike | null {
+  if (schedule) return schedule
+  const pool = poolSlotDisplay(booking)
+  if (!pool) return null
+  return { id: "", date: pool.date, startTime: `${pool.startTime}:00`, endTime: `${pool.endTime}:00` }
+}
+
+/** Booking pool yang jam sesinya sudah lewat (masih tanpa konselor). Murni. */
+export function isPoolSessionOverdue(
+  booking: { poolDate: string | null; poolSlotIndex: number | null },
+  now: Date
+): boolean {
+  const pool = poolSlotDisplay(booking)
+  if (!pool) return false
+  return now.getTime() >= new Date(`${pool.date}T${pool.startTime}:00+07:00`).getTime()
+}
