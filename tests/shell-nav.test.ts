@@ -36,11 +36,7 @@ describe("Ticket 22: shared portal shell navigation", () => {
 
   it("hides items whose page does not exist yet", () => {
     const titles = flat("admin", "superadmin").map((i) => i.title)
-    for (const planned of [
-      "Voucher",
-    ]) {
-      expect(titles).not.toContain(planned)
-    }
+    expect(titles).toContain("Voucher") // halaman /admin/vouchers dibuat di #35
     expect(titles).toContain("Layanan & Tarif")
     expect(titles).toContain("Booking")
     expect(titles).toContain("Klien Tersedia")
@@ -157,5 +153,14 @@ describe("Ticket 22: shared portal shell navigation", () => {
     ]) {
       expect(existsSync(join(process.cwd(), p)), p).toBe(false)
     }
+  })
+})
+
+describe("shell server/client boundary", () => {
+  it("does not pass icon components (functions) from the server sidebar to NavMain", async () => {
+    const { readFileSync } = await import("node:fs")
+    const sidebar = readFileSync("components/app-shell/app-sidebar.tsx", "utf8")
+    expect(sidebar).not.toMatch(/<NavMain[^>]*groups=/)
+    expect(sidebar).toMatch(/<NavMain[^>]*portal=\{portal\}/)
   })
 })

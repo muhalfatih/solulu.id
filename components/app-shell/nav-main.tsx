@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -10,9 +11,14 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { getActiveHref, type ShellNavGroup } from "@/lib/shell/nav"
+import { getActiveHref, getVisibleNav, type PortalKey } from "@/lib/shell/nav"
 
-export function NavMain({ groups }: { groups: ShellNavGroup[] }) {
+/**
+ * Menu dihitung di sisi klien dari `portal` + `role` (string serializable); komponen ikon
+ * (fungsi) tidak boleh dioper dari Server Component ke Client Component (ADR-0012).
+ */
+export function NavMain({ portal, role }: { portal: PortalKey; role: Parameters<typeof getVisibleNav>[1] }) {
+  const groups = React.useMemo(() => getVisibleNav(portal, role), [portal, role])
   const pathname = usePathname() ?? ""
   const { isMobile, setOpenMobile } = useSidebar()
   const activeHref = getActiveHref(

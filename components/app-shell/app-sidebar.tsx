@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { getVisibleNav, type AttentionShortcut, type PortalKey } from "@/lib/shell/nav"
+import type { AttentionShortcut, PortalKey } from "@/lib/shell/nav"
 import { NavMain } from "./nav-main"
 import { NavAttention } from "./nav-attention"
 import { NavSecondary } from "./nav-secondary"
@@ -33,7 +33,6 @@ export function AppSidebar({
   attention: AttentionShortcut[]
 }) {
   const { label, home } = PORTALS[portal]
-  const groups = getVisibleNav(portal, user.role)
 
   return (
     <Sidebar variant="inset" collapsible="icon">
@@ -55,7 +54,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain groups={groups} />
+        <NavMain portal={portal} role={user.role} />
         <NavAttention items={attention} />
         <NavSecondary className="mt-auto" />
       </SidebarContent>
