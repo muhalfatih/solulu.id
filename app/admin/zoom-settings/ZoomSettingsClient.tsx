@@ -774,7 +774,7 @@ export function ZoomSettingsClient({
                           onMouseEnter={() => setHoveredSession(ses)}
                           onMouseLeave={() => setHoveredSession(null)}
                           onClick={() => setInspectingAccountId(account.id)}
-                          className={`absolute top-1 bottom-1 ${style.blockColor} border rounded-md px-2 flex items-center justify-between text-[10px] font-medium cursor-pointer transition-all ${
+                          className={`absolute top-1 bottom-1 ${style.blockColor} border rounded-md px-2 flex items-center justify-between text-[10px] font-medium cursor-pointer transition-colors ${
                             isHovered ? `ring-2 ${style.ringColor} ring-offset-1 z-20` : ""
                           }`}
                           title={`${ses.bookingId.slice(0, 7).toUpperCase()} (${ses.startTime.slice(0, 5)} - ${ses.endTime.slice(0, 5)} WIB): ${ses.patientName}`}

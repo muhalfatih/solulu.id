@@ -23,6 +23,7 @@ export const AUDIT_ACTIONS = [
   "counselor.approval",
   "payment.verify",
   "payment.reject",
+  "booking.no_show",
   "booking.manual_create",
   "booking.quick_create",
   "pool.assign",

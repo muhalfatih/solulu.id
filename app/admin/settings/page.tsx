@@ -243,7 +243,7 @@ function AdminSettingsContent() {
         {feedback && (
           <Alert
             variant={feedback.type === "error" ? "destructive" : "default"}
-            className="animate-in fade-in transition-all border shadow-xs"
+            className="animate-in fade-in transition-colors border shadow-xs"
           >
             {feedback.type === "success" ? (
               <CheckCircle2 className="size-4 text-foreground shrink-0 mt-0.5" />
@@ -707,7 +707,7 @@ function AdminSettingsContent() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div
-                    className={`p-5 rounded-lg border transition-all flex flex-col gap-2.5 ${
+                    className={`p-5 rounded-lg border transition-colors flex flex-col gap-2.5 ${
                       !formData.isScreeningRequired
                         ? "bg-card border-foreground/30 shadow-xs ring-1 ring-foreground/5"
                         : "bg-muted/10 border-border/60 opacity-60"
@@ -722,7 +722,7 @@ function AdminSettingsContent() {
                   </div>
 
                   <div
-                    className={`p-5 rounded-lg border transition-all flex flex-col gap-2.5 ${
+                    className={`p-5 rounded-lg border transition-colors flex flex-col gap-2.5 ${
                       formData.isScreeningRequired
                         ? "bg-card border-foreground/30 shadow-xs ring-1 ring-foreground/5"
                         : "bg-muted/10 border-border/60 opacity-60"

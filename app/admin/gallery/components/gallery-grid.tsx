@@ -169,7 +169,7 @@ export function GalleryGrid({
           items.map((item, index) => (
             <div
               key={item.id}
-              className="group relative rounded-xl overflow-hidden bg-muted border border-border/80 shadow-xs hover:shadow-md transition-all aspect-video cursor-pointer"
+              className="group relative rounded-xl overflow-hidden bg-muted border border-border/80 shadow-xs hover:shadow-md transition-colors aspect-video cursor-pointer"
               onClick={() => setLightboxIndex(index)}
             >
               {/* Photo Image */}

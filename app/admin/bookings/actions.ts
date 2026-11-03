@@ -5,6 +5,7 @@ import { eq, and, desc, sql, or } from "drizzle-orm"
 import { db } from "@/db"
 import { bookings, counselors, schedules, transactions, sessionReports } from "@/db/schema"
 import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
+import { recordAudit } from "@/lib/audit/record"
 import { getAppBaseUrl } from "@/lib/url"
 import { mapBookingRow } from "./map-row"
 import {
@@ -282,10 +283,17 @@ export async function markBookingNoShowAction(
     if (options?.updateFn) {
       await options.updateFn(bookingId, updateData)
     } else {
-      await db
-        .update(bookings)
-        .set(updateData)
-        .where(eq(bookings.id, bookingId))
+      await db.transaction(async (tx) => {
+        await tx.update(bookings).set(updateData).where(eq(bookings.id, bookingId))
+        await recordAudit(tx, {
+          actor: admin,
+          action: "booking.no_show",
+          entityType: "booking",
+          entityId: bookingId,
+          before: { status: booking.status },
+          after: { status: "no_show" },
+        })
+      })
     }
 
     safeRevalidatePaths("/admin/bookings", "/admin/sessions", "/admin")

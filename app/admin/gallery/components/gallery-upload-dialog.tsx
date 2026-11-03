@@ -148,7 +148,7 @@ export function GalleryUploadDialog({
                       setAspectRatio(preset.aspectRatio)
                       setDimensions(preset.dimensions)
                     }}
-                    className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                    className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
                       imageUrl === preset.url
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-muted/30 border-border text-foreground hover:bg-muted"

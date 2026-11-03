@@ -531,7 +531,7 @@ export function AdminManualBookingModal({
                       type="button"
                       onClick={() => setScheduleMode("existing")}
                       disabled={availableSlots.length === 0}
-                      className={`h-7.5 px-2.5 flex items-center justify-center gap-1.5 rounded text-xs font-medium transition-all cursor-pointer ${
+                      className={`h-7.5 px-2.5 flex items-center justify-center gap-1.5 rounded text-xs font-medium transition-colors cursor-pointer ${
                         scheduleMode === "existing"
                           ? "bg-background text-foreground shadow-xs font-semibold"
                           : "text-muted-foreground hover:text-foreground disabled:opacity-40"
@@ -547,7 +547,7 @@ export function AdminManualBookingModal({
                     <button
                       type="button"
                       onClick={() => setScheduleMode("adhoc")}
-                      className={`h-7.5 px-2.5 flex items-center justify-center gap-1 rounded text-xs font-medium transition-all cursor-pointer ${
+                      className={`h-7.5 px-2.5 flex items-center justify-center gap-1 rounded text-xs font-medium transition-colors cursor-pointer ${
                         scheduleMode === "adhoc"
                           ? "bg-background text-foreground shadow-xs font-semibold"
                           : "text-muted-foreground hover:text-foreground"

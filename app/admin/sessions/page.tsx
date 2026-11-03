@@ -727,7 +727,7 @@ export default function DistilledSessionsPage() {
                                     key={ses.id}
                                     type="button"
                                     onClick={() => handleOpenSession(ses)}
-                                    className={`group w-full text-left p-2 rounded-xl border transition-all cursor-pointer shadow-2xs relative ${
+                                    className={`group w-full text-left p-2 rounded-xl border transition-colors cursor-pointer shadow-2xs relative ${
                                       isExpired
                                         ? "bg-rose-500/10 border-rose-500/30 opacity-75 hover:opacity-100"
                                         : isPendingPayment
@@ -955,7 +955,7 @@ export default function DistilledSessionsPage() {
                     setMonthlyOverflowData(null)
                     handleOpenSession(ses)
                   }}
-                  className="p-3 rounded-xl hover:bg-muted/50 border border-transparent hover:border-border/60 transition-all cursor-pointer flex flex-col gap-2 group"
+                  className="p-3 rounded-xl hover:bg-muted/50 border border-transparent hover:border-border/60 transition-colors cursor-pointer flex flex-col gap-2 group"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">

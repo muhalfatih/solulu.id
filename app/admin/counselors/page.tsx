@@ -610,7 +610,7 @@ export default function DistilledCounselorsPage() {
               applicants.map((app) => (
               <div
                 key={app.id}
-                className={`rounded-xl border bg-card p-6 flex flex-col justify-between gap-6 transition-all ${
+                className={`rounded-xl border bg-card p-6 flex flex-col justify-between gap-6 transition-colors ${
                   app.status === "approved"
                     ? "border-primary/40 bg-primary/5"
                     : app.status === "rejected"
