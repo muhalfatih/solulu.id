@@ -1,5 +1,6 @@
 "use client"
 
+import { getSupportWhatsappUrl } from "@/lib/config/support"
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -116,9 +117,6 @@ export default function ManualPendingClient({ data }: ManualPendingClientProps) 
     }
   }
 
-  const whatsappSupportNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT || "6281234567890"
-
   const confirmationMessage = `Halo Admin Solulu, saya ingin mengirimkan bukti transfer untuk pemesanan konseling:
 - Nama Pasien: ${booking.patientName}
 - Kode Referensi: ${referenceNumber}
@@ -128,9 +126,7 @@ export default function ManualPendingClient({ data }: ManualPendingClientProps) 
 
 Mohon bantuannya untuk diverifikasi. Terima kasih.`
 
-  const whatsappUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(
-    confirmationMessage
-  )}`
+  const whatsappUrl = getSupportWhatsappUrl(confirmationMessage)
 
   return (
     <PublicShell>
@@ -314,6 +310,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
             </div>
           </CardContent>
           <CardFooter className="p-6 sm:p-7 border-t border-border/40 bg-muted/10 flex flex-col sm:flex-row gap-3">
+{whatsappUrl && (
             <PublicButton
               asChild
               variant="public"
@@ -325,6 +322,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                 <span>Konfirmasi via WhatsApp Sekarang</span>
               </a>
             </PublicButton>
+)}
             <PublicButton
               asChild
               variant="public-secondary"

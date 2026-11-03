@@ -1,5 +1,6 @@
 "use client"
 
+import { getSupportWhatsappUrl } from "@/lib/config/support"
 import * as React from "react"
 import {
   Video,
@@ -78,14 +79,8 @@ export function SessionCountdownCard({
   const isFulfillmentPending =
     booking.status === "confirmed" && !booking.zoomJoinUrl
 
-  const whatsappSupportNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT || "6281234567890"
-  const waPendingUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(
-    `Halo Tim Solulu, saya sedang menunggu tautan Zoom di ruang sesi dengan token: ${booking.accessToken}`
-  )}`
-  const waCounselorMissingUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(
-    `Halo Admin Solulu, saya sedang berada di ruang sesi dengan token ${booking.accessToken} (Klien: ${patientName}), namun konselor belum bergabung atau ada kendala di ruang Zoom. Mohon bantuannya.`
-  )}`
+  const waPendingUrl = getSupportWhatsappUrl(`Halo Tim Solulu, saya sedang menunggu tautan Zoom di ruang sesi dengan token: ${booking.accessToken}`)
+  const waCounselorMissingUrl = getSupportWhatsappUrl(`Halo Admin Solulu, saya sedang berada di ruang sesi dengan token ${booking.accessToken} (Klien: ${patientName}), namun konselor belum bergabung atau ada kendala di ruang Zoom. Mohon bantuannya.`)
 
   return (
     <Card className="rounded-3xl border border-violet-100/90 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(124,58,237,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(124,58,237,0.10)] transition-all relative overflow-hidden gap-0">
@@ -247,6 +242,7 @@ export function SessionCountdownCard({
                     {isRefreshing ? "Memeriksa..." : "Cek Ulang Ruang Zoom"}
                   </PublicButton>
                 )}
+{waPendingUrl && (
                 <PublicButton
                   asChild
                   variant="outline"
@@ -257,6 +253,7 @@ export function SessionCountdownCard({
                     Bantuan WhatsApp
                   </a>
                 </PublicButton>
+)}
               </div>
             </AlertDescription>
           </Alert>
@@ -277,6 +274,7 @@ export function SessionCountdownCard({
             </p>
 
             {/* In case session had disruption / Counselor No-Show */}
+{waCounselorMissingUrl && (
             <div className="mt-3 pt-3 border-t border-border/50 w-full flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
               <span>Sesi terganggu atau konselor tidak hadir?</span>
               <a
@@ -293,6 +291,7 @@ export function SessionCountdownCard({
                 </PublicButton>
               </a>
             </div>
+)}
           </div>
         )}
 
@@ -338,7 +337,7 @@ export function SessionCountdownCard({
             </p>
 
             {/* Counselor Assistance Notice (Case 2A: Counselor Delay / No-Show) */}
-            {(state === "IN_PROGRESS" || state === "ROOM_OPEN_PREPARING") && (
+            {waCounselorMissingUrl && (state === "IN_PROGRESS" || state === "ROOM_OPEN_PREPARING") && (
               <div className="mt-2 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <span className="size-2 rounded-full bg-amber-500 shrink-0" />

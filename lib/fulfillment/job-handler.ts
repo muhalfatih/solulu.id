@@ -7,8 +7,8 @@ export interface FulfillJobDeps {
   fulfill: (bookingId: string) => Promise<{
     success: boolean
     error?: string
-    zoomJoinUrl?: string
-    zoomMeetingId?: string
+    zoomJoinUrl?: string | null
+    zoomMeetingId?: string | null
   }>
 }
 

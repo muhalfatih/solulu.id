@@ -1,5 +1,6 @@
 "use client"
 
+import { getSupportWhatsappUrl } from "@/lib/config/support"
 import * as React from "react"
 import Link from "next/link"
 import {
@@ -75,12 +76,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
     setTimeout(() => setCopiedLink(false), 2500)
   }
 
-  const whatsappSupportNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT || "6281234567890"
-
-  const helpDeskUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(
-    `Halo Tim Solulu, saya ingin bertanya terkait sesi konseling dengan token: ${booking.accessToken}`
-  )}`
+  const helpDeskUrl = getSupportWhatsappUrl(`Halo Tim Solulu, saya ingin bertanya terkait sesi konseling dengan token: ${booking.accessToken}`)
 
   return (
     <PublicShell>
@@ -277,6 +273,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
               </span>
             </div>
           </CardContent>
+{helpDeskUrl && (
           <CardFooter className="p-6 sm:p-7 border-t border-border/40 bg-muted/10">
             <a
               href={helpDeskUrl}
@@ -288,6 +285,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
               <span>Ada pertanyaan? Hubungi Bantuan Solulu via WhatsApp</span>
             </a>
           </CardFooter>
+)}
         </Card>
       </div>
     </PublicShell>

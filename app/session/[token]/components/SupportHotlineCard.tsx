@@ -1,4 +1,5 @@
 import * as React from "react"
+import { getSupportWhatsappUrl } from "@/lib/config/support"
 import Link from "next/link"
 import { MessageSquare, LifeBuoy, HeartPulse } from "lucide-react"
 import { PublicButton } from "@/components/public/public-button"
@@ -15,12 +16,7 @@ interface SupportHotlineCardProps {
 }
 
 export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
-  const whatsappSupportNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT || "6281234567890"
-
-  const helpDeskUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(
-    `Halo Tim Solulu, saya sedang mengakses ruang sesi dan memerlukan bantuan teknis dengan token: ${accessToken}`
-  )}`
+  const helpDeskUrl = getSupportWhatsappUrl(`Halo Tim Solulu, saya sedang mengakses ruang sesi dan memerlukan bantuan teknis dengan token: ${accessToken}`)
 
   return (
     <div className="flex flex-col gap-4">
@@ -43,6 +39,7 @@ export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
           <p className="text-xs text-muted-foreground leading-relaxed">
             Mengalami kesulitan mikrofon, kamera, atau akses ruangan?
           </p>
+{helpDeskUrl && (
           <PublicButton
             asChild
             size="pill-sm"
@@ -54,6 +51,7 @@ export function SupportHotlineCard({ accessToken }: SupportHotlineCardProps) {
               <span>Hubungi Tim Solulu via WhatsApp</span>
             </a>
           </PublicButton>
+)}
         </CardContent>
       </Card>
 
