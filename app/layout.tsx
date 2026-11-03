@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { NavigationProgress } from "@/components/navigation-progress"
 import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
+import { getAppBaseUrl } from "@/lib/url"
 
 import type { Metadata } from "next"
 
@@ -48,11 +49,11 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Solulu Indonesia" }],
   creator: "Solulu Indonesia",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://solulu.id"),
+  metadataBase: new URL(getAppBaseUrl()),
   openGraph: {
     type: "website",
     locale: "id_ID",
-    url: "https://solulu.id",
+    url: getAppBaseUrl(),
     title: "Solulu | Ruang Tenang untuk Pulih & Bertumbuh",
     description:
       "Telekonseling kesehatan mental terpercaya tanpa birokrasi rumit. Didampingi Psikolog Klinis dan Konselor Sebaya berpengalaman.",
