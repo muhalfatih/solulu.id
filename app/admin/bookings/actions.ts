@@ -22,6 +22,13 @@ import {
   type BookingStatus,
 } from "@/lib/booking-cycle"
 
+import { rescheduleByAdmin, type RescheduleDeps } from "@/lib/booking/reschedule"
+import {
+  createRescheduleDeps,
+  listRescheduleSlots,
+  type RescheduleSlotOption,
+} from "@/lib/booking/reschedule-store"
+
 function safeRevalidatePaths(...paths: string[]) {
   try {
     for (const p of paths) {
@@ -346,4 +353,40 @@ export async function markBookingFollowedUpAction(
       error: err.message || "Gagal mencatat status pengiriman laporan WA.",
     }
   }
+}
+
+/** Slot Available milik konselor mana pun, untuk dialog Reschedule Admin. */
+export async function getAdminRescheduleSlotsAction(
+  counselorId: string,
+  options?: { currentUser?: AdminAuthContext | null }
+): Promise<{ success: boolean; error?: string; slots: RescheduleSlotOption[] }> {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) return { success: false, error: "Akses ditolak: Diperlukan role Admin.", slots: [] }
+  if (!counselorId) return { success: false, error: "Konselor wajib dipilih.", slots: [] }
+  try {
+    return { success: true, slots: await listRescheduleSlots(counselorId) }
+  } catch {
+    return { success: false, error: "Gagal memuat slot konselor.", slots: [] }
+  }
+}
+
+/**
+ * Action "Reschedule Admin": kapan saja, boleh ganti konselor, tidak memakai jatah klien.
+ * Tercatat di Jejak Audit dalam transaksi yang sama; Pemenuhan Sesi dijalankan ulang untuk slot baru.
+ */
+export async function rescheduleBookingAdminAction(
+  input: { bookingId: string; newScheduleId: string },
+  options?: { currentUser?: AdminAuthContext | null; deps?: RescheduleDeps }
+) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) return { success: false, error: "Akses ditolak: Diperlukan role Admin." }
+  if (!input.bookingId || !input.newScheduleId) {
+    return { success: false, error: "Booking dan slot baru wajib dipilih." }
+  }
+  const result = await rescheduleByAdmin(
+    { bookingId: input.bookingId, newScheduleId: input.newScheduleId, actor: admin },
+    options?.deps ?? createRescheduleDeps()
+  )
+  if (result.success) safeRevalidatePaths("/admin/bookings", "/admin/sessions", "/admin")
+  return result
 }

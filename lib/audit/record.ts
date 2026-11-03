@@ -21,6 +21,7 @@ export const AUDIT_ACTIONS = [
   "payment.reject",
   "booking.manual_create",
   "pool.assign",
+  "booking.reschedule_admin",
   "counselor_document.download",
   "whatsapp_template.update",
   "payroll.close",
