@@ -27,7 +27,7 @@ import {
 } from "@/lib/screening/srq20";
 import { submitScreeningAction } from "./actions";
 import { formatRupiah } from "@/lib/utils";
-import type { PlatformPricingData } from "@/lib/pricing/platform-pricing";
+import type { ServicePricingView } from "@/lib/services/pricing";
 
 interface ScreeningClientProps {
   initialCounselorId?: string;
@@ -39,7 +39,7 @@ interface ScreeningClientProps {
     recommendedType: "peer" | "psychologist";
     evaluation: SRQ20EvaluationResult;
   } | null;
-  pricing?: PlatformPricingData | null;
+  pricing?: { peer: ServicePricingView | null; psychologist: ServicePricingView | null } | null;
 }
 
 export function ScreeningClient({
@@ -50,21 +50,13 @@ export function ScreeningClient({
 }: ScreeningClientProps) {
   const router = useRouter();
 
-  const psychologistDisplayPrice = React.useMemo(() => {
-    if (!pricing?.psychologist) return "Mulai Rp 129.000";
-    const p = pricing.psychologist;
-    const isSale = p.isSaleActive && p.promoPrice && p.promoPrice < p.basePrice;
-    const price = isSale && p.promoPrice ? p.promoPrice : p.basePrice;
-    return `Mulai ${formatRupiah(price)}`;
-  }, [pricing]);
-
-  const peerDisplayPrice = React.useMemo(() => {
-    if (!pricing?.peer) return "Mulai Rp 49.000";
-    const p = pricing.peer;
-    const isSale = p.isSaleActive && p.promoPrice && p.promoPrice < p.basePrice;
-    const price = isSale && p.promoPrice ? p.promoPrice : p.basePrice;
-    return `Mulai ${formatRupiah(price)}`;
-  }, [pricing]);
+  // "Mulai dari" per Tipe Konselor dari Layanan aktif; tanpa Layanan, tidak ada harga yang ditampilkan.
+  const psychologistDisplayPrice = pricing?.psychologist
+    ? `Mulai ${pricing.psychologist.activePriceFormatted}`
+    : "Harga segera hadir";
+  const peerDisplayPrice = pricing?.peer
+    ? `Mulai ${pricing.peer.activePriceFormatted}`
+    : "Harga segera hadir";
 
   // State: Answers for 20 questions (true = Ya, false = Tidak, null = Belum dijawab)
   const [answers, setAnswers] = React.useState<(boolean | null)[]>(

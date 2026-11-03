@@ -5,6 +5,7 @@ import {
   type CreateGuestBookingInput,
 } from "@/lib/validations/booking"
 import { type VoucherRecord } from "@/lib/booking/voucher"
+import { type ServiceLike } from "@/lib/services/pricing"
 import {
   type ActionResponse,
   type BookingContextData,
@@ -23,7 +24,7 @@ export type { ActionResponse, BookingContextData, BookingDependencies }
 export async function validateVoucherAction(
   input: ValidateVoucherInput,
   deps?: {
-    getPricing?: (type: "peer" | "psychologist") => Promise<any>
+    getService?: (serviceId: string) => Promise<ServiceLike | null>
     getVoucher?: (code: string) => Promise<VoucherRecord | null>
     now?: () => Date
   }
@@ -48,6 +49,7 @@ export async function getBookingContextAction(
     scheduleId: string
     counselorId: string
     screeningId?: string | null
+    serviceId?: string | null
   },
   deps?: BookingDependencies
 ): Promise<ActionResponse<BookingContextData>> {

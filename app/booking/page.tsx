@@ -15,6 +15,7 @@ interface BookingPageProps {
     scheduleId?: string
     counselorId?: string
     screeningId?: string
+    serviceId?: string
     error?: string
   }>
 }
@@ -27,7 +28,7 @@ export const metadata = {
 
 export default async function BookingPage({ searchParams }: BookingPageProps) {
   const params = await searchParams
-  const { scheduleId, counselorId, screeningId, error } = params
+  const { scheduleId, counselorId, screeningId, serviceId, error } = params
 
   if (!scheduleId || !counselorId) {
     return (
@@ -69,6 +70,7 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
     scheduleId,
     counselorId,
     screeningId,
+    serviceId,
   })
 
   if (!contextRes.success || !contextRes.data) {

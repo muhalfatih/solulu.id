@@ -54,6 +54,7 @@ export type CancelScheduleSlotInput = z.infer<typeof cancelScheduleSlotSchema>
 export const catalogFilterSchema = z.object({
   type: z.enum(["all", "peer", "psychologist"]).optional().default("all"),
   date: z.string().regex(dateRegex, "Format tanggal harus YYYY-MM-DD").optional(),
+  serviceId: z.string().min(1).optional(),
 })
 
 export type CatalogFilterInput = z.input<typeof catalogFilterSchema>

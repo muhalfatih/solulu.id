@@ -357,6 +357,7 @@ describe("Ticket 3: Counselor Schedule Commitment Portal & Guardrails", () => {
         {
           scheduleId: "leave-slot-uuid",
           counselorId: counselorAuth.counselorId!,
+          serviceId: "svc-test",
           patientName: "Budi Santoso",
           patientEmail: "budi@example.com",
           patientEmailConfirm: "budi@example.com",

@@ -3,7 +3,6 @@ import { db } from "@/db"
 import {
   counselors,
   schedules,
-  platformPricing,
   vouchers,
   bookings,
   transactions,
@@ -35,6 +34,19 @@ import {
   generateReferenceNumber,
   isHoldExpired,
 } from "@/lib/booking/hold"
+import {
+  activePrice,
+  listOfferedServices,
+  resolveServiceSelection,
+  toServicePricingView,
+  type ServiceLike,
+  type ServicePricingView,
+} from "@/lib/services/pricing"
+import {
+  listAllServices,
+  getServiceById,
+  getExcludedServiceIds,
+} from "@/lib/services/repository"
 import { createXenditInvoice, getXenditInvoice } from "@/lib/xendit"
 import { dispatchFulfillmentJob } from "@/lib/fulfillment/qstash"
 
@@ -65,15 +77,10 @@ export interface BookingContextData {
     timeRange: string
     isAvailable: boolean
   }
-  pricing: {
-    basePrice: number
-    promoPrice: number | null
-    isSaleActive: boolean
-    allowVoucher: boolean
-    grossAmount: number
-    grossAmountFormatted: string
-    originalPriceFormatted?: string
-  }
+  /** Layanan aktif yang ditawarkan konselor ini (tipe cocok, tidak dikecualikan Admin). */
+  services: ServicePricingView[]
+  /** Layanan terpilih; null bila klien masih harus memilih di checkout. */
+  selectedServiceId: string | null
   screening?: {
     id: string
     totalScore: number
@@ -85,7 +92,8 @@ export interface BookingContextData {
 export interface BookingDependencies {
   getCounselor?: (counselorId: string) => Promise<any>
   getSchedule?: (scheduleId: string) => Promise<any>
-  getPricing?: (counselorType: "peer" | "psychologist") => Promise<any>
+  getServices?: () => Promise<ServiceLike[]>
+  getExcludedServiceIds?: (counselorId: string) => Promise<string[]>
   getScreening?: (screeningId: string) => Promise<any>
   getVoucher?: (code: string) => Promise<any>
   getActiveSessionsOnDate?: (date: string, excludeScheduleId?: string) => Promise<{ startTime: string; endTime: string }[]>
@@ -93,6 +101,9 @@ export interface BookingDependencies {
     scheduleId: string
     counselorId: string
     screeningId?: string | null
+    serviceId: string
+    /** Tarif pokok aktif Layanan sebelum voucher. */
+    basePriceSnapshot: number
     patientName: string
     patientEmail: string
     patientPhone: string
@@ -116,12 +127,28 @@ export interface BookingDependencies {
 }
 
 /**
- * Validates voucher code against platform pricing policy and quotas.
+ * Layanan yang ditawarkan konselor tertentu (ADR-0010): aktif, tipe cocok,
+ * dan tidak dimatikan Admin untuk konselor itu. Mengembalikan [] bila kosong.
+ */
+async function loadOfferedServices(
+  counselor: { id: string; counselorType: "peer" | "psychologist" },
+  deps?: Pick<BookingDependencies, "getServices" | "getExcludedServiceIds">
+): Promise<ServiceLike[]> {
+  const all = deps?.getServices ? await deps.getServices() : await listAllServices()
+  const excluded = deps?.getExcludedServiceIds
+    ? await deps.getExcludedServiceIds(counselor.id)
+    : await getExcludedServiceIds(counselor.id)
+  return listOfferedServices(all, counselor, excluded)
+}
+
+/**
+ * Validates voucher code against the Layanan voucher policy and quotas.
+ * The gross amount is always the Layanan's active price, never a client-supplied number.
  */
 export async function executeValidateVoucher(
   input: ValidateVoucherInput,
   deps?: {
-    getPricing?: (type: "peer" | "psychologist") => Promise<any>
+    getService?: (serviceId: string) => Promise<ServiceLike | null>
     getVoucher?: (code: string) => Promise<VoucherRecord | null>
     now?: () => Date
   }
@@ -144,21 +171,17 @@ export async function executeValidateVoucher(
       }
     }
 
-    const { code, counselorType, grossAmount } = parseResult.data
+    const { code, serviceId } = parseResult.data
 
-    let pricingRecord: any
-    if (deps?.getPricing) {
-      pricingRecord = await deps.getPricing(counselorType)
-    } else {
-      const records = await db
-        .select()
-        .from(platformPricing)
-        .where(eq(platformPricing.counselorType, counselorType))
-        .limit(1)
-      pricingRecord = records[0]
+    const service = deps?.getService
+      ? await deps.getService(serviceId)
+      : await getServiceById(serviceId)
+    if (!service || !service.isActive) {
+      return { success: false, error: "Layanan tidak ditemukan atau tidak aktif" }
     }
 
-    const allowVoucher = pricingRecord ? pricingRecord.allowVoucher : true
+    const allowVoucher = service.allowVoucher
+    const grossAmount = activePrice(service)
 
     let voucherRecord: VoucherRecord | null = null
     if (deps?.getVoucher) {
@@ -229,10 +252,12 @@ export async function executeGetBookingContext(
     scheduleId,
     counselorId,
     screeningId,
+    serviceId,
   }: {
     scheduleId: string
     counselorId: string
     screeningId?: string | null
+    serviceId?: string | null
   },
   deps?: BookingDependencies
 ): Promise<ActionResponse<BookingContextData>> {
@@ -309,24 +334,20 @@ export async function executeGetBookingContext(
       }
     }
 
-    let pricingRow: any
-    if (deps?.getPricing) {
-      pricingRow = await deps.getPricing(counselor.counselorType)
-    } else {
-      const rows = await db
-        .select()
-        .from(platformPricing)
-        .where(eq(platformPricing.counselorType, counselor.counselorType))
-        .limit(1)
-      pricingRow = rows[0]
+    const offered = (await loadOfferedServices(counselor, deps)).map(toServicePricingView)
+    if (offered.length === 0) {
+      return {
+        success: false,
+        error: "Mitra konselor ini belum menawarkan Layanan aktif. Silakan pilih konselor lain.",
+      }
     }
-
-    const basePrice = pricingRow ? Number(pricingRow.basePrice) : 50000
-    const promoPrice = pricingRow?.promoPrice ? Number(pricingRow.promoPrice) : null
-    const isSaleActive = pricingRow?.isSaleActive ?? false
-    const allowVoucher = pricingRow?.allowVoucher ?? true
-
-    const grossAmount = isSaleActive && promoPrice !== null ? promoPrice : basePrice
+    if (serviceId && !offered.some((v) => v.serviceId === serviceId)) {
+      return {
+        success: false,
+        error: "Layanan yang dipilih tidak tersedia untuk mitra konselor ini.",
+      }
+    }
+    const selected = resolveServiceSelection(offered, serviceId)
 
     let screening: any = null
     if (screeningId) {
@@ -368,15 +389,8 @@ export async function executeGetBookingContext(
           timeRange,
           isAvailable,
         },
-        pricing: {
-          basePrice,
-          promoPrice,
-          isSaleActive,
-          allowVoucher,
-          grossAmount,
-          grossAmountFormatted: formatRupiah(grossAmount),
-          originalPriceFormatted: isSaleActive ? formatRupiah(basePrice) : undefined,
-        },
+        services: offered,
+        selectedServiceId: selected ? selected.serviceId : null,
         screening: screening
           ? {
               id: screening.id,
@@ -581,24 +595,18 @@ export async function executeCreateGuestBooking(
       }
     }
 
-    let pricingRow: any
-    if (deps?.getPricing) {
-      pricingRow = await deps.getPricing(counselor.counselorType)
-    } else {
-      const rows = await db
-        .select()
-        .from(platformPricing)
-        .where(eq(platformPricing.counselorType, counselor.counselorType))
-        .limit(1)
-      pricingRow = rows[0]
+    const offeredServices = await loadOfferedServices(counselor, deps)
+    const service = offeredServices.find((svc) => svc.id === data.serviceId)
+    if (!service) {
+      return {
+        success: false,
+        error: "Layanan yang dipilih tidak tersedia untuk mitra konselor ini.",
+      }
     }
 
-    const basePrice = pricingRow ? Number(pricingRow.basePrice) : 50000
-    const promoPrice = pricingRow?.promoPrice ? Number(pricingRow.promoPrice) : null
-    const isSaleActive = pricingRow?.isSaleActive ?? false
-    const allowVoucher = pricingRow?.allowVoucher ?? true
-
-    const grossAmount = isSaleActive && promoPrice !== null ? promoPrice : basePrice
+    const allowVoucher = service.allowVoucher
+    // Tarif pokok aktif sebelum voucher; ini yang di-snapshot ke booking.
+    const grossAmount = activePrice(service)
     let discountAmount = 0
     let netAmount = grossAmount
     let appliedVoucher: VoucherRecord | null = null
@@ -659,6 +667,8 @@ export async function executeCreateGuestBooking(
         scheduleId: schedule.id,
         counselorId: counselor.id,
         screeningId: data.screeningId,
+        serviceId: service.id,
+        basePriceSnapshot: grossAmount,
         patientName: data.patientName,
         patientEmail: data.patientEmail,
         patientPhone: data.patientPhone,
@@ -706,6 +716,8 @@ export async function executeCreateGuestBooking(
             scheduleId: schedule.id,
             counselorId: counselor.id,
             screeningId: data.screeningId || null,
+            serviceId: service.id,
+            basePriceSnapshot: String(grossAmount),
             status: "pending_payment",
           })
           .returning({ id: bookings.id })

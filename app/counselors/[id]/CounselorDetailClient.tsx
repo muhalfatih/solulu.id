@@ -661,7 +661,7 @@ export default function CounselorDetailClient({
                 {/* 3. Pricing Breakdown */}
                 <div className="p-4.5 rounded-xl bg-muted/20 border border-border/50 flex flex-col gap-2.5">
                   <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground leading-normal">
-                    <span>Biaya Sesi (90 Menit):</span>
+                    <span>Mulai dari (90 Menit):</span>
                     <div className="flex flex-col items-end">
                       <span className="font-semibold text-foreground tabular-nums leading-normal">
                         {counselor.pricing.displayPriceFormatted}
@@ -682,7 +682,7 @@ export default function CounselorDetailClient({
                   </div>
 
                   <div className="pt-2.5 mt-0.5 border-t border-border/50 flex items-baseline justify-between leading-normal">
-                    <span className="text-xs sm:text-sm font-semibold text-foreground leading-normal">Total Biaya Sesi:</span>
+                    <span className="text-xs sm:text-sm font-semibold text-foreground leading-normal">Mulai dari:</span>
                     <strong className="text-xl font-heading font-bold text-foreground tabular-nums leading-none">
                       {counselor.pricing.displayPriceFormatted}
                     </strong>
@@ -747,7 +747,7 @@ export default function CounselorDetailClient({
       {/* 3. Mobile Floating Bottom Bar for Fast Conversion */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 p-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40 shadow-xs flex items-center justify-between gap-3">
         <div className="flex flex-col">
-          <span className="text-xs text-muted-foreground font-normal leading-normal">Tarif (90 Mnt)</span>
+          <span className="text-xs text-muted-foreground font-normal leading-normal">Mulai dari (90 Mnt)</span>
           <strong className="text-base font-semibold text-foreground tabular-nums leading-normal">
             {counselor.pricing.displayPriceFormatted}
           </strong>
