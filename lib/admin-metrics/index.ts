@@ -8,7 +8,13 @@ import {
   type HonorStore,
   type ProfitLossReport,
 } from "@/lib/finance"
-import type { MetricsStore } from "./store"
+import { buildAttentionItems, type AttentionItem } from "./attention-items"
+import { buildDashboardData, heatmapWindow, type DashboardData } from "./dashboard"
+import type { DashboardMetricsStore, MetricsStore } from "./store"
+
+export * from "./range"
+export * from "./dashboard"
+export * from "./attention-items"
 
 /**
  * Modul metrik admin: satu-satunya sumber angka keuangan untuk Laporan Keuangan
@@ -43,7 +49,7 @@ export async function loadProfitLoss(input: {
   range: DateRange
   now: Date
   honorStore: HonorStore
-  metricsStore: MetricsStore
+  metricsStore: Pick<MetricsStore, "loadPaidPayments">
 }): Promise<ProfitLossReport> {
   const { range, now, honorStore, metricsStore } = input
   const prev = comparisonRange(range)
@@ -52,4 +58,39 @@ export async function loadProfitLoss(input: {
     metricsStore.loadPaidPayments({ from: prev.from, to: range.to }),
   ])
   return buildProfitLoss({ range, payments, honors: rows })
+}
+
+export interface AdminDashboard extends DashboardData {
+  attention: AttentionItem[]
+}
+
+/**
+ * Seluruh data Dashboard Admin untuk satu rentang. Honor disinkronkan sekali dan
+ * dipakai untuk HPP, hitungan sesi, serta sesi per Layanan.
+ */
+export async function loadAdminDashboard(input: {
+  range: DateRange
+  now: Date
+  honorStore: HonorStore
+  metricsStore: DashboardMetricsStore
+}): Promise<AdminDashboard> {
+  const { range, now, honorStore, metricsStore } = input
+  const prev = comparisonRange(range)
+  const today = wibDateOf(now)
+  const heat = heatmapWindow(range, today)
+  const capacityRange: DateRange = { from: heat.from < prev.from ? heat.from : prev.from, to: range.to }
+
+  const [{ rows, facts }, payments, capacity, attention] = await Promise.all([
+    syncHonors({ now, store: honorStore }),
+    metricsStore.loadPaidPayments({ from: prev.from, to: range.to }),
+    metricsStore.loadSlotCapacity(capacityRange),
+    metricsStore.loadAttention(now).catch((err) => {
+      console.error("[admin-metrics] gagal memuat Perlu Tindakan", err)
+      return {}
+    }),
+  ])
+
+  const report = buildProfitLoss({ range, payments, honors: rows })
+  const data = buildDashboardData({ report, honors: rows, facts, payments, capacity, today })
+  return { ...data, attention: buildAttentionItems(attention) }
 }

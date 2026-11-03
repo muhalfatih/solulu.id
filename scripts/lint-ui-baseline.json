@@ -18,18 +18,12 @@
   "app/admin/manual-payments/ManualPaymentsClient.tsx": {
     "card-override": 13
   },
-  "app/admin/page.tsx": {
-    "card-override": 11
-  },
-  "app/admin/reports/finance/FinanceReportClient.tsx": {
-    "card-override": 18
-  },
   "app/admin/sessions/page.tsx": {
     "animate-pulse": 1,
     "card-override": 1
   },
   "app/admin/settings/fees-tab.tsx": {
-    "card-override": 12
+    "card-override": 5
   },
   "app/admin/settings/page.tsx": {
     "card-override": 16
