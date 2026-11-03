@@ -171,20 +171,27 @@ describe("End-to-End Simulation: Operational Edge Cases & Failure Scenarios (Pil
   })
 
   // ===========================================================================
-  // CASE 3A: RESCHEDULE H-12 POLICY
+  // CASE 3A: RESCHEDULE CUTOFF (default H-4, bisa diatur di Platform Settings)
   // ===========================================================================
-  describe("Case 3A — Evaluasi Kebijakan Reschedule H-12", () => {
-    it("3.1 Memblokir permintaan reschedule jika kurang dari 12 jam sebelum sesi", () => {
+  describe("Case 3A — Evaluasi Cutoff Reschedule", () => {
+    it("3.1 Memblokir reschedule di dalam cutoff default H-4, mengizinkan di luar", () => {
       const fixedNow = new Date("2026-10-08T10:00:00+07:00")
 
-      // 6 jam lagi: Diblokir
-      const blocked = canRescheduleSession("2026-10-08", "16:00", fixedNow)
+      // 3 jam lagi: Diblokir
+      const blocked = canRescheduleSession("2026-10-08", "13:00", fixedNow)
+      expect(blocked.allowed).toBe(false)
+      expect(blocked.reason).toContain("Aturan H-4")
+
+      // 6 jam lagi: Diizinkan dengan default H-4
+      expect(canRescheduleSession("2026-10-08", "16:00", fixedNow).allowed).toBe(true)
+    })
+
+    it("3.2 Menghormati cutoff yang dikonfigurasi (mis. H-12)", () => {
+      const fixedNow = new Date("2026-10-08T10:00:00+07:00")
+      const blocked = canRescheduleSession("2026-10-08", "16:00", fixedNow, 12)
       expect(blocked.allowed).toBe(false)
       expect(blocked.reason).toContain("Aturan H-12")
-
-      // 24 jam lagi: Diizinkan
-      const allowed = canRescheduleSession("2026-10-09", "10:00", fixedNow)
-      expect(allowed.allowed).toBe(true)
+      expect(canRescheduleSession("2026-10-09", "10:00", fixedNow, 12).allowed).toBe(true)
     })
   })
 })
