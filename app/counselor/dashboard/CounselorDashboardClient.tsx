@@ -56,6 +56,8 @@ import { cn } from "@/lib/utils"
 
 interface CounselorDashboardClientProps {
   initialSessions: CounselorUpcomingSessionView[]
+  /** Ringkasan di atas daftar sesi (Honor Saya, Klien Tersedia). */
+  summarySlot?: React.ReactNode
 }
 
 type CounselorDashboardFilter =
@@ -65,7 +67,7 @@ type CounselorDashboardFilter =
   | "confirmed"
   | "completed"
 
-export function CounselorDashboardClient({ initialSessions }: CounselorDashboardClientProps) {
+export function CounselorDashboardClient({ initialSessions, summarySlot }: CounselorDashboardClientProps) {
   const router = useRouter()
   const [sessions, setSessions] = React.useState<CounselorUpcomingSessionView[]>(initialSessions)
   const [filter, setFilter] = React.useState<CounselorDashboardFilter>("all")
@@ -260,6 +262,8 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
           </Button>
         </div>
       </div>
+
+      {summarySlot}
 
       {/* 6-Digit Zoom Host Key Clinical Access Banner (Ticket 4) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-primary/25 bg-primary/5 dark:bg-primary/10 gap-3">

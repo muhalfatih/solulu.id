@@ -112,7 +112,8 @@ export const SHELL_NAV: Record<PortalKey, ShellNavGroup[]> = {
     {
       title: "Operasional",
       items: [
-        { title: "Konsol Operator", url: "/operator", icon: MonitorPlay },
+        { title: "Dashboard", url: "/operator", icon: LayoutDashboard },
+        { title: "Konsol Operator", url: "/operator/konsol", icon: MonitorPlay },
         { title: "Dispatch WhatsApp", url: "/operator/dispatch-wa", icon: Send },
         { title: "Portal Admin", url: "/admin", icon: ShieldCheck, roles: ADMINS },
       ],

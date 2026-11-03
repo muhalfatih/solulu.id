@@ -25,7 +25,8 @@ const ROUTE_SEGMENT_LABELS: Record<string, string> = {
   schedule: "Jadwal Praktik Mingguan",
   applications: "Aplikasi Calon Konselor",
   krisis: "Protokol Krisis",
-  operator: "Konsol Operator",
+  operator: "Operator",
+  konsol: "Konsol Operator",
 }
 
 const UUID_REGEX =

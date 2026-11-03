@@ -56,7 +56,8 @@ describe("Ticket 22: shared portal shell navigation", () => {
     for (const portal of PORTALS) {
       for (const item of flat(portal, "superadmin")) {
         const dir = join(process.cwd(), "app", ...item.url.split("/").filter(Boolean))
-        expect(existsSync(join(dir, "page.tsx")), `${item.url} has no page`).toBe(true)
+        const found = existsSync(join(dir, "page.tsx")) || existsSync(join(dir, "(dashboard)", "page.tsx"))
+        expect(found, `${item.url} has no page`).toBe(true)
       }
     }
   })
