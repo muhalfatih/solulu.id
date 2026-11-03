@@ -71,7 +71,7 @@ export const SHELL_NAV: Record<PortalKey, ShellNavGroup[]> = {
         { title: "Klien Tersedia", url: "/admin/klien-tersedia", icon: UserRoundSearch, ready: false, ticket: 29 },
         { title: "Jadwal & Kalender", url: "/admin/sessions", icon: CalendarClock },
         { title: "Verifikasi Transfer", url: "/admin/manual-payments", icon: ReceiptText },
-        { title: "Dispatch WhatsApp", url: "/admin/dispatch-wa", icon: Send, ready: false, ticket: 31 },
+        { title: "Dispatch WhatsApp", url: "/admin/dispatch-wa", icon: Send },
       ],
     },
     {
@@ -102,7 +102,7 @@ export const SHELL_NAV: Record<PortalKey, ShellNavGroup[]> = {
       items: [
         { title: "Layanan & Tarif", url: "/admin/layanan", icon: BadgeDollarSign, ready: false, ticket: 25 },
         { title: "Voucher", url: "/admin/vouchers", icon: Tag, ready: false },
-        { title: "Template WA", url: "/admin/template-wa", icon: MessageSquareText, ready: false, ticket: 31 },
+        { title: "Template WA", url: "/admin/template-wa", icon: MessageSquareText },
         { title: "Pengaturan", url: "/admin/settings", icon: Sliders },
         { title: "Akun Zoom", url: "/admin/zoom-settings", icon: Video, aliases: ["/admin/zoom"] },
         { title: "Jejak Audit", url: "/admin/audit", icon: History, roles: SUPERADMIN },
@@ -114,6 +114,7 @@ export const SHELL_NAV: Record<PortalKey, ShellNavGroup[]> = {
       title: "Operasional",
       items: [
         { title: "Konsol Operator", url: "/operator", icon: MonitorPlay },
+        { title: "Dispatch WhatsApp", url: "/operator/dispatch-wa", icon: Send },
         { title: "Portal Admin", url: "/admin", icon: ShieldCheck, roles: ADMINS },
       ],
     },
