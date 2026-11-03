@@ -14,8 +14,8 @@ import {
   Loader2,
   Sparkles,
 } from "lucide-react"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/public/public-card"
+import { PublicButton as Button } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"

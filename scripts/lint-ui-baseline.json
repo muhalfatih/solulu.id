@@ -1,0 +1,97 @@
+{
+  "app/admin/bookings/BookingsClient.tsx": {
+    "card-override": 13
+  },
+  "app/admin/counselors/[id]/CounselorDetailClient.tsx": {
+    "card-override": 18
+  },
+  "app/admin/counselors/applications/ApplicationsClient.tsx": {
+    "card-override": 3
+  },
+  "app/admin/counselors/components/counselor-schedules-modal.tsx": {
+    "animate-pulse": 2
+  },
+  "app/admin/counselors/page.tsx": {
+    "animate-pulse": 2,
+    "card-override": 1
+  },
+  "app/admin/gallery/components/gallery-grid.tsx": {
+    "animate-pulse": 1
+  },
+  "app/admin/manual-payments/ManualPaymentsClient.tsx": {
+    "card-override": 13
+  },
+  "app/admin/page.tsx": {
+    "card-override": 11
+  },
+  "app/admin/reports/finance/FinanceReportClient.tsx": {
+    "card-override": 18
+  },
+  "app/admin/sessions/page.tsx": {
+    "animate-pulse": 1,
+    "card-override": 1
+  },
+  "app/admin/settings/fees-tab.tsx": {
+    "card-override": 12
+  },
+  "app/admin/settings/page.tsx": {
+    "card-override": 16
+  },
+  "app/admin/specializations/page.tsx": {
+    "card-override": 3
+  },
+  "app/admin/testimonials/components/testimonial-variant-a.tsx": {
+    "animate-pulse": 1
+  },
+  "app/admin/zoom-settings/ZoomSettingsClient.tsx": {
+    "animate-pulse": 1,
+    "card-override": 5
+  },
+  "app/counselor/dashboard/CounselorDashboardClient.tsx": {
+    "animate-pulse": 2,
+    "card-override": 4
+  },
+  "app/counselor/dashboard/loading.tsx": {
+    "animate-pulse": 18
+  },
+  "app/counselor/honor/HonorSayaClient.tsx": {
+    "card-override": 1
+  },
+  "app/counselor/honor/loading.tsx": {
+    "animate-pulse": 4
+  },
+  "app/counselor/profile/CounselorProfileClient.tsx": {
+    "animate-pulse": 1,
+    "card-override": 26
+  },
+  "app/counselor/profile/loading.tsx": {
+    "animate-pulse": 33
+  },
+  "app/counselor/schedule/CounselorScheduleClient.tsx": {
+    "animate-pulse": 2,
+    "card-override": 8
+  },
+  "app/counselor/schedule/loading.tsx": {
+    "animate-pulse": 1,
+    "card-override": 2
+  },
+  "app/operator/OperatorConsoleClient.tsx": {
+    "card-override": 14
+  },
+  "components/admin/admin-header.tsx": {
+    "animate-pulse": 1
+  },
+  "components/admin/metric-card.tsx": {
+    "card-override": 6
+  },
+  "components/counselor/clinical-report-form.tsx": {
+    "card-override": 6
+  },
+  "components/counselor/FloatingTimer.tsx": {
+    "animate-pulse": 3,
+    "card-override": 2
+  },
+  "components/operator/operator-app-sidebar.tsx": {
+    "animate-pulse": 1
+  }
+}

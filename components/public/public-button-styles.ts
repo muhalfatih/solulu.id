@@ -27,6 +27,17 @@ const PUBLIC_SIZE_CLASSES = {
     "h-9 gap-1.5 px-4 text-xs font-semibold rounded-full has-data-[icon=inline-end]:pr-3.5 has-data-[icon=inline-start]:pl-3.5",
 } as const
 
+/**
+ * The pre-reset local button used slightly roomier padding on default/sm/lg
+ * than the registry. Layered here so the public site stays pixel-identical.
+ */
+const LEGACY_REGISTRY_SIZE_CLASSES: Partial<Record<RegistrySize, string>> = {
+  default:
+    "px-3 has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5",
+  sm: "gap-1.5 text-xs has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
+  lg: "gap-2 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
+}
+
 export type PublicButtonVariant =
   | keyof typeof PUBLIC_VARIANT_CLASSES
   | RegistryVariant
@@ -77,6 +88,8 @@ export function resolvePublicButton(
     classes.push(PUBLIC_SIZE_CLASSES[size])
   } else {
     registrySize = size
+    const legacy = LEGACY_REGISTRY_SIZE_CLASSES[size]
+    if (legacy) classes.push(legacy)
   }
 
   return {

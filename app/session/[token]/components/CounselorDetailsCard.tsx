@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Copy, Check, ShieldCheck, HeartHandshake } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { PublicButton as Button } from "@/components/public/public-button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Card,
@@ -12,7 +12,7 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@/components/ui/card"
+} from "@/components/public/public-card"
 import type { SessionCounselorData, SessionBookingData } from "@/lib/session/types"
 
 interface CounselorDetailsCardProps {

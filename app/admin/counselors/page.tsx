@@ -496,7 +496,7 @@ export default function DistilledCounselorsPage() {
             <div>
               <p className="text-xs font-bold flex items-center gap-2">
                 <span>Radar Peringatan STR / SIPP</span>
-                <Badge variant="warning" className="text-[10px] py-0 px-1.5 font-bold">
+                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 font-bold">
                   {radarAlertCount} Psikolog Mendekati / Lewat Jatuh Tempo
                 </Badge>
               </p>
@@ -1061,7 +1061,7 @@ export default function DistilledCounselorsPage() {
                         {c.radar?.hasRadarAlert && (
                           <div className="mt-1 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                             <Badge
-                              variant={c.radar.alertSeverity === "critical" ? "destructive" : "warning"}
+                              variant={c.radar.alertSeverity === "critical" ? "destructive" : "secondary"}
                               className="text-[10px] font-bold gap-1 py-0.5 px-2 animate-pulse"
                             >
                               <AlertTriangle className="size-3" />

@@ -1,0 +1,18 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "integration/**"]
+  pull_request:
+
+jobs:
+  lint-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Pure Node script (no install needed): components/ui must match the
+      # registry fingerprint and portals must not add new Card/animate-pulse overrides (ADR-0012).
+      - run: npm run lint:ui

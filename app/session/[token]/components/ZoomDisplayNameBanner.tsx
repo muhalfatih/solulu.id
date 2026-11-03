@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Copy, Check, Video, ExternalLink, Info, Sparkles } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton as Button } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import type { SessionBookingData } from "@/lib/session/types"

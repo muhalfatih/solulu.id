@@ -16,9 +16,9 @@ import {
   AlertTriangle,
   Sparkles,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton as Button } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/public/public-card"
 import { OFFICIAL_BANK_ACCOUNTS } from "@/lib/booking/hold"
 import type {
   SessionBookingData,
