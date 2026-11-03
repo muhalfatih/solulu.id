@@ -369,6 +369,30 @@ export async function getCounselorDetailAdminAction(
 
     const presigner = options?.presigner || generatePresignedGetUrl
 
+    // Akses dokumen privat dicatat sebelum tautan diterbitkan; gagal mencatat = tidak ada tautan.
+    const privateDocumentTypes = (
+      [
+        ["ktp", c.ktpR2Key],
+        ["cv", c.cvR2Key],
+        ["diplomaS1", c.diplomaS1R2Key],
+        ["diplomaProfesi", c.diplomaProfesiR2Key],
+        ["str", c.strR2Key],
+        ["sipp", c.sippR2Key],
+        ["certificate", c.certificateR2Key],
+      ] as const
+    )
+      .filter(([, key]) => Boolean(key))
+      .map(([type]) => type)
+    if (privateDocumentTypes.length > 0) {
+      await recordAudit(db, {
+        actor: admin,
+        action: "counselor_document.download",
+        entityType: "counselor_document",
+        entityId: counselorId,
+        after: { documentTypes: privateDocumentTypes, expiresInSeconds: 900 },
+      })
+    }
+
     // Generate secure pre-signed GET URLs for 8 Cloudflare R2 attachments (15 min TTL)
     const [
       ktpUrl,
