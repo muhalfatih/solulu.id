@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { getStaffRole } from "@/lib/auth/staff-role"
+import { wibDateOf } from "@/lib/finance/period"
 import { eq, and, sql, desc, asc } from "drizzle-orm"
 import { db } from "@/db"
 import { bookings, schedules, screenings, sessionReports, counselors, zoomAccounts, platformSettings, services } from "@/db/schema"
@@ -88,9 +89,9 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
 
   try {
     const now = new Date()
-    const todayStr = now.toISOString().split("T")[0]
-    const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-    const sevenDaysLaterStr = sevenDaysLater.toISOString().split("T")[0]
+    // Hari ini dan 7 hari ke depan menurut kalender WIB (bukan UTC).
+    const todayStr = wibDateOf(now)
+    const sevenDaysLaterStr = wibDateOf(new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000))
 
     const rows = await withDbTimeout(
         db

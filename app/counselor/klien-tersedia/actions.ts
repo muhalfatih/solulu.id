@@ -29,6 +29,7 @@ export async function claimSessionAction(bookingId: string): Promise<PoolActionR
   })
   try {
     revalidatePath("/counselor/klien-tersedia")
+    revalidatePath("/counselor/dashboard")
   } catch {}
   return res
 }
