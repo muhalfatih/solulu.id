@@ -380,7 +380,8 @@ export const bookings = pgTable("bookings", {
 
   // Lifecycle & Reschedule
   status: bookingStatusEnum("status").default("pending_payment").notNull(),
-  rescheduleCount: integer("reschedule_count").default(0).notNull(), // Maksimal 1 kali
+  rescheduleCount: integer("reschedule_count").default(0).notNull(), // Jatah Reschedule Mandiri terpakai (maks 1); Reschedule Admin tidak menambah
+  adminRescheduleCount: integer("admin_reschedule_count").default(0).notNull(), // Reschedule Admin, di luar jatah klien
   isFollowedUp: boolean("is_followed_up").default(false).notNull(), // Ditandai setelah Admin kirim WA link laporan
   followedUpAt: timestamp("followed_up_at", { withTimezone: true }),
   // DEPRECATED (ADR-0008): no longer a source of truth, status = 'no_show' is. Kept only so the
@@ -644,6 +645,36 @@ export const auditLogs = pgTable(
     entityIdx: index("audit_logs_entity_idx").on(table.entityType, table.entityId),
   })
 );
+
+// =============================================================================
+// BOOKING RESCHEDULES (riwayat jadwal; sumber tahap Dijadwal Ulang, #28)
+// =============================================================================
+export const bookingReschedules = pgTable(
+  "booking_reschedules",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    bookingId: uuid("booking_id")
+      .references(() => bookings.id, { onDelete: "cascade" })
+      .notNull(),
+    initiatedBy: text("initiated_by").notNull(), // 'client' | 'admin'
+    actorId: text("actor_id"), // Supabase auth user id untuk admin; null untuk klien
+    fromScheduleId: uuid("from_schedule_id")
+      .references(() => schedules.id)
+      .notNull(),
+    toScheduleId: uuid("to_schedule_id")
+      .references(() => schedules.id)
+      .notNull(),
+    fromCounselorId: uuid("from_counselor_id")
+      .references(() => counselors.id)
+      .notNull(),
+    toCounselorId: uuid("to_counselor_id")
+      .references(() => counselors.id)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("booking_reschedules_booking_idx").on(table.bookingId, table.createdAt)]
+);
+export type BookingReschedule = typeof bookingReschedules.$inferSelect;
 
 // Type helpers inferred from schema
 export type CounselorWeeklyTemplate = typeof counselorWeeklyTemplates.$inferSelect;

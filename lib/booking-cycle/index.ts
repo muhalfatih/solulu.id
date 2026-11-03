@@ -190,15 +190,20 @@ export interface RescheduleCheckResult {
   reason?: string
 }
 
+/** Cutoff Reschedule default (H-4); the live value comes from Platform Settings (Superadmin). */
+export const DEFAULT_RESCHEDULE_CUTOFF_HOURS = 4
+/** Jatah Reschedule Mandiri per booking. Reschedule Admin does not consume it. */
+export const MAX_SELF_RESCHEDULES = 1
+
 /**
- * Evaluates whether a session can be rescheduled based on a configurable cutoff
- * (Cutoff Reschedule from Platform Settings; legacy default 12 kept until the reschedule ticket).
+ * Evaluates whether a session can still be rescheduled by the client based on the
+ * Cutoff Reschedule (Platform Settings, default H-4).
  */
 export function canRescheduleSession(
   sessionDate: string,
   startTime: string,
   currentTime: Date = new Date(),
-  cutoffHours: number = 12
+  cutoffHours: number = DEFAULT_RESCHEDULE_CUTOFF_HOURS
 ): RescheduleCheckResult {
   const sessionTimestamp = sessionStartAt(sessionDate, startTime).getTime()
 
@@ -230,4 +235,59 @@ export function canRescheduleSession(
   }
 
   return { allowed: true, hoursUntilSession }
+}
+
+export interface RescheduleSelfInput {
+  status: BookingStatus
+  /** Reschedule Mandiri yang sudah dipakai klien pada booking ini. */
+  selfRescheduleCount: number
+  sessionDate: string
+  startTime: string
+  timerStartedAt?: Date | string | null
+  now?: Date
+  /** Cutoff Reschedule dari Platform Settings; default H-4. */
+  cutoffHours?: number
+}
+
+export interface RescheduleAdminInput {
+  status: BookingStatus
+  timerStartedAt?: Date | string | null
+}
+
+export type RescheduleCheck = { allowed: true } | { allowed: false; reason: string }
+
+/** Reschedule Mandiri: status Terkonfirmasi, maks 1 kali, sebelum Cutoff Reschedule. */
+export function canRescheduleSelf(input: RescheduleSelfInput): RescheduleCheck {
+  if (input.status !== "confirmed") {
+    return { allowed: false, reason: "Reschedule hanya dapat dilakukan pada booking yang sudah Terkonfirmasi." }
+  }
+  if (input.timerStartedAt) {
+    return { allowed: false, reason: "Sesi sudah berjalan, jadwal tidak dapat diubah." }
+  }
+  if (input.selfRescheduleCount >= MAX_SELF_RESCHEDULES) {
+    return {
+      allowed: false,
+      reason: `Jatah reschedule sudah habis (maksimal ${MAX_SELF_RESCHEDULES} kali per booking). Hubungi Admin bila membutuhkan bantuan.`,
+    }
+  }
+  const cutoff = input.cutoffHours ?? DEFAULT_RESCHEDULE_CUTOFF_HOURS
+  const timing = canRescheduleSession(input.sessionDate, input.startTime, input.now ?? new Date(), cutoff)
+  if (!timing.allowed) {
+    return {
+      allowed: false,
+      reason: timing.reason ?? `Reschedule ditutup (batas H-${cutoff}). Hubungi Admin bila membutuhkan bantuan.`,
+    }
+  }
+  return { allowed: true }
+}
+
+/** Reschedule Admin: kapan saja selama booking Terkonfirmasi dan sesi belum berjalan; tanpa jatah. */
+export function canRescheduleAdmin(input: RescheduleAdminInput): RescheduleCheck {
+  if (input.status !== "confirmed") {
+    return { allowed: false, reason: "Reschedule hanya dapat dilakukan pada booking berstatus Terkonfirmasi." }
+  }
+  if (input.timerStartedAt) {
+    return { allowed: false, reason: "Sesi sudah berjalan, jadwal tidak dapat diubah." }
+  }
+  return { allowed: true }
 }
