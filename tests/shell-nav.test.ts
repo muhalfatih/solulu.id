@@ -38,7 +38,6 @@ describe("Ticket 22: shared portal shell navigation", () => {
       "Booking Cepat",
       "Klien Tersedia",
       "Dispatch WhatsApp",
-      "Payroll",
       "Voucher",
       "Template WA",
       "Layanan & Tarif",
@@ -46,6 +45,8 @@ describe("Ticket 22: shared portal shell navigation", () => {
       expect(titles).not.toContain(planned)
     }
     expect(titles).toContain("Booking")
+    expect(titles).toContain("Payroll")
+    expect(titles).toContain("Laporan Keuangan")
     expect(titles).toContain("Verifikasi Transfer")
     expect(flat("admin", "admin").map((i) => i.title)).not.toContain("Jejak Audit")
     expect(titles).toContain("Jejak Audit")
