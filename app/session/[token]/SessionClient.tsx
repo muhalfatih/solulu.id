@@ -248,6 +248,7 @@ function ScheduledSession({ initialData }: SessionClientProps) {
                 counselor={data.counselor}
                 transaction={data.transaction}
                 patientName={data.booking.patientName}
+                manualPaymentInstructions={data.platformSettings?.manualPaymentInstructions ?? ""}
                 onRefresh={handleRefresh}
                 isRefreshing={isRefreshing}
               />

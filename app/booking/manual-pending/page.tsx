@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { PublicShell } from "@/components/public/public-shell"
 import { getBookingByTokenAction } from "../actions"
 import ManualPendingClient from "./ManualPendingClient"
+import { getPlatformSettings } from "@/lib/settings/platform"
 
 interface ManualPendingPageProps {
   searchParams: Promise<{
@@ -64,7 +65,7 @@ export default async function ManualPendingPage({ searchParams }: ManualPendingP
     )
   }
 
-  const bookingRes = await getBookingByTokenAction(token)
+  const [bookingRes, settings] = await Promise.all([getBookingByTokenAction(token), getPlatformSettings()])
 
   if (!bookingRes.success || !bookingRes.data) {
     return (
@@ -106,5 +107,5 @@ export default async function ManualPendingPage({ searchParams }: ManualPendingP
     )
   }
 
-  return <ManualPendingClient data={bookingRes.data} />
+  return <ManualPendingClient data={bookingRes.data} manualPaymentInstructions={settings.manualPaymentInstructions} />
 }

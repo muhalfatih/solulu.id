@@ -1,4 +1,4 @@
-import { eq, or, and, desc, ilike } from "drizzle-orm"
+import { eq, or, and, desc, ilike, isNotNull } from "drizzle-orm"
 import { db } from "@/db"
 import {
   bookings,
@@ -96,13 +96,7 @@ export async function getGuestSessionByToken(
         data: {
           ...customRes,
           hasReport: customRes.hasReport ?? Boolean(customRes.report),
-          platformSettings: customRes.platformSettings || {
-            isManualPaymentEnabled: true,
-            manualPaymentInstructions:
-              "Transfer ke Rekening BCA: 123-456-7890 a.n. Solulu Mental Health.",
-            bcaAccountNumber: "123-456-7890",
-            bcaAccountName: "Solulu Mental Health",
-          },
+          platformSettings: customRes.platformSettings ?? null,
         },
       }
     }
@@ -125,6 +119,7 @@ export async function getGuestSessionByToken(
             actionPlan: sessionReports.actionPlan,
             followUpRecommendation: sessionReports.followUpRecommendation,
             createdAt: sessionReports.createdAt,
+            submittedAt: sessionReports.submittedAt,
           },
         })
         .from(bookings)
@@ -281,16 +276,12 @@ export async function getGuestSessionByToken(
             status: item.transaction.status,
           }
         : null,
-      hasReport: Boolean(item.report && item.report.id),
+      hasReport: Boolean(item.report?.submittedAt),
       // Report remains locked until verified via WhatsApp gate
       report: null,
       platformSettings: {
-        isManualPaymentEnabled: settings?.isManualPaymentEnabled ?? true,
-        manualPaymentInstructions:
-          settings?.manualPaymentInstructions ??
-          "Transfer ke Rekening BCA: 123-456-7890 a.n. Solulu Mental Health. Sertakan Kode Booking pada berita transfer.",
-        bcaAccountNumber: "123-456-7890",
-        bcaAccountName: "Solulu Mental Health",
+        isManualPaymentEnabled: settings?.isManualPaymentEnabled ?? false,
+        manualPaymentInstructions: settings?.manualPaymentInstructions ?? "",
       },
     }
 
@@ -393,7 +384,12 @@ export async function verifyClientPhoneAndUnlockReport(
       .from(bookings)
       .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
       .innerJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
-      .where(or(eq(bookings.accessToken, cleanToken), eq(bookings.bookingCode, cleanToken)))
+      .where(
+        and(
+          or(eq(bookings.accessToken, cleanToken), eq(bookings.bookingCode, cleanToken)),
+          isNotNull(sessionReports.submittedAt)
+        )
+      )
       .limit(1)
 
     if (rows.length === 0) {

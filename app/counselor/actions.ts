@@ -517,6 +517,7 @@ export async function submitSessionReportAction(
           internalNotes: internalNotes || null,
           followUpRecommendation: followUpRecommendation || null,
           attachmentR2Keys: attachmentR2Keys || [],
+          submittedAt: new Date(),
         }
         if (typeof parsed.data.actualDurationMinutes === "number") {
           updatePayload.actualDurationMinutes = parsed.data.actualDurationMinutes
@@ -541,6 +542,7 @@ export async function submitSessionReportAction(
           internalNotes: internalNotes || null,
           followUpRecommendation: followUpRecommendation || null,
           attachmentR2Keys: attachmentR2Keys || [],
+          submittedAt: new Date(),
           actualDurationMinutes: typeof parsed.data.actualDurationMinutes === "number" ? parsed.data.actualDurationMinutes : 90,
           timerStartedAt: parsed.data.timerStartedAt ? new Date(parsed.data.timerStartedAt) : null,
           timerStoppedAt: parsed.data.timerStoppedAt ? new Date(parsed.data.timerStoppedAt) : null,
@@ -1027,7 +1029,7 @@ export async function recordSessionTimerAction(
             bookingId,
             counselorId,
             mainIssue: "",
-            summary: "Sesi konseling telah terekam melalui Floating Timer.",
+            summary: "",
             actualDurationMinutes: payload.actualDurationMinutes,
             timerStartedAt: timerStarted,
             timerStoppedAt: timerStopped,

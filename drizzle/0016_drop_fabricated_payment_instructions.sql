@@ -1,0 +1,1 @@
+ALTER TABLE "platform_settings" ALTER COLUMN "manual_payment_instructions" DROP DEFAULT;

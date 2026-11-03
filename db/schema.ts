@@ -110,7 +110,7 @@ export const platformSettings = pgTable("platform_settings", {
   counselorExtendFeePer30Min: numeric("counselor_extend_fee_per_30_min", { precision: 12, scale: 2 }).default("35000").notNull(),
   psychologistExtendFeePer30Min: numeric("psychologist_extend_fee_per_30_min", { precision: 12, scale: 2 }).default("50000").notNull(),
   isManualPaymentEnabled: boolean("is_manual_payment_enabled").default(true).notNull(),
-  manualPaymentInstructions: text("manual_payment_instructions").default("Transfer ke Rekening BCA: 123-456-7890 a.n. Solulu Mental Health. Sertakan Kode Booking pada berita transfer."),
+  manualPaymentInstructions: text("manual_payment_instructions"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -450,6 +450,10 @@ export const sessionReports = pgTable("session_reports", {
   actualDurationMinutes: integer("actual_duration_minutes").default(90),
   timerStartedAt: timestamp("timer_started_at", { withTimezone: true }),
   timerStoppedAt: timestamp("timer_stopped_at", { withTimezone: true }),
+
+  // Diisi saat konselor menyerahkan laporan. Baris yang dibuat Floating Timer
+  // (hanya metadata waktu) tetap null: laporan belum masuk, honor tertahan.
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

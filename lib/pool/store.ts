@@ -99,6 +99,7 @@ export async function listPoolQueue(
     .orderBy(bookings.poolDate, bookings.poolSlotIndex)
 
   let counselorType: string | null = null
+  let excluded: string[] = []
   if (filter.counselorId) {
     const [c] = await database
       .select({ t: counselors.counselorType })
@@ -106,6 +107,7 @@ export async function listPoolQueue(
       .where(eq(counselors.id, filter.counselorId))
       .limit(1)
     counselorType = c?.t ?? null
+    excluded = await loadExcludedServiceIds(filter.counselorId, database)
   }
 
   const items: PoolQueueItem[] = []
@@ -114,6 +116,7 @@ export async function listPoolQueue(
     if (!slot || !r.poolDate) continue
     if (filter.counselorId) {
       if (!counselorType || !r.allowed.includes(counselorType as "peer" | "psychologist")) continue
+      if (excluded.includes(r.serviceId)) continue
       const ctx = await getCounselorContext(filter.counselorId, r.poolDate, r.slotIndex!, database)
       if (ctx.onLeave || !ctx.freeScheduleId) continue
     }
@@ -129,6 +132,15 @@ export async function listPoolQueue(
     })
   }
   return items
+}
+
+/** Layanan yang Admin matikan untuk konselor ini (US18): booking pool-nya tidak boleh diklaim. */
+async function loadExcludedServiceIds(counselorId: string, database: Database): Promise<string[]> {
+  const rows = await database
+    .select({ serviceId: counselorServiceExclusions.serviceId })
+    .from(counselorServiceExclusions)
+    .where(eq(counselorServiceExclusions.counselorId, counselorId))
+  return rows.map((r) => r.serviceId)
 }
 
 async function getCounselorContext(
@@ -173,7 +185,11 @@ export function createPoolStore(database: Database = db): PoolStore {
 
     async getCounselorContext(counselorId, booking): Promise<CounselorSlotContext> {
       const [b] = await database
-        .select({ slot: bookings.poolSlotIndex, allowed: services.allowedCounselorTypes })
+        .select({
+          slot: bookings.poolSlotIndex,
+          allowed: services.allowedCounselorTypes,
+          serviceId: services.id,
+        })
         .from(bookings)
         .innerJoin(services, eq(bookings.serviceId, services.id))
         .where(eq(bookings.id, booking.id))
@@ -185,7 +201,8 @@ export function createPoolStore(database: Database = db): PoolStore {
         .limit(1)
       if (!b || !c || !c.active) return { typeAllowed: false, onLeave: false, freeScheduleId: null }
       const ctx = await getCounselorContext(counselorId, booking.poolDate, b.slot ?? 0, database)
-      return { ...ctx, typeAllowed: b.allowed.includes(c.type) }
+      const excluded = await loadExcludedServiceIds(counselorId, database)
+      return { ...ctx, typeAllowed: b.allowed.includes(c.type) && !excluded.includes(b.serviceId) }
     },
 
     async tryAssign(bookingId, counselorId, scheduleId, inTransaction): Promise<boolean> {

@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { submitExtensionPaymentAction } from "@/lib/session/actions"
 import { formatRupiah, type SessionBookingData, type SessionPlatformSettings } from "@/lib/session/types"
+import { ManualTransferInstructions } from "@/components/public/manual-transfer-instructions"
 
 interface ExtensionPaymentCardProps {
   booking: SessionBookingData
@@ -43,8 +44,6 @@ export function ExtensionPaymentCard({
     booking.extensionPaymentStatus || "NONE"
   )
 
-  const bcaAccount = platformSettings?.bcaAccountNumber || "123-456-7890"
-  const bcaName = platformSettings?.bcaAccountName || "Solulu Mental Health"
   const transferNote = `Extend ${booking.bookingCode}`
 
   const handleCopy = async (text: string, fieldName: string) => {
@@ -277,39 +276,9 @@ export function ExtensionPaymentCard({
             {method === "manual_bank_transfer" ? (
               <form onSubmit={handleSubmitManual} className="flex flex-col gap-4">
                 <div className="rounded-xl border border-primary/20 bg-muted/30 p-4 flex flex-col gap-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-border/60">
-                    <span className="text-xs font-semibold text-muted-foreground">Rekening Tujuan Klinik:</span>
-                    <Badge variant="outline" className="text-[10px] font-mono">
-                      BCA Virtual &amp; Konvensional
-                    </Badge>
-                  </div>
+                  <ManualTransferInstructions instructions={platformSettings?.manualPaymentInstructions} />
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div className="flex flex-col gap-1 p-2.5 rounded-lg bg-background border border-border/80">
-                      <span className="text-muted-foreground text-[11px]">Nomor Rekening:</span>
-                      <div className="flex items-center justify-between gap-1">
-                        <strong className="font-mono text-sm text-foreground">{bcaAccount}</strong>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={() => handleCopy(bcaAccount, "Nomor Rekening")}
-                          className="size-6 text-muted-foreground hover:text-foreground"
-                        >
-                          {copiedField === "Nomor Rekening" ? (
-                            <Check className="size-3 text-emerald-500" />
-                          ) : (
-                            <Copy className="size-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1 p-2.5 rounded-lg bg-background border border-border/80">
-                      <span className="text-muted-foreground text-[11px]">Atas Nama:</span>
-                      <strong className="text-xs text-foreground truncate">{bcaName}</strong>
-                    </div>
-
                     <div className="flex flex-col gap-1 p-2.5 rounded-lg bg-background border border-border/80">
                       <span className="text-muted-foreground text-[11px]">Nominal Transfer:</span>
                       <div className="flex items-center justify-between gap-1">

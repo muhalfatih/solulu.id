@@ -67,6 +67,11 @@ export interface RescheduleHistoryRow {
 export interface RescheduleTx {
   loadBooking(ref: { bookingId?: string; accessToken?: string }): Promise<LoadedBookingFacts | null>
   loadSlot(scheduleId: string): Promise<RescheduleSlot | null>
+  /**
+   * Apakah konselor menawarkan Layanan booking ini: Tipe Konselor diizinkan dan Layanan
+   * tidak dimatikan Admin untuk konselor itu (US14/US18).
+   */
+  counselorOffersBookingService(bookingId: string, counselorId: string): Promise<boolean>
   /** Atomik: tandai Booked hanya bila masih Available; false bila keduluan. */
   claimSlot(scheduleId: string): Promise<boolean>
   releaseSlot(scheduleId: string): Promise<void>
@@ -268,6 +273,9 @@ export async function rescheduleByAdmin(
       if (!check.allowed) reject(check.reason)
       const slot = await tx.loadSlot(input.newScheduleId)
       validateTargetSlot(slot, booking, now, false)
+      if (slot.counselorId !== booking.counselorId && !(await tx.counselorOffersBookingService(booking.id, slot.counselorId))) {
+        reject("Konselor tujuan tidak menawarkan Layanan booking ini. Pilih konselor dengan Tipe Konselor yang sesuai.")
+      }
       const stale = await applyReschedule(tx, booking, slot, { initiatedBy: "admin", actorId: input.actor?.id ?? null })
       await recordAudit(tx.audit, {
         actor: input.actor,

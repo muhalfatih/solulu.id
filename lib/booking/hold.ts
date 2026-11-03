@@ -4,38 +4,6 @@ import { SLOT_HOLD_MINUTES, holdExpiresAt } from "@/lib/booking-cycle"
 export { SLOT_HOLD_MINUTES }
 export const XENDIT_INVOICE_DURATION_SECONDS = 900 // 15 minutes
 
-export interface OfficialBankAccount {
-  id: string
-  bankName: string
-  accountNumber: string
-  accountHolder: string
-  badge: string
-}
-
-export const OFFICIAL_BANK_ACCOUNTS: OfficialBankAccount[] = [
-  {
-    id: "bca",
-    bankName: "Bank BCA",
-    accountNumber: "1234567890",
-    accountHolder: "PT Solulu Kesehatan Indonesia",
-    badge: "Verifikasi Cepat",
-  },
-  {
-    id: "mandiri",
-    bankName: "Bank Mandiri",
-    accountNumber: "1370001234567",
-    accountHolder: "PT Solulu Kesehatan Indonesia",
-    badge: "Transfer Online",
-  },
-  {
-    id: "bri",
-    bankName: "Bank BRI",
-    accountNumber: "001201000123456",
-    accountHolder: "PT Solulu Kesehatan Indonesia",
-    badge: "Transfer Online",
-  },
-]
-
 /**
  * Computes the reserved_until timestamp: NOW() + 17 minutes
  */

@@ -40,7 +40,7 @@ function escapeLike(value: string): string {
 function kindExpr(today: string): SQL<WaTemplateKey | null> {
   return sql<WaTemplateKey | null>`(case
     when ${bookings.status} = 'confirmed' and ${schedules.date} >= ${today} then 'dispatch_link_sesi'
-    when ${bookings.status} = 'completed' and ${sessionReports.id} is not null then 'laporan_siap'
+    when ${bookings.status} = 'completed' and ${sessionReports.submittedAt} is not null then 'laporan_siap'
     else null end)`
 }
 
@@ -201,7 +201,7 @@ export async function loadDispatchBookingData(bookingId: string): Promise<Dispat
       scheduleDate: schedules.date,
       startTime: schedules.startTime,
       endTime: schedules.endTime,
-      reportId: sessionReports.id,
+      reportSubmittedAt: sessionReports.submittedAt,
     })
     .from(bookings)
     .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
@@ -220,6 +220,6 @@ export async function loadDispatchBookingData(bookingId: string): Promise<Dispat
     scheduleDate: String(r.scheduleDate),
     startTime: r.startTime,
     endTime: r.endTime,
-    hasReport: r.reportId !== null,
+    hasReport: r.reportSubmittedAt !== null,
   }
 }

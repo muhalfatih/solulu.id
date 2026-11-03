@@ -229,7 +229,7 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Antrean validasi bukti mutasi transfer rekening klinik (BCA 123-456-7890 a.n. Solulu Mental Health)
+            Antrean validasi bukti mutasi transfer ke rekening yang diatur di Pengaturan Platform.
           </p>
         </div>
       </div>
@@ -543,10 +543,6 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
             </div>
 
             <div className="rounded-lg border border-border bg-muted/20 p-2.5 flex flex-col gap-1 text-xs">
-              <div className="flex justify-between text-muted-foreground">
-                <span>Rekening Tujuan:</span>
-                <span className="font-medium text-foreground">BCA 123-456-7890 (Solulu)</span>
-              </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>Nominal Seharusnya:</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">

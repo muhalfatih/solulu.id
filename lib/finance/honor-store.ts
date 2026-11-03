@@ -55,7 +55,7 @@ export const drizzleHonorStore: HonorStore = {
         overtimePayoutPercent: services.overtimePayoutPercent,
         extensionFee: bookings.extensionFee,
         extensionPaymentStatus: bookings.extensionPaymentStatus,
-        reportId: sessionReports.id,
+        reportSubmittedAt: sessionReports.submittedAt,
       })
       .from(bookings)
       .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
@@ -64,10 +64,10 @@ export const drizzleHonorStore: HonorStore = {
       .where(and(...conditions, isNotNull(bookings.counselorId)))
 
     return rows.map(
-      ({ reportId, counselorId, ...rest }): HonorSessionFacts => ({
+      ({ reportSubmittedAt, counselorId, ...rest }): HonorSessionFacts => ({
         ...rest,
         counselorId: counselorId as string,
-        hasReport: reportId !== null,
+        hasReport: reportSubmittedAt !== null,
       })
     )
   },

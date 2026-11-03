@@ -41,7 +41,7 @@ async function countOverdueReports(now: Date): Promise<number> {
     .where(
       and(
         eq(bookings.status, "completed"),
-        isNull(sessionReports.id),
+        isNull(sessionReports.submittedAt),
         sql`((${schedules.date}::timestamp + ${schedules.endTime}) AT TIME ZONE 'Asia/Jakarta') < ${cutoff}::timestamptz`
       )
     )

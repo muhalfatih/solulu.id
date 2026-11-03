@@ -119,8 +119,6 @@ export interface ClientSessionReportView {
 export interface SessionPlatformSettings {
   isManualPaymentEnabled: boolean
   manualPaymentInstructions: string
-  bcaAccountNumber: string
-  bcaAccountName: string
 }
 
 export interface SessionPageData {

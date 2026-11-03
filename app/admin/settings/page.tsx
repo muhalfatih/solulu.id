@@ -101,8 +101,7 @@ function AdminSettingsContent() {
     noShowTimeoutMinutes: 30,
     basePrice: "150000",
     isManualPaymentEnabled: true,
-    manualPaymentInstructions:
-      "Transfer ke Rekening BCA: 123-456-7890 a.n. Solulu Mental Health. Sertakan Kode Booking pada berita transfer.",
+    manualPaymentInstructions: "",
     isScreeningRequired: false,
   })
 

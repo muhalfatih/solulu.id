@@ -59,7 +59,11 @@ describe("rules (Modul Siklus Booking)", () => {
   })
 })
 
-function makeWorld(over: Partial<RescheduleBookingFacts> = {}, failAudit = false) {
+function makeWorld(
+  over: Partial<RescheduleBookingFacts> = {},
+  failAudit = false,
+  counselorsNotOffering: string[] = []
+) {
   const booking: RescheduleBookingFacts = {
     id: "b1",
     accessToken: "tok-1",
@@ -93,6 +97,7 @@ function makeWorld(over: Partial<RescheduleBookingFacts> = {}, failAudit = false
     loadBooking: async (ref) =>
       ref.bookingId === booking.id || ref.accessToken === booking.accessToken ? { ...booking } : null,
     loadSlot: async (id) => (slots.get(id) ? { ...slots.get(id)! } : null),
+    counselorOffersBookingService: async (_bookingId, counselorId) => !counselorsNotOffering.includes(counselorId),
     claimSlot: async (id) => {
       const s = slots.get(id)!
       if (s.status !== "available") return false
@@ -261,6 +266,15 @@ describe("rescheduleByAdmin", () => {
     })
     expect(w.calls.transactions).toBe(1)
     expect(w.calls.fulfilled).toEqual(["b1"])
+  })
+
+  it("rejects a counselor who does not offer the booking's Layanan (type mismatch or excluded)", async () => {
+    const w = makeWorld({}, false, ["c2"])
+    const res = await rescheduleByAdmin({ bookingId: "b1", newScheduleId: "s-other", actor: admin }, w.deps)
+    expect(res.success).toBe(false)
+    expect(res.error).toMatch(/Layanan/)
+    expect(w.booking.counselorId).toBe("c1")
+    expect(w.audit).toHaveLength(0)
   })
 
   it("works inside the client cutoff and after the quota is used", async () => {

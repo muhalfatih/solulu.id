@@ -27,9 +27,9 @@ export function buildBookingConditions(filters: Record<string, string>): SQL | u
     conditions.push(sql`coalesce(${schedules.slotIndex}, ${bookings.poolSlotIndex}) = ${Number(filters.slot)}`)
   }
   if (filters.report === "filled") {
-    conditions.push(isNotNull(sessionReports.id))
+    conditions.push(isNotNull(sessionReports.submittedAt))
   } else if (filters.report === "pending") {
-    conditions.push(and(isNull(sessionReports.id), eq(bookings.status, "completed"))!)
+    conditions.push(and(isNull(sessionReports.submittedAt), eq(bookings.status, "completed"))!)
   }
   if (filters.q) {
     const like = `%${escapeLike(filters.q)}%`
@@ -107,8 +107,8 @@ export async function listBookingsPage(state: TableState): Promise<BookingsPage>
       .select({
         total: sql<number>`count(*)::int`,
         confirmed: sql<number>`(count(*) filter (where ${bookings.status} = 'confirmed'))::int`,
-        reportsFilled: sql<number>`(count(*) filter (where ${sessionReports.id} is not null))::int`,
-        reportsPending: sql<number>`(count(*) filter (where ${sessionReports.id} is null and ${bookings.status} = 'completed'))::int`,
+        reportsFilled: sql<number>`(count(*) filter (where ${sessionReports.submittedAt} is not null))::int`,
+        reportsPending: sql<number>`(count(*) filter (where ${sessionReports.submittedAt} is null and ${bookings.status} = 'completed'))::int`,
       })
       .from(bookings)
       .leftJoin(sessionReports, eq(sessionReports.bookingId, bookings.id)),

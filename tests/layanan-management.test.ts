@@ -295,9 +295,8 @@ describe("Layanan & Tarif page is wired in", () => {
     const cfg = fs.readFileSync(path.join(root, "next.config.ts"), "utf8")
     expect(cfg).toMatch(/\/admin\/pricing[^}]*\/admin\/layanan/)
   })
-  it("fees tab no longer hardcodes placeholder prices", () => {
-    const src = fs.readFileSync(path.join(root, "app/admin/settings/fees-tab.tsx"), "utf8")
-    expect(src).not.toMatch(/INITIAL_ROLES|regularPrice: 85000/)
+  it("the old fees tab with hardcoded placeholder prices is gone", () => {
+    expect(fs.existsSync(path.join(root, "app/admin/settings/fees-tab.tsx"))).toBe(false)
   })
 })
 

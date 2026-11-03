@@ -1,6 +1,16 @@
 import { and, asc, eq, gte } from "drizzle-orm"
 import { db } from "@/db"
-import { bookingReschedules, bookings, schedules, sessionReports, zoomAccounts } from "@/db/schema"
+import {
+  bookingReschedules,
+  bookings,
+  counselorServiceExclusions,
+  counselors,
+  schedules,
+  services,
+  sessionReports,
+  zoomAccounts,
+} from "@/db/schema"
+import { isServiceOfferedBy } from "@/lib/services/pricing"
 import { deleteZoomMeeting, getZoomAccessToken } from "@/lib/zoom/client"
 import { fulfillSession } from "@/lib/fulfillment/fulfill"
 import { getPlatformSettings } from "@/lib/settings/platform"
@@ -53,6 +63,26 @@ export function createRescheduleDeps(): RescheduleDeps {
               isLeave: row.isLeave,
               reservedUntil: row.reservedUntil,
             }
+          },
+          counselorOffersBookingService: async (bookingId, counselorId) => {
+            const [svc] = await trx
+              .select({ id: services.id, isActive: services.isActive, allowedCounselorTypes: services.allowedCounselorTypes })
+              .from(bookings)
+              .innerJoin(services, eq(bookings.serviceId, services.id))
+              .where(eq(bookings.id, bookingId))
+              .limit(1)
+            const [c] = await trx
+              .select({ id: counselors.id, counselorType: counselors.counselorType })
+              .from(counselors)
+              .where(eq(counselors.id, counselorId))
+              .limit(1)
+            if (!svc || !c) return false
+            const excluded = await trx
+              .select({ serviceId: counselorServiceExclusions.serviceId })
+              .from(counselorServiceExclusions)
+              .where(eq(counselorServiceExclusions.counselorId, counselorId))
+            // Booking lama sebelum Layanan ada: aturan tipe tetap berlaku, Layanan nonaktif tidak memblokir reschedule.
+            return isServiceOfferedBy({ ...svc, isActive: true }, c, excluded.map((e) => e.serviceId))
           },
           claimSlot: async (id) => {
             const claimed = await trx

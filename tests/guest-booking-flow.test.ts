@@ -13,8 +13,8 @@ import {
   generateSessionAccessToken,
   generateReferenceNumber,
   SLOT_HOLD_MINUTES,
-  OFFICIAL_BANK_ACCOUNTS,
 } from "../lib/booking/hold"
+import * as holdModule from "../lib/booking/hold"
 import {
   validateVoucherSchema,
   createGuestBookingSchema,
@@ -219,12 +219,8 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
       expect(ref.startsWith("SOL-20261015-")).toBe(true)
     })
 
-    it("provides official platform bank accounts for manual transfer", () => {
-      expect(OFFICIAL_BANK_ACCOUNTS.length).toBeGreaterThanOrEqual(3)
-      const bca = OFFICIAL_BANK_ACCOUNTS.find((b) => b.bankName.includes("BCA"))
-      expect(bca).toBeDefined()
-      expect(bca?.accountNumber).toBe("1234567890")
-      expect(bca?.accountHolder).toBe("PT Solulu Kesehatan Indonesia")
+    it("ships no hardcoded bank accounts (instructions come from Platform Settings, ADR-0013)", () => {
+      expect("OFFICIAL_BANK_ACCOUNTS" in holdModule).toBe(false)
     })
   })
 

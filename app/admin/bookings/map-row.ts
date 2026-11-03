@@ -38,7 +38,7 @@ export function mapBookingRow(r: BookingJoinRow): AdminBookingItem {
     counselorAssigned: Boolean(b.counselorId),
     rescheduleCount: b.rescheduleCount + b.adminRescheduleCount,
     timerStartedAt: rep?.timerStartedAt ?? null,
-    hasReport: Boolean(rep?.id),
+    hasReport: Boolean(rep?.submittedAt),
   })
   const noShowCheck =
     dateStr && (s?.startTime || pool)
