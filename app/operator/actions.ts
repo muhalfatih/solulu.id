@@ -257,6 +257,7 @@ export async function admitParticipantAction(
 
     try {
       revalidatePath("/operator")
+      revalidatePath("/operator/konsol")
       revalidatePath("/counselor/dashboard")
     } catch {
       // In unit test runner, revalidatePath is a no-op
@@ -314,6 +315,7 @@ export async function unadmitParticipantAction(
 
     try {
       revalidatePath("/operator")
+      revalidatePath("/operator/konsol")
       revalidatePath("/counselor/dashboard")
     } catch {
       // In unit test runner, revalidatePath is a no-op

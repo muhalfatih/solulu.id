@@ -18,7 +18,7 @@ import { NavUser, type ShellUser } from "./nav-user"
 
 const PORTALS: Record<PortalKey, { label: string; home: string }> = {
   admin: { label: "Portal Admin", home: "/admin" },
-  operator: { label: "Konsol Operator", home: "/operator" },
+  operator: { label: "Operator", home: "/operator" },
   counselor: { label: "Portal Konselor", home: "/counselor/dashboard" },
 }
 

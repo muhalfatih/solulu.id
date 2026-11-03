@@ -1,6 +1,6 @@
 import * as React from "react"
-import { getOperatorSlotMatrixAction } from "./actions"
-import { OperatorConsoleClient } from "./OperatorConsoleClient"
+import { getOperatorSlotMatrixAction } from "../actions"
+import { OperatorConsoleClient } from "../OperatorConsoleClient"
 import { getTodayWibDateString } from "@/lib/operator/dispatcher"
 
 export const dynamic = "force-dynamic"
