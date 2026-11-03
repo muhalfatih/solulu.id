@@ -50,6 +50,7 @@ export const transactionStatusEnum = pgEnum("transaction_status_enum", [
   "EXPIRED",
   "FAILED",
 ]);
+export const payrollPeriodStatusEnum = pgEnum("payroll_period_status_enum", ["open", "closed"]);
 export const applicationStatusEnum = pgEnum("application_status_enum", [
   "pending",
   "approved",
@@ -196,6 +197,11 @@ export const counselors = pgTable("counselors", {
   himpsiNumber: text("himpsi_number"), // (9) Keanggotaan HIMPSI
   customFeeRate: numeric("custom_fee_rate", { precision: 12, scale: 2 }), // Tarif Khusus
   counselorCommissionRate: numeric("counselor_commission_rate", { precision: 12, scale: 2 }), // Komisi Konselor
+
+  // Rekening bank untuk transfer massal Honor Konselor (ADR-0007)
+  bankName: text("bank_name"),
+  bankAccountNumber: text("bank_account_number"),
+  bankAccountHolder: text("bank_account_holder"),
 
   // Izin Praktik (4 Data)
   sippNumber: text("sipp_number"), // (10) Nomor SIPP / SILP / SIPPK
@@ -443,6 +449,60 @@ export const sessionReports = pgTable("session_reports", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// =============================================================================
+// 8B. PAYROLL: PERIODE PAYROLL & HONOR KONSELOR PER SESI (ADR-0007)
+// =============================================================================
+/** Periode Payroll 2 mingguan (1-15 dan 16-akhir bulan, WIB). Setelah `closed`, isinya beku. */
+export const payrollPeriods = pgTable(
+  "payroll_periods",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    startDate: date("start_date").notNull(),
+    endDate: date("end_date").notNull(),
+    status: payrollPeriodStatusEnum("status").default("open").notNull(),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    closedBy: uuid("closed_by"), // Supabase Auth UID Admin yang menutup periode
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("uq_payroll_period_start").on(table.startDate)]
+);
+
+/**
+ * Honor Konselor per sesi. Bagian pokok dan overtime ditempatkan ke periode secara terpisah;
+ * periode null berarti honor tertahan (Payroll Hold). Persentase Bagi Hasil dibekukan di baris
+ * ini begitu bagiannya ditempatkan di periode yang ditutup.
+ */
+export const counselorHonors = pgTable(
+  "counselor_honors",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    bookingId: uuid("booking_id")
+      .references(() => bookings.id)
+      .notNull()
+      .unique(),
+    counselorId: uuid("counselor_id")
+      .references(() => counselors.id)
+      .notNull(),
+    serviceId: uuid("service_id")
+      .references(() => services.id)
+      .notNull(),
+    sessionDate: date("session_date").notNull(),
+    baseAmount: numeric("base_amount", { precision: 12, scale: 2 }).notNull(),
+    overtimeAmount: numeric("overtime_amount", { precision: 12, scale: 2 }).default("0").notNull(),
+    basePayoutPercent: integer("base_payout_percent").notNull(),
+    overtimePayoutPercent: integer("overtime_payout_percent").notNull(),
+    basePeriodId: uuid("base_period_id").references(() => payrollPeriods.id),
+    overtimePeriodId: uuid("overtime_period_id").references(() => payrollPeriods.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_counselor_honors_counselor").on(table.counselorId, table.sessionDate),
+    index("idx_counselor_honors_base_period").on(table.basePeriodId),
+    index("idx_counselor_honors_overtime_period").on(table.overtimePeriodId),
+  ]
+);
 
 // =============================================================================
 // 9. PUBLIC DOCUMENTATIONS (GALERI PRIVACY-FIRST)

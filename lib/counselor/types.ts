@@ -78,6 +78,15 @@ export interface SessionReportDetailView {
   timerStartedAt?: string | null
   timerStoppedAt?: string | null
   createdAt: string
+  /** Perpanjangan Sesi yang tercatat otomatis oleh Timer Melayang; dapat dikoreksi di Laporan Sesi. */
+  overtime?: {
+    blocks: number
+    ratePer30Min: number
+    /** Bagi Hasil overtime Layanan (%). */
+    payoutPercent: number
+    /** 'NONE' | 'PENDING' | 'PAID' */
+    paymentStatus: string
+  }
   booking: {
     id: string
     patientName: string

@@ -13,6 +13,8 @@ import {
 } from "@/lib/booking/no-show"
 import { formatTimeRange } from "@/lib/schedules/concurrency"
 import { calculateExtendFee } from "@/lib/counselor/timer"
+import { applyOvertimeCorrection } from "@/lib/session/overtime-store"
+import { currentOvertimeBlocks, type OvertimeCorrectionPlan } from "@/lib/session/overtime"
 import { getAuthenticatedCounselor, resolveCounselorId } from "@/lib/counselor/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
 import {
@@ -298,6 +300,10 @@ export async function getSessionReportAction(
           booking: bookings,
           schedule: schedules,
           screening: screenings,
+          service: {
+            overtimeRatePer30Min: services.overtimeRatePer30Min,
+            overtimePayoutPercent: services.overtimePayoutPercent,
+          },
           report: {
             id: sessionReports.id,
             bookingId: sessionReports.bookingId,
@@ -318,6 +324,7 @@ export async function getSessionReportAction(
         .from(bookings)
         .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
         .leftJoin(screenings, eq(bookings.screeningId, screenings.id))
+        .leftJoin(services, eq(bookings.serviceId, services.id))
         .leftJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
         .where(eq(bookings.id, bookingId))
         .limit(1),
@@ -328,7 +335,7 @@ export async function getSessionReportAction(
       return { success: false, error: "Sesi konseling tidak ditemukan." }
     }
 
-    const { booking, schedule, screening, report } = rows[0]
+    const { booking, schedule, screening, report, service } = rows[0]
 
     if (!isAdminOrSuper && booking.counselorId !== counselorId) {
       return { success: false, error: "Anda hanya dapat melihat catatan sesi Anda sendiri (RLS)." }
@@ -351,6 +358,14 @@ export async function getSessionReportAction(
       timerStartedAt: report?.timerStartedAt ? report.timerStartedAt.toISOString() : null,
       timerStoppedAt: report?.timerStoppedAt ? report.timerStoppedAt.toISOString() : null,
       createdAt: report ? report.createdAt.toISOString() : new Date().toISOString(),
+      overtime: service
+        ? {
+            blocks: currentOvertimeBlocks(booking),
+            ratePer30Min: Number(service.overtimeRatePer30Min),
+            payoutPercent: service.overtimePayoutPercent,
+            paymentStatus: booking.extensionPaymentStatus || "NONE",
+          }
+        : undefined,
       booking: {
         id: booking.id,
         patientName: booking.patientName,
@@ -390,6 +405,11 @@ export async function submitSessionReportAction(
     currentUser?: CounselorAuthContext | null
     getBooking?: (id: string) => Promise<any>
     saveReport?: (data: any) => Promise<{ id: string }>
+    applyOvertimeCorrection?: (
+      bookingId: string,
+      counselorId: string,
+      blocks: number
+    ) => Promise<OvertimeCorrectionPlan>
   }
 ): Promise<CounselorActionResponse<{ reportId: string }>> {
   const auth = await getAuthenticatedCounselor(deps?.currentUser)
@@ -446,6 +466,21 @@ export async function submitSessionReportAction(
 
     if (booking.counselorId !== counselorId) {
       return { success: false, error: "Anda tidak berwenang mengisi laporan untuk sesi konselor lain." }
+    }
+
+    // Koreksi blok Perpanjangan Sesi (tagihan klien + honor overtime) sebelum laporan disimpan.
+    if (parsed.data.overtimeBlocks !== undefined) {
+      const apply =
+        deps?.applyOvertimeCorrection ??
+        (UUID_REGEX.test(bookingId)
+          ? (id: string, cid: string, blocks: number) => applyOvertimeCorrection(id, cid, blocks)
+          : null)
+      if (apply) {
+        const plan = await apply(bookingId, counselorId, parsed.data.overtimeBlocks)
+        if (!plan.ok) {
+          return { success: false, error: plan.error }
+        }
+      }
     }
 
     let reportId = ""
@@ -867,6 +902,18 @@ export async function recordSessionExtensionAction(
     }
 
     const { booking, service } = bookingRows[0]
+
+    // Idempoten: blok yang sudah tercatat (otomatis atau hasil koreksi) tidak ditimpa.
+    if (booking.isExtended && (booking.extensionMinutes ?? 0) > 0) {
+      return {
+        success: true,
+        data: {
+          isExtended: true,
+          extensionMinutes: booking.extensionMinutes,
+          fee: Number(booking.extensionFee) || 0,
+        },
+      }
+    }
 
     // Tarif overtime diambil dari Layanan yang dibeli klien (ADR-0010).
     const feeCalc = calculateExtendFee(96, Number(service.overtimeRatePer30Min))
