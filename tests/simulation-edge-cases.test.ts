@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { executeSlotCleanupAndArchiving, isSessionPastTwoHours } from "@/lib/cron/cleanup"
 import { computeHoldExpiry, isHoldExpired } from "@/lib/booking/hold"
-import { canRescheduleSession } from "@/lib/admin/reschedule"
+import { canRescheduleSession } from "@/lib/booking-cycle"
 import { sessionReportSchema } from "@/lib/validations/counselor"
 import { calculateSessionTimeInfo, getSessionCountdown } from "@/lib/session/time"
 
@@ -41,7 +41,7 @@ describe("End-to-End Simulation: Operational Edge Cases & Failure Scenarios (Pil
 
       expect(result.success).toBe(true)
       expect(result.releasedSlotsCount).toBe(1)
-      expect(result.cancelledBookingsCount).toBe(1)
+      expect(result.expiredBookingsCount).toBe(1)
       expect(result.expiredTransactionsCount).toBe(1)
       expect(result.vouchersRolledBackCount).toBe(1)
 

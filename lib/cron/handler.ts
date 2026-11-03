@@ -58,7 +58,7 @@ export async function handleCronRequest(
     let cleanupResult = {
       success: true,
       releasedSlotsCount: 0,
-      cancelledBookingsCount: 0,
+      expiredBookingsCount: 0,
       expiredTransactionsCount: 0,
       vouchersRolledBackCount: 0,
       autoArchivedSessionsCount: 0,
@@ -105,7 +105,7 @@ export async function handleCronRequest(
         message: "Slot cleanup and recurring schedule maintenance completed successfully",
         data: {
           releasedSlotsCount: cleanupResult.releasedSlotsCount,
-          cancelledBookingsCount: cleanupResult.cancelledBookingsCount,
+          expiredBookingsCount: cleanupResult.expiredBookingsCount,
           expiredTransactionsCount: cleanupResult.expiredTransactionsCount,
           vouchersRolledBackCount: cleanupResult.vouchersRolledBackCount,
           autoArchivedSessionsCount: cleanupResult.autoArchivedSessionsCount,

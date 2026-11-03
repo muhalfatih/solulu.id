@@ -6,6 +6,20 @@ import { db } from "@/db"
 import { bookings, counselors, schedules, transactions, sessionReports } from "@/db/schema"
 import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
 import { getAppBaseUrl } from "@/lib/url"
+import {
+  evaluateNoShow,
+  loadNoShowBookingFacts,
+  noShowUpdate,
+  type NoShowBookingFacts,
+} from "@/lib/booking/no-show"
+import {
+  canMarkNoShow,
+  deriveStage,
+  sessionStartAt,
+  stageLabel,
+  type BookingStage,
+  type BookingStatus,
+} from "@/lib/booking-cycle"
 
 function safeRevalidatePaths(...paths: string[]) {
   try {
@@ -51,12 +65,16 @@ export interface AdminBookingItem {
   zoomJoinUrl: string | null
   zoomStartUrl: string | null
   zoomHostKey: string | null
-  status: "pending_payment" | "confirmed" | "completed" | "cancelled"
+  status: BookingStatus
+  /** Tahap Booking turunan (lib/booking-cycle); satu-satunya label status yang ditampilkan. */
+  stage: BookingStage
+  stageLabel: string
+  /** True bila No-Show boleh ditandai sekarang (setelah toleransi). */
+  canMarkNoShow: boolean
   paymentMethod: string
   manualPaymentStatus: string
   isExtended: boolean
   extensionFee: number
-  isNoShow: boolean
   noShowMarkedAt: string | null
   isFollowedUp: boolean
   followedUpAt: string | null
@@ -182,6 +200,22 @@ export async function getBookingsAdminAction(
         ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)}`
         : ""
 
+      const stage = deriveStage({
+        status: b.status,
+        counselorAssigned: Boolean(b.counselorId),
+        rescheduleCount: b.rescheduleCount,
+        timerStartedAt: rep?.timerStartedAt ?? null,
+        hasReport: Boolean(rep?.id),
+      })
+      const noShowCheck =
+        s?.date && s?.startTime
+          ? canMarkNoShow({
+              status: b.status,
+              sessionStart: sessionStartAt(String(s.date), s.startTime),
+              timerStartedAt: rep?.timerStartedAt ?? null,
+            })
+          : { allowed: false }
+
       return {
         id: b.id,
         bookingCode: b.bookingCode,
@@ -206,12 +240,14 @@ export async function getBookingsAdminAction(
         zoomJoinUrl: b.zoomJoinUrl,
         zoomStartUrl: b.zoomStartUrl,
         zoomHostKey: b.zoomHostKey,
-        status: b.status as any,
+        status: b.status,
+        stage,
+        stageLabel: stageLabel(stage),
+        canMarkNoShow: noShowCheck.allowed,
         paymentMethod: b.paymentMethod,
         manualPaymentStatus: b.manualPaymentStatus || "NONE",
         isExtended: b.isExtended,
         extensionFee: Number(b.extensionFee) || 0,
-        isNoShow: b.isNoShow,
         noShowMarkedAt: b.noShowMarkedAt ? b.noShowMarkedAt.toISOString() : null,
         isFollowedUp: b.isFollowedUp,
         followedUpAt: b.followedUpAt ? b.followedUpAt.toISOString() : null,
@@ -274,14 +310,16 @@ export async function getBookingsAdminAction(
 
 /**
  * Action "Tandai No-Show":
- * Flags sessions where clients fail to arrive within 30 minutes of slot start time.
- * Mutates `is_no_show: true`, `status: 'completed'`, and records timestamp.
+ * Flags sessions where clients fail to arrive within the tolerance (default 30 minutes)
+ * of slot start time. Rule owned by lib/booking-cycle. Writes `status: 'no_show'` and timestamp.
  */
 export async function markBookingNoShowAction(
   input: { bookingId: string },
   options?: {
     currentUser?: AdminAuthContext | null
     updateFn?: (bookingId: string, values: any) => Promise<any>
+    getBookingFn?: (bookingId: string) => Promise<NoShowBookingFacts | null>
+    now?: Date
   }
 ) {
   const admin = await getAuthenticatedAdmin(options?.currentUser)
@@ -298,11 +336,19 @@ export async function markBookingNoShowAction(
   }
 
   try {
-    const updateData = {
-      isNoShow: true,
-      noShowMarkedAt: new Date(),
-      status: "completed" as const,
+    const now = options?.now ?? new Date()
+    const booking = options?.getBookingFn
+      ? await options.getBookingFn(bookingId)
+      : await loadNoShowBookingFacts(bookingId)
+    if (!booking) {
+      return { success: false, error: "Data pesanan booking tidak ditemukan." }
     }
+    const check = evaluateNoShow(booking, now)
+    if (!check.allowed) {
+      return { success: false, error: check.reason || "No-Show belum dapat ditandai." }
+    }
+
+    const updateData = noShowUpdate(now)
 
     if (options?.updateFn) {
       await options.updateFn(bookingId, updateData)

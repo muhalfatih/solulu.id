@@ -372,7 +372,7 @@ describe("Issue 04: Cron Maintenance & Weekly Buffer Extension", () => {
           return {
             success: true,
             releasedSlotsCount: 2,
-            cancelledBookingsCount: 1,
+            expiredBookingsCount: 1,
             expiredTransactionsCount: 1,
             vouchersRolledBackCount: 0,
             autoArchivedSessionsCount: 0,
@@ -422,7 +422,7 @@ describe("Issue 04: Cron Maintenance & Weekly Buffer Extension", () => {
           return {
             success: true,
             releasedSlotsCount: 0,
-            cancelledBookingsCount: 0,
+            expiredBookingsCount: 0,
             expiredTransactionsCount: 0,
             vouchersRolledBackCount: 0,
             autoArchivedSessionsCount: 0,

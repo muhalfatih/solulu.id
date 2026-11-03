@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache"
 import { getStaffRole } from "@/lib/auth/staff-role"
 import { eq, and, sql, desc, asc } from "drizzle-orm"
 import { db } from "@/db"
-import { bookings, schedules, screenings, sessionReports, counselors, zoomAccounts, services } from "@/db/schema"
+import { bookings, schedules, screenings, sessionReports, counselors, zoomAccounts, platformSettings, services } from "@/db/schema"
+import {
+  evaluateNoShow,
+  loadNoShowBookingFacts,
+  noShowUpdate,
+  type NoShowBookingFacts,
+} from "@/lib/booking/no-show"
 import { formatTimeRange } from "@/lib/schedules/concurrency"
 import { calculateExtendFee } from "@/lib/counselor/timer"
 import { getAuthenticatedCounselor, resolveCounselorId } from "@/lib/counselor/auth"
@@ -105,7 +111,7 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
           .where(
             and(
               eq(bookings.counselorId, counselorId),
-              sql`${bookings.status} IN ('pending_payment', 'confirmed', 'completed', 'cancelled')`,
+              sql`${bookings.status} IN ('pending_payment', 'confirmed', 'completed', 'no_show', 'cancelled', 'expired')`,
               sql`${schedules.date} >= ${todayStr} AND ${schedules.date} <= ${sevenDaysLaterStr}`
             )
           )
@@ -1067,6 +1073,68 @@ export async function counselorAdmitClientAction(
     }
   } catch (err: any) {
     return { success: false, error: err.message || "Gagal menandai kehadiran klien." }
+  }
+}
+
+/**
+ * Counselor marks the client No-Show. Allowed only for the counselor's own confirmed booking,
+ * after the tolerance (default 30 minutes) from session start; the rule is owned by
+ * lib/booking-cycle. Honor stays full (CONTEXT.md: No-Show).
+ */
+export async function markNoShowAction(
+  bookingId: string,
+  deps?: {
+    currentUser?: CounselorAuthContext | null
+    getBooking?: (id: string) => Promise<NoShowBookingFacts | null>
+    updateBooking?: (id: string, values: ReturnType<typeof noShowUpdate>) => Promise<void>
+    now?: Date
+  }
+): Promise<CounselorActionResponse<{ markedAt: string }>> {
+  if (!bookingId || (!deps?.getBooking && !UUID_REGEX.test(bookingId))) {
+    return { success: false, error: "ID booking tidak valid." }
+  }
+
+  const auth = await getAuthenticatedCounselor(deps?.currentUser)
+  if (!auth) {
+    return { success: false, error: "Akses ditolak. Silakan login sebagai Mitra Konselor." }
+  }
+
+  const counselorId = await resolveCounselorId(auth)
+  if (!counselorId) {
+    return { success: false, error: "Profil konselor tidak ditemukan." }
+  }
+
+  try {
+    const now = deps?.now ?? new Date()
+    const booking = deps?.getBooking
+      ? await deps.getBooking(bookingId)
+      : await loadNoShowBookingFacts(bookingId)
+
+    if (!booking) {
+      return { success: false, error: "Sesi konseling tidak ditemukan." }
+    }
+    if (booking.counselorId !== counselorId) {
+      return { success: false, error: "Anda tidak berwenang mengelola sesi konselor lain." }
+    }
+
+    const check = evaluateNoShow(booking, now)
+    if (!check.allowed) {
+      return { success: false, error: check.reason || "No-Show belum dapat ditandai." }
+    }
+
+    const values = noShowUpdate(now)
+    if (deps?.updateBooking) {
+      await deps.updateBooking(bookingId, values)
+    } else {
+      await db.update(bookings).set(values).where(eq(bookings.id, bookingId))
+    }
+
+    safeRevalidatePath("/counselor/dashboard")
+    safeRevalidatePath("/admin/bookings")
+
+    return { success: true, data: { markedAt: now.toISOString() } }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Gagal menandai klien sebagai No-Show." }
   }
 }
 

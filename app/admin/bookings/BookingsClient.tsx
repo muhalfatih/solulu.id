@@ -101,6 +101,8 @@ const STATUS_OPTIONS = [
   { value: "confirmed", label: "Terkonfirmasi (Aktif)" },
   { value: "completed", label: "Selesai (Completed)" },
   { value: "cancelled", label: "Dibatalkan (Cancelled)" },
+  { value: "no_show", label: "No-Show" },
+  { value: "expired", label: "Kedaluwarsa" },
 ]
 
 const REPORT_STATUS_OPTIONS = [
@@ -213,8 +215,10 @@ export function BookingsClient({
             item.id === noShowItem.id
               ? {
                   ...item,
-                  isNoShow: true,
-                  status: "completed",
+                  status: "no_show",
+                  stage: "no_show",
+                  stageLabel: "No-Show",
+                  canMarkNoShow: false,
                   noShowMarkedAt: new Date().toISOString(),
                 }
               : item
@@ -560,7 +564,7 @@ export function BookingsClient({
                         ? "default"
                         : b.status === "completed"
                         ? "secondary"
-                        : b.status === "cancelled"
+                        : b.status === "cancelled" || b.status === "no_show"
                         ? "destructive"
                         : "outline"
 
@@ -639,13 +643,7 @@ export function BookingsClient({
                         <TableCell>
                           <div className="flex flex-col gap-1 items-start">
                             <Badge variant={statusVariant} className="text-[10px]">
-                              {b.status === "confirmed"
-                                ? "Terkonfirmasi"
-                                : b.status === "completed"
-                                ? "Selesai"
-                                : b.status === "cancelled"
-                                ? "Dibatalkan"
-                                : "Menunggu Bayar"}
+                              {b.stageLabel}
                             </Badge>
 
                             {/* Clinical Report Status Badge */}
@@ -667,17 +665,6 @@ export function BookingsClient({
                                   <span>Menunggu Catatan</span>
                                 </Badge>
                               )
-                            )}
-
-                            {/* No-Show Marker Badge */}
-                            {b.isNoShow && (
-                              <Badge
-                                variant="destructive"
-                                className="text-[10px] px-1.5 py-0 gap-1 font-mono"
-                              >
-                                <AlertTriangle className="size-2.5" />
-                                <span>No-Show</span>
-                              </Badge>
                             )}
 
                             {/* Extended Marker */}
@@ -707,7 +694,7 @@ export function BookingsClient({
                             )}
 
                             {/* 1. Tombol Tandai No-Show (Syarat: Tidak hadir dalam 30 menit) */}
-                            {!b.isNoShow && b.status !== "cancelled" ? (
+                            {b.canMarkNoShow ? (
                               <Button
                                 type="button"
                                 variant="outline"
@@ -718,7 +705,7 @@ export function BookingsClient({
                                 <AlertTriangle className="size-3" data-icon="inline-start" />
                                 <span>Tandai No-Show</span>
                               </Button>
-                            ) : b.isNoShow ? (
+                            ) : b.status === "no_show" ? (
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>

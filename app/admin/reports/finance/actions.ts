@@ -68,7 +68,6 @@ export async function getFinanceReportDataAction(params?: {
         extensionFee: bookings.extensionFee,
         extensionPaymentStatus: bookings.extensionPaymentStatus,
         status: bookings.status,
-        isNoShow: bookings.isNoShow,
         createdAt: bookings.createdAt,
         // schedules
         scheduleId: schedules.id,
@@ -167,7 +166,7 @@ export async function getFinanceReportDataAction(params?: {
         bookingStatus: r.status as FinanceLedgerItem["bookingStatus"],
         isExtended: r.isExtended || false,
         extensionMinutes: r.extensionMinutes || 0,
-        isNoShow: r.isNoShow || false,
+        isNoShow: r.status === "no_show",
         createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
       }
     })

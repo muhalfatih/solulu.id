@@ -41,6 +41,8 @@ export const bookingStatusEnum = pgEnum("booking_status_enum", [
   "confirmed",
   "completed",
   "cancelled",
+  "no_show",
+  "expired",
 ]);
 export const transactionStatusEnum = pgEnum("transaction_status_enum", [
   "PENDING",
@@ -375,7 +377,9 @@ export const bookings = pgTable("bookings", {
   rescheduleCount: integer("reschedule_count").default(0).notNull(), // Maksimal 1 kali
   isFollowedUp: boolean("is_followed_up").default(false).notNull(), // Ditandai setelah Admin kirim WA link laporan
   followedUpAt: timestamp("followed_up_at", { withTimezone: true }),
-  isNoShow: boolean("is_no_show").default(false).notNull(), // Toleransi hadir 30 menit
+  // DEPRECATED (ADR-0008): no longer a source of truth, status = 'no_show' is. Kept only so the
+  // backfill migration loses no data; nothing reads or writes it. Drop in a later cleanup.
+  isNoShow: boolean("is_no_show").default(false).notNull(),
   noShowMarkedAt: timestamp("no_show_marked_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

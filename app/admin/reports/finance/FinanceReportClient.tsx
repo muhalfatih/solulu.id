@@ -567,6 +567,7 @@ export function FinanceReportClient({
                         </SelectItem>
                         <SelectItem value="no_show">No-Show</SelectItem>
                         <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                        <SelectItem value="expired">Kedaluwarsa</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -842,6 +843,10 @@ export function FinanceReportClient({
                           ) : item.bookingStatus === "cancelled" ? (
                             <Badge variant="destructive" className="text-[10px]">
                               Dibatalkan
+                            </Badge>
+                          ) : item.bookingStatus === "expired" ? (
+                            <Badge variant="outline" className="text-[10px]">
+                              Kedaluwarsa
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="text-[10px]">
