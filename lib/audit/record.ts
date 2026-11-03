@@ -10,6 +10,10 @@ import { getStaffRole, type RoleCarrier } from "@/lib/auth/staff-role"
 export const AUDIT_ACTIONS = [
   "settings.update",
   "pricing.update",
+  "service.create",
+  "service.update",
+  "service.toggle",
+  "counselor_service.exclusion",
   "voucher.create",
   "voucher.toggle",
   "voucher.delete",

@@ -1,4 +1,5 @@
-import { asc, eq, inArray } from "drizzle-orm"
+import { and, asc, eq, inArray } from "drizzle-orm"
+import { uniqueSlug } from "@/lib/services/validation"
 import { db } from "@/db"
 import { services, counselorServiceExclusions } from "@/db/schema"
 import { recordAudit } from "@/lib/audit/record"
@@ -90,5 +91,121 @@ export async function updateServiceBySlugAudited(
       after,
     })
     return after ?? null
+  })
+}
+
+export type ServiceInsertValues = Omit<
+  typeof services.$inferInsert,
+  "id" | "slug" | "createdAt" | "updatedAt" | "isActive"
+>
+export type ServiceUpdateValues = Partial<ServiceInsertValues>
+
+/** Buat Layanan baru (aktif) + Jejak Audit dalam satu transaksi. Slug dibuat unik di dalam transaksi. */
+export async function createServiceAudited(
+  values: ServiceInsertValues,
+  slugBase: string,
+  actor: RoleCarrier
+): Promise<ServiceRecord> {
+  return db.transaction(async (tx) => {
+    const existing = await tx.select({ slug: services.slug }).from(services)
+    const slug = uniqueSlug(slugBase, new Set(existing.map((r) => r.slug)))
+    const [row] = await tx
+      .insert(services)
+      .values({ ...values, slug, isActive: true })
+      .returning()
+    await recordAudit(tx, {
+      actor,
+      action: "service.create",
+      entityType: "service",
+      entityId: row.id,
+      before: null,
+      after: row,
+    })
+    return row
+  })
+}
+
+/** Ubah tarif/promo/voucher/overtime/Bagi Hasil/Tipe Konselor Layanan + audit. Slug tidak berubah. */
+export async function updateServiceByIdAudited(
+  serviceId: string,
+  values: ServiceUpdateValues,
+  actor: RoleCarrier
+): Promise<ServiceRecord | null> {
+  return db.transaction(async (tx) => {
+    const [before] = await tx.select().from(services).where(eq(services.id, serviceId)).limit(1)
+    if (!before) return null
+    const [after] = await tx
+      .update(services)
+      .set({ ...values, updatedAt: new Date() })
+      .where(eq(services.id, serviceId))
+      .returning()
+    await recordAudit(tx, {
+      actor,
+      action: "service.update",
+      entityType: "service",
+      entityId: serviceId,
+      before,
+      after,
+    })
+    return after ?? null
+  })
+}
+
+/** Aktif/nonaktifkan Layanan (tidak pernah dihapus) + audit. */
+export async function setServiceActiveAudited(
+  serviceId: string,
+  isActive: boolean,
+  actor: RoleCarrier
+): Promise<ServiceRecord | null> {
+  return db.transaction(async (tx) => {
+    const [before] = await tx.select().from(services).where(eq(services.id, serviceId)).limit(1)
+    if (!before) return null
+    const [after] = await tx
+      .update(services)
+      .set({ isActive, updatedAt: new Date() })
+      .where(eq(services.id, serviceId))
+      .returning()
+    await recordAudit(tx, {
+      actor,
+      action: "service.toggle",
+      entityType: "service",
+      entityId: serviceId,
+      before: { isActive: before.isActive },
+      after: { isActive: after?.isActive ?? isActive },
+    })
+    return after ?? null
+  })
+}
+
+/** Matikan/nyalakan satu Layanan untuk satu konselor + audit. Idempoten. */
+export async function setCounselorServiceExclusionAudited(
+  counselorId: string,
+  serviceId: string,
+  excluded: boolean,
+  actor: RoleCarrier
+): Promise<void> {
+  await db.transaction(async (tx) => {
+    const where = and(
+      eq(counselorServiceExclusions.counselorId, counselorId),
+      eq(counselorServiceExclusions.serviceId, serviceId)
+    )
+    const current = await tx
+      .select({ id: counselorServiceExclusions.id })
+      .from(counselorServiceExclusions)
+      .where(where)
+    const wasExcluded = current.length > 0
+    if (excluded && !wasExcluded) {
+      await tx.insert(counselorServiceExclusions).values({ counselorId, serviceId })
+    } else if (!excluded && wasExcluded) {
+      await tx.delete(counselorServiceExclusions).where(where)
+    }
+    await recordAudit(tx, {
+      actor,
+      action: "counselor_service.exclusion",
+      entityType: "counselor",
+      entityId: counselorId,
+      before: { serviceId, excluded: wasExcluded },
+      after: { serviceId, excluded },
+    })
   })
 }
