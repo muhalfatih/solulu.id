@@ -11,6 +11,7 @@ export type StaffRole = (typeof STAFF_ROLES)[number]
 
 export interface RoleCarrier {
   id: string
+  email?: string
   app_metadata?: Record<string, any>
   user_metadata?: Record<string, any>
 }

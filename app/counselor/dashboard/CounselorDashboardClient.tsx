@@ -253,7 +253,7 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
 
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" size="sm" className="text-xs h-9 gap-1.5 border-border/80">
-            <Link href="/counselor/schedules">
+            <Link href="/counselor/schedule">
               <Calendar className="size-3.5" aria-hidden="true" />
               <span>Kelola Slot Praktik</span>
             </Link>
@@ -515,7 +515,7 @@ export function CounselorDashboardClient({ initialSessions }: CounselorDashboard
                 </p>
               </div>
               <Button asChild size="sm" className="mt-2 text-xs">
-                <Link href="/counselor/schedules">Buka Slot Praktik Baru</Link>
+                <Link href="/counselor/schedule">Buka Slot Praktik Baru</Link>
               </Button>
             </CardContent>
           </Card>

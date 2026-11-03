@@ -217,7 +217,7 @@ function AdminSettingsContent() {
                 asChild
                 className="text-xs h-8"
               >
-                <Link href="/admin/zoom">
+                <Link href="/admin/zoom-settings">
                   <Video data-icon="inline-start" />
                   <span>4 Akun Zoom Pro</span>
                 </Link>

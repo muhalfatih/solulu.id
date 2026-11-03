@@ -13,6 +13,7 @@ export async function getSessionUser(): Promise<RoleCarrier | null> {
     if (!user) return null
     return {
       id: user.id,
+      email: user.email,
       app_metadata: user.app_metadata,
       user_metadata: user.user_metadata,
     }

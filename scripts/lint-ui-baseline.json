@@ -75,9 +75,6 @@
   "app/operator/OperatorConsoleClient.tsx": {
     "card-override": 14
   },
-  "components/admin/admin-header.tsx": {
-    "animate-pulse": 1
-  },
   "components/admin/metric-card.tsx": {
     "card-override": 6
   },
@@ -87,8 +84,5 @@
   "components/counselor/FloatingTimer.tsx": {
     "animate-pulse": 3,
     "card-override": 2
-  },
-  "components/operator/operator-app-sidebar.tsx": {
-    "animate-pulse": 1
   }
 }
