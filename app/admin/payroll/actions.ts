@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { requireStaffUser } from "@/lib/auth/staff"
 import { ADMIN_ROLES, type RoleCarrier } from "@/lib/auth/staff-role"
-import { closePayrollPeriod, type ClosePayrollResult } from "@/lib/finance"
+import { closePayrollPeriod, type ClosePayrollResult } from "@/lib/finance/payroll"
 import { drizzleHonorStore } from "@/lib/finance/honor-store"
 import { drizzlePayrollCloseStore } from "@/lib/finance/payroll-store"
 

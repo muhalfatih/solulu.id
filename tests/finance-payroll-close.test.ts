@@ -1,17 +1,19 @@
 import { describe, it, expect } from "vitest"
 import {
-  buildPayrollOverview,
-  buildPayrollPeriodDetail,
-  closePayrollPeriod,
-  payoutCsv,
   syncHonors,
   toCsv,
   toLedgerEntries,
   type HonorSessionFacts,
   type HonorStore,
-  type PayrollCloseStore,
   type PlannedHonorRow,
 } from "@/lib/finance"
+import {
+  buildPayrollOverview,
+  buildPayrollPeriodDetail,
+  closePayrollPeriod,
+  payoutCsv,
+  type PayrollCloseStore,
+} from "@/lib/finance/payroll"
 import { auditLogs, type NewAuditLog } from "@/db/schema"
 import type { AuditExecutor } from "@/lib/audit/record"
 

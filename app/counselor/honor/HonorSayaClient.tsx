@@ -8,7 +8,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { formatRupiah } from "@/lib/utils"
-import { HOLD_REASON_LABELS, type HonorLine, type HonorSayaView } from "@/lib/finance"
+import { HOLD_REASON_LABELS } from "@/lib/finance/hold"
+import type { HonorLine, HonorSayaView } from "@/lib/finance/ledger"
 
 interface HonorSayaClientProps {
   view: HonorSayaView | null

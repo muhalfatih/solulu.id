@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { getSessionUser } from "@/lib/auth/staff"
 import { ADMIN_ROLES, hasStaffRole } from "@/lib/auth/staff-role"
-import { payoutCsv, payrollPeriodFor } from "@/lib/finance"
+import { payrollPeriodFor } from "@/lib/finance"
+import { payoutCsv } from "@/lib/finance/payroll"
 import { loadPayrollPeriodDetail } from "@/lib/finance/payroll-load"
 
 export const dynamic = "force-dynamic"

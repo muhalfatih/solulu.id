@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getSessionUser } from "@/lib/auth/staff"
 import { ADMIN_ROLES, hasStaffRole } from "@/lib/auth/staff-role"
 import { parseTableParams, type RawSearchParams, type TableConfig } from "@/lib/data-table/search-params"
-import type { PayrollPeriodSummary } from "@/lib/finance"
+import type { PayrollPeriodSummary } from "@/lib/finance/payroll"
 import { loadPayrollOverview } from "@/lib/finance/payroll-load"
 import { formatRupiah } from "@/lib/utils"
 
