@@ -231,3 +231,65 @@ export function canRescheduleSession(
 
   return { allowed: true, hoursUntilSession }
 }
+
+// ---------------------------------------------------------------------------
+// Konselor Bebas pool: Klaim Sesi (ADR-0011)
+// ---------------------------------------------------------------------------
+
+/** Klaim ditutup H-4 jam sebelum sesi; sisanya ditugaskan Admin. */
+export const CLAIM_CUTOFF_HOURS = 4
+
+export function isPastClaimCutoff(
+  sessionStart: Date,
+  now: Date = new Date(),
+  cutoffHours: number = CLAIM_CUTOFF_HOURS
+): boolean {
+  return sessionStart.getTime() - now.getTime() <= cutoffHours * 3_600_000
+}
+
+/**
+ * Opsi Konselor Bebas hanya ditawarkan selama jumlah booking pool di slot itu
+ * lebih kecil dari jumlah konselor yang memenuhi syarat dan belum terpakai.
+ */
+export function isPoolOfferable(input: { poolBookings: number; eligibleCounselors: number }): boolean {
+  return input.poolBookings < input.eligibleCounselors
+}
+
+export interface ClaimInput {
+  status: BookingStatus
+  /** Booking pool sudah punya konselor. */
+  alreadyClaimed: boolean
+  sessionStart: Date
+  now?: Date
+  cutoffHours?: number
+  counselor: {
+    /** Tipe konselor sesuai Layanan. */
+    typeAllowed: boolean
+    /** Konselor punya jadwal kosong di slot ini. */
+    slotFree: boolean
+    onLeave: boolean
+  }
+}
+
+export function canClaim(input: ClaimInput): { allowed: boolean; reason?: string } {
+  if (input.status !== "confirmed") {
+    return { allowed: false, reason: "Booking belum terkonfirmasi atau sudah tidak aktif." }
+  }
+  if (input.alreadyClaimed) {
+    return { allowed: false, reason: "Sesi ini sudah diambil konselor lain." }
+  }
+  const cutoff = input.cutoffHours ?? CLAIM_CUTOFF_HOURS
+  if (isPastClaimCutoff(input.sessionStart, input.now ?? new Date(), cutoff)) {
+    return { allowed: false, reason: `Klaim ditutup pada H-${cutoff} jam sebelum sesi; Admin akan menugaskan konselor.` }
+  }
+  if (!input.counselor.typeAllowed) {
+    return { allowed: false, reason: "Tipe konselor Anda tidak sesuai dengan Layanan ini." }
+  }
+  if (input.counselor.onLeave) {
+    return { allowed: false, reason: "Anda sedang cuti pada slot ini." }
+  }
+  if (!input.counselor.slotFree) {
+    return { allowed: false, reason: "Anda tidak punya slot kosong pada waktu ini." }
+  }
+  return { allowed: true }
+}
