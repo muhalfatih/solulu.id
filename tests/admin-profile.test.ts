@@ -9,13 +9,15 @@ describe("Admin Profile Server Actions", () => {
   const superadminAuth = {
     id: "superadmin-user-1",
     app_metadata: { role: "superadmin" },
-    user_metadata: { role: "superadmin", email: "superadmin@solulu.id", phone: "0812-9999-8888" },
+    email: "superadmin@solulu.id",
+    user_metadata: { role: "superadmin", phone: "0812-9999-8888" },
   }
 
   const adminAuth = {
     id: "admin-user-1",
     app_metadata: { role: "admin" },
-    user_metadata: { role: "admin", email: "admin@solulu.id", phone: "0812-3456-7890" },
+    email: "admin@solulu.id",
+    user_metadata: { role: "admin", phone: "0812-3456-7890" },
   }
 
   const unauthorizedAuth = {

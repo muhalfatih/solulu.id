@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache"
 import { eq, desc } from "drizzle-orm"
 import { db } from "@/db"
+import { recordAudit } from "@/lib/audit/record"
 import { publicDocumentations } from "@/db/schema"
-import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, AdminAuthContext } from "@/lib/auth/admin"
 
 export interface GalleryInput {
   title: string
@@ -56,19 +57,30 @@ export async function createGalleryAdminAction(
   }
 
   try {
-    const [inserted] = await db
-      .insert(publicDocumentations)
-      .values({
-        imageUrl: input.r2Url,
-        caption: input.caption || input.title || "Dokumentasi Kegiatan Solulu",
-        isCensoredAndConsented: true,
-        isPublished: input.isActive ?? true,
-        uploadedBy:
-          admin.id && admin.id.length === 36
-            ? admin.id
-            : "00000000-0000-0000-0000-000000000000",
+    const inserted = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(publicDocumentations)
+        .values({
+          imageUrl: input.r2Url,
+          caption: input.caption || input.title || "Dokumentasi Kegiatan Solulu",
+          isCensoredAndConsented: true,
+          isPublished: input.isActive ?? true,
+          uploadedBy:
+            admin.id && admin.id.length === 36
+              ? admin.id
+              : "00000000-0000-0000-0000-000000000000",
+        })
+        .returning()
+      await recordAudit(tx, {
+        actor: admin,
+        action: "gallery.create",
+        entityType: "gallery_item",
+        entityId: row.id,
+        before: null,
+        after: row,
       })
-      .returning()
+      return row
+    })
 
     try {
       revalidatePath("/admin/gallery")
@@ -101,7 +113,22 @@ export async function deleteGalleryAdminAction(
   }
 
   try {
-    await db.delete(publicDocumentations).where(eq(publicDocumentations.id, id))
+    await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select()
+        .from(publicDocumentations)
+        .where(eq(publicDocumentations.id, id))
+        .limit(1)
+      await tx.delete(publicDocumentations).where(eq(publicDocumentations.id, id))
+      await recordAudit(tx, {
+        actor: admin,
+        action: "gallery.delete",
+        entityType: "gallery_item",
+        entityId: id,
+        before,
+        after: null,
+      })
+    })
 
     try {
       revalidatePath("/admin/gallery")

@@ -6,6 +6,7 @@ import { eq, and, sql, desc } from "drizzle-orm"
 import { db } from "@/db"
 import { schedules, counselors, bookings } from "@/db/schema"
 import { createClient } from "@/lib/supabase/server"
+import { ADMIN_ROLES, hasStaffRole } from "@/lib/auth/staff-role"
 import {
   computeEndTime,
   formatTimeRange,
@@ -392,7 +393,7 @@ export async function cancelScheduleSlotAction(
     }
 
     // 2. Verify ownership (unless admin)
-    if (slot.counselorId !== counselorId && auth.app_metadata?.role !== "admin") {
+    if (slot.counselorId !== counselorId && !hasStaffRole(auth, ADMIN_ROLES)) {
       return {
         success: false,
         error: "Anda tidak memiliki wewenang untuk membatalkan slot konselor lain.",

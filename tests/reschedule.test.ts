@@ -207,6 +207,41 @@ describe("rescheduleBySelf", () => {
   })
 })
 
+describe("old Zoom meeting cleanup", () => {
+  const withZoom = { zoomMeetingId: "zm-1", zoomAccountId: "za-1" } as Partial<RescheduleBookingFacts>
+
+  it("deletes the previous Zoom meeting after the reschedule commits", async () => {
+    const w = makeWorld(withZoom)
+    const cancelled: unknown[] = []
+    w.deps.cancelZoomMeeting = async (m) => {
+      cancelled.push(m)
+    }
+    const res = await rescheduleBySelf({ accessToken: "tok-1", newScheduleId: "s-same" }, w.deps)
+    expect(res.success).toBe(true)
+    expect(cancelled).toEqual([{ meetingId: "zm-1", zoomAccountId: "za-1" }])
+  })
+
+  it("does not undo the reschedule when deleting the old meeting fails", async () => {
+    const w = makeWorld(withZoom)
+    w.deps.cancelZoomMeeting = async () => {
+      throw new Error("zoom 500")
+    }
+    const res = await rescheduleBySelf({ accessToken: "tok-1", newScheduleId: "s-same" }, w.deps)
+    expect(res.success).toBe(true)
+    expect(w.booking.scheduleId).toBe("s-same")
+  })
+
+  it("skips cleanup when the booking had no Zoom meeting", async () => {
+    const w = makeWorld()
+    let called = false
+    w.deps.cancelZoomMeeting = async () => {
+      called = true
+    }
+    await rescheduleBySelf({ accessToken: "tok-1", newScheduleId: "s-same" }, w.deps)
+    expect(called).toBe(false)
+  })
+})
+
 describe("rescheduleByAdmin", () => {
   it("changes counselor, keeps client quota intact, writes audit in the same transaction", async () => {
     const w = makeWorld()

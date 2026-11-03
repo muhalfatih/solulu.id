@@ -14,7 +14,7 @@ import {
   parseTimeToMinutes,
 } from "@/lib/schedules/concurrency"
 import { generateSessionAccessToken } from "@/lib/booking/hold"
-import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, type AdminAuthContext } from "@/lib/auth/admin"
 import {
   adminManualBookingSchema,
   type AdminManualBookingInput,
@@ -189,10 +189,19 @@ export async function getActiveZoomCapacityAction(options?: {
     }
   }
 
-  const capacity = await getActiveZoomCapacity()
-  return {
-    success: true,
-    data: capacity > 0 ? capacity : 1,
+  try {
+    const capacity = await getActiveZoomCapacity()
+    return {
+      success: true,
+      data: capacity > 0 ? capacity : 1,
+    }
+  } catch (error) {
+    console.error("[ZOOM CAPACITY] Gagal membaca kapasitas akun Zoom:", error)
+    return {
+      success: false,
+      error: "Gagal membaca kapasitas akun Zoom. Silakan coba lagi.",
+      data: 1,
+    }
   }
 }
 

@@ -1,5 +1,7 @@
 "use client"
 
+import { getSupportWhatsappUrl } from "@/lib/config/support"
+
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -46,6 +48,9 @@ export default function CounselorDetailClient({
   settings,
 }: CounselorDetailClientProps) {
   const router = useRouter()
+  const supportUrl = getSupportWhatsappUrl(
+    "Halo Solulu, saya butuh bantuan jadwal konseling"
+  )
   const isPsychologist = counselor.counselorType === "psychologist"
 
   // Group slots by date
@@ -728,8 +733,9 @@ export default function CounselorDetailClient({
                 {/* Distilled Integrated WhatsApp Support */}
                 <div className="pt-3 border-t border-border/50 text-center text-xs text-muted-foreground leading-relaxed flex flex-wrap items-center justify-center gap-1.5">
                   <span>Butuh bantuan jadwal khusus?</span>
+{supportUrl && (
                   <a
-                    href="https://wa.me/6281234567890?text=Halo%20Solulu,%20saya%20butuh%20bantuan%20jadwal%20konseling"
+                    href={supportUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-semibold text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-0.5 leading-relaxed"
@@ -737,6 +743,7 @@ export default function CounselorDetailClient({
                     <span>Tanya Admin</span>
                     <ChevronRight className="size-3" />
                   </a>
+)}
                 </div>
               </CardContent>
             </Card>

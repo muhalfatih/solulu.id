@@ -26,6 +26,9 @@ export interface LoadedBookingFacts extends Omit<RescheduleBookingFacts, "counse
 }
 
 export interface RescheduleBookingFacts {
+  /** Meeting Zoom lama; dihapus (best-effort) setelah reschedule commit. */
+  zoomMeetingId?: string | null
+  zoomAccountId?: string | null
   id: string
   accessToken: string
   status: BookingStatus
@@ -92,6 +95,11 @@ export interface RescheduleDeps {
   transaction<T>(fn: (tx: RescheduleTx) => Promise<T>): Promise<T>
   /** Cutoff Reschedule dari Platform Settings (default H-4). */
   getCutoffHours(): Promise<number>
+  /**
+   * Menghapus meeting Zoom lama setelah commit (best-effort; kegagalan hanya dicatat
+   * dan tidak membatalkan reschedule).
+   */
+  cancelZoomMeeting?(meeting: StaleZoomMeeting): Promise<void>
   /** Pemenuhan Sesi / Dispatcher untuk slot baru. */
   fulfill(bookingId: string): Promise<{ success: boolean; error?: string }>
   now?: Date
@@ -103,6 +111,11 @@ export interface RescheduleResult {
   error?: string
   /** Reschedule tersimpan tetapi alokasi Zoom perlu dicoba ulang. */
   warning?: string
+}
+
+export interface StaleZoomMeeting {
+  meetingId: string
+  zoomAccountId: string | null
 }
 
 class RescheduleRejected extends Error {}
@@ -136,7 +149,7 @@ async function applyReschedule(
   booking: RescheduleBookingFacts,
   slot: RescheduleSlot,
   by: { initiatedBy: "client" | "admin"; actorId: string | null }
-) {
+): Promise<StaleZoomMeeting | null> {
   if (!(await tx.claimSlot(slot.id))) reject("Slot yang dipilih baru saja diambil. Silakan pilih slot lain.")
   await tx.releaseSlot(booking.scheduleId)
   await tx.updateBooking(booking.id, {
@@ -164,6 +177,18 @@ async function applyReschedule(
     fromCounselorId: booking.counselorId,
     toCounselorId: slot.counselorId,
   })
+  return booking.zoomMeetingId
+    ? { meetingId: booking.zoomMeetingId, zoomAccountId: booking.zoomAccountId ?? null }
+    : null
+}
+
+async function releaseStaleZoom(deps: RescheduleDeps, stale: StaleZoomMeeting | null) {
+  if (!stale || !deps.cancelZoomMeeting) return
+  try {
+    await deps.cancelZoomMeeting(stale)
+  } catch (err) {
+    console.error(`[RESCHEDULE] Gagal menghapus meeting Zoom lama ${stale.meetingId}:`, err)
+  }
 }
 
 async function redispatch(deps: RescheduleDeps, bookingId: string): Promise<RescheduleResult> {
@@ -199,7 +224,7 @@ export async function rescheduleBySelf(
   const now = deps.now ?? new Date()
   try {
     const cutoffHours = (await deps.getCutoffHours()) || DEFAULT_RESCHEDULE_CUTOFF_HOURS
-    const bookingId = await deps.transaction(async (tx) => {
+    const done = await deps.transaction(async (tx) => {
       const booking = await tx.loadBooking({ accessToken: input.accessToken })
       if (!booking) reject("Sesi konseling tidak ditemukan.")
       assertAssigned(booking)
@@ -215,10 +240,11 @@ export async function rescheduleBySelf(
       if (!check.allowed) reject(check.reason)
       const slot = await tx.loadSlot(input.newScheduleId)
       validateTargetSlot(slot, booking, now, true)
-      await applyReschedule(tx, booking, slot, { initiatedBy: "client", actorId: null })
-      return booking.id
+      const stale = await applyReschedule(tx, booking, slot, { initiatedBy: "client", actorId: null })
+      return { bookingId: booking.id, stale }
     })
-    return redispatch(deps, bookingId)
+    await releaseStaleZoom(deps, done.stale)
+    return redispatch(deps, done.bookingId)
   } catch (err) {
     return failure(err)
   }
@@ -234,7 +260,7 @@ export async function rescheduleByAdmin(
   }
   const now = deps.now ?? new Date()
   try {
-    const bookingId = await deps.transaction(async (tx) => {
+    const done = await deps.transaction(async (tx) => {
       const booking = await tx.loadBooking({ bookingId: input.bookingId })
       if (!booking) reject("Data booking tidak ditemukan.")
       assertAssigned(booking)
@@ -242,7 +268,7 @@ export async function rescheduleByAdmin(
       if (!check.allowed) reject(check.reason)
       const slot = await tx.loadSlot(input.newScheduleId)
       validateTargetSlot(slot, booking, now, false)
-      await applyReschedule(tx, booking, slot, { initiatedBy: "admin", actorId: input.actor?.id ?? null })
+      const stale = await applyReschedule(tx, booking, slot, { initiatedBy: "admin", actorId: input.actor?.id ?? null })
       await recordAudit(tx.audit, {
         actor: input.actor,
         action: "booking.reschedule_admin",
@@ -251,9 +277,10 @@ export async function rescheduleByAdmin(
         before: { scheduleId: booking.scheduleId, counselorId: booking.counselorId },
         after: { scheduleId: slot.id, counselorId: slot.counselorId },
       })
-      return booking.id
+      return { bookingId: booking.id, stale }
     })
-    return redispatch(deps, bookingId)
+    await releaseStaleZoom(deps, done.stale)
+    return redispatch(deps, done.bookingId)
   } catch (err) {
     return failure(err)
   }

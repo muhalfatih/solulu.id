@@ -756,8 +756,8 @@ export function OperatorConsoleClient({ initialData }: OperatorConsoleClientProp
                                   ).toLocaleTimeString("id-ID", {
                                     hour: "2-digit",
                                     minute: "2-digit",
-                                    hour12: false,
-                                  }) + " WIB"
+                                    hour12: false, timeZone: "Asia/Jakarta"
+}) + " WIB"
                                 : null
 
                               return (

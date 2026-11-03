@@ -31,6 +31,15 @@ export const AUDIT_ACTIONS = [
   "counselor_document.download",
   "whatsapp_template.update",
   "payroll.close",
+  "specialization.create",
+  "specialization.update",
+  "specialization.toggle",
+  "specialization.delete",
+  "gallery.create",
+  "gallery.delete",
+  "testimonial.create",
+  "testimonial.update",
+  "testimonial.delete",
 ] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 
@@ -44,6 +53,9 @@ export const AUDIT_ENTITY_TYPES = [
   "counselor_document",
   "whatsapp_template",
   "payroll_period",
+  "specialization",
+  "gallery_item",
+  "testimonial",
 ] as const
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number]
 

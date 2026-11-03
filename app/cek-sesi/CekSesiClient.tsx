@@ -1,5 +1,7 @@
 "use client"
 
+import { getSupportWhatsappUrl } from "@/lib/config/support"
+
 import * as React from "react"
 import Link from "next/link"
 import {
@@ -107,11 +109,9 @@ export default function CekSesiClient() {
     }
   }
 
-  const whatsappSupportNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT || "6281234567890"
-  const waSupportUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(
+  const waSupportUrl = getSupportWhatsappUrl(
     `Halo Tim Solulu, saya mengalami kendala saat memulihkan tautan sesi saya untuk email: ${email || "[Email]"}`
-  )}`
+  )
 
   return (
     <PublicShell>
@@ -190,6 +190,7 @@ export default function CekSesiClient() {
                 </AlertTitle>
                 <AlertDescription className="text-xs leading-relaxed flex flex-col gap-3 mt-1">
                   <span>{status.message}</span>
+                  {waSupportUrl && (
                   <div className="pt-1">
                     <PublicButton
                       asChild
@@ -202,6 +203,7 @@ export default function CekSesiClient() {
                       </a>
                     </PublicButton>
                   </div>
+                  )}
                 </AlertDescription>
               </Alert>
             )}
@@ -323,15 +325,21 @@ export default function CekSesiClient() {
           {/* Card Footer: Support link & Link to Catalog */}
           <CardFooter className="border-t border-border/60 bg-muted/20 px-6 sm:px-8 py-4.5 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
             <span className="text-center sm:text-left">
-              Ada kendala atau butuh bantuan segera?{" "}
-              <a
-                href={waSupportUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-purple-600 dark:text-purple-400 hover:underline font-semibold"
-              >
-                Hubungi Kami di WhatsApp
-              </a>
+              {waSupportUrl ? (
+                <>
+                  Ada kendala atau butuh bantuan segera?{" "}
+                  <a
+                    href={waSupportUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-600 dark:text-purple-400 hover:underline font-semibold"
+                  >
+                    Hubungi Kami di WhatsApp
+                  </a>
+                </>
+              ) : (
+                "Ada kendala atau butuh bantuan segera? Hubungi tim Solulu."
+              )}
             </span>
             <PublicButton
               asChild

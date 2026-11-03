@@ -1,5 +1,6 @@
 "use client"
 
+import { toast } from "sonner"
 import * as React from "react"
 import {
   Tag,
@@ -53,7 +54,6 @@ export default function SpecializationsAdminPage() {
   const [isLoading, setIsLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "inactive">("all")
-  const [toastMessage, setToastMessage] = React.useState<string | null>(null)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
 
   // Dialog state for Create/Edit
@@ -70,8 +70,8 @@ export default function SpecializationsAdminPage() {
   const [isDeleting, setIsDeleting] = React.useState(false)
 
   const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 3500)
+    if (/gagal|ditolak|kesalahan/i.test(msg)) toast.error(msg)
+    else toast.success(msg)
   }
 
   const loadData = React.useCallback(async () => {
@@ -209,29 +209,6 @@ export default function SpecializationsAdminPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16 font-sans">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md"
-        >
-          <div className="flex items-center gap-2">
-            <Check className="size-4 text-primary shrink-0" aria-hidden="true" />
-            <span className="leading-relaxed">{toastMessage}</span>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => setToastMessage(null)}
-            className="size-6 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
-            aria-label="Tutup notifikasi"
-          >
-            <X className="size-3.5" aria-hidden="true" />
-          </Button>
-        </div>
-      )}
 
       {/* Header */}
       <AdminPageHeader

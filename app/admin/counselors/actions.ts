@@ -27,21 +27,8 @@ import {
 } from "@/lib/schedules/concurrency"
 import { getSlotByStartTime } from "@/lib/schedules/slots"
 
-import { requireStaffUser } from "@/lib/auth/staff"
+import { getAuthenticatedAdmin, type AdminAuthContext } from "@/lib/auth/admin"
 import { recordAudit } from "@/lib/audit/record"
-import { ADMIN_ROLES } from "@/lib/auth/staff-role"
-
-export interface AdminAuthContext {
-  id: string
-  app_metadata?: Record<string, any>
-  user_metadata?: Record<string, any>
-}
-
-export async function getAuthenticatedAdmin(
-  customUser?: AdminAuthContext | null
-): Promise<AdminAuthContext | null> {
-  return requireStaffUser(customUser, ADMIN_ROLES)
-}
 
 /**
  * Fetches all counselors for the admin directory, including total sessions and active slot counts.

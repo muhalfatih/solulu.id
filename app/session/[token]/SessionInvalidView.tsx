@@ -1,4 +1,5 @@
 import * as React from "react"
+import { getSupportWhatsappUrl } from "@/lib/config/support"
 import Link from "next/link"
 import { Compass, Search, MessageSquare, ArrowLeft } from "lucide-react"
 import { PublicButton } from "@/components/public/public-button"
@@ -18,12 +19,7 @@ interface SessionInvalidViewProps {
 }
 
 export function SessionInvalidView({ token, error }: SessionInvalidViewProps) {
-  const whatsappSupportNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT || "6281234567890"
-
-  const helpDeskUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(
-    `Halo Tim Solulu, saya tidak dapat membuka tautan ruang sesi: ${token || "(tanpa token)"}`
-  )}`
+  const helpDeskUrl = getSupportWhatsappUrl(`Halo Tim Solulu, saya tidak dapat membuka tautan ruang sesi: ${token || "(tanpa token)"}`)
 
   return (
     <PublicShell>
@@ -68,12 +64,14 @@ export function SessionInvalidView({ token, error }: SessionInvalidViewProps) {
                 </Link>
               </PublicButton>
 
+{helpDeskUrl && (
               <PublicButton asChild variant="public-secondary" size="pill" className="w-full h-11">
                 <a href={helpDeskUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2">
                   <MessageSquare data-icon="inline-start" className="size-4" />
                   <span>Bantuan Tim Solulu via WhatsApp</span>
                 </a>
               </PublicButton>
+)}
             </div>
           </CardContent>
 

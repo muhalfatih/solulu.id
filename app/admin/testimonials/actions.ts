@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache"
 import { eq, desc, and } from "drizzle-orm"
 import { db } from "@/db"
 import { testimonials } from "@/db/schema"
-import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
+import { recordAudit } from "@/lib/audit/record"
+import { getAuthenticatedAdmin, AdminAuthContext } from "@/lib/auth/admin"
 
 /**
  * Public action to retrieve featured active testimonials for the public homepage.
@@ -127,23 +128,34 @@ export async function createTestimonialAdminAction(
   }
 
   try {
-    const [inserted] = await db
-      .insert(testimonials)
-      .values({
-        clientName: input.clientName,
-        isAnonymous: input.isAnonymous ?? true,
-        anonymousDisplay: input.anonymousDisplay || input.clientName,
-        sessionCode: input.sessionCode || null,
-        counselorName: input.counselorName || "Solulu",
-        counselorType: input.counselorType || "Konselor",
-        rating: input.rating ?? 5,
-        quoteHighlight: input.quoteHighlight,
-        comment: input.comment,
-        topic: input.topic,
-        isActive: input.isActive,
-        isFeatured: input.isFeatured ?? input.isActive,
+    const inserted = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(testimonials)
+        .values({
+          clientName: input.clientName,
+          isAnonymous: input.isAnonymous ?? true,
+          anonymousDisplay: input.anonymousDisplay || input.clientName,
+          sessionCode: input.sessionCode || null,
+          counselorName: input.counselorName || "Solulu",
+          counselorType: input.counselorType || "Konselor",
+          rating: input.rating ?? 5,
+          quoteHighlight: input.quoteHighlight,
+          comment: input.comment,
+          topic: input.topic,
+          isActive: input.isActive,
+          isFeatured: input.isFeatured ?? input.isActive,
+        })
+        .returning()
+      await recordAudit(tx, {
+        actor: admin,
+        action: "testimonial.create",
+        entityType: "testimonial",
+        entityId: row.id,
+        before: null,
+        after: row,
       })
-      .returning()
+      return row
+    })
 
     try {
       revalidatePath("/admin/testimonials")
@@ -178,14 +190,30 @@ export async function updateTestimonialAdminAction(
   }
 
   try {
-    const [updated] = await db
-      .update(testimonials)
-      .set({
-        ...input,
-        updatedAt: new Date(),
+    const updated = await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select()
+        .from(testimonials)
+        .where(eq(testimonials.id, id))
+        .limit(1)
+      const [row] = await tx
+        .update(testimonials)
+        .set({
+          ...input,
+          updatedAt: new Date(),
+        })
+        .where(eq(testimonials.id, id))
+        .returning()
+      await recordAudit(tx, {
+        actor: admin,
+        action: "testimonial.update",
+        entityType: "testimonial",
+        entityId: id,
+        before,
+        after: row,
       })
-      .where(eq(testimonials.id, id))
-      .returning()
+      return row
+    })
 
     try {
       revalidatePath("/admin/testimonials")
@@ -227,7 +255,22 @@ export async function deleteTestimonialAdminAction(
   }
 
   try {
-    await db.delete(testimonials).where(eq(testimonials.id, id))
+    await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select()
+        .from(testimonials)
+        .where(eq(testimonials.id, id))
+        .limit(1)
+      await tx.delete(testimonials).where(eq(testimonials.id, id))
+      await recordAudit(tx, {
+        actor: admin,
+        action: "testimonial.delete",
+        entityType: "testimonial",
+        entityId: id,
+        before,
+        after: null,
+      })
+    })
 
     try {
       revalidatePath("/admin/testimonials")

@@ -88,8 +88,8 @@ export function GalleryUploadDialog({
         date: new Date().toLocaleDateString("id-ID", {
           day: "2-digit",
           month: "short",
-          year: "numeric",
-        }),
+          year: "numeric", timeZone: "Asia/Jakarta"
+}),
         isCensoredAndConsented: hasConsent,
         uploadedBy: "Admin",
       }

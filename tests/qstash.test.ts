@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from "vitest"
 import { dispatchFulfillmentJob } from "@/lib/fulfillment/qstash"
-import { POST as fulfillJobHandler } from "@/app/api/jobs/fulfill-booking/route"
+import { createFulfillBookingHandler } from "@/lib/fulfillment/job-handler"
+
+const fulfillJobHandler = createFulfillBookingHandler({
+  verify: async () => true,
+  fulfill: async () => ({ success: false, error: "Booking tidak ditemukan" }),
+})
 import { handleCronRequest } from "@/lib/cron/handler"
 
 describe("Upstash QStash Asynchronous Processing & Cron Architecture (ADR-0001 / US-55 / US-56 / US-58)", () => {

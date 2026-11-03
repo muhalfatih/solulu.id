@@ -1,6 +1,7 @@
 import { and, asc, eq, gte } from "drizzle-orm"
 import { db } from "@/db"
-import { bookingReschedules, bookings, schedules, sessionReports } from "@/db/schema"
+import { bookingReschedules, bookings, schedules, sessionReports, zoomAccounts } from "@/db/schema"
+import { deleteZoomMeeting, getZoomAccessToken } from "@/lib/zoom/client"
 import { fulfillSession } from "@/lib/fulfillment/fulfill"
 import { getPlatformSettings } from "@/lib/settings/platform"
 import { sessionStartAt } from "@/lib/booking-cycle"
@@ -29,6 +30,8 @@ export function createRescheduleDeps(): RescheduleDeps {
                 scheduleDate: schedules.date,
                 startTime: schedules.startTime,
                 timerStartedAt: sessionReports.timerStartedAt,
+                zoomMeetingId: bookings.zoomMeetingId,
+                zoomAccountId: bookings.zoomAccountId,
               })
               .from(bookings)
               .leftJoin(schedules, eq(bookings.scheduleId, schedules.id))
@@ -73,6 +76,17 @@ export function createRescheduleDeps(): RescheduleDeps {
         return fn(tx)
       }),
     getCutoffHours: async () => (await getPlatformSettings()).rescheduleCutoffHours,
+    cancelZoomMeeting: async ({ meetingId, zoomAccountId }) => {
+      if (!zoomAccountId) return
+      const [account] = await db
+        .select()
+        .from(zoomAccounts)
+        .where(eq(zoomAccounts.id, zoomAccountId))
+        .limit(1)
+      if (!account) return
+      const accessToken = await getZoomAccessToken(account)
+      await deleteZoomMeeting(accessToken, meetingId)
+    },
     fulfill: (bookingId) => fulfillSession(bookingId),
   }
 }

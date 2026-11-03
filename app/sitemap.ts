@@ -1,7 +1,8 @@
 import type { MetadataRoute } from "next"
+import { getAppBaseUrl } from "@/lib/url"
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://solulu.id"
+  const baseUrl = getAppBaseUrl()
   const now = new Date()
 
   return [

@@ -1,5 +1,6 @@
 "use client"
 
+import { toast } from "sonner"
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -126,7 +127,6 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
   const router = useRouter()
   const [counselor, setCounselor] = React.useState<CounselorDetailData>(initialCounselor)
   const [isActionPending, setIsActionPending] = React.useState(false)
-  const [toastMessage, setToastMessage] = React.useState<{ title: string; desc?: string; type?: "success" | "error" } | null>(null)
 
   // Document Preview Modal State
   const [previewDoc, setPreviewDoc] = React.useState<{
@@ -139,8 +139,8 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
   const [showRejectDialog, setShowRejectDialog] = React.useState(false)
 
   const showToast = (title: string, desc?: string, type: "success" | "error" = "success") => {
-    setToastMessage({ title, desc, type })
-    setTimeout(() => setToastMessage(null), 4500)
+    if (type === "error") toast.error(title, { description: desc })
+    else toast.success(title, { description: desc })
   }
 
   const handleVerify = async () => {
@@ -241,25 +241,11 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
   const registeredDateFormatted = new Date(counselor.createdAt).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
-    year: "numeric",
-  })
+    year: "numeric", timeZone: "Asia/Jakarta"
+})
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-20">
-      {/* Toast Feedback */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-border shadow-xl animate-in fade-in flex items-start gap-3 max-w-md">
-          {toastMessage.type === "error" ? (
-            <XCircle className="size-5 text-destructive shrink-0 mt-0.5" />
-          ) : (
-            <CheckCircle2 className="size-5 text-primary shrink-0 mt-0.5" />
-          )}
-          <div className="flex-1">
-            <p className="text-xs font-semibold text-foreground">{toastMessage.title}</p>
-            {toastMessage.desc && <p className="text-[11px] text-muted-foreground mt-0.5">{toastMessage.desc}</p>}
-          </div>
-        </div>
-      )}
 
       {/* Breadcrumb Navigation */}
       <Breadcrumb>

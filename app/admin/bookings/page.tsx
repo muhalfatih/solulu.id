@@ -1,4 +1,4 @@
-import { getAuthenticatedAdmin } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin } from "@/lib/auth/admin"
 import { ErrorState } from "@/components/data-table/error-state"
 import { parseTableParams, type RawSearchParams } from "@/lib/data-table/search-params"
 import { BookingsClient } from "./BookingsClient"

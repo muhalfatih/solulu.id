@@ -1,5 +1,6 @@
 "use client"
 
+import { toast } from "sonner"
 import * as React from "react"
 import {
   User,
@@ -53,12 +54,10 @@ export default function AdminProfilePage() {
   const [showNewPass, setShowNewPass] = React.useState(false)
   const [passwordError, setPasswordError] = React.useState<string | null>(null)
 
-  // Toast
-  const [toastMessage, setToastMessage] = React.useState<string | null>(null)
 
   const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 3500)
+    if (/gagal|ditolak|kesalahan/i.test(msg)) toast.error(msg)
+    else toast.success(msg)
   }
 
   React.useEffect(() => {
@@ -138,29 +137,6 @@ export default function AdminProfilePage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full flex flex-col gap-6 pb-16 font-sans">
-      {/* Toast Alert */}
-      {toastMessage && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md"
-        >
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-primary shrink-0" />
-            <span className="leading-relaxed">{toastMessage}</span>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => setToastMessage(null)}
-            className="size-6 text-muted-foreground hover:text-foreground shrink-0 cursor-pointer"
-            aria-label="Tutup notifikasi"
-          >
-            <X className="size-3.5" />
-          </Button>
-        </div>
-      )}
 
       {/* Page Header */}
       <AdminPageHeader

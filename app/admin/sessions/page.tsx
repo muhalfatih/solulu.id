@@ -1,5 +1,6 @@
 "use client"
 
+import { toast } from "sonner"
 import * as React from "react"
 import Link from "next/link"
 import type { BookingSession } from "@/lib/types/admin"
@@ -85,7 +86,6 @@ export default function DistilledSessionsPage() {
   const [isDrawerClosing, setIsDrawerClosing] = React.useState(false)
   const [manualPaymentSession, setManualPaymentSession] = React.useState<BookingSession | null>(null)
   const [isManualBookingModalOpen, setIsManualBookingModalOpen] = React.useState(false)
-  const [toastMessage, setToastMessage] = React.useState<string | null>(null)
 
   // Calendar Date Navigation & Monthly Overflow States
   const [currentDate, setCurrentDate] = React.useState<Date>(() => new Date())
@@ -144,8 +144,8 @@ export default function DistilledSessionsPage() {
   }, [loadSessions])
 
   const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 3500)
+    if (/gagal|ditolak|kesalahan/i.test(msg)) toast.error(msg)
+    else toast.success(msg)
   }
 
   const handleOpenSession = (ses: BookingSession) => {
@@ -458,24 +458,6 @@ export default function DistilledSessionsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16">
-      {/* Toast Alert */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-primary shrink-0" />
-            <span>{toastMessage}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => setToastMessage(null)}
-            className="size-6 text-muted-foreground hover:text-foreground"
-            aria-label="Tutup notifikasi"
-          >
-            <X className="size-3.5" />
-          </Button>
-        </div>
-      )}
 
       {/* Page Header with View Switcher */}
       <AdminPageHeader

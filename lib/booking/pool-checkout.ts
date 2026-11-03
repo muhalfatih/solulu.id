@@ -313,10 +313,8 @@ export async function executeCreatePoolBooking(
     if (deps.getZoomCapacity) {
       limit = await deps.getZoomCapacity()
     } else {
-      try {
-        const cap = await getActiveZoomCapacity()
-        if (cap > 0 && cap < 4) limit = cap
-      } catch {}
+      const cap = await getActiveZoomCapacity()
+      if (cap > 0 && cap < 4) limit = cap
     }
     const load = deps.getSlotLoad ? await deps.getSlotLoad(data.date, data.slotIndex) : await defaultSlotLoad(data.date, data.slotIndex)
     if (load >= limit) {

@@ -458,7 +458,7 @@ export function ApplicationsClient({
                           </Badge>
                           <span
                             className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 px-1.5 py-0.2 rounded-full border border-emerald-500/20"
-                            title={`Persetujuan Etik: Pelamar telah menyetujui kode etik (${new Date(app.agreedToTermsAt).toLocaleDateString("id-ID")})`}
+                            title={`Persetujuan Etik: Pelamar telah menyetujui kode etik (${new Date(app.agreedToTermsAt).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta" })})`}
                           >
                             <CheckCircle2 className="size-2.5" />
                             <span>Etik ✓</span>
@@ -496,8 +496,8 @@ export function ApplicationsClient({
                             {new Date(app.createdAt).toLocaleDateString("id-ID", {
                               day: "numeric",
                               month: "short",
-                              year: "numeric",
-                            })}
+                              year: "numeric", timeZone: "Asia/Jakarta"
+})}
                           </span>
                         </span>
                       </div>

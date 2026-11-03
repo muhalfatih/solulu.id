@@ -142,8 +142,9 @@ export default function NewCounselorPage() {
 
       setAvatarUrl(uploadJson.data.publicUrl)
     } catch (err: any) {
-      console.warn("Direct upload error (using local preview fallback):", err.message)
-      // Keep local preview for form submission demo
+      // Do not keep the blob: preview URL; it would be submitted as the photo URL.
+      setAvatarUrl("")
+      setErrorMessage(err.message || "Gagal mengunggah foto profil.")
     } finally {
       setIsUploadingAvatar(false)
     }
