@@ -1,4 +1,4 @@
-import { overtimeBlocks } from "@/lib/booking-cycle"
+import { HARD_STOP_MINUTES, OVERTIME_RECORD_MINUTE, overtimeBlocks } from "@/lib/booking-cycle"
 
 export type TimerStageKey =
   | "normal"
@@ -177,4 +177,30 @@ export function getTimerProgressPercentage(elapsedSeconds: number): number {
   const maxSeconds = 120 * 60 // 7200s
   const capped = Math.min(Math.max(0, elapsedSeconds), maxSeconds)
   return Math.round((capped / maxSeconds) * 100)
+}
+
+// ---------------------------------------------------------------------------
+// Chime menit 80, hard stop menit 120, overtime otomatis
+// ---------------------------------------------------------------------------
+
+/** Menit chime lembut "10 menit tersisa". */
+export const CHIME_MINUTE = 80
+export const CHIME_MESSAGE = "10 menit tersisa"
+export const HARD_STOP_SECONDS = HARD_STOP_MINUTES * 60
+
+/** Satu tick timer (1 detik); berhenti dan tidak maju lagi di menit 120. */
+export function advanceTimer(elapsedSeconds: number): { elapsedSeconds: number; stopped: boolean } {
+  const next = Math.min(elapsedSeconds + 1, HARD_STOP_SECONDS)
+  return { elapsedSeconds: next, stopped: next >= HARD_STOP_SECONDS }
+}
+
+/** True tepat pada tick yang melewati detik ke CHIME_MINUTE*60 (sehingga chime berbunyi sekali). */
+export function crossesChimeMinute(prevSeconds: number, nextSeconds: number): boolean {
+  const at = CHIME_MINUTE * 60
+  return prevSeconds < at && nextSeconds >= at
+}
+
+/** Overtime dicatat otomatis begitu timer mencapai menit ke-96, sekali saja. */
+export function shouldAutoRecordOvertime(elapsedMinutes: number, alreadyRecorded: boolean): boolean {
+  return !alreadyRecorded && elapsedMinutes >= OVERTIME_RECORD_MINUTE
 }

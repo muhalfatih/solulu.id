@@ -174,6 +174,12 @@ export function overtimeBlocks(durationMinutes: number): number {
   return Math.ceil(billable / OVERTIME_BLOCK_MINUTES)
 }
 
+/** Menit ke-96: overtime pertama tercatat otomatis oleh Timer Melayang. */
+export const OVERTIME_RECORD_MINUTE = FREE_TOLERANCE_END_MINUTE + 1
+
+/** Blok overtime maksimum dalam satu sesi (slot berhenti di menit 120). */
+export const MAX_OVERTIME_BLOCKS = overtimeBlocks(HARD_STOP_MINUTES)
+
 // ---------------------------------------------------------------------------
 // Reschedule (absorbed from lib/admin/reschedule.ts)
 // ---------------------------------------------------------------------------

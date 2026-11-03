@@ -58,6 +58,20 @@ function isPromoApplicable(service: Pick<ServiceLike, "basePrice" | "promoPrice"
   return promo >= 0 && promo < toNumber(service.basePrice)
 }
 
+/** Tagihan Perpanjangan Sesi ke Klien: blok overtime x tarif overtime Layanan. */
+export function overtimeCharge(blocks: number, ratePer30Min: NumericLike): number {
+  return Math.max(0, blocks) * toNumber(ratePer30Min)
+}
+
+/** Honor overtime Konselor: tagihan perpanjangan x Bagi Hasil overtime Layanan (%). */
+export function overtimeHonor(
+  blocks: number,
+  ratePer30Min: NumericLike,
+  overtimePayoutPercent: number
+): number {
+  return Math.round((overtimeCharge(blocks, ratePer30Min) * overtimePayoutPercent) / 100)
+}
+
 /** Tarif pokok aktif Layanan sebelum voucher. */
 export function activePrice(service: Pick<ServiceLike, "basePrice" | "promoPrice">): number {
   return isPromoApplicable(service) ? toNumber(service.promoPrice as NumericLike) : toNumber(service.basePrice)
