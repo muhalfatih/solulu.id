@@ -136,7 +136,7 @@ export async function getCounselorsAdminAction(options?: {
             .from(bookings)
             .innerJoin(sessionReports, eq(sessionReports.bookingId, bookings.id))
             .where(
-              sql`${bookings.counselorId} = ${c.id} AND ${bookings.status} = 'completed'`
+              sql`${bookings.counselorId} = ${c.id} AND ${bookings.status} = 'completed' AND ${sessionReports.submittedAt} IS NOT NULL`
             )
 
           const [reportsPending] = await db
@@ -144,7 +144,7 @@ export async function getCounselorsAdminAction(options?: {
             .from(bookings)
             .leftJoin(sessionReports, eq(sessionReports.bookingId, bookings.id))
             .where(
-              sql`${bookings.counselorId} = ${c.id} AND ${bookings.status} = 'completed' AND ${sessionReports.id} IS NULL`
+              sql`${bookings.counselorId} = ${c.id} AND ${bookings.status} = 'completed' AND ${sessionReports.submittedAt} IS NULL`
             )
 
           return {

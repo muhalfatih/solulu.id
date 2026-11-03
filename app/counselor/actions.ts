@@ -161,7 +161,7 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
         srqScore: r.screening ? r.screening.totalScore : null,
         hasSuicidalThoughts: r.screening ? Boolean(r.screening.hasSuicidalThoughts) : false,
         bypassedRecommendation: Boolean(r.booking.bypassedRecommendation),
-        hasReport: Boolean(r.report),
+        hasReport: Boolean(r.report?.submittedAt),
         reportId: r.report ? r.report.id : null,
         actualDurationMinutes: r.report?.actualDurationMinutes ?? null,
         timerStartedAt: r.report?.timerStartedAt ? r.report.timerStartedAt.toISOString() : null,

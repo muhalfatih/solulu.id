@@ -388,10 +388,12 @@ export async function toggleSlotAvailabilityAction(
         if (options?.updateSlot) {
           await options.updateSlot(existing.id, { status: "cancelled" })
         } else {
-          await db
-            .update(schedules)
-            .set({ status: "cancelled" })
-            .where(eq(schedules.id, existing.id))
+          const applied = await db.transaction(async (tx) => {
+            if (!(await keepsPoolReserveWithout(existing.id, tx as unknown as typeof db))) return false
+            await tx.update(schedules).set({ status: "cancelled" }).where(eq(schedules.id, existing.id))
+            return true
+          })
+          if (!applied) return { success: false, error: "Slot ini dicadangkan untuk klien Konselor Bebas yang sudah membayar dan tidak dapat dinonaktifkan." }
         }
 
         safeRevalidatePath("/counselor/schedule")

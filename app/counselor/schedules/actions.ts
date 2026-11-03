@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
 import { eq, and, sql, desc } from "drizzle-orm"
 import { db } from "@/db"
+import { keepsPoolReserveWithout } from "@/lib/pool/store"
 import { schedules, counselors, bookings } from "@/db/schema"
 import { createClient } from "@/lib/supabase/server"
 import { ADMIN_ROLES, hasStaffRole } from "@/lib/auth/staff-role"
@@ -413,10 +414,13 @@ export async function cancelScheduleSlotAction(
     if (options?.updateSlot) {
       await options.updateSlot(scheduleId, "cancelled")
     } else {
-      await db
-        .update(schedules)
-        .set({ status: "cancelled" })
-        .where(eq(schedules.id, scheduleId))
+      const applied = await db.transaction(async (tx) => {
+        // ADR-0011: jadwal yang dibutuhkan booking Konselor Bebas tidak bisa dinonaktifkan.
+        if (!(await keepsPoolReserveWithout(scheduleId, tx as unknown as typeof db))) return false
+        await tx.update(schedules).set({ status: "cancelled" }).where(eq(schedules.id, scheduleId))
+        return true
+      })
+      if (!applied) return { success: false, error: "Slot ini dicadangkan untuk klien Konselor Bebas yang sudah membayar dan tidak dapat dinonaktifkan." }
     }
 
     safeRevalidatePath("/counselor/schedules")
