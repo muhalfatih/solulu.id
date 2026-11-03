@@ -86,7 +86,7 @@ export const SHELL_NAV: Record<PortalKey, ShellNavGroup[]> = {
       title: "Keuangan",
       items: [
         { title: "Laporan Keuangan", url: "/admin/reports/finance", icon: FileSpreadsheet },
-        { title: "Payroll", url: "/admin/payroll", icon: Wallet, ready: false, ticket: 27 },
+        { title: "Payroll", url: "/admin/payroll", icon: Wallet },
       ],
     },
     {

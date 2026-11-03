@@ -39,13 +39,14 @@ describe("Ticket 22: shared portal shell navigation", () => {
     for (const planned of [
       "Booking Cepat",
       "Klien Tersedia",
-      "Payroll",
       "Voucher",
     ]) {
       expect(titles).not.toContain(planned)
     }
     expect(titles).toContain("Layanan & Tarif")
     expect(titles).toContain("Booking")
+    expect(titles).toContain("Payroll")
+    expect(titles).toContain("Laporan Keuangan")
     expect(titles).toContain("Verifikasi Transfer")
     expect(flat("admin", "admin").map((i) => i.title)).not.toContain("Jejak Audit")
     expect(titles).toContain("Jejak Audit")
