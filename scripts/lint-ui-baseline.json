@@ -1,7 +1,4 @@
 {
-  "app/admin/bookings/BookingsClient.tsx": {
-    "card-override": 13
-  },
   "app/admin/counselors/[id]/CounselorDetailClient.tsx": {
     "card-override": 18
   },
