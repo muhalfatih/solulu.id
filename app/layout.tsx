@@ -1,3 +1,4 @@
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { Geist, Poppins, Inter } from "next/font/google"
 
 import "./globals.css"
@@ -86,7 +87,7 @@ export default function RootLayout({
           <Suspense fallback={null}>
             <NavigationProgress />
           </Suspense>
-          {children}
+          <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
           <Toaster position="top-right" richColors />
         </ThemeProvider>
       </body>

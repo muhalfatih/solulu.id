@@ -16,6 +16,11 @@
     --color-sidebar-primary: var(--sidebar-primary);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar: var(--sidebar);
+    --color-heat-5: var(--heat-5);
+    --color-heat-4: var(--heat-4);
+    --color-heat-3: var(--heat-3);
+    --color-heat-2: var(--heat-2);
+    --color-heat-1: var(--heat-1);
     --color-chart-5: var(--chart-5);
     --color-chart-4: var(--chart-4);
     --color-chart-3: var(--chart-3);
@@ -67,11 +72,16 @@
     --border: oklch(0.92 0.004 286.32);
     --input: oklch(0.92 0.004 286.32);
     --ring: oklch(0.705 0.015 286.067);
-    --chart-1: oklch(0.845 0.143 164.978);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.596 0.145 163.225);
-    --chart-4: oklch(0.508 0.118 165.612);
-    --chart-5: oklch(0.432 0.095 166.913);
+    --chart-1: #2a78d6;
+    --chart-2: #eb6834;
+    --chart-3: #1baf7a;
+    --chart-4: #71717a;
+    --chart-5: #1a4f93;
+    --heat-1: #e8f1fc;
+    --heat-2: #b9d4f5;
+    --heat-3: #7fb0ec;
+    --heat-4: #2a78d6;
+    --heat-5: #1a4f93;
     --radius: 0.45rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.141 0.005 285.823);
@@ -102,11 +112,16 @@
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.552 0.016 285.938);
-    --chart-1: oklch(0.845 0.143 164.978);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.596 0.145 163.225);
-    --chart-4: oklch(0.508 0.118 165.612);
-    --chart-5: oklch(0.432 0.095 166.913);
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+    --chart-3: #199e70;
+    --chart-4: #a1a1aa;
+    --chart-5: #8dbaf2;
+    --heat-1: #14263d;
+    --heat-2: #1d4272;
+    --heat-3: #2c63ab;
+    --heat-4: #3987e5;
+    --heat-5: #8dbaf2;
     --sidebar: oklch(0.21 0.006 285.885);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -120,20 +135,6 @@
 /* ========================================================================= */
 /* SCOPED THEMES: Dual-Surface Architecture                                  */
 /* ========================================================================= */
-
-.theme-admin {
-    --font-heading: var(--font-sans);
-    --font-sans: var(--font-sans);
-    --primary: oklch(0.21 0.006 285.885);
-    --primary-foreground: oklch(0.985 0 0);
-    --radius: 0.45rem;
-}
-
-.dark .theme-admin,
-.theme-admin.dark {
-    --primary: oklch(0.92 0.004 286.32);
-    --primary-foreground: oklch(0.21 0.006 285.885);
-}
 
 .theme-public {
     --font-heading: var(--font-poppins), sans-serif;
@@ -171,12 +172,6 @@
 /* ========================================================================= */
 /* SURFACE ISOLATION: Admin vs Public Specific Component Tokens              */
 /* ========================================================================= */
-
-.theme-admin [data-slot="card"] {
-    border-radius: 0.75rem;
-    border: 1px solid var(--border);
-    background-color: var(--card);
-}
 
 .theme-public [data-slot="card"] {
     border-radius: 1rem;
