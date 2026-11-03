@@ -1,163 +1,200 @@
-import { describe, it, expect, vi } from "vitest"
-import {
-  getPlatformPricing,
-  updatePlatformPricing,
-  DEFAULT_PLATFORM_PRICING,
-} from "../lib/pricing/platform-pricing"
+import { describe, it, expect } from "vitest"
+import fs from "fs"
+import path from "path"
 import {
   getPlatformPricingAction,
   updateRolePricingAction,
 } from "../app/admin/pricing/actions"
-import {
-  getCounselorsCatalogAction,
-  getCounselorByIdAction,
-} from "../app/counselors/actions"
 import { formatRupiah } from "../lib/utils"
+import type { ServiceRecord, ServicePatch } from "../lib/services/repository"
 
-describe("Platform Pricing Synchronization & Admin Actions", () => {
-  it("provides reliable default platform pricing for peer and psychologist", async () => {
-    const pricing = await getPlatformPricing()
-    expect(pricing).toBeDefined()
-    expect(pricing.peer.counselorType).toBe("peer")
-    expect(pricing.peer.basePrice).toBeGreaterThan(0)
-    expect(pricing.peer.promoPrice).toBeGreaterThan(0)
+const adminUser = {
+  id: "admin-test-id",
+  app_metadata: { role: "admin" },
+  user_metadata: { role: "admin" },
+}
 
-    expect(pricing.psychologist.counselorType).toBe("psychologist")
-    expect(pricing.psychologist.basePrice).toBeGreaterThan(0)
-    expect(pricing.psychologist.promoPrice).toBeGreaterThan(0)
-  })
+function makeRecord(overrides: Partial<ServiceRecord>): ServiceRecord {
+  return {
+    id: "svc",
+    name: "Layanan",
+    slug: "layanan",
+    description: null,
+    basePrice: "85000.00",
+    promoPrice: null,
+    allowVoucher: true,
+    overtimeRatePer30Min: "35000.00",
+    basePayoutPercent: 70,
+    overtimePayoutPercent: 80,
+    allowedCounselorTypes: ["peer"],
+    isActive: true,
+    sortOrder: 0,
+    createdAt: new Date("2026-11-01T00:00:00Z"),
+    updatedAt: new Date("2026-11-01T00:00:00Z"),
+    ...overrides,
+  }
+}
 
-  it("updates platform pricing in-memory when database is unavailable", async () => {
-    const updatedPeer = await updatePlatformPricing("peer", {
-      basePrice: 90000,
-      promoPrice: 50000,
-      isSaleActive: true,
-      allowVoucher: false,
-    })
+const seedServices = [
+  makeRecord({
+    id: "svc-sebaya",
+    name: "Partner Cerita",
+    slug: "partner-cerita",
+    basePrice: "85000.00",
+    promoPrice: "49000.00",
+    overtimeRatePer30Min: "35000.00",
+  }),
+  makeRecord({
+    id: "svc-psikolog",
+    name: "Psikolog Klinis",
+    slug: "psikolog-klinis",
+    basePrice: "150000.00",
+    promoPrice: null,
+    overtimeRatePer30Min: "60000.00",
+    allowedCounselorTypes: ["psychologist"],
+  }),
+]
 
-    expect(updatedPeer.basePrice).toBe(90000)
-    expect(updatedPeer.promoPrice).toBe(50000)
-    expect(updatedPeer.isSaleActive).toBe(true)
-    expect(updatedPeer.allowVoucher).toBe(false)
-
-    const currentPricing = await getPlatformPricing()
-    expect(currentPricing.peer.basePrice).toBe(90000)
-    expect(currentPricing.peer.promoPrice).toBe(50000)
-  })
-
-  it("executes getPlatformPricingAction and returns successful envelope", async () => {
-    const res = await getPlatformPricingAction()
+describe("Admin pricing surface reads and writes Layanan (ADR-0010)", () => {
+  it("exposes the two seed Layanan, including overtime rate, via getPlatformPricingAction", async () => {
+    const res = await getPlatformPricingAction({ listServicesFn: async () => seedServices })
     expect(res.success).toBe(true)
-    expect(res.data).toBeDefined()
-    expect(res.data.peer).toBeDefined()
-    expect(res.data.psychologist).toBeDefined()
+    expect(res.data.peer).toMatchObject({
+      basePrice: 85000,
+      promoPrice: 49000,
+      isSaleActive: true,
+      overtimeRatePer30Min: 35000,
+    })
+    expect(res.data.psychologist).toMatchObject({
+      basePrice: 150000,
+      isSaleActive: false,
+      overtimeRatePer30Min: 60000,
+    })
   })
 
-  it("executes updateRolePricingAction and updates role pricing correctly", async () => {
+  it("returns null (empty state) for a seed Layanan that does not exist", async () => {
+    const res = await getPlatformPricingAction({ listServicesFn: async () => [] })
+    expect(res.data.peer).toBeNull()
+    expect(res.data.psychologist).toBeNull()
+  })
+
+  it("updates the Layanan row (price, promo, voucher, overtime) for the chosen role", async () => {
+    let seenSlug = ""
+    let seenPatch: ServicePatch | null = null
     const res = await updateRolePricingAction(
       "psikolog",
       {
         regularPrice: 160000,
         salePrice: 135000,
         isSaleActive: true,
-        allowVoucher: true,
+        allowVoucher: false,
+        overtimeRatePer30Min: 65000,
       },
       {
-        currentUser: {
-          id: "admin-test-id",
-          app_metadata: { role: "admin" },
-          user_metadata: { role: "admin" },
+        currentUser: adminUser,
+        updateServiceFn: async (slug, patch) => {
+          seenSlug = slug
+          seenPatch = patch
+          return makeRecord({
+            id: "svc-psikolog",
+            slug,
+            basePrice: patch.basePrice as string,
+            promoPrice: (patch.promoPrice as string | null) ?? null,
+            allowVoucher: patch.allowVoucher as boolean,
+            overtimeRatePer30Min: patch.overtimeRatePer30Min as string,
+            allowedCounselorTypes: ["psychologist"],
+          })
         },
       }
     )
 
     expect(res.success).toBe(true)
-    expect(res.data).toBeDefined()
-    expect(res.data?.basePrice).toBe(160000)
-    expect(res.data?.promoPrice).toBe(135000)
+    expect(seenSlug).toBe("psikolog-klinis")
+    expect(seenPatch).toMatchObject({
+      basePrice: "160000",
+      promoPrice: "135000",
+      allowVoucher: false,
+      overtimeRatePer30Min: "65000",
+    })
+    expect(res.data?.overtimeRatePer30Min).toBe(65000)
     expect(res.message).toContain("Psikolog Klinis")
-
-    const current = await getPlatformPricing()
-    expect(current.psychologist.basePrice).toBe(160000)
-    expect(current.psychologist.promoPrice).toBe(135000)
   })
 
-  it("blocks non-admin users from updating role pricing", async () => {
-    const res = await updateRolePricingAction(
-      "psikolog",
+  it("clears the promo price when the sale is switched off", async () => {
+    let seenPatch: ServicePatch | null = null
+    await updateRolePricingAction(
+      "sebaya",
+      { regularPrice: 90000, salePrice: 0, isSaleActive: false, allowVoucher: true },
       {
-        regularPrice: 170000,
-        salePrice: 140000,
-        isSaleActive: true,
-        allowVoucher: true,
-      },
-      {
-        currentUser: {
-          id: "counselor-test-id",
-          app_metadata: { role: "counselor" },
+        currentUser: adminUser,
+        updateServiceFn: async (_slug, patch) => {
+          seenPatch = patch
+          return makeRecord({ slug: "partner-cerita", basePrice: "90000.00" })
         },
       }
     )
+    expect(seenPatch).toMatchObject({ promoPrice: null })
+  })
 
+  it("rejects a promo price that is not below the base price", async () => {
+    const res = await updateRolePricingAction(
+      "sebaya",
+      { regularPrice: 90000, salePrice: 95000, isSaleActive: true, allowVoucher: true },
+      { currentUser: adminUser, updateServiceFn: async () => makeRecord({}) }
+    )
+    expect(res.success).toBe(false)
+    expect(res.error).toContain("promo")
+  })
+
+  it("blocks non-admin users from updating pricing", async () => {
+    const res = await updateRolePricingAction(
+      "psikolog",
+      { regularPrice: 170000, salePrice: 140000, isSaleActive: true, allowVoucher: true },
+      {
+        currentUser: { id: "counselor-test-id", app_metadata: { role: "counselor" } },
+        updateServiceFn: async () => makeRecord({}),
+      }
+    )
     expect(res.success).toBe(false)
     expect(res.error).toContain("Akses ditolak")
   })
 
   it("formats pricing amounts correctly for public landing and pricing pages", () => {
     expect(formatRupiah(85000)).toMatch(/Rp\s*85\.000/)
-    expect(formatRupiah(130000)).toMatch(/Rp\s*130\.000/)
     expect(formatRupiah(49000)).toMatch(/Rp\s*49\.000/)
   })
+})
 
-  it("synchronizes pricing across every individual counselor in the catalog", async () => {
-    // 1. Set specific platform pricing
-    await updatePlatformPricing("peer", {
-      basePrice: 80000,
-      promoPrice: 55000,
-      isSaleActive: true,
-      allowVoucher: false,
-    })
-    await updatePlatformPricing("psychologist", {
-      basePrice: 175000,
-      promoPrice: 140000,
-      isSaleActive: true,
-      allowVoucher: true,
-    })
+describe("Old pricing tier table is no longer read by application code (#20)", () => {
+  const root = path.resolve(__dirname, "..")
 
-    // 2. Fetch all counselors catalog
-    const catalogRes = await getCounselorsCatalogAction({ type: "all" })
-    expect(catalogRes.success).toBe(true)
-    expect(catalogRes.data).toBeDefined()
-    expect(catalogRes.data!.length).toBeGreaterThan(0)
-
-    // 3. Verify every counselor receives identical pricing matching their role
-    for (const c of catalogRes.data!) {
-      if (c.counselorType === "peer") {
-        expect(c.pricing.displayPrice).toBe(55000)
-        expect(c.pricing.basePrice).toBe(80000)
-        expect(c.pricing.displayPriceFormatted).toMatch(/Rp\s*55\.000/)
-      } else if (c.counselorType === "psychologist") {
-        expect(c.pricing.displayPrice).toBe(140000)
-        expect(c.pricing.basePrice).toBe(175000)
-        expect(c.pricing.displayPriceFormatted).toMatch(/Rp\s*140\.000/)
-      }
+  function collect(dir: string, out: string[] = []): string[] {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === "node_modules" || entry.name.startsWith(".")) continue
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory()) collect(full, out)
+      else if (/\.(ts|tsx)$/.test(entry.name)) out.push(full)
     }
-  }, 15000)
+    return out
+  }
 
-  it("synchronizes individual counselor detail view with platform pricing", async () => {
-    const catalogRes = await getCounselorsCatalogAction({ type: "all" })
-    const targetCounselor = catalogRes.data?.[0]
-    expect(targetCounselor).toBeDefined()
+  const files = ["app", "lib", "components"].flatMap((d) => collect(path.join(root, d)))
 
-    const detailRes = await getCounselorByIdAction(targetCounselor!.id)
-    expect(detailRes.success).toBe(true)
-    expect(detailRes.data).toBeDefined()
+  it("has no import or query of platformPricing outside the schema definition", () => {
+    const offenders = files.filter((f) => /\bplatformPricing\b/.test(fs.readFileSync(f, "utf8")))
+    expect(offenders.map((f) => path.relative(root, f))).toEqual([])
+  })
 
-    const counselor = detailRes.data!
-    const current = await getPlatformPricing()
-    const expected = current[counselor.counselorType]
-    const expectedActive = expected.isSaleActive ? expected.promoPrice : expected.basePrice
+  it("has no raw SQL against platform_pricing", () => {
+    const offenders = files.filter((f) => /platform_pricing/.test(fs.readFileSync(f, "utf8")))
+    expect(offenders.map((f) => path.relative(root, f))).toEqual([])
+  })
 
-    expect(counselor.pricing.displayPrice).toBe(expectedActive)
-  }, 15000)
+  it("has no per-type overtime rate read from platform settings", () => {
+    const offenders = files.filter((f) => {
+      const src = fs.readFileSync(f, "utf8")
+      return /counselorExtendFeePer30Min|psychologistExtendFeePer30Min/.test(src)
+    })
+    expect(offenders.map((f) => path.relative(root, f))).toEqual([])
+  })
 })

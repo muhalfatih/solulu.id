@@ -14,8 +14,6 @@ export interface PlatformSettingsData {
   minCounselorWeeklySlots: number
   noShowTimeoutMinutes: number
   basePrice: number | string
-  counselorExtendFeePer30Min: number | string
-  psychologistExtendFeePer30Min: number | string
   isManualPaymentEnabled: boolean
   manualPaymentInstructions: string
   updatedAt?: Date | string
@@ -31,8 +29,6 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettingsData = {
   minCounselorWeeklySlots: 10,
   noShowTimeoutMinutes: 30,
   basePrice: 150000,
-  counselorExtendFeePer30Min: 35000,
-  psychologistExtendFeePer30Min: 50000,
   isManualPaymentEnabled: true,
   manualPaymentInstructions:
     "Transfer ke Rekening BCA: 123-456-7890 a.n. Solulu Mental Health. Sertakan Kode Booking pada berita transfer.",
@@ -102,8 +98,6 @@ export async function getPlatformSettings(): Promise<PlatformSettingsData> {
         minCounselorWeeklySlots: row.minCounselorWeeklySlots ?? DEFAULT_PLATFORM_SETTINGS.minCounselorWeeklySlots,
         noShowTimeoutMinutes: row.noShowTimeoutMinutes ?? DEFAULT_PLATFORM_SETTINGS.noShowTimeoutMinutes,
         basePrice: row.basePrice ? String(Number(row.basePrice)) : String(DEFAULT_PLATFORM_SETTINGS.basePrice),
-        counselorExtendFeePer30Min: row.counselorExtendFeePer30Min ? String(Number(row.counselorExtendFeePer30Min)) : String(DEFAULT_PLATFORM_SETTINGS.counselorExtendFeePer30Min),
-        psychologistExtendFeePer30Min: row.psychologistExtendFeePer30Min ? String(Number(row.psychologistExtendFeePer30Min)) : String(DEFAULT_PLATFORM_SETTINGS.psychologistExtendFeePer30Min),
         isManualPaymentEnabled: Boolean(row.isManualPaymentEnabled),
         manualPaymentInstructions: row.manualPaymentInstructions ?? DEFAULT_PLATFORM_SETTINGS.manualPaymentInstructions,
         updatedAt: row.updatedAt,
@@ -122,8 +116,6 @@ export async function getPlatformSettings(): Promise<PlatformSettingsData> {
           minCounselorWeeklySlots: DEFAULT_PLATFORM_SETTINGS.minCounselorWeeklySlots,
           noShowTimeoutMinutes: DEFAULT_PLATFORM_SETTINGS.noShowTimeoutMinutes,
           basePrice: String(DEFAULT_PLATFORM_SETTINGS.basePrice),
-          counselorExtendFeePer30Min: String(DEFAULT_PLATFORM_SETTINGS.counselorExtendFeePer30Min),
-          psychologistExtendFeePer30Min: String(DEFAULT_PLATFORM_SETTINGS.psychologistExtendFeePer30Min),
           isManualPaymentEnabled: DEFAULT_PLATFORM_SETTINGS.isManualPaymentEnabled,
           manualPaymentInstructions: DEFAULT_PLATFORM_SETTINGS.manualPaymentInstructions,
           updatedAt: new Date(),
@@ -213,12 +205,6 @@ export async function updatePlatformSettings(
   if (data.minCounselorWeeklySlots !== undefined && (data.minCounselorWeeklySlots < 1 || data.minCounselorWeeklySlots > 50)) {
     throw new Error("Target minimal sesi mingguan konselor harus antara 1 hingga 50 sesi.")
   }
-  if (data.counselorExtendFeePer30Min !== undefined && Number(data.counselorExtendFeePer30Min) < 0) {
-    throw new Error("Tarif perpanjangan konselor sebaya tidak boleh negatif.")
-  }
-  if (data.psychologistExtendFeePer30Min !== undefined && Number(data.psychologistExtendFeePer30Min) < 0) {
-    throw new Error("Tarif perpanjangan psikolog klinis tidak boleh negatif.")
-  }
 
   try {
     await ensureSettingsTable()
@@ -233,8 +219,6 @@ export async function updatePlatformSettings(
     const newWeeklyTarget = data.minCounselorWeeklySlots !== undefined ? data.minCounselorWeeklySlots : current.minCounselorWeeklySlots
     const newNoShowTimeout = data.noShowTimeoutMinutes !== undefined ? data.noShowTimeoutMinutes : current.noShowTimeoutMinutes
     const newBasePrice = data.basePrice !== undefined ? String(data.basePrice) : String(current.basePrice)
-    const newCounselorExtend = data.counselorExtendFeePer30Min !== undefined ? String(data.counselorExtendFeePer30Min) : String(current.counselorExtendFeePer30Min)
-    const newPsychologistExtend = data.psychologistExtendFeePer30Min !== undefined ? String(data.psychologistExtendFeePer30Min) : String(current.psychologistExtendFeePer30Min)
     const newManualEnabled = data.isManualPaymentEnabled !== undefined ? data.isManualPaymentEnabled : current.isManualPaymentEnabled
     const newManualInstructions = data.manualPaymentInstructions !== undefined ? data.manualPaymentInstructions : current.manualPaymentInstructions
 
@@ -250,8 +234,6 @@ export async function updatePlatformSettings(
         minCounselorWeeklySlots: newWeeklyTarget,
         noShowTimeoutMinutes: newNoShowTimeout,
         basePrice: newBasePrice,
-        counselorExtendFeePer30Min: newCounselorExtend,
-        psychologistExtendFeePer30Min: newPsychologistExtend,
         isManualPaymentEnabled: newManualEnabled,
         manualPaymentInstructions: newManualInstructions,
         updatedAt: new Date(),
@@ -267,8 +249,6 @@ export async function updatePlatformSettings(
           minCounselorWeeklySlots: newWeeklyTarget,
           noShowTimeoutMinutes: newNoShowTimeout,
           basePrice: newBasePrice,
-          counselorExtendFeePer30Min: newCounselorExtend,
-          psychologistExtendFeePer30Min: newPsychologistExtend,
           isManualPaymentEnabled: newManualEnabled,
           manualPaymentInstructions: newManualInstructions,
           updatedAt: new Date(),
@@ -285,8 +265,6 @@ export async function updatePlatformSettings(
       minCounselorWeeklySlots: newWeeklyTarget,
       noShowTimeoutMinutes: newNoShowTimeout,
       basePrice: newBasePrice,
-      counselorExtendFeePer30Min: newCounselorExtend,
-      psychologistExtendFeePer30Min: newPsychologistExtend,
       isManualPaymentEnabled: newManualEnabled,
       manualPaymentInstructions: newManualInstructions,
       updatedAt: new Date(),

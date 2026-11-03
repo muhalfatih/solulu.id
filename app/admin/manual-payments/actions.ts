@@ -193,7 +193,8 @@ export async function getManualPaymentsQueueAdminAction(options?: {
           }
         }
 
-        const extNominal = Number(b.extensionFee) || (c?.counselorType === "psychologist" ? 50000 : 35000)
+        // Nominal tagihan = tarif overtime Layanan yang tercatat di booking (ADR-0010).
+        const extNominal = Number(b.extensionFee) || 0
 
         items.push({
           id: b.id,

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
 import { eq, and, sql, desc, asc } from "drizzle-orm"
 import { db } from "@/db"
-import { bookings, schedules, screenings, sessionReports, counselors, zoomAccounts, platformSettings } from "@/db/schema"
+import { bookings, schedules, screenings, sessionReports, counselors, zoomAccounts, services } from "@/db/schema"
 import { formatTimeRange } from "@/lib/schedules/concurrency"
 import { calculateExtendFee } from "@/lib/counselor/timer"
 import { getAuthenticatedCounselor, resolveCounselorId } from "@/lib/counselor/auth"
@@ -84,8 +84,7 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
     const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
     const sevenDaysLaterStr = sevenDaysLater.toISOString().split("T")[0]
 
-    const [rows, settingsRows] = await Promise.all([
-      withDbTimeout(
+    const rows = await withDbTimeout(
         db
           .select({
             booking: bookings,
@@ -94,10 +93,12 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
             report: sessionReports,
             counselor: counselors,
             zoomAccount: zoomAccounts,
+            service: services,
           })
           .from(bookings)
           .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
           .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
+          .innerJoin(services, eq(bookings.serviceId, services.id))
           .leftJoin(zoomAccounts, eq(bookings.zoomAccountId, zoomAccounts.id))
           .leftJoin(screenings, eq(bookings.screeningId, screenings.id))
           .leftJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
@@ -110,26 +111,7 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
           )
           .orderBy(asc(schedules.date), asc(schedules.startTime)),
         10000
-      ),
-      withDbTimeout(
-        db
-          .select({
-            counselorExtendFeePer30Min: platformSettings.counselorExtendFeePer30Min,
-            psychologistExtendFeePer30Min: platformSettings.psychologistExtendFeePer30Min,
-          })
-          .from(platformSettings)
-          .where(eq(platformSettings.id, "default"))
-          .limit(1),
-        5000
-      ).catch(() => []),
-    ])
-
-    const customRates = settingsRows?.length
-      ? {
-          peerRate: Number(settingsRows[0].counselorExtendFeePer30Min),
-          psychologistRate: Number(settingsRows[0].psychologistExtendFeePer30Min),
-        }
-      : undefined
+    )
 
     const sessions: CounselorUpcomingSessionView[] = rows.map((r) => {
       const startTime = String(r.schedule.startTime)
@@ -165,7 +147,8 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
         extensionMinutes: r.booking.extensionMinutes ?? 0,
         extensionFee: r.booking.extensionFee ?? "0",
         extensionPaymentStatus: r.booking.extensionPaymentStatus || "NONE",
-        customRates,
+        overtimeRatePer30Min: Number(r.service.overtimeRatePer30Min),
+        serviceName: r.service.name,
         srqScore: r.screening ? r.screening.totalScore : null,
         hasSuicidalThoughts: r.screening ? Boolean(r.screening.hasSuicidalThoughts) : false,
         bypassedRecommendation: Boolean(r.booking.bypassedRecommendation),
@@ -878,9 +861,7 @@ export async function getCounselorsListForSwitchAction() {
 
 /**
  * Ticket 04: Automatically records 30-minute extension fee in PostgreSQL bookings table.
- * Standard extend rules:
- * - Sebaya (Peer Counselor): Rp 35.000
- * - Psikolog Klinis: Rp 50.000
+ * The fee is the overtime rate per 30 minutes of the booking's Layanan (ADR-0010).
  * Automatically triggered at minute 96 or when counselor clicks "Catat Perpanjangan".
  */
 export async function recordSessionExtensionAction(
@@ -911,10 +892,10 @@ export async function recordSessionExtensionAction(
       dbConn
         .select({
           booking: bookings,
-          counselor: counselors,
+          service: services,
         })
         .from(bookings)
-        .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
+        .innerJoin(services, eq(bookings.serviceId, services.id))
         .where(and(eq(bookings.id, bookingId), eq(bookings.counselorId, counselorId)))
         .limit(1),
       10000
@@ -924,32 +905,10 @@ export async function recordSessionExtensionAction(
       return { success: false, error: "Sesi konseling tidak ditemukan atau bukan milik Anda." }
     }
 
-    const { booking, counselor } = bookingRows[0]
-    const counselorType = (counselor.counselorType || "peer") as "peer" | "psychologist"
+    const { booking, service } = bookingRows[0]
 
-    // Fetch custom pricing if set
-    let customRates: { peerRate?: number; psychologistRate?: number } | undefined
-    try {
-      const settingsRows = await dbConn
-        .select({
-          counselorExtendFeePer30Min: platformSettings.counselorExtendFeePer30Min,
-          psychologistExtendFeePer30Min: platformSettings.psychologistExtendFeePer30Min,
-        })
-        .from(platformSettings)
-        .where(eq(platformSettings.id, "default"))
-        .limit(1)
-
-      if (settingsRows.length) {
-        customRates = {
-          peerRate: Number(settingsRows[0].counselorExtendFeePer30Min),
-          psychologistRate: Number(settingsRows[0].psychologistExtendFeePer30Min),
-        }
-      }
-    } catch {
-      // Fallback to default in calculateExtendFee
-    }
-
-    const feeCalc = calculateExtendFee(96, counselorType, customRates)
+    // Tarif overtime diambil dari Layanan yang dibeli klien (ADR-0010).
+    const feeCalc = calculateExtendFee(96, Number(service.overtimeRatePer30Min))
 
     await withDbTimeout(
       dbConn

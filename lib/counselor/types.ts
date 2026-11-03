@@ -37,7 +37,9 @@ export interface CounselorUpcomingSessionView {
   extensionMinutes: number
   extensionFee: string | number
   extensionPaymentStatus: string
-  customRates?: { peerRate?: number; psychologistRate?: number }
+  /** Tarif overtime per 30 menit dari Layanan booking ini (ADR-0010). */
+  overtimeRatePer30Min: number
+  serviceName: string
   srqScore: number | null
   hasSuicidalThoughts: boolean
   bypassedRecommendation: boolean

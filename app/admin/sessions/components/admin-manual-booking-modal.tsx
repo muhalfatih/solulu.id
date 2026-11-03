@@ -48,7 +48,9 @@ import {
   checkZoomConcurrencyAction,
   getActiveZoomCapacityAction,
   createAdminManualBookingAction,
+  getOfferedServicesForCounselorAction,
 } from "../manual-booking-actions"
+import type { ServicePricingView } from "@/lib/services/pricing"
 import type { BookingSession } from "@/lib/types/admin"
 
 export interface AdminManualBookingModalProps {
@@ -69,6 +71,10 @@ export function AdminManualBookingModal({
   const [selectedCounselorId, setSelectedCounselorId] = React.useState<string>("")
   const [availableSlots, setAvailableSlots] = React.useState<any[]>([])
   const [isLoadingSlots, setIsLoadingSlots] = React.useState(false)
+
+  // Layanan yang ditawarkan konselor terpilih (ADR-0010)
+  const [offeredServices, setOfferedServices] = React.useState<ServicePricingView[]>([])
+  const [selectedServiceId, setSelectedServiceId] = React.useState<string>("")
 
   const [scheduleMode, setScheduleMode] = React.useState<"existing" | "adhoc">("existing")
   const [selectedScheduleId, setSelectedScheduleId] = React.useState<string>("")
@@ -129,6 +135,27 @@ export function AdminManualBookingModal({
     }
     loadCounselors()
   }, [isOpen, selectedCounselorId])
+
+  // Load Layanan offered by the selected counselor
+  React.useEffect(() => {
+    if (!selectedCounselorId || !isOpen) return
+    let cancelled = false
+    getOfferedServicesForCounselorAction(selectedCounselorId)
+      .then((res) => {
+        if (cancelled) return
+        const list = res.success ? res.data : []
+        setOfferedServices(list)
+        setSelectedServiceId(list.length === 1 ? list[0].serviceId : "")
+      })
+      .catch(() => {
+        if (cancelled) return
+        setOfferedServices([])
+        setSelectedServiceId("")
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedCounselorId, isOpen])
 
   // Load counselor available slots when counselor changes
   React.useEffect(() => {
@@ -243,11 +270,17 @@ export function AdminManualBookingModal({
       return
     }
 
+    if (!selectedServiceId) {
+      setErrorMessage("Pilih Layanan untuk booking ini. Konselor harus menawarkan minimal satu Layanan aktif.")
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
       const res = await createAdminManualBookingAction({
         counselorId: selectedCounselorId,
+        serviceId: selectedServiceId,
         scheduleMode,
         scheduleId: scheduleMode === "existing" ? selectedScheduleId : null,
         adhocDate: scheduleMode === "adhoc" ? adhocDate : null,
@@ -487,6 +520,33 @@ export function AdminManualBookingModal({
                         {counselorsList.map((c) => (
                           <SelectItem key={c.id} value={c.id} className="text-xs">
                             {c.fullName} ({c.title})
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Pilih Layanan */}
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="select-service" className="text-xs font-medium text-foreground">
+                    Layanan
+                  </label>
+                  <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
+                    <SelectTrigger id="select-service" className="h-9 text-xs bg-background">
+                      <SelectValue
+                        placeholder={
+                          offeredServices.length === 0
+                            ? "Konselor ini belum menawarkan Layanan aktif"
+                            : "Pilih Layanan"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {offeredServices.map((svc) => (
+                          <SelectItem key={svc.serviceId} value={svc.serviceId} className="text-xs">
+                            {svc.name} ({svc.activePriceFormatted})
                           </SelectItem>
                         ))}
                       </SelectGroup>

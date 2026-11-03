@@ -115,17 +115,14 @@ export function getTimerStage(elapsedSeconds: number): TimerStageInfo {
 }
 
 /**
- * Computes extend session fee based on duration and counselor type.
+ * Computes extend session fee based on duration and the Layanan overtime rate (ADR-0010).
  * SOP Rules:
  * - <= 95 minutes: Rp 0 (standard duration or within 5-minute grace period).
- * - 96–120 minutes: 1 block of 30 minutes:
- *   - Konselor Sebaya (peer): Rp 35.000 (default)
- *   - Psikolog Klinis (psychologist): Rp 50.000 (default)
+ * - 96–120 minutes: 1 block of 30 minutes billed at the booking Layanan's overtime rate.
  */
 export function calculateExtendFee(
   durationMinutes: number,
-  counselorType: "peer" | "psychologist",
-  customRates?: { peerRate?: number; psychologistRate?: number }
+  overtimeRatePer30Min: number
 ): ExtendFeeCalculation {
   if (durationMinutes <= 95) {
     return {
@@ -136,9 +133,7 @@ export function calculateExtendFee(
     }
   }
 
-  const peerRate = customRates?.peerRate ?? 35000
-  const psychologistRate = customRates?.psychologistRate ?? 50000
-  const fee = counselorType === "psychologist" ? psychologistRate : peerRate
+  const fee = overtimeRatePer30Min
 
   const formattedFee = new Intl.NumberFormat("id-ID", {
     style: "currency",

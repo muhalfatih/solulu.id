@@ -1,22 +1,63 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import {
-  getPlatformPricing,
-  updatePlatformPricing,
-  type RolePricing,
-  type PlatformPricingData,
-} from "@/lib/pricing/platform-pricing"
 import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counselors/actions"
+import {
+  listAllServices,
+  updateServiceBySlug,
+  type ServiceRecord,
+  type ServicePatch,
+} from "@/lib/services/repository"
 
-export async function getPlatformPricingAction(): Promise<{
+/**
+ * Transitional admin surface for the two seed Layanan (ADR-0010). The full Layanan
+ * management UI (create, deactivate, payout split, allowed types) is a separate ticket (#25).
+ */
+export interface RolePricing {
+  serviceId: string
+  basePrice: number
+  promoPrice: number
+  isSaleActive: boolean
+  allowVoucher: boolean
+  overtimeRatePer30Min: number
+}
+
+export interface PlatformPricingData {
+  peer: RolePricing | null
+  psychologist: RolePricing | null
+}
+
+const SEED_SERVICE_SLUG = {
+  sebaya: "partner-cerita",
+  psikolog: "psikolog-klinis",
+} as const
+
+function toRolePricing(service: ServiceRecord | undefined): RolePricing | null {
+  if (!service) return null
+  const promo = service.promoPrice === null ? null : Number(service.promoPrice)
+  return {
+    serviceId: service.id,
+    basePrice: Number(service.basePrice),
+    promoPrice: promo ?? 0,
+    isSaleActive: promo !== null,
+    allowVoucher: service.allowVoucher,
+    overtimeRatePer30Min: Number(service.overtimeRatePer30Min),
+  }
+}
+
+export async function getPlatformPricingAction(options?: {
+  listServicesFn?: () => Promise<ServiceRecord[]>
+}): Promise<{
   success: boolean
   data: PlatformPricingData
 }> {
-  const data = await getPlatformPricing()
+  const rows = options?.listServicesFn ? await options.listServicesFn() : await listAllServices()
   return {
     success: true,
-    data,
+    data: {
+      peer: toRolePricing(rows.find((r) => r.slug === SEED_SERVICE_SLUG.sebaya)),
+      psychologist: toRolePricing(rows.find((r) => r.slug === SEED_SERVICE_SLUG.psikolog)),
+    },
   }
 }
 
@@ -27,8 +68,12 @@ export async function updateRolePricingAction(
     salePrice: number
     isSaleActive: boolean
     allowVoucher: boolean
+    overtimeRatePer30Min?: number
   },
-  options?: { currentUser?: AdminAuthContext | null }
+  options?: {
+    currentUser?: AdminAuthContext | null
+    updateServiceFn?: (slug: string, patch: ServicePatch) => Promise<ServiceRecord | null>
+  }
 ): Promise<{
   success: boolean
   data?: RolePricing
@@ -43,14 +88,33 @@ export async function updateRolePricingAction(
     }
   }
 
+  if (!(data.regularPrice > 0)) {
+    return { success: false, error: "Tarif dasar harus lebih dari 0." }
+  }
+  if (data.isSaleActive && !(data.salePrice >= 0 && data.salePrice < data.regularPrice)) {
+    return { success: false, error: "Tarif promo harus lebih rendah dari tarif dasar." }
+  }
+  if (data.overtimeRatePer30Min !== undefined && !(data.overtimeRatePer30Min >= 0)) {
+    return { success: false, error: "Tarif perpanjangan tidak boleh negatif." }
+  }
+
   try {
-    const counselorType = roleId === "sebaya" ? "peer" : "psychologist"
-    const updated = await updatePlatformPricing(counselorType, {
-      basePrice: data.regularPrice,
-      promoPrice: data.salePrice,
-      isSaleActive: data.isSaleActive,
+    const patch: ServicePatch = {
+      basePrice: String(data.regularPrice),
+      promoPrice: data.isSaleActive ? String(data.salePrice) : null,
       allowVoucher: data.allowVoucher,
-    })
+    }
+    if (data.overtimeRatePer30Min !== undefined) {
+      patch.overtimeRatePer30Min = String(data.overtimeRatePer30Min)
+    }
+
+    const slug = SEED_SERVICE_SLUG[roleId]
+    const updatedRow = options?.updateServiceFn
+      ? await options.updateServiceFn(slug, patch)
+      : await updateServiceBySlug(slug, patch)
+    if (!updatedRow) {
+      return { success: false, error: `Layanan "${slug}" belum ada di database.` }
+    }
 
     try {
       revalidatePath("/")
@@ -66,7 +130,7 @@ export async function updateRolePricingAction(
     const roleName = roleId === "sebaya" ? "Konselor Sebaya" : "Psikolog Klinis"
     return {
       success: true,
-      data: updated,
+      data: toRolePricing(updatedRow) ?? undefined,
       message: `Tarif untuk ${roleName} berhasil diperbarui dan disinkronkan ke seluruh sistem.`,
     }
   } catch (error: any) {

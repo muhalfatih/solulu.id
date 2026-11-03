@@ -26,6 +26,20 @@ const sql = postgres(process.env.DATABASE_URL, {
   connect_timeout: 10,
 });
 
+// Layanan (ADR-0010): booking menyimpan Layanan + snapshot tarif pokok aktif. Layanan awal dibuat
+// oleh migrasi 0005_services_layanan; seed hanya mengambil Layanan aktif yang cocok dengan tipe konselor.
+const serviceIdFor = (counselorId) => sql`(
+  SELECT s.id FROM services s JOIN counselors c ON c.id = ${counselorId}
+  WHERE s.is_active AND c.counselor_type = ANY(s.allowed_counselor_types)
+  ORDER BY s.sort_order LIMIT 1
+)`;
+const basePriceFor = (counselorId) => sql`(
+  SELECT CASE WHEN s.promo_price IS NOT NULL AND s.promo_price < s.base_price THEN s.promo_price ELSE s.base_price END
+  FROM services s JOIN counselors c ON c.id = ${counselorId}
+  WHERE s.is_active AND c.counselor_type = ANY(s.allowed_counselor_types)
+  ORDER BY s.sort_order LIMIT 1
+)`;
+
 function getWIBDate(offsetDays = 0) {
   // Return YYYY-MM-DD in Asia/Jakarta timezone
   const d = new Date();
@@ -209,13 +223,13 @@ async function runSeed() {
 
     const [b] = await sql`
       INSERT INTO bookings (
-        id, access_token, patient_name, patient_email, patient_phone,
+        id, access_token, service_id, base_price_snapshot, patient_name, patient_email, patient_phone,
         initial_notes, schedule_id, counselor_id, screening_id,
         bypassed_recommendation, waiver_accepted_at,
         zoom_account_id, zoom_meeting_id, zoom_join_url, zoom_start_url,
         status, created_at
       ) VALUES (
-        gen_random_uuid(), ${accessToken}, ${patientName}, ${patientEmail}, ${patientPhone},
+        gen_random_uuid(), ${accessToken}, ${serviceIdFor(counselor.id)}, ${basePriceFor(counselor.id)}, ${patientName}, ${patientEmail}, ${patientPhone},
         ${initialNotes}, ${schedule.id}, ${counselor.id}, ${screeningId},
         ${bypassedRecommendation}, now(),
         ${zoomAccountId}, ${includeZoom ? zoomMeetingId : null}, ${includeZoom ? zoomJoinUrl : null}, ${includeZoom ? zoomStartUrl : null},

@@ -30,6 +30,20 @@ const sql = postgres(dbUrl, {
   connect_timeout: 10,
 });
 
+// Layanan (ADR-0010): booking menyimpan Layanan + snapshot tarif pokok aktif. Layanan awal dibuat
+// oleh migrasi 0005_services_layanan; seed hanya mengambil Layanan aktif yang cocok dengan tipe konselor.
+const serviceIdFor = (counselorId) => sql`(
+  SELECT s.id FROM services s JOIN counselors c ON c.id = ${counselorId}
+  WHERE s.is_active AND c.counselor_type = ANY(s.allowed_counselor_types)
+  ORDER BY s.sort_order LIMIT 1
+)`;
+const basePriceFor = (counselorId) => sql`(
+  SELECT CASE WHEN s.promo_price IS NOT NULL AND s.promo_price < s.base_price THEN s.promo_price ELSE s.base_price END
+  FROM services s JOIN counselors c ON c.id = ${counselorId}
+  WHERE s.is_active AND c.counselor_type = ANY(s.allowed_counselor_types)
+  ORDER BY s.sort_order LIMIT 1
+)`;
+
 function getTodayStr() {
   const d = new Date();
   return d.toISOString().split("T")[0];
@@ -268,13 +282,13 @@ async function runSeed() {
 
     await sql`
       INSERT INTO bookings (
-        id, access_token, booking_code, patient_name, patient_email, patient_phone,
+        id, access_token, service_id, base_price_snapshot, booking_code, patient_name, patient_email, patient_phone,
         gender, age, domicile, religion, initial_notes, informed_consent_accepted_at,
         schedule_id, counselor_id, zoom_account_id, zoom_account_number,
         zoom_allocation_mode, zoom_join_url, zoom_start_url, zoom_host_key,
         breakout_room_name, status, reschedule_count, is_followed_up, is_no_show, created_at
       ) VALUES (
-        gen_random_uuid(), ${token}, ${bCode}, ${`Klien Uji Coba ${i + 1}`}, ${`klien${i + 1}@example.com`},
+        gen_random_uuid(), ${token}, ${serviceIdFor(cId)}, ${basePriceFor(cId)}, ${bCode}, ${`Klien Uji Coba ${i + 1}`}, ${`klien${i + 1}@example.com`},
         '08129999000' || ${i + 1}, 'Perempuan', 24 + ${i}, 'Jakarta', 'Islam', 
         'Konsultasi manajemen stres dan overthinking kerja.', now(),
         ${sId}, ${cId}, ${zoomAcc?.id || null}, ${i + 1}, 'standalone',
@@ -300,13 +314,13 @@ async function runSeed() {
 
     const bRes = await sql`
       INSERT INTO bookings (
-        id, access_token, booking_code, patient_name, patient_email, patient_phone,
+        id, access_token, service_id, base_price_snapshot, booking_code, patient_name, patient_email, patient_phone,
         gender, age, domicile, religion, initial_notes, informed_consent_accepted_at,
         schedule_id, counselor_id, zoom_account_id, zoom_account_number,
         zoom_allocation_mode, zoom_join_url, zoom_start_url, zoom_host_key,
         breakout_room_name, status, reschedule_count, is_followed_up, is_no_show, created_at
       ) VALUES (
-        gen_random_uuid(), ${token}, ${bCode}, ${`Klien Peserta ${i + 1}`}, ${`peserta${i + 1}@example.com`},
+        gen_random_uuid(), ${token}, ${serviceIdFor(cId)}, ${basePriceFor(cId)}, ${bCode}, ${`Klien Peserta ${i + 1}`}, ${`peserta${i + 1}@example.com`},
         '08571111000' || ${i + 1}, ${i % 2 === 0 ? "Laki-laki" : "Perempuan"}, 26, 'Bandung', 'Islam',
         'Konsultasi relasi keluarga dan rencana karier ke depan.', now(),
         ${sId}, ${cId}, ${zoomAcc?.id || null}, ${zoomNumber}, 

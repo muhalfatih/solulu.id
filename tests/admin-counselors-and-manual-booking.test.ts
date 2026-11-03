@@ -17,6 +17,22 @@ import {
 } from "../app/admin/sessions/manual-booking-actions"
 import { computeEndTime } from "../lib/schedules/concurrency"
 
+const SERVICE_ALL_TYPES = {
+  id: "svc-manual-test",
+  name: "Layanan Uji",
+  slug: "layanan-uji",
+  description: null,
+  basePrice: "150000.00",
+  promoPrice: null,
+  allowVoucher: true,
+  overtimeRatePer30Min: "60000.00",
+  basePayoutPercent: 80,
+  overtimePayoutPercent: 85,
+  allowedCounselorTypes: ["peer", "psychologist"] as ("peer" | "psychologist")[],
+  isActive: true,
+  sortOrder: 0,
+}
+
 describe("Spec 0002 & ADR 0004: Admin Counselor Management & Zero-Cost Booking Bypass", () => {
   const adminUser = {
     id: "admin-uuid-1",
@@ -425,6 +441,8 @@ describe("Spec 0002 & ADR 0004: Admin Counselor Management & Zero-Cost Booking B
         },
         {
           currentUser: adminUser,
+          fetchServicesFn: async () => [SERVICE_ALL_TYPES],
+          fetchExcludedServiceIdsFn: async () => [],
           fetchCounselorFn: async () => ({
             id: "33333333-3333-3333-3333-333333333333",
             fullName: "Sarah Annisa, M.Psi., Psikolog",
@@ -467,8 +485,10 @@ describe("Spec 0002 & ADR 0004: Admin Counselor Management & Zero-Cost Booking B
       expect(createdTx.paymentProvider).toBe("admin_bypass")
       expect(createdTx.netAmount).toBe("0.00")
       expect(createdTx.status).toBe("PAID")
-      expect(createdTx.grossAmount).toBe("130000.00") // Psychologist base
-      expect(createdTx.discountAmount).toBe("130000.00")
+      expect(createdTx.grossAmount).toBe("150000.00") // tarif aktif Layanan
+      expect(createdTx.discountAmount).toBe("150000.00")
+      expect(createdBooking.serviceId).toBe("svc-manual-test")
+      expect(createdBooking.basePriceSnapshot).toBe("150000")
       expect(createdTx.adminNotes).toBe("Program Beasiswa Konseling Pemudi")
 
       // Email dispatch
@@ -491,6 +511,8 @@ describe("Spec 0002 & ADR 0004: Admin Counselor Management & Zero-Cost Booking B
         },
         {
           currentUser: adminUser,
+          fetchServicesFn: async () => [SERVICE_ALL_TYPES],
+          fetchExcludedServiceIdsFn: async () => [],
           fetchCounselorFn: async () => ({
             id: "33333333-3333-3333-3333-333333333333",
             fullName: "Sarah Annisa",
@@ -523,6 +545,8 @@ describe("Spec 0002 & ADR 0004: Admin Counselor Management & Zero-Cost Booking B
         },
         {
           currentUser: adminUser,
+          fetchServicesFn: async () => [SERVICE_ALL_TYPES],
+          fetchExcludedServiceIdsFn: async () => [],
           fetchCounselorFn: async () => ({
             id: "33333333-3333-3333-3333-333333333333",
             fullName: "Sarah Annisa",

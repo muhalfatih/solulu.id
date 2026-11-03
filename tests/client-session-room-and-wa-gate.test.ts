@@ -159,26 +159,51 @@ describe("Ticket 06: Client Session Room, Dual Payments & WhatsApp Report Gate",
       })
     })
 
-    it("initiates automated Xendit extension payment, transitioning status and returning checkout URL", async () => {
+    it("initiates automated Xendit extension payment billed at the recorded Layanan overtime fee", async () => {
       const updateSpy = vi.fn().mockResolvedValue(true)
+      const invoiceSpy = vi.fn().mockResolvedValue({
+        id: "inv-ext-1",
+        invoiceUrl: "https://checkout.xendit.co/web/inv-ext-1",
+      })
       const res = await submitExtensionPaymentAction(
         {
           accessToken: "tok_nanoid32_client_session_room_001",
           paymentMethod: "xendit",
         },
         {
-          findBooking: async () => ({ id: "b-client-601" }),
+          // extensionFee was recorded from the booking Layanan's overtime rate (#20)
+          findBooking: async () => ({ id: "b-client-601", extensionFee: "60000.00", extensionMinutes: 30 }),
           updateBooking: updateSpy,
+          createXenditInvoice: invoiceSpy,
         }
       )
 
       expect(res.success).toBe(true)
       expect(res.data?.status).toBe("PENDING")
-      expect(res.data?.paymentUrl).toBeDefined()
-      expect(res.data?.paymentUrl).not.toContain("mock_extend_invoice")
+      expect(res.data?.paymentUrl).toBe("https://checkout.xendit.co/web/inv-ext-1")
+      expect(invoiceSpy.mock.calls[0][0].amount).toBe(60000)
       expect(updateSpy).toHaveBeenCalledWith("b-client-601", {
         extensionPaymentMethod: "xendit",
       })
+    })
+
+    it("refuses to invent an extension amount when no overtime fee was recorded", async () => {
+      const invoiceSpy = vi.fn()
+      const res = await submitExtensionPaymentAction(
+        {
+          accessToken: "tok_nanoid32_client_session_room_001",
+          paymentMethod: "xendit",
+        },
+        {
+          findBooking: async () => ({ id: "b-client-601", extensionFee: "0.00" }),
+          updateBooking: vi.fn(),
+          createXenditInvoice: invoiceSpy,
+        }
+      )
+
+      expect(res.success).toBe(false)
+      expect(res.error).toContain("belum tercatat")
+      expect(invoiceSpy).not.toHaveBeenCalled()
     })
   })
 

@@ -79,8 +79,6 @@ describe("Ticket 10: Superadmin System Settings and Zoom Manager", () => {
           noShowTimeoutMinutes: 30,
           minCounselorWeeklySlots: 10,
           basePrice: "150000",
-          counselorExtendFeePer30Min: "35000",
-          psychologistExtendFeePer30Min: "50000",
           isManualPaymentEnabled: true,
           manualPaymentInstructions:
             "Transfer ke Rekening BCA: 123-456-7890 a.n. Solulu Mental Health. Sertakan Kode Booking pada berita transfer.",
@@ -170,36 +168,11 @@ describe("Ticket 10: Superadmin System Settings and Zoom Manager", () => {
     })
   })
 
-  describe("3. Extend Session Fees Configuration (Per 30 Menit)", () => {
-    it("allows Superadmin to update extend fees for Sebaya and Psikolog Klinis", async () => {
-      const result = await updatePlatformSettingsAction(
-        {
-          counselorExtendFeePer30Min: "40000",
-          psychologistExtendFeePer30Min: "60000",
-        },
-        { currentUser: superadminUser }
-      )
-
-      expect(result.success).toBe(true)
-      expect(result.settings?.counselorExtendFeePer30Min).toBe("40000")
-      expect(result.settings?.psychologistExtendFeePer30Min).toBe("60000")
-
-      // Verify PostgreSQL read
+  describe("3. Extend Session Fees moved to Layanan (ADR-0010)", () => {
+    it("no longer exposes overtime rates as platform settings", async () => {
       const settings = await getPlatformSettings()
-      expect(settings.counselorExtendFeePer30Min).toBe("40000")
-      expect(settings.psychologistExtendFeePer30Min).toBe("60000")
-    })
-
-    it("rejects negative extend fees", async () => {
-      const result = await updatePlatformSettingsAction(
-        {
-          counselorExtendFeePer30Min: "-10000",
-        },
-        { currentUser: superadminUser }
-      )
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain("tidak boleh negatif")
+      expect(settings).not.toHaveProperty("counselorExtendFeePer30Min")
+      expect(settings).not.toHaveProperty("psychologistExtendFeePer30Min")
     })
   })
 

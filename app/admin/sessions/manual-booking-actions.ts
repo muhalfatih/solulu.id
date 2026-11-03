@@ -19,6 +19,14 @@ import {
   type AdminManualBookingInput,
 } from "@/lib/validations/admin-manual-booking"
 import { fulfillSession } from "@/lib/fulfillment/fulfill"
+import {
+  activePrice,
+  listOfferedServices,
+  toServicePricingView,
+  type ServiceLike,
+  type ServicePricingView,
+} from "@/lib/services/pricing"
+import { listAllServices, getExcludedServiceIds } from "@/lib/services/repository"
 import { getActiveZoomCapacity } from "@/lib/zoom/active-capacity"
 
 /**
@@ -58,6 +66,48 @@ export async function getAvailableCounselorsAction(options?: {
     return { success: true, data: rows || [] }
   } catch (err: any) {
     return { success: false, error: err.message, data: [] }
+  }
+}
+
+/**
+ * Layanan aktif yang ditawarkan konselor tertentu (tipe cocok, tidak dikecualikan Admin).
+ */
+export async function getOfferedServicesForCounselorAction(
+  counselorId: string,
+  options?: {
+    currentUser?: AdminAuthContext | null
+    fetchCounselorFn?: (id: string) => Promise<any>
+    fetchServicesFn?: () => Promise<ServiceLike[]>
+    fetchExcludedServiceIdsFn?: (counselorId: string) => Promise<string[]>
+  }
+): Promise<{ success: boolean; data: ServicePricingView[]; error?: string }> {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return { success: false, error: "Akses ditolak: Diperlukan role Admin.", data: [] }
+  }
+  try {
+    let counselor: any = null
+    if (options?.fetchCounselorFn) {
+      counselor = await options.fetchCounselorFn(counselorId)
+    } else {
+      const rows = await db.select().from(counselors).where(eq(counselors.id, counselorId)).limit(1)
+      counselor = rows[0] || null
+    }
+    if (!counselor) {
+      return { success: false, error: "Mitra konselor tidak ditemukan.", data: [] }
+    }
+    const all = options?.fetchServicesFn ? await options.fetchServicesFn() : await listAllServices()
+    const excluded = options?.fetchExcludedServiceIdsFn
+      ? await options.fetchExcludedServiceIdsFn(counselorId)
+      : await getExcludedServiceIds(counselorId)
+    const offered = listOfferedServices(
+      all,
+      { id: counselor.id, counselorType: counselor.counselorType },
+      excluded
+    ).map(toServicePricingView)
+    return { success: true, data: offered }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Gagal memuat Layanan.", data: [] }
   }
 }
 
@@ -236,6 +286,8 @@ export async function createAdminManualBookingAction(
   options?: {
     currentUser?: AdminAuthContext | null
     fetchCounselorFn?: (id: string) => Promise<any>
+    fetchServicesFn?: () => Promise<ServiceLike[]>
+    fetchExcludedServiceIdsFn?: (counselorId: string) => Promise<string[]>
     fetchScheduleFn?: (id: string) => Promise<any>
     createScheduleFn?: (schedule: any) => Promise<any>
     updateScheduleStatusFn?: (id: string, status: string) => Promise<any>
@@ -283,6 +335,32 @@ export async function createAdminManualBookingAction(
     if (!counselor) {
       return { success: false, error: "Mitra konselor yang dipilih tidak ditemukan." }
     }
+
+    // 1b. Resolve the Layanan purchased (ADR-0010): must be offered by this counselor.
+    const allServices = options?.fetchServicesFn ? await options.fetchServicesFn() : await listAllServices()
+    const excludedServiceIds = options?.fetchExcludedServiceIdsFn
+      ? await options.fetchExcludedServiceIdsFn(counselor.id)
+      : await getExcludedServiceIds(counselor.id)
+    const offeredServices = listOfferedServices(
+      allServices,
+      { id: counselor.id, counselorType: counselor.counselorType },
+      excludedServiceIds
+    )
+    const service = data.serviceId
+      ? offeredServices.find((svc) => svc.id === data.serviceId)
+      : offeredServices.length === 1
+        ? offeredServices[0]
+        : undefined
+    if (!service) {
+      return {
+        success: false,
+        error:
+          offeredServices.length > 1 && !data.serviceId
+            ? "Pilih Layanan untuk booking ini."
+            : "Layanan yang dipilih tidak tersedia untuk mitra konselor ini.",
+      }
+    }
+    const servicePrice = activePrice(service)
 
     // 2. Prepare Schedule Slot
     let scheduleId = data.scheduleId
@@ -410,6 +488,8 @@ export async function createAdminManualBookingAction(
       initialNotes: data.initialNotes || null,
       scheduleId: scheduleId!,
       counselorId: data.counselorId,
+      serviceId: service.id,
+      basePriceSnapshot: String(servicePrice),
       status: "confirmed",
       zoomAccountId: null,
       zoomMeetingId: null,
@@ -429,7 +509,8 @@ export async function createAdminManualBookingAction(
     }
 
     // 5. Insert Rp0 Audit Transaction
-    const normalPrice = counselor.counselorType === "psychologist" ? "130000.00" : "85000.00"
+    // Tarif pokok aktif Layanan sebelum diskon 100% (honor konselor tetap dihitung dari tarif ini).
+    const normalPrice = servicePrice.toFixed(2)
     const txPayload = {
       bookingId: bookingRecord.id,
       paymentProvider: "admin_bypass",
