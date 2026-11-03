@@ -8,10 +8,12 @@ import {
   dispatchZoomForSession,
   formatBreakoutRoomName,
 } from "@/lib/operator/dispatcher"
+import { poolSlotDisplay } from "@/lib/pool/display"
 import {
   sendPatientConfirmationEmail,
   sendCounselorNotificationEmail,
 } from "./emails"
+import { sendPoolPendingEmail } from "./pool-emails"
 
 export interface FulfillSessionOptions {
   source?: "xendit" | "manual_bank" | "admin_bypass"
@@ -27,6 +29,8 @@ export interface FulfillSessionAdapters {
   notifier?: {
     sendPatientEmail?: typeof sendPatientConfirmationEmail
     sendCounselorEmail?: typeof sendCounselorNotificationEmail
+    /** Booking Konselor Bebas yang sudah dibayar tetapi belum diklaim (ADR-0011). */
+    sendPoolPendingEmail?: typeof sendPoolPendingEmail
   }
   // Internal test shims for isolated environments
   fetchBookingData?: (bookingId: string) => Promise<any>
@@ -57,6 +61,8 @@ export interface FulfillSessionResult {
   zoomAllocationMode?: "standalone" | "breakout_room"
   breakoutRoomName?: string | null
   zoomRoom?: string
+  /** True: booking Konselor Bebas terbayar yang belum punya konselor; Zoom dibuat setelah klaim/penugasan. */
+  awaitingCounselor?: boolean
   error?: string
 }
 
@@ -131,8 +137,8 @@ export async function fulfillSession(
           schedule: schedules,
         })
         .from(bookings)
-        .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
-        .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
+        .leftJoin(counselors, eq(bookings.counselorId, counselors.id))
+        .leftJoin(schedules, eq(bookings.scheduleId, schedules.id))
         .where(eq(bookings.id, bookingId))
         .limit(1)
 
@@ -147,6 +153,13 @@ export async function fulfillSession(
       bookingRow = rows[0].booking
       counselorRow = rows[0].counselor
       scheduleRow = rows[0].schedule
+    }
+
+    // 1b. Booking Konselor Bebas belum diklaim: bayar sudah masuk, tetapi belum ada konselor
+    // maupun baris jadwal. Tahan di 'confirmed' tanpa Zoom/dispatch; klaim atau penugasan
+    // Admin memanggil fulfillSession lagi setelah counselor_id dan schedule_id terisi.
+    if (!counselorRow || !scheduleRow) {
+      return fulfillUnclaimedPoolBooking({ bookingId, bookingRow, options, adapters })
     }
 
     // 2. Idempotency Guard: return existing room if already generated
@@ -165,7 +178,7 @@ export async function fulfillSession(
     }
 
     const breakoutName = formatBreakoutRoomName(
-      bookingRow.bookingCode || "SL-1001",
+      bookingRow.bookingCode,
       counselorRow.fullName
     )
 
@@ -402,6 +415,53 @@ export async function fulfillSession(
       error: error?.message || "Terjadi kesalahan pada alur fulfillment",
     }
   }
+}
+
+async function fulfillUnclaimedPoolBooking({
+  bookingId,
+  bookingRow,
+  options,
+  adapters,
+}: {
+  bookingId: string
+  bookingRow: any
+  options: FulfillSessionOptions
+  adapters: FulfillSessionAdapters
+}): Promise<FulfillSessionResult> {
+  const slot = poolSlotDisplay({
+    poolDate: bookingRow.poolDate ?? null,
+    poolSlotIndex: bookingRow.poolSlotIndex ?? null,
+  })
+  if (!slot) {
+    return {
+      success: false,
+      bookingId,
+      error: "Booking tidak memiliki konselor maupun slot pool, tidak dapat dipenuhi.",
+    }
+  }
+
+  // Hanya menaikkan pending_payment; booking yang sudah kedaluwarsa/dibatalkan tidak dihidupkan lagi.
+  if (!adapters.fetchBookingData && bookingRow.status === "pending_payment") {
+    await db
+      .update(bookings)
+      .set({ status: "confirmed" })
+      .where(and(eq(bookings.id, bookingId), eq(bookings.status, "pending_payment")))
+  }
+
+  if (!options.skipEmails) {
+    const sendFn = adapters.notifier?.sendPoolPendingEmail ?? sendPoolPendingEmail
+    await Promise.allSettled([
+      sendFn({
+        patientEmail: bookingRow.patientEmail,
+        patientName: bookingRow.patientName,
+        date: formatIndonesianDate(slot.date),
+        timeRange: formatTimeRange(slot.startTime, slot.endTime),
+        accessToken: bookingRow.accessToken,
+      }),
+    ])
+  }
+
+  return { success: true, bookingId, awaitingCounselor: true }
 }
 
 async function dispatchNotifications({

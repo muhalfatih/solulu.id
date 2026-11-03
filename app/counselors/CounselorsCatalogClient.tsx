@@ -27,11 +27,11 @@ import {
   Video,
   Zap,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardFooter } from "@/components/public/public-card"
 import { Input } from "@/components/ui/input"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { PublicFilterGroup, PublicFilterItem } from "@/components/public/public-filter-toggle"
 import {
   Dialog,
   DialogContent,
@@ -330,6 +330,13 @@ export default function CounselorsCatalogClient({
             Sesi ngobrol privat 90 menit via Zoom bareng Psikolog Klinis Berizin Resmi atau Teman Cerita Terlatih. Bebas cerita tanpa takut dihakimi, bisa langsung pilih jadwal tanpa ribet bikin akun.
           </p>
 
+          <Link
+            href={initialScreeningId ? `/booking/pool?screeningId=${initialScreeningId}` : "/booking/pool"}
+            className="text-sm font-medium text-purple-700 dark:text-purple-300 underline underline-offset-4"
+          >
+            Belum punya preferensi? Pilih Konselor Bebas
+          </Link>
+
           {/* 3 Core Trust Signals */}
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 pt-2 text-xs text-foreground/85">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/80 border border-border/70 font-medium shadow-2xs">
@@ -375,11 +382,11 @@ export default function CounselorsCatalogClient({
                 </span>
               </div>
             </div>
-            <Button asChild variant="outline" size="sm" className="h-8 text-xs shrink-0 rounded-full">
+            <PublicButton asChild variant="outline" size="sm" className="h-8 text-xs shrink-0 rounded-full">
               <Link href={`/screening?screeningId=${initialScreeningId}`}>
                 Lihat Hasil Cek Mandiri
               </Link>
-            </Button>
+            </PublicButton>
           </div>
         )}
 
@@ -434,7 +441,7 @@ export default function CounselorsCatalogClient({
                 <Layers className="size-3.5 text-primary" aria-hidden="true" />
                 <span>Pilihan Konseling:</span>
               </span>
-              <ToggleGroup
+              <PublicFilterGroup
                 type="single"
                 value={typeFilter}
                 onValueChange={(val) => {
@@ -443,15 +450,15 @@ export default function CounselorsCatalogClient({
                 aria-label="Pilihan Konseling"
                 className="w-full sm:w-auto justify-start flex-wrap gap-1 p-1 rounded-xl bg-muted/60 border border-border/60"
               >
-                <ToggleGroupItem
+                <PublicFilterItem
                   value="all"
                   id="btn-filter-all"
                   className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:bg-background/80 hover:text-foreground active:scale-[0.98] data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer select-none"
                 >
                   <span>Semua</span>
-                </ToggleGroupItem>
+                </PublicFilterItem>
 
-                <ToggleGroupItem
+                <PublicFilterItem
                   value="peer"
                   id="btn-filter-peer"
                   className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:bg-background/80 hover:text-foreground active:scale-[0.98] data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer select-none inline-flex items-center gap-1.5"
@@ -463,9 +470,9 @@ export default function CounselorsCatalogClient({
                     )}
                   />
                   <span>Konselor Sebaya</span>
-                </ToggleGroupItem>
+                </PublicFilterItem>
 
-                <ToggleGroupItem
+                <PublicFilterItem
                   value="psychologist"
                   id="btn-filter-psychologist"
                   className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:bg-background/80 hover:text-foreground active:scale-[0.98] data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer select-none inline-flex items-center gap-1.5"
@@ -477,8 +484,8 @@ export default function CounselorsCatalogClient({
                     )}
                   />
                   <span>Psikolog Klinis</span>
-                </ToggleGroupItem>
-              </ToggleGroup>
+                </PublicFilterItem>
+              </PublicFilterGroup>
             </div>
 
             {/* Filter 2: Date / Practice Schedule Segment */}
@@ -488,37 +495,37 @@ export default function CounselorsCatalogClient({
                 <span>Waktu Praktik:</span>
               </span>
               <div className="flex flex-wrap items-center gap-2">
-                <ToggleGroup
+                <PublicFilterGroup
                   type="single"
                   value={dateFilter}
                   onValueChange={(val) => handleDateChange(val || "")}
                   aria-label="Waktu Praktik"
                   className="justify-start flex-wrap gap-1 p-1 rounded-xl bg-muted/60 border border-border/60"
                 >
-                  <ToggleGroupItem
+                  <PublicFilterItem
                     value="any"
                     id="btn-date-any"
                     className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:bg-background/80 hover:text-foreground active:scale-[0.98] data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer select-none"
                   >
                     Kapan Saja
-                  </ToggleGroupItem>
+                  </PublicFilterItem>
 
-                  <ToggleGroupItem
+                  <PublicFilterItem
                     value={tomorrowStr}
                     id="btn-date-tomorrow"
                     className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:bg-background/80 hover:text-foreground active:scale-[0.98] data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer select-none"
                   >
                     Besok
-                  </ToggleGroupItem>
+                  </PublicFilterItem>
 
-                  <ToggleGroupItem
+                  <PublicFilterItem
                     value={dayAfterStr}
                     id="btn-date-dayafter"
                     className="h-8 px-3 rounded-lg text-xs font-medium text-muted-foreground hover:bg-background/80 hover:text-foreground active:scale-[0.98] data-[state=on]:!bg-primary data-[state=on]:!text-primary-foreground data-[state=on]:shadow-xs data-[state=on]:font-semibold transition-all cursor-pointer select-none"
                   >
                     Lusa
-                  </ToggleGroupItem>
-                </ToggleGroup>
+                  </PublicFilterItem>
+                </PublicFilterGroup>
 
                 <div className="flex items-center">
                   <Input
@@ -703,7 +710,7 @@ export default function CounselorsCatalogClient({
               Belum ada konselor yang pas dengan pilihan filtermu saat ini. Coba pilih &ldquo;Kapan Saja&rdquo; atau reset kata kunci pencarian untuk melihat semua jadwal yang ada.
             </p>
             <div className="flex items-center gap-2 pt-1">
-              <Button
+              <PublicButton
                 variant="public"
                 size="pill-sm"
                 onClick={clearFilters}
@@ -711,7 +718,7 @@ export default function CounselorsCatalogClient({
               >
                 <RotateCcw data-icon="inline-start" />
                 <span>Reset Semua Filter</span>
-              </Button>
+              </PublicButton>
             </div>
           </div>
         ) : (
@@ -930,7 +937,7 @@ export default function CounselorsCatalogClient({
                     <div className="pt-3.5 mt-auto border-t border-border/60 flex items-center justify-between min-h-[48px]">
                       <div className="flex flex-col justify-center">
                         <span className="text-xs text-muted-foreground font-medium">
-                          Tarif sesi (90 mnt):
+                          Mulai dari (90 mnt):
                         </span>
                       </div>
                       <div className="flex flex-col items-end">
@@ -949,7 +956,7 @@ export default function CounselorsCatalogClient({
                   {/* Card Footer: Primary CTA + Secondary Detail Button */}
                   <CardFooter className="px-5 sm:px-6 pb-5 sm:pb-6 pt-0 flex flex-col gap-2.5">
                     {/* Primary Button: Pilih Jadwal */}
-                    <Button
+                    <PublicButton
                       type="button"
                       variant="public"
                       size="pill"
@@ -966,10 +973,10 @@ export default function CounselorsCatalogClient({
                         {hasSlots ? "Pilih Jadwal Sesi" : "Jadwal Sedang Penuh"}
                       </span>
                       <ArrowRight data-icon="inline-end" aria-hidden="true" />
-                    </Button>
+                    </PublicButton>
 
                     {/* Secondary Button: Buka Detail Lengkap Konselor */}
-                    <Button
+                    <PublicButton
                       variant="public-secondary"
                       size="pill"
                       className="w-full"
@@ -980,7 +987,7 @@ export default function CounselorsCatalogClient({
                         <UserCheck data-icon="inline-start" aria-hidden="true" />
                         <span>Lihat Profil Lengkap</span>
                       </Link>
-                    </Button>
+                    </PublicButton>
                   </CardFooter>
                 </Card>
               )
@@ -1136,7 +1143,7 @@ export default function CounselorsCatalogClient({
 
               {/* Pricing Notice */}
               <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Biaya Sesi (90 Menit):</span>
+                <span className="text-muted-foreground">Mulai dari (90 Menit):</span>
                 <div className="flex flex-col items-end">
                   <strong className="text-foreground font-heading font-bold text-sm sm:text-base tabular-nums">
                     {selectedBioCounselor.pricing.displayPriceFormatted}
@@ -1150,16 +1157,16 @@ export default function CounselorsCatalogClient({
               </div>
 
               <DialogFooter className="pt-2 flex flex-col sm:flex-row gap-2">
-                <Button
+                <PublicButton
                   variant="outline"
                   size="pill-sm"
                   onClick={() => setSelectedBioCounselor(null)}
                   className="w-full sm:w-auto cursor-pointer"
                 >
                   Tutup
-                </Button>
+                </PublicButton>
                 {selectedBioCounselor.availableSlots.length > 0 && (
-                  <Button
+                  <PublicButton
                     variant="public"
                     size="pill-sm"
                     onClick={() => {
@@ -1171,7 +1178,7 @@ export default function CounselorsCatalogClient({
                   >
                     <span>Pilih Jadwal Sesi</span>
                     <ArrowRight data-icon="inline-end" aria-hidden="true" />
-                  </Button>
+                  </PublicButton>
                 )}
               </DialogFooter>
             </div>
@@ -1237,7 +1244,7 @@ export default function CounselorsCatalogClient({
                     <span className="text-foreground font-semibold text-sm sm:text-base tabular-nums leading-snug">
                       {scheduleModalCounselor.pricing.displayPriceFormatted}
                     </span>
-                    <span className="text-[11px] text-muted-foreground leading-none">/ 90 menit</span>
+                    <span className="text-[11px] text-muted-foreground leading-none">mulai dari / 90 menit</span>
                   </div>
                 </div>
 
@@ -1419,7 +1426,7 @@ export default function CounselorsCatalogClient({
 
               {/* Pinned Footer: Single row with pill buttons on all devices */}
               <DialogFooter className="px-6 py-4 border-t border-border/60 flex flex-row items-center justify-end gap-3 shrink-0 bg-card">
-                <Button
+                <PublicButton
                   type="button"
                   variant="public-secondary"
                   size="pill-sm"
@@ -1427,10 +1434,10 @@ export default function CounselorsCatalogClient({
                   className="cursor-pointer rounded-full px-5 font-semibold shrink-0"
                 >
                   Batal
-                </Button>
+                </PublicButton>
                 {modalSelectedSlot ? (
                   isScreeningRequired && !initialScreeningId ? (
-                    <Button
+                    <PublicButton
                       asChild
                       variant="public"
                       size="pill-sm"
@@ -1442,9 +1449,9 @@ export default function CounselorsCatalogClient({
                         <span>Lanjut ke Cek Mandiri (Wajib)</span>
                         <ArrowRight data-icon="inline-end" className="size-4" />
                       </Link>
-                    </Button>
+                    </PublicButton>
                   ) : (
-                    <Button
+                    <PublicButton
                       asChild
                       variant="public"
                       size="pill-sm"
@@ -1458,10 +1465,10 @@ export default function CounselorsCatalogClient({
                         <span>Lanjut Isi Data Sesi</span>
                         <ArrowRight data-icon="inline-end" className="size-4" />
                       </Link>
-                    </Button>
+                    </PublicButton>
                   )
                 ) : (
-                  <Button
+                  <PublicButton
                     type="button"
                     variant="public"
                     size="pill-sm"
@@ -1470,7 +1477,7 @@ export default function CounselorsCatalogClient({
                   >
                     <span>Pilih Jam Sesi Dahulu</span>
                     <ArrowRight data-icon="inline-end" className="size-4" />
-                  </Button>
+                  </PublicButton>
                 )}
               </DialogFooter>
             </>
@@ -1534,7 +1541,7 @@ export default function CounselorsCatalogClient({
           </div>
 
           <DialogFooter>
-            <Button
+            <PublicButton
               type="button"
               variant="public"
               size="pill-sm"
@@ -1542,7 +1549,7 @@ export default function CounselorsCatalogClient({
               className="w-full sm:w-auto cursor-pointer"
             >
               Saya Mengerti
-            </Button>
+            </PublicButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

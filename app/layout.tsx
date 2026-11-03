@@ -1,3 +1,4 @@
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { Geist, Poppins, Inter } from "next/font/google"
 
 import "./globals.css"
@@ -6,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { NavigationProgress } from "@/components/navigation-progress"
 import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
+import { getAppBaseUrl } from "@/lib/url"
 
 import type { Metadata } from "next"
 
@@ -47,11 +49,11 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Solulu Indonesia" }],
   creator: "Solulu Indonesia",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://solulu.id"),
+  metadataBase: new URL(getAppBaseUrl()),
   openGraph: {
     type: "website",
     locale: "id_ID",
-    url: "https://solulu.id",
+    url: getAppBaseUrl(),
     title: "Solulu | Ruang Tenang untuk Pulih & Bertumbuh",
     description:
       "Telekonseling kesehatan mental terpercaya tanpa birokrasi rumit. Didampingi Psikolog Klinis dan Konselor Sebaya berpengalaman.",
@@ -86,7 +88,7 @@ export default function RootLayout({
           <Suspense fallback={null}>
             <NavigationProgress />
           </Suspense>
-          {children}
+          <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
           <Toaster position="top-right" richColors />
         </ThemeProvider>
       </body>

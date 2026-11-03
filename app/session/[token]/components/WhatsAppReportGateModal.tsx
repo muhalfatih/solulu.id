@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import { PublicButton as Button } from "@/components/public/public-button"
 import { FieldGroup, Field, FieldLabel, FieldDescription } from "@/components/ui/field"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"

@@ -1,8 +1,8 @@
 import * as React from "react"
 import Link from "next/link"
 import { AlertCircle, ArrowLeft, Calendar, UserCheck } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { PublicButton } from "@/components/public/public-button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/public/public-card"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { PublicShell } from "@/components/public/public-shell"
@@ -15,6 +15,7 @@ interface BookingPageProps {
     scheduleId?: string
     counselorId?: string
     screeningId?: string
+    serviceId?: string
     error?: string
   }>
 }
@@ -27,7 +28,7 @@ export const metadata = {
 
 export default async function BookingPage({ searchParams }: BookingPageProps) {
   const params = await searchParams
-  const { scheduleId, counselorId, screeningId, error } = params
+  const { scheduleId, counselorId, screeningId, serviceId, error } = params
 
   if (!scheduleId || !counselorId) {
     return (
@@ -52,12 +53,12 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 sm:p-8 flex justify-center">
-              <Button asChild variant="public" size="pill" className="w-full">
+              <PublicButton asChild variant="public" size="pill" className="w-full">
                 <Link href="/counselors">
                   <ArrowLeft className="size-4" data-icon="inline-start" />
                   <span>Buka Katalog Konselor</span>
                 </Link>
-              </Button>
+              </PublicButton>
             </CardContent>
           </Card>
         </div>
@@ -69,6 +70,7 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
     scheduleId,
     counselorId,
     screeningId,
+    serviceId,
   })
 
   if (!contextRes.success || !contextRes.data) {
@@ -95,12 +97,12 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 sm:p-8 flex justify-center">
-              <Button asChild variant="public" size="pill" className="w-full">
+              <PublicButton asChild variant="public" size="pill" className="w-full">
                 <Link href="/counselors">
                   <ArrowLeft className="size-4" data-icon="inline-start" />
                   <span>Pilih Jadwal Lain di Katalog</span>
                 </Link>
-              </Button>
+              </PublicButton>
             </CardContent>
           </Card>
         </div>

@@ -15,7 +15,7 @@ import {
   BadgeCheck,
   Calendar,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import {
   Card,
   CardHeader,
@@ -23,11 +23,11 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@/components/ui/card"
+} from "@/components/public/public-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PublicShell } from "@/components/public/public-shell"
 import { FaqAccordion } from "@/components/public/FaqAccordion"
-import { getPlatformPricing } from "@/lib/pricing/platform-pricing"
+import { getStartingPricesByCounselorType } from "@/lib/services/catalog"
 import { formatRupiah } from "@/lib/utils"
 import { getFeaturedCounselorsForHomepageAction } from "@/app/admin/counselors/actions"
 import { getFeaturedTestimonialsForHomepageAction } from "@/app/admin/testimonials/actions"
@@ -125,7 +125,7 @@ const FAQS = [
 ]
 
 export default async function HomePage() {
-  const pricing = await getPlatformPricing()
+  const pricing = await getStartingPricesByCounselorType()
   const featuredRes = await getFeaturedCounselorsForHomepageAction()
   const testimonialsRes = await getFeaturedTestimonialsForHomepageAction()
 
@@ -175,13 +175,12 @@ export default async function HomePage() {
     src: c.avatar,
   }))
 
-  const peerActivePrice = pricing.peer.isSaleActive ? pricing.peer.promoPrice : pricing.peer.basePrice
-  const peerHasDiscount = pricing.peer.isSaleActive && pricing.peer.promoPrice < pricing.peer.basePrice
-  const psychologistActivePrice = pricing.psychologist.isSaleActive
-    ? pricing.psychologist.promoPrice
-    : pricing.psychologist.basePrice
-  const psychologistHasDiscount =
-    pricing.psychologist.isSaleActive && pricing.psychologist.promoPrice < pricing.psychologist.basePrice
+  // "Mulai dari" per Tipe Konselor, dari Layanan aktif (ADR-0010). null = belum ada Layanan.
+  const peerActivePrice = pricing.peer?.activePrice ?? null
+  const peerHasDiscount = pricing.peer?.isPromoActive ?? false
+  const psychologistActivePrice = pricing.psychologist?.activePrice ?? null
+  const psychologistHasDiscount = pricing.psychologist?.isPromoActive ?? false
+  const priceLabel = (amount: number | null) => (amount === null ? "Segera hadir" : formatRupiah(amount))
 
   return (
     <PublicShell>
@@ -217,7 +216,7 @@ export default async function HomePage() {
           <div className="flex flex-col items-center gap-4 pt-1 w-full sm:w-auto animate-hero-fade-up [animation-delay:320ms]">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
               {/* Standardized Hero Primary: size="pill-lg" (48px, even padding) */}
-              <Button
+              <PublicButton
                 asChild
                 variant="public"
                 size="pill-lg"
@@ -228,10 +227,10 @@ export default async function HomePage() {
                   <span>Pilih Jadwal Konseling</span>
                   <ArrowRight className="size-4" data-icon="inline-end" aria-hidden="true" />
                 </Link>
-              </Button>
+              </PublicButton>
 
               {/* Standardized Hero Secondary: size="pill-lg" (48px, even padding, matching typography) */}
-              <Button
+              <PublicButton
                 asChild
                 variant="public-secondary"
                 size="pill-lg"
@@ -241,7 +240,7 @@ export default async function HomePage() {
                 <Link href="#harga">
                   <span>Lihat Pilihan &amp; Tarif</span>
                 </Link>
-              </Button>
+              </PublicButton>
             </div>
 
             {/* Social Proof Row */}
@@ -538,15 +537,16 @@ export default async function HomePage() {
 
                   <div className="pt-3 border-t border-border/50 flex flex-col gap-1">
                     <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap">Mulai dari</span>
                       <span className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight tabular-nums whitespace-nowrap">
-                        {formatRupiah(peerActivePrice)}
+                        {priceLabel(peerActivePrice)}
                       </span>
                       <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap"> / 90 menit</span>
                     </div>
                     {peerHasDiscount && (
                       <div className="pt-0.5 pb-2">
                         <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
-                          {formatRupiah(pricing.peer.basePrice)}
+                          {formatRupiah(pricing.peer?.basePrice ?? 0)}
                         </span>
                       </div>
                     )}
@@ -586,7 +586,7 @@ export default async function HomePage() {
                 </CardContent>
 
                 <CardFooter className="p-6 sm:p-7 pt-2">
-                  <Button
+                  <PublicButton
                     asChild
                     variant="public-secondary"
                     size="pill"
@@ -597,7 +597,7 @@ export default async function HomePage() {
                       <span>Pilih Konselor Sebaya</span>
                       <ArrowRight className="size-3.5" data-icon="inline-end" aria-hidden="true" />
                     </Link>
-                  </Button>
+                  </PublicButton>
                 </CardFooter>
               </Card>
             </ScrollReveal>
@@ -629,15 +629,16 @@ export default async function HomePage() {
 
                   <div className="pt-3 border-t border-border/50 flex flex-col gap-1">
                     <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap">Mulai dari</span>
                       <span className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight tabular-nums whitespace-nowrap">
-                        {formatRupiah(psychologistActivePrice)}
+                        {priceLabel(psychologistActivePrice)}
                       </span>
                       <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap"> / 90 menit</span>
                     </div>
                     {psychologistHasDiscount && (
                       <div className="pt-0.5 pb-2">
                         <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
-                          {formatRupiah(pricing.psychologist.basePrice)}
+                          {formatRupiah(pricing.psychologist?.basePrice ?? 0)}
                         </span>
                       </div>
                     )}
@@ -677,7 +678,7 @@ export default async function HomePage() {
                 </CardContent>
 
                 <CardFooter className="p-6 sm:p-7 pt-2">
-                  <Button
+                  <PublicButton
                     asChild
                     variant="public"
                     size="pill"
@@ -688,7 +689,7 @@ export default async function HomePage() {
                       <span>Pilih Psikolog Klinis</span>
                       <ArrowRight className="size-3.5" data-icon="inline-end" aria-hidden="true" />
                     </Link>
-                  </Button>
+                  </PublicButton>
                 </CardFooter>
               </Card>
             </ScrollReveal>
@@ -710,7 +711,7 @@ export default async function HomePage() {
             </div>
 
             {/* Standardized Header Action: size="pill-sm" (h-9, px-4) */}
-            <Button
+            <PublicButton
               asChild
               variant="public-secondary"
               size="pill-sm"
@@ -721,17 +722,16 @@ export default async function HomePage() {
                 <span>Lihat Semua Konselor</span>
                 <ArrowRight className="size-3.5" data-icon="inline-end" aria-hidden="true" />
               </Link>
-            </Button>
+            </PublicButton>
           </ScrollReveal>
 
           {featuredCounselors.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7 items-stretch">
               {featuredCounselors.map((c, cIdx) => {
               const cPriceData = pricing[c.type]
-              const cActivePrice = cPriceData.isSaleActive ? cPriceData.promoPrice : cPriceData.basePrice
-              const cHasDiscount = cPriceData.isSaleActive && cPriceData.promoPrice < cPriceData.basePrice
-              const cRateFormatted = formatRupiah(cActivePrice)
-              const cOriginalRateFormatted = formatRupiah(cPriceData.basePrice)
+              const cHasDiscount = cPriceData?.isPromoActive ?? false
+              const cRateFormatted = priceLabel(cPriceData?.activePrice ?? null)
+              const cOriginalRateFormatted = formatRupiah(cPriceData?.basePrice ?? 0)
 
               return (
                 <ScrollReveal
@@ -828,7 +828,7 @@ export default async function HomePage() {
 
                     {/* 3. Action Button */}
                     <CardFooter className="px-5 sm:px-6 pb-5 sm:pb-6 pt-0">
-                      <Button
+                      <PublicButton
                         asChild
                         variant="public"
                         size="pill"
@@ -839,7 +839,7 @@ export default async function HomePage() {
                           <span>Pilih Jadwal Konseling</span>
                           <ArrowRight className="size-3.5" data-icon="inline-end" aria-hidden="true" />
                         </Link>
-                      </Button>
+                      </PublicButton>
                     </CardFooter>
                   </Card>
                 </ScrollReveal>
@@ -857,9 +857,9 @@ export default async function HomePage() {
             <p className="text-xs sm:text-sm text-muted-foreground mt-1.5 max-w-sm">
               Jadwal konsultasi baru sedang disinkronkan oleh tim admin. Silakan periksa ketersediaan langsung di halaman katalog.
             </p>
-            <Button asChild variant="public" size="pill" className="mt-5">
+            <PublicButton asChild variant="public" size="pill" className="mt-5">
               <Link href="/counselors">Buka Katalog Konselor</Link>
-            </Button>
+            </PublicButton>
           </div>
         )}
       </div>
@@ -986,7 +986,7 @@ export default async function HomePage() {
               </div>
 
               {/* Standardized Footer CTA: size="pill-lg" (48px, even padding, matching Hero) */}
-              <Button
+              <PublicButton
                 asChild
                 variant="public-white"
                 size="pill-lg"
@@ -997,7 +997,7 @@ export default async function HomePage() {
                   <span>Pilih Jadwal Konseling Sekarang</span>
                   <ArrowRight className="size-4" data-icon="inline-end" aria-hidden="true" />
                 </Link>
-              </Button>
+              </PublicButton>
 
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-purple-200/80 font-medium tabular-nums pt-2 border-t border-white/10 w-full max-w-lg">
                 <span>90 Menit Penuh</span>

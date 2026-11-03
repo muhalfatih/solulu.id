@@ -1,5 +1,6 @@
 "use client"
 
+import { getSupportWhatsappUrl } from "@/lib/config/support"
 import * as React from "react"
 import Link from "next/link"
 import {
@@ -16,9 +17,9 @@ import {
   AlertTriangle,
   Sparkles,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton as Button } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/public/public-card"
 import { OFFICIAL_BANK_ACCOUNTS } from "@/lib/booking/hold"
 import type {
   SessionBookingData,
@@ -98,9 +99,6 @@ export function PaymentVerificationWaitingCard({
     }
   }
 
-  const whatsappSupportNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT || "6281234567890"
-
   const waMessage = `Halo Admin Solulu, saya telah melakukan pembayaran untuk pemesanan konseling:
 - Nama Klien: ${patientName}
 - Kode Referensi: ${referenceNumber}
@@ -110,7 +108,7 @@ export function PaymentVerificationWaitingCard({
 
 Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. Terima kasih!`
 
-  const whatsappUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(waMessage)}`
+  const whatsappUrl = getSupportWhatsappUrl(waMessage)
 
   return (
     <Card className="rounded-3xl border border-amber-500/25 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(245,158,11,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(245,158,11,0.10)] transition-all overflow-hidden gap-0">
@@ -360,6 +358,7 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
             </Button>
           )}
 
+{whatsappUrl && (
           <a
             href={whatsappUrl}
             target="_blank"
@@ -373,6 +372,7 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
               <span>{isExpired ? "Bantuan CS via WhatsApp" : "Konfirmasi via WhatsApp Admin"}</span>
             </Button>
           </a>
+)}
         </div>
       </CardFooter>
     </Card>

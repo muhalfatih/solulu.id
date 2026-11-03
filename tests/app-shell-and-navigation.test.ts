@@ -1,62 +1,7 @@
 import { describe, it, expect } from "vitest"
-import {
-  getBreadcrumbTrail,
-  ADMIN_NAV_GROUPS,
-  COUNSELOR_NAV_ITEMS,
-  type NavGroup,
-  type NavItem,
-} from "@/lib/navigation"
+import { getBreadcrumbTrail } from "@/lib/navigation"
 
 describe("Ticket 1: Core App Shell & Navigation", () => {
-  describe("1. Admin Navigation Structure", () => {
-    it("contains all mandatory Ticket 1 admin navigation items", () => {
-      const allItems = ADMIN_NAV_GROUPS.flatMap((g: NavGroup) => g.items)
-      const hrefs = allItems.map((item: NavItem) => item.href)
-
-      // Mandatory items from Ticket 1 acceptance criteria:
-      // Dashboard, Counselors Directory, Manual Payments, Financial Reports, Bookings, System Settings, Zoom Accounts
-      expect(hrefs).toContain("/admin")
-      expect(hrefs).toContain("/admin/counselors")
-      expect(hrefs).toContain("/admin/manual-payments")
-      expect(hrefs).toContain("/admin/reports/finance")
-      expect(hrefs).toContain("/admin/sessions") // bookings route
-      expect(hrefs).toContain("/admin/settings")
-      expect(hrefs).toContain("/admin/zoom-settings") // zoom route
-    })
-
-    it("verifies that each nav item has a label, valid icon, and descriptive title", () => {
-      ADMIN_NAV_GROUPS.forEach((group: NavGroup) => {
-        expect(group.title).toBeDefined()
-        expect(group.items.length).toBeGreaterThan(0)
-        group.items.forEach((item: NavItem) => {
-          expect(item.label.length).toBeGreaterThan(0)
-          expect(item.href.startsWith("/admin")).toBe(true)
-          expect(item.icon).toBeDefined()
-        })
-      })
-    })
-  })
-
-  describe("2. Counselor Navigation Structure", () => {
-    it("contains all mandatory Ticket 1 counselor navigation items", () => {
-      const hrefs = COUNSELOR_NAV_ITEMS.map((item: NavItem) => item.href)
-
-      // Mandatory items from Ticket 1 acceptance criteria:
-      // Dashboard (Today's Sessions), Weekly Schedule, Counselor Profile
-      expect(hrefs).toContain("/counselor/dashboard")
-      expect(hrefs).toContain("/counselor/schedule")
-      expect(hrefs).toContain("/counselor/profile")
-    })
-
-    it("verifies counselor nav items have icons and human-readable labels", () => {
-      COUNSELOR_NAV_ITEMS.forEach((item: NavItem) => {
-        expect(item.label.length).toBeGreaterThan(0)
-        expect(item.href.startsWith("/counselor")).toBe(true)
-        expect(item.icon).toBeDefined()
-      })
-    })
-  })
-
   describe("3. Dynamic Breadcrumb Trail Generation", () => {
     it("generates root breadcrumb for /admin", () => {
       const trail = getBreadcrumbTrail("/admin", "admin")

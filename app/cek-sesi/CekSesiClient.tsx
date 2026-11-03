@@ -1,5 +1,7 @@
 "use client"
 
+import { getSupportWhatsappUrl } from "@/lib/config/support"
+
 import * as React from "react"
 import Link from "next/link"
 import {
@@ -16,7 +18,7 @@ import {
   Lock,
 } from "lucide-react"
 import { PublicShell } from "@/components/public/public-shell"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import {
@@ -26,7 +28,7 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-} from "@/components/ui/card"
+} from "@/components/public/public-card"
 import {
   FieldGroup,
   Field,
@@ -107,11 +109,9 @@ export default function CekSesiClient() {
     }
   }
 
-  const whatsappSupportNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT || "6281234567890"
-  const waSupportUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(
+  const waSupportUrl = getSupportWhatsappUrl(
     `Halo Tim Solulu, saya mengalami kendala saat memulihkan tautan sesi saya untuk email: ${email || "[Email]"}`
-  )}`
+  )
 
   return (
     <PublicShell>
@@ -190,8 +190,9 @@ export default function CekSesiClient() {
                 </AlertTitle>
                 <AlertDescription className="text-xs leading-relaxed flex flex-col gap-3 mt-1">
                   <span>{status.message}</span>
+                  {waSupportUrl && (
                   <div className="pt-1">
-                    <Button
+                    <PublicButton
                       asChild
                       variant="outline"
                       className="border-amber-500/40 hover:bg-amber-500/20 text-xs h-9 px-4 rounded-full font-semibold cursor-pointer"
@@ -200,8 +201,9 @@ export default function CekSesiClient() {
                         <MessageCircle data-icon="inline-start" className="size-3.5" />
                         <span>Bantuan Langsung WhatsApp</span>
                       </a>
-                    </Button>
+                    </PublicButton>
                   </div>
+                  )}
                 </AlertDescription>
               </Alert>
             )}
@@ -286,7 +288,7 @@ export default function CekSesiClient() {
               </FieldGroup>
 
               {/* Standard Public Primary Button (h-11, rounded-full, text-sm font-semibold, #7c3aed) */}
-              <Button
+              <PublicButton
                 type="submit"
                 id="btn-recover-submit"
                 disabled={isSubmitting}
@@ -305,7 +307,7 @@ export default function CekSesiClient() {
                     <span>Kirim Ulang Tautan Sesi</span>
                   </>
                 )}
-              </Button>
+              </PublicButton>
             </form>
 
             {/* Privacy Protection Callout (US-20) */}
@@ -323,17 +325,23 @@ export default function CekSesiClient() {
           {/* Card Footer: Support link & Link to Catalog */}
           <CardFooter className="border-t border-border/60 bg-muted/20 px-6 sm:px-8 py-4.5 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
             <span className="text-center sm:text-left">
-              Ada kendala atau butuh bantuan segera?{" "}
-              <a
-                href={waSupportUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-purple-600 dark:text-purple-400 hover:underline font-semibold"
-              >
-                Hubungi Kami di WhatsApp
-              </a>
+              {waSupportUrl ? (
+                <>
+                  Ada kendala atau butuh bantuan segera?{" "}
+                  <a
+                    href={waSupportUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-600 dark:text-purple-400 hover:underline font-semibold"
+                  >
+                    Hubungi Kami di WhatsApp
+                  </a>
+                </>
+              ) : (
+                "Ada kendala atau butuh bantuan segera? Hubungi tim Solulu."
+              )}
             </span>
-            <Button
+            <PublicButton
               asChild
               variant="public-secondary"
               size="pill-sm"
@@ -342,7 +350,7 @@ export default function CekSesiClient() {
                 <span>Pesan Sesi Baru</span>
                 <ArrowRight className="size-3.5" data-icon="inline-end" />
               </Link>
-            </Button>
+            </PublicButton>
           </CardFooter>
         </Card>
       </div>

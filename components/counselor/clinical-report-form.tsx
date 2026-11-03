@@ -38,6 +38,9 @@ import {
   getAttachmentDownloadUrlAction,
 } from "@/app/counselor/actions"
 import type { SessionReportDetailView } from "@/lib/counselor/types"
+import { MAX_OVERTIME_BLOCKS } from "@/lib/booking-cycle"
+import { overtimeCharge, overtimeHonor } from "@/lib/services/pricing"
+import { formatRupiah } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 
 export interface ClinicalReportFormProps {
@@ -79,7 +82,7 @@ export function ClinicalReportForm({
   const { booking } = initialData
 
   const [attendanceStatus, setAttendanceStatus] = React.useState<"attended" | "no_show">("attended")
-  const [mainIssue, setMainIssue] = React.useState(initialData.mainIssue || "Konsultasi Emosional & Stres")
+  const [mainIssue, setMainIssue] = React.useState(initialData.mainIssue || "")
   const [summary, setSummary] = React.useState(initialData.summary || "")
   const [actionPlan, setActionPlan] = React.useState(initialData.actionPlan || "")
   const [internalNotes, setInternalNotes] = React.useState(initialData.internalNotes || "")
@@ -99,7 +102,7 @@ export function ClinicalReportForm({
   const [manualStartTime, setManualStartTime] = React.useState<string>(() => {
     if (initialData.timerStartedAt) {
       return new Date(initialData.timerStartedAt)
-        .toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })
+        .toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta" })
         .replace(".", ":")
     }
     return defaultTimes.start
@@ -108,7 +111,7 @@ export function ClinicalReportForm({
   const [manualEndTime, setManualEndTime] = React.useState<string>(() => {
     if (initialData.timerStoppedAt) {
       return new Date(initialData.timerStoppedAt)
-        .toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })
+        .toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Jakarta" })
         .replace(".", ":")
     }
     return defaultTimes.end
@@ -125,6 +128,15 @@ export function ClinicalReportForm({
     if (diff <= 0) diff += 24 * 60
     return diff
   }, [hasRecordedTimer, initialData.actualDurationMinutes, manualStartTime, manualEndTime])
+
+  const overtime = initialData.overtime
+  const [overtimeBlockCount, setOvertimeBlockCount] = React.useState<number>(overtime?.blocks ?? 0)
+  const overtimeLocked =
+    overtime?.paymentStatus === "PENDING" || overtime?.paymentStatus === "PAID"
+  const overtimeBill = overtime ? overtimeCharge(overtimeBlockCount, overtime.ratePer30Min) : 0
+  const overtimeCounselorHonor = overtime
+    ? overtimeHonor(overtimeBlockCount, overtime.ratePer30Min, overtime.payoutPercent)
+    : 0
 
   const [uploading, setUploading] = React.useState(false)
   const [uploadError, setUploadError] = React.useState<string | null>(null)
@@ -249,6 +261,7 @@ export function ClinicalReportForm({
         actualDurationMinutes: calculatedDurationMinutes,
         timerStartedAt: submitTimerStartedAt || undefined,
         timerStoppedAt: submitTimerStoppedAt || undefined,
+        overtimeBlocks: overtime ? overtimeBlockCount : undefined,
       })
 
       if (res.success && res.data) {
@@ -308,8 +321,8 @@ export function ClinicalReportForm({
       )}
 
       {/* Patient & Session Context Card */}
-      <Card className="border border-border/80 shadow-xs bg-muted/20">
-        <CardContent className="p-4 sm:p-5 flex flex-col gap-4">
+      <Card>
+        <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-base shrink-0">
@@ -374,8 +387,8 @@ export function ClinicalReportForm({
 
       {/* Main Report Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <Card className="border border-border/80 shadow-xs">
-          <CardHeader className="pb-4 border-b border-border/60">
+        <Card>
+          <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -408,7 +421,7 @@ export function ClinicalReportForm({
             </div>
           </CardHeader>
 
-          <CardContent className="pt-6">
+          <CardContent>
             <FieldGroup className="flex flex-col gap-6">
               {/* Field 0: Status Kehadiran Sesi (Attendance Status) */}
               <div className="flex flex-col gap-2.5 p-4 rounded-xl border border-border/80 bg-muted/20">
@@ -425,7 +438,7 @@ export function ClinicalReportForm({
                     type="button"
                     onClick={() => setAttendanceStatus("attended")}
                     className={cn(
-                      "p-3 rounded-lg border text-left flex items-start gap-2.5 transition-all cursor-pointer",
+                      "p-3 rounded-lg border text-left flex items-start gap-2.5 transition-colors cursor-pointer",
                       attendanceStatus === "attended"
                         ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
                         : "border-border bg-card text-muted-foreground hover:bg-muted/40"
@@ -455,7 +468,7 @@ export function ClinicalReportForm({
                       }
                     }}
                     className={cn(
-                      "p-3 rounded-lg border text-left flex items-start gap-2.5 transition-all cursor-pointer",
+                      "p-3 rounded-lg border text-left flex items-start gap-2.5 transition-colors cursor-pointer",
                       attendanceStatus === "no_show"
                         ? "border-amber-500 bg-amber-500/10 text-foreground ring-1 ring-amber-500/30"
                         : "border-border bg-card text-muted-foreground hover:bg-muted/40"
@@ -501,8 +514,8 @@ export function ClinicalReportForm({
                           ? new Date(initialData.timerStartedAt).toLocaleTimeString("id-ID", {
                               hour: "2-digit",
                               minute: "2-digit",
-                              hour12: false,
-                            }) + " WIB"
+                              hour12: false, timeZone: "Asia/Jakarta"
+}) + " WIB"
                           : "-"}
                       </span>
                     </div>
@@ -513,8 +526,8 @@ export function ClinicalReportForm({
                           ? new Date(initialData.timerStoppedAt).toLocaleTimeString("id-ID", {
                               hour: "2-digit",
                               minute: "2-digit",
-                              hour12: false,
-                            }) + " WIB"
+                              hour12: false, timeZone: "Asia/Jakarta"
+}) + " WIB"
                           : "-"}
                       </span>
                     </div>
@@ -582,6 +595,77 @@ export function ClinicalReportForm({
                   {!isDurationValid && (
                     <span className="text-[11px] text-destructive font-medium">
                       Durasi sesi tidak valid (minimal 15 menit, maksimal 180 menit).
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Perpanjangan Sesi: dicatat otomatis oleh Timer Melayang, dapat dikoreksi di sini */}
+              {overtime && (
+                <div
+                  className="flex flex-col gap-3 p-4 rounded-xl border border-border/80 bg-muted/20"
+                  data-testid="overtime-correction"
+                >
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-xs font-semibold text-foreground">
+                      Perpanjangan Sesi (blok 30 menit)
+                    </span>
+                    <Badge variant="outline" className="text-[11px] font-medium">
+                      {overtime.paymentStatus === "PAID"
+                        ? "Tagihan Lunas"
+                        : overtime.paymentStatus === "PENDING"
+                          ? "Menunggu Verifikasi Pembayaran"
+                          : "Belum Ditagih"}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Blok dicatat otomatis begitu sesi melewati menit 95. Koreksi bila hitungan timer tidak sesuai
+                    (maksimal {MAX_OVERTIME_BLOCKS} blok, batas sesi 120 menit). Tagihan klien memakai tarif overtime Layanan.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <Field>
+                      <FieldLabel htmlFor="overtime-blocks" className="text-xs font-medium">
+                        Jumlah Blok
+                      </FieldLabel>
+                      <Input
+                        id="overtime-blocks"
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={MAX_OVERTIME_BLOCKS}
+                        step={1}
+                        value={overtimeBlockCount}
+                        disabled={overtimeLocked}
+                        onChange={(e) => {
+                          const n = Math.trunc(Number(e.target.value))
+                          setOvertimeBlockCount(
+                            Number.isFinite(n) ? Math.min(Math.max(n, 0), MAX_OVERTIME_BLOCKS) : 0
+                          )
+                        }}
+                        className="h-9 font-mono text-xs"
+                      />
+                    </Field>
+                    <div className="flex flex-col p-2.5 rounded-lg bg-background border border-border/70">
+                      <span className="text-[11px] text-muted-foreground">Tagihan ke Klien</span>
+                      <span className="text-sm font-bold font-mono" data-testid="overtime-bill">
+                        {formatRupiah(overtimeBill)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col p-2.5 rounded-lg bg-background border border-border/70">
+                      <span className="text-[11px] text-muted-foreground">Honor Overtime Anda</span>
+                      <span className="text-sm font-bold font-mono" data-testid="overtime-honor">
+                        {formatRupiah(overtimeCounselorHonor)}
+                      </span>
+                    </div>
+                  </div>
+                  {overtimeLocked && (
+                    <span className="text-[11px] text-muted-foreground">
+                      Tagihan sudah diproses klien sehingga blok tidak dapat diubah. Hubungi Admin bila ada kekeliruan.
+                    </span>
+                  )}
+                  {overtimeBill > 0 && !overtimeLocked && (
+                    <span className="text-[11px] text-muted-foreground">
+                      Laporan klien terkunci sampai tagihan perpanjangan lunas.
                     </span>
                   )}
                 </div>
@@ -905,7 +989,7 @@ export function ClinicalReportForm({
             </FieldGroup>
           </CardContent>
 
-          <CardFooter className="flex items-center justify-between gap-3 pt-6 border-t border-border/60">
+          <CardFooter className="flex items-center justify-between gap-3">
             {isModal && onCancel ? (
               <Button
                 type="button"

@@ -4,6 +4,8 @@ import { indonesianPhoneRegex } from "./booking"
 export const adminManualBookingSchema = z
   .object({
     counselorId: z.string().min(1, "Pilih mitra konselor yang valid"),
+    // Opsional bila konselor hanya menawarkan satu Layanan; wajib bila lebih dari satu.
+    serviceId: z.string().min(1, "Layanan tidak valid").optional().nullable(),
     scheduleMode: z.enum(["existing", "adhoc"], {
       message: "Pilih opsi jadwal (slot tersedia atau jadwal ad-hoc)",
     }),

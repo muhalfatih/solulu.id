@@ -1,4 +1,5 @@
 import { getAppBaseUrl } from "@/lib/url"
+import { getResendConfig, type IntegrationEnv, type ResendConfig } from "@/lib/config/integrations"
 
 export interface PatientEmailPayload {
   patientEmail: string
@@ -20,6 +21,29 @@ export interface CounselorEmailPayload {
 
 export interface EmailSenderOptions {
   fetchFn?: typeof fetch
+  env?: IntegrationEnv
+}
+
+export interface EmailSendResult {
+  success: boolean
+  id?: string
+  error?: string
+}
+
+/**
+ * Resolves Resend configuration. A missing or placeholder key is reported as a
+ * failed send naming the variable, never as a pretend success.
+ */
+export function resolveResend(
+  options: EmailSenderOptions
+): { config: ResendConfig; failure?: undefined } | { config?: undefined; failure: EmailSendResult } {
+  try {
+    return { config: getResendConfig(options.env) }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Konfigurasi Resend tidak valid."
+    console.error("[EMAIL] Pengiriman dibatalkan:", message)
+    return { failure: { success: false, error: message } }
+  }
 }
 
 /**
@@ -28,19 +52,13 @@ export interface EmailSenderOptions {
 export async function sendPatientConfirmationEmail(
   payload: PatientEmailPayload,
   options: EmailSenderOptions = {}
-): Promise<{ success: boolean; id?: string }> {
+): Promise<EmailSendResult> {
   const fetchFn = options.fetchFn ?? fetch
-  const apiKey = process.env.RESEND_API_KEY
+  const resend = resolveResend(options)
+  if (resend.failure) return resend.failure
+  const { apiKey, fromEmail } = resend.config
   const appBaseUrl = getAppBaseUrl()
   const sessionUrl = `${appBaseUrl}/session/${payload.accessToken}`
-
-  if ((!apiKey || apiKey === "mock" || process.env.NODE_ENV === "test") && !options.fetchFn) {
-    // In dev / test mode, log email details
-    console.log(
-      `[DEV EMAIL: PATIENT] To: ${payload.patientEmail} | Session: ${sessionUrl}`
-    )
-    return { success: true, id: "mock_patient_email_id" }
-  }
 
   const response = await fetchFn("https://api.resend.com/emails", {
     method: "POST",
@@ -49,7 +67,7 @@ export async function sendPatientConfirmationEmail(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: process.env.RESEND_FROM_EMAIL || "Solulu Support <halo@solulu.id>",
+      from: fromEmail,
       to: [payload.patientEmail],
       subject: `Konfirmasi Sesi Konseling: ${payload.counselorName} - Solulu`,
       html: `
@@ -85,7 +103,7 @@ export async function sendPatientConfirmationEmail(
   if (!response.ok) {
     const errorText = await response.text()
     console.error("Resend API error (patient):", errorText)
-    return { success: false }
+    return { success: false, error: `Resend menolak permintaan: ${errorText}` }
   }
 
   const data = await response.json()
@@ -98,17 +116,12 @@ export async function sendPatientConfirmationEmail(
 export async function sendCounselorNotificationEmail(
   payload: CounselorEmailPayload,
   options: EmailSenderOptions = {}
-): Promise<{ success: boolean; id?: string }> {
+): Promise<EmailSendResult> {
   const fetchFn = options.fetchFn ?? fetch
-  const apiKey = process.env.RESEND_API_KEY
+  const resend = resolveResend(options)
+  if (resend.failure) return resend.failure
+  const { apiKey, fromEmail } = resend.config
   const appBaseUrl = getAppBaseUrl()
-
-  if ((!apiKey || apiKey === "mock" || process.env.NODE_ENV === "test") && !options.fetchFn) {
-    console.log(
-      `[DEV EMAIL: COUNSELOR] To: ${payload.counselorEmail} | Patient: ${payload.patientName}`
-    )
-    return { success: true, id: "mock_counselor_email_id" }
-  }
 
   const response = await fetchFn("https://api.resend.com/emails", {
     method: "POST",
@@ -117,7 +130,7 @@ export async function sendCounselorNotificationEmail(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: process.env.RESEND_FROM_EMAIL || "Solulu Support <halo@solulu.id>",
+      from: fromEmail,
       to: [payload.counselorEmail],
       subject: `Sesi Baru Terkonfirmasi: ${payload.patientName} - Solulu`,
       html: `
@@ -155,7 +168,7 @@ export async function sendCounselorNotificationEmail(
   if (!response.ok) {
     const errorText = await response.text()
     console.error("Resend API error (counselor):", errorText)
-    return { success: false }
+    return { success: false, error: `Resend menolak permintaan: ${errorText}` }
   }
 
   const data = await response.json()
@@ -175,18 +188,13 @@ export interface CounselorWelcomeEmailPayload {
 export async function sendCounselorWelcomeCredentialsEmail(
   payload: CounselorWelcomeEmailPayload,
   options: EmailSenderOptions = {}
-): Promise<{ success: boolean; id?: string }> {
+): Promise<EmailSendResult> {
   const fetchFn = options.fetchFn ?? fetch
-  const apiKey = process.env.RESEND_API_KEY
+  const resend = resolveResend(options)
+  if (resend.failure) return resend.failure
+  const { apiKey, fromEmail } = resend.config
   const appBaseUrl = getAppBaseUrl()
   const loginUrl = `${appBaseUrl}/login`
-
-  if ((!apiKey || apiKey === "mock" || process.env.NODE_ENV === "test") && !options.fetchFn) {
-    console.log(
-      `[DEV EMAIL: COUNSELOR WELCOME] To: ${payload.counselorEmail} | Pass: ${payload.temporaryPassword} | Login: ${loginUrl}`
-    )
-    return { success: true, id: "mock_counselor_welcome_id" }
-  }
 
   const roleTitle = payload.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"
 
@@ -197,7 +205,7 @@ export async function sendCounselorWelcomeCredentialsEmail(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: process.env.RESEND_FROM_EMAIL || "Solulu Support <halo@solulu.id>",
+      from: fromEmail,
       to: [payload.counselorEmail],
       subject: `Selamat Bergabung Mitra ${roleTitle} Solulu - Kredensial Login Akun`,
       html: `
@@ -234,7 +242,7 @@ export async function sendCounselorWelcomeCredentialsEmail(
   if (!response.ok) {
     const errorText = await response.text()
     console.error("Resend API error (counselor welcome):", errorText)
-    return { success: false }
+    return { success: false, error: `Resend menolak permintaan: ${errorText}` }
   }
 
   const data = (await response.json()) as { id: string }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { PublicButton as Button } from "@/components/public/public-button"
 import { ShieldAlert, ArrowLeft, LogIn } from "lucide-react";
 
 export default function UnauthorizedPage() {

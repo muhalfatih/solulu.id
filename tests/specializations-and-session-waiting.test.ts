@@ -24,13 +24,13 @@ describe("Revision Features: R2 Domain, Specializations, and Payment Waiting Roo
     const adminUser = {
       id: "admin-uuid",
       email: "admin@solulu.id",
-      user_metadata: { role: "admin" },
+      app_metadata: { role: "admin" },
     }
 
     const nonAdminUser = {
       id: "user-uuid",
       email: "counselor@solulu.id",
-      user_metadata: { role: "counselor" },
+      app_metadata: { role: "counselor" },
     }
 
     it("rejects non-admin access for creating specializations", async () => {

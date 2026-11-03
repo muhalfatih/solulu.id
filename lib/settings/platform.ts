@@ -1,8 +1,9 @@
 import { eq, sql } from "drizzle-orm"
 import { db } from "@/db"
 import { platformSettings } from "@/db/schema"
-import { cookies } from "next/headers"
-import { createClient } from "@/lib/supabase/server"
+import { requireStaffUser } from "@/lib/auth/staff"
+import { SUPERADMIN_ONLY } from "@/lib/auth/staff-role"
+import { AuditWriteError, recordAudit } from "@/lib/audit/record"
 
 export interface PlatformSettingsData {
   id?: string
@@ -10,12 +11,11 @@ export interface PlatformSettingsData {
   bookingCutoffHours: number
   rescheduleCutoffHours: number
   paymentHoldMinutes: number
+  bookingCepatHoldMinutes: number
   maxSlotQuota: number
   minCounselorWeeklySlots: number
   noShowTimeoutMinutes: number
   basePrice: number | string
-  counselorExtendFeePer30Min: number | string
-  psychologistExtendFeePer30Min: number | string
   isManualPaymentEnabled: boolean
   manualPaymentInstructions: string
   updatedAt?: Date | string
@@ -27,12 +27,11 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettingsData = {
   bookingCutoffHours: 4,
   rescheduleCutoffHours: 4,
   paymentHoldMinutes: 15,
+  bookingCepatHoldMinutes: 60,
   maxSlotQuota: 10,
   minCounselorWeeklySlots: 10,
   noShowTimeoutMinutes: 30,
   basePrice: 150000,
-  counselorExtendFeePer30Min: 35000,
-  psychologistExtendFeePer30Min: 50000,
   isManualPaymentEnabled: true,
   manualPaymentInstructions:
     "Transfer ke Rekening BCA: 123-456-7890 a.n. Solulu Mental Health. Sertakan Kode Booking pada berita transfer.",
@@ -54,6 +53,7 @@ async function ensureSettingsTable(): Promise<void> {
         booking_cutoff_hours integer NOT NULL DEFAULT 4,
         reschedule_cutoff_hours integer NOT NULL DEFAULT 4,
         payment_hold_minutes integer NOT NULL DEFAULT 15,
+        booking_cepat_hold_minutes integer NOT NULL DEFAULT 60,
         max_slot_quota integer NOT NULL DEFAULT 10,
         min_counselor_weekly_slots integer NOT NULL DEFAULT 10,
         no_show_timeout_minutes integer NOT NULL DEFAULT 30,
@@ -98,12 +98,12 @@ export async function getPlatformSettings(): Promise<PlatformSettingsData> {
         bookingCutoffHours: row.bookingCutoffHours ?? DEFAULT_PLATFORM_SETTINGS.bookingCutoffHours,
         rescheduleCutoffHours: row.rescheduleCutoffHours ?? DEFAULT_PLATFORM_SETTINGS.rescheduleCutoffHours,
         paymentHoldMinutes: row.paymentHoldMinutes ?? DEFAULT_PLATFORM_SETTINGS.paymentHoldMinutes,
+        bookingCepatHoldMinutes:
+          row.bookingCepatHoldMinutes ?? DEFAULT_PLATFORM_SETTINGS.bookingCepatHoldMinutes,
         maxSlotQuota: row.maxSlotQuota ?? DEFAULT_PLATFORM_SETTINGS.maxSlotQuota,
         minCounselorWeeklySlots: row.minCounselorWeeklySlots ?? DEFAULT_PLATFORM_SETTINGS.minCounselorWeeklySlots,
         noShowTimeoutMinutes: row.noShowTimeoutMinutes ?? DEFAULT_PLATFORM_SETTINGS.noShowTimeoutMinutes,
         basePrice: row.basePrice ? String(Number(row.basePrice)) : String(DEFAULT_PLATFORM_SETTINGS.basePrice),
-        counselorExtendFeePer30Min: row.counselorExtendFeePer30Min ? String(Number(row.counselorExtendFeePer30Min)) : String(DEFAULT_PLATFORM_SETTINGS.counselorExtendFeePer30Min),
-        psychologistExtendFeePer30Min: row.psychologistExtendFeePer30Min ? String(Number(row.psychologistExtendFeePer30Min)) : String(DEFAULT_PLATFORM_SETTINGS.psychologistExtendFeePer30Min),
         isManualPaymentEnabled: Boolean(row.isManualPaymentEnabled),
         manualPaymentInstructions: row.manualPaymentInstructions ?? DEFAULT_PLATFORM_SETTINGS.manualPaymentInstructions,
         updatedAt: row.updatedAt,
@@ -118,12 +118,11 @@ export async function getPlatformSettings(): Promise<PlatformSettingsData> {
           bookingCutoffHours: DEFAULT_PLATFORM_SETTINGS.bookingCutoffHours,
           rescheduleCutoffHours: DEFAULT_PLATFORM_SETTINGS.rescheduleCutoffHours,
           paymentHoldMinutes: DEFAULT_PLATFORM_SETTINGS.paymentHoldMinutes,
+          bookingCepatHoldMinutes: DEFAULT_PLATFORM_SETTINGS.bookingCepatHoldMinutes,
           maxSlotQuota: DEFAULT_PLATFORM_SETTINGS.maxSlotQuota,
           minCounselorWeeklySlots: DEFAULT_PLATFORM_SETTINGS.minCounselorWeeklySlots,
           noShowTimeoutMinutes: DEFAULT_PLATFORM_SETTINGS.noShowTimeoutMinutes,
           basePrice: String(DEFAULT_PLATFORM_SETTINGS.basePrice),
-          counselorExtendFeePer30Min: String(DEFAULT_PLATFORM_SETTINGS.counselorExtendFeePer30Min),
-          psychologistExtendFeePer30Min: String(DEFAULT_PLATFORM_SETTINGS.psychologistExtendFeePer30Min),
           isManualPaymentEnabled: DEFAULT_PLATFORM_SETTINGS.isManualPaymentEnabled,
           manualPaymentInstructions: DEFAULT_PLATFORM_SETTINGS.manualPaymentInstructions,
           updatedAt: new Date(),
@@ -152,30 +151,7 @@ export interface UpdatePlatformSettingsOptions {
 async function verifySuperadminPermission(
   customUser?: AuthContext | null
 ): Promise<boolean> {
-  if (customUser !== undefined) {
-    if (!customUser) return false
-    const role = customUser.app_metadata?.role || customUser.user_metadata?.role
-    return role === "superadmin"
-  }
-
-  try {
-    const cookieStore = await cookies()
-    const demoRole = cookieStore.get("solulu_demo_role")?.value
-    if (demoRole === "superadmin") {
-      return true
-    }
-
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return false
-    const role = user.app_metadata?.role || user.user_metadata?.role
-    return role === "superadmin"
-  } catch {
-    return false
-  }
+  return (await requireStaffUser(customUser, SUPERADMIN_ONLY)) !== null
 }
 
 /**
@@ -204,6 +180,12 @@ export async function updatePlatformSettings(
   if (data.paymentHoldMinutes !== undefined && (data.paymentHoldMinutes < 5 || data.paymentHoldMinutes > 60)) {
     throw new Error("Durasi kunci jadwal pembayaran harus antara 5 hingga 60 menit.")
   }
+  if (
+    data.bookingCepatHoldMinutes !== undefined &&
+    (data.bookingCepatHoldMinutes < 15 || data.bookingCepatHoldMinutes > 240)
+  ) {
+    throw new Error("Durasi hold Booking Cepat harus antara 15 hingga 240 menit.")
+  }
   if (data.maxSlotQuota !== undefined && (data.maxSlotQuota < 1 || data.maxSlotQuota > 50)) {
     throw new Error("Kuota maksimal per slot harus antara 1 hingga 50 sesi.")
   }
@@ -212,12 +194,6 @@ export async function updatePlatformSettings(
   }
   if (data.minCounselorWeeklySlots !== undefined && (data.minCounselorWeeklySlots < 1 || data.minCounselorWeeklySlots > 50)) {
     throw new Error("Target minimal sesi mingguan konselor harus antara 1 hingga 50 sesi.")
-  }
-  if (data.counselorExtendFeePer30Min !== undefined && Number(data.counselorExtendFeePer30Min) < 0) {
-    throw new Error("Tarif perpanjangan konselor sebaya tidak boleh negatif.")
-  }
-  if (data.psychologistExtendFeePer30Min !== undefined && Number(data.psychologistExtendFeePer30Min) < 0) {
-    throw new Error("Tarif perpanjangan psikolog klinis tidak boleh negatif.")
   }
 
   try {
@@ -229,51 +205,72 @@ export async function updatePlatformSettings(
     const newBookingCutoff = data.bookingCutoffHours !== undefined ? data.bookingCutoffHours : current.bookingCutoffHours
     const newRescheduleCutoff = data.rescheduleCutoffHours !== undefined ? data.rescheduleCutoffHours : current.rescheduleCutoffHours
     const newHoldMinutes = data.paymentHoldMinutes !== undefined ? data.paymentHoldMinutes : current.paymentHoldMinutes
+    const newCepatHold = data.bookingCepatHoldMinutes !== undefined ? data.bookingCepatHoldMinutes : current.bookingCepatHoldMinutes
     const newMaxQuota = data.maxSlotQuota !== undefined ? data.maxSlotQuota : current.maxSlotQuota
     const newWeeklyTarget = data.minCounselorWeeklySlots !== undefined ? data.minCounselorWeeklySlots : current.minCounselorWeeklySlots
     const newNoShowTimeout = data.noShowTimeoutMinutes !== undefined ? data.noShowTimeoutMinutes : current.noShowTimeoutMinutes
     const newBasePrice = data.basePrice !== undefined ? String(data.basePrice) : String(current.basePrice)
-    const newCounselorExtend = data.counselorExtendFeePer30Min !== undefined ? String(data.counselorExtendFeePer30Min) : String(current.counselorExtendFeePer30Min)
-    const newPsychologistExtend = data.psychologistExtendFeePer30Min !== undefined ? String(data.psychologistExtendFeePer30Min) : String(current.psychologistExtendFeePer30Min)
     const newManualEnabled = data.isManualPaymentEnabled !== undefined ? data.isManualPaymentEnabled : current.isManualPaymentEnabled
     const newManualInstructions = data.manualPaymentInstructions !== undefined ? data.manualPaymentInstructions : current.manualPaymentInstructions
 
-    await db
-      .insert(platformSettings)
-      .values({
-        id: "default",
-        isScreeningRequired: newRequired,
-        bookingCutoffHours: newBookingCutoff,
-        rescheduleCutoffHours: newRescheduleCutoff,
-        paymentHoldMinutes: newHoldMinutes,
-        maxSlotQuota: newMaxQuota,
-        minCounselorWeeklySlots: newWeeklyTarget,
-        noShowTimeoutMinutes: newNoShowTimeout,
-        basePrice: newBasePrice,
-        counselorExtendFeePer30Min: newCounselorExtend,
-        psychologistExtendFeePer30Min: newPsychologistExtend,
-        isManualPaymentEnabled: newManualEnabled,
-        manualPaymentInstructions: newManualInstructions,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: platformSettings.id,
-        set: {
+    // Perubahan pengaturan + Jejak Audit commit/rollback bersama (#24).
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(platformSettings)
+        .values({
+          id: "default",
           isScreeningRequired: newRequired,
           bookingCutoffHours: newBookingCutoff,
           rescheduleCutoffHours: newRescheduleCutoff,
           paymentHoldMinutes: newHoldMinutes,
+          bookingCepatHoldMinutes: newCepatHold,
           maxSlotQuota: newMaxQuota,
           minCounselorWeeklySlots: newWeeklyTarget,
           noShowTimeoutMinutes: newNoShowTimeout,
           basePrice: newBasePrice,
-          counselorExtendFeePer30Min: newCounselorExtend,
-          psychologistExtendFeePer30Min: newPsychologistExtend,
           isManualPaymentEnabled: newManualEnabled,
           manualPaymentInstructions: newManualInstructions,
           updatedAt: new Date(),
+        })
+        .onConflictDoUpdate({
+          target: platformSettings.id,
+          set: {
+            isScreeningRequired: newRequired,
+            bookingCutoffHours: newBookingCutoff,
+            rescheduleCutoffHours: newRescheduleCutoff,
+            paymentHoldMinutes: newHoldMinutes,
+            bookingCepatHoldMinutes: newCepatHold,
+            maxSlotQuota: newMaxQuota,
+            minCounselorWeeklySlots: newWeeklyTarget,
+            noShowTimeoutMinutes: newNoShowTimeout,
+            basePrice: newBasePrice,
+            isManualPaymentEnabled: newManualEnabled,
+            manualPaymentInstructions: newManualInstructions,
+            updatedAt: new Date(),
+          },
+        })
+      await recordAudit(tx, {
+        actor: options.currentUser,
+        action: "settings.update",
+        entityType: "platform_settings",
+        entityId: "default",
+        before: current,
+        after: {
+          ...current,
+          isScreeningRequired: newRequired,
+          bookingCutoffHours: newBookingCutoff,
+          rescheduleCutoffHours: newRescheduleCutoff,
+          paymentHoldMinutes: newHoldMinutes,
+          bookingCepatHoldMinutes: newCepatHold,
+          maxSlotQuota: newMaxQuota,
+          minCounselorWeeklySlots: newWeeklyTarget,
+          noShowTimeoutMinutes: newNoShowTimeout,
+          basePrice: newBasePrice,
+          isManualPaymentEnabled: newManualEnabled,
+          manualPaymentInstructions: newManualInstructions,
         },
       })
+    })
 
     cachedSettings = {
       id: "default",
@@ -281,17 +278,17 @@ export async function updatePlatformSettings(
       bookingCutoffHours: newBookingCutoff,
       rescheduleCutoffHours: newRescheduleCutoff,
       paymentHoldMinutes: newHoldMinutes,
+      bookingCepatHoldMinutes: newCepatHold,
       maxSlotQuota: newMaxQuota,
       minCounselorWeeklySlots: newWeeklyTarget,
       noShowTimeoutMinutes: newNoShowTimeout,
       basePrice: newBasePrice,
-      counselorExtendFeePer30Min: newCounselorExtend,
-      psychologistExtendFeePer30Min: newPsychologistExtend,
       isManualPaymentEnabled: newManualEnabled,
       manualPaymentInstructions: newManualInstructions,
       updatedAt: new Date(),
     }
   } catch (error: any) {
+    if (error instanceof AuditWriteError) throw error
     if (error?.message?.includes("Akses ditolak") || error?.message?.includes("harus antara") || error?.message?.includes("tidak boleh")) {
       throw error
     }

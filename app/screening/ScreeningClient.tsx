@@ -16,9 +16,9 @@ import {
   ShieldCheck,
   Stethoscope,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PublicButton } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/public/public-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { EmergencyHotlineBanner } from "@/components/screening/EmergencyHotlineBanner";
 import {
@@ -27,7 +27,7 @@ import {
 } from "@/lib/screening/srq20";
 import { submitScreeningAction } from "./actions";
 import { formatRupiah } from "@/lib/utils";
-import type { PlatformPricingData } from "@/lib/pricing/platform-pricing";
+import type { ServicePricingView } from "@/lib/services/pricing";
 
 interface ScreeningClientProps {
   initialCounselorId?: string;
@@ -39,7 +39,7 @@ interface ScreeningClientProps {
     recommendedType: "peer" | "psychologist";
     evaluation: SRQ20EvaluationResult;
   } | null;
-  pricing?: PlatformPricingData | null;
+  pricing?: { peer: ServicePricingView | null; psychologist: ServicePricingView | null } | null;
 }
 
 export function ScreeningClient({
@@ -50,21 +50,13 @@ export function ScreeningClient({
 }: ScreeningClientProps) {
   const router = useRouter();
 
-  const psychologistDisplayPrice = React.useMemo(() => {
-    if (!pricing?.psychologist) return "Mulai Rp 129.000";
-    const p = pricing.psychologist;
-    const isSale = p.isSaleActive && p.promoPrice && p.promoPrice < p.basePrice;
-    const price = isSale && p.promoPrice ? p.promoPrice : p.basePrice;
-    return `Mulai ${formatRupiah(price)}`;
-  }, [pricing]);
-
-  const peerDisplayPrice = React.useMemo(() => {
-    if (!pricing?.peer) return "Mulai Rp 49.000";
-    const p = pricing.peer;
-    const isSale = p.isSaleActive && p.promoPrice && p.promoPrice < p.basePrice;
-    const price = isSale && p.promoPrice ? p.promoPrice : p.basePrice;
-    return `Mulai ${formatRupiah(price)}`;
-  }, [pricing]);
+  // "Mulai dari" per Tipe Konselor dari Layanan aktif; tanpa Layanan, tidak ada harga yang ditampilkan.
+  const psychologistDisplayPrice = pricing?.psychologist
+    ? `Mulai ${pricing.psychologist.activePriceFormatted}`
+    : "Harga segera hadir";
+  const peerDisplayPrice = pricing?.peer
+    ? `Mulai ${pricing.peer.activePriceFormatted}`
+    : "Harga segera hadir";
 
   // State: Answers for 20 questions (true = Ya, false = Tidak, null = Belum dijawab)
   const [answers, setAnswers] = React.useState<(boolean | null)[]>(
@@ -177,12 +169,12 @@ export function ScreeningClient({
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button asChild variant="ghost" size="sm" className="text-xs h-8">
+            <PublicButton asChild variant="ghost" size="sm" className="text-xs h-8">
               <Link href="/counselors">
                 <ArrowLeft className="size-3.5" data-icon="inline-start" />
                 <span>Katalog Konselor</span>
               </Link>
-            </Button>
+            </PublicButton>
             <ThemeToggle />
           </div>
         </div>
@@ -347,7 +339,7 @@ export function ScreeningClient({
 
                 {/* Primary Action Buttons */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border">
-                  <Button
+                  <PublicButton
                     variant="public-secondary"
                     size="pill-sm"
                     onClick={handleReset}
@@ -355,11 +347,11 @@ export function ScreeningClient({
                   >
                     <RotateCcw className="size-3.5" data-icon="inline-start" />
                     <span>Ulangi Skrining</span>
-                  </Button>
+                  </PublicButton>
 
                   <div className="flex items-center gap-2.5 w-full sm:w-auto">
                     {initialCounselorId && initialScheduleId ? (
-                      <Button
+                      <PublicButton
                         asChild
                         variant="public"
                         size="pill"
@@ -371,9 +363,9 @@ export function ScreeningClient({
                           <span>Lanjut ke Formulir Pemesanan</span>
                           <ArrowRight className="size-4" data-icon="inline-end" />
                         </Link>
-                      </Button>
+                      </PublicButton>
                     ) : (
-                      <Button
+                      <PublicButton
                         asChild
                         variant="public"
                         size="pill"
@@ -385,7 +377,7 @@ export function ScreeningClient({
                           <span>Pilih Mitra Konselor yang Tersedia</span>
                           <ArrowRight className="size-4" data-icon="inline-end" />
                         </Link>
-                      </Button>
+                      </PublicButton>
                     )}
                   </div>
                 </div>
@@ -552,7 +544,7 @@ export function ScreeningClient({
 
                       {/* Yes / No Toggle Buttons */}
                       <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                        <Button
+                        <PublicButton
                           type="button"
                           variant={currentValue === true ? "default" : "outline"}
                           size="sm"
@@ -566,8 +558,8 @@ export function ScreeningClient({
                           }`}
                         >
                           Ya
-                        </Button>
-                        <Button
+                        </PublicButton>
+                        <PublicButton
                           type="button"
                           variant={currentValue === false ? "secondary" : "outline"}
                           size="sm"
@@ -579,7 +571,7 @@ export function ScreeningClient({
                           }`}
                         >
                           Tidak
-                        </Button>
+                        </PublicButton>
                       </div>
                     </div>
                   </div>
@@ -614,7 +606,7 @@ export function ScreeningClient({
               </div>
 
               <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                <Button
+                <PublicButton
                   type="button"
                   variant="public-secondary"
                   size="pill-sm"
@@ -622,8 +614,8 @@ export function ScreeningClient({
                   className="w-full sm:w-auto"
                 >
                   Reset
-                </Button>
-                <Button
+                </PublicButton>
+                <PublicButton
                   type="button"
                   variant="public"
                   size="pill"
@@ -633,7 +625,7 @@ export function ScreeningClient({
                 >
                   <span>{isSubmitting ? "Mengevaluasi..." : "Lihat Hasil Skrining"}</span>
                   <ArrowRight className="size-3.5" data-icon="inline-end" />
-                </Button>
+                </PublicButton>
               </div>
             </div>
           </div>

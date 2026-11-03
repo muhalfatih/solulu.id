@@ -1,10 +1,17 @@
 "use server"
 
-import { cookies } from "next/headers"
 import { revalidatePath } from "next/cache"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { createClient } from "@/lib/supabase/server"
-import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, type AdminAuthContext } from "@/lib/auth/admin"
+import { getStaffRole } from "@/lib/auth/staff-role"
+
+type UpdateAuthUserFn = (
+  userId: string,
+  attributes: { password?: string; user_metadata?: Record<string, unknown> }
+) => Promise<{ error: { message: string } | null }>
+
+const defaultUpdateAuthUser: UpdateAuthUserFn = (userId, attributes) =>
+  createAdminClient().auth.admin.updateUserById(userId, attributes)
 
 export interface AdminProfileView {
   id: string
@@ -34,12 +41,12 @@ export async function getAdminProfileDataAction(options?: {
     return { success: false, error: "Akses ditolak: Diperlukan role Admin atau Superadmin." }
   }
 
-  const role = (admin.app_metadata?.role || admin.user_metadata?.role || "admin") as "admin" | "superadmin"
-  const email = (admin.user_metadata?.email || (admin as any).email || (role === "superadmin" ? "superadmin@solulu.id" : "admin@solulu.id")) as string
-  const phone = (admin.user_metadata?.phone || "0812-3456-7890") as string
-  const notifyUrgent = admin.user_metadata?.notifyUrgent ?? true
-  const notifyCounselor = admin.user_metadata?.notifyCounselor ?? true
-  const notifySession = admin.user_metadata?.notifySession ?? true
+  const role = (getStaffRole(admin) === "superadmin" ? "superadmin" : "admin") as "admin" | "superadmin"
+  const email = admin.email ?? ""
+  const phone = (admin.user_metadata?.phone || "") as string
+  const notifyUrgent = admin.user_metadata?.notifyUrgent === true
+  const notifyCounselor = admin.user_metadata?.notifyCounselor === true
+  const notifySession = admin.user_metadata?.notifySession === true
 
   return {
     success: true,
@@ -67,6 +74,7 @@ export async function updateAdminContactAction(
   },
   options?: {
     currentUser?: AdminAuthContext | null
+    updateUserFn?: UpdateAuthUserFn
   }
 ): Promise<AdminProfileActionResult<{ updated: boolean }>> {
   const admin = await getAuthenticatedAdmin(options?.currentUser)
@@ -80,22 +88,19 @@ export async function updateAdminContactAction(
   }
 
   try {
-    // If not a demo user, persist to Supabase Auth metadata
-    if (!admin.id.startsWith("demo-")) {
-      const supabaseAdmin = createAdminClient()
-      const { error } = await supabaseAdmin.auth.admin.updateUserById(admin.id, {
-        user_metadata: {
-          ...admin.user_metadata,
-          phone,
-          notifyUrgent: Boolean(input.notifyUrgent),
-          notifyCounselor: Boolean(input.notifyCounselor),
-          notifySession: Boolean(input.notifySession),
-        },
-      })
+    const updateUser = options?.updateUserFn ?? defaultUpdateAuthUser
+    const { error } = await updateUser(admin.id, {
+      user_metadata: {
+        ...admin.user_metadata,
+        phone,
+        notifyUrgent: Boolean(input.notifyUrgent),
+        notifyCounselor: Boolean(input.notifyCounselor),
+        notifySession: Boolean(input.notifySession),
+      },
+    })
 
-      if (error) {
-        return { success: false, error: `Gagal menyimpan profil: ${error.message}` }
-      }
+    if (error) {
+      return { success: false, error: `Gagal menyimpan profil: ${error.message}` }
     }
 
     try {
@@ -119,6 +124,7 @@ export async function updateAdminPasswordAction(
   newPassword: string,
   options?: {
     currentUser?: AdminAuthContext | null
+    updateUserFn?: UpdateAuthUserFn
   }
 ): Promise<AdminProfileActionResult<{ updated: boolean }>> {
   const admin = await getAuthenticatedAdmin(options?.currentUser)
@@ -132,15 +138,11 @@ export async function updateAdminPasswordAction(
   }
 
   try {
-    if (!admin.id.startsWith("demo-")) {
-      const supabaseAdmin = createAdminClient()
-      const { error } = await supabaseAdmin.auth.admin.updateUserById(admin.id, {
-        password: cleanPass,
-      })
+    const updateUser = options?.updateUserFn ?? defaultUpdateAuthUser
+    const { error } = await updateUser(admin.id, { password: cleanPass })
 
-      if (error) {
-        return { success: false, error: `Gagal memperbarui kata sandi: ${error.message}` }
-      }
+    if (error) {
+      return { success: false, error: `Gagal memperbarui kata sandi: ${error.message}` }
     }
 
     return {

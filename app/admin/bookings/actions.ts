@@ -4,8 +4,31 @@ import { revalidatePath } from "next/cache"
 import { eq, and, desc, sql, or } from "drizzle-orm"
 import { db } from "@/db"
 import { bookings, counselors, schedules, transactions, sessionReports } from "@/db/schema"
-import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, AdminAuthContext } from "@/lib/auth/admin"
+import { recordAudit } from "@/lib/audit/record"
 import { getAppBaseUrl } from "@/lib/url"
+import { mapBookingRow } from "./map-row"
+import {
+  evaluateNoShow,
+  loadNoShowBookingFacts,
+  noShowUpdate,
+  type NoShowBookingFacts,
+} from "@/lib/booking/no-show"
+import {
+  canMarkNoShow,
+  deriveStage,
+  sessionStartAt,
+  stageLabel,
+  type BookingStage,
+  type BookingStatus,
+} from "@/lib/booking-cycle"
+
+import { rescheduleByAdmin, type RescheduleDeps } from "@/lib/booking/reschedule"
+import {
+  createRescheduleDeps,
+  listRescheduleSlots,
+  type RescheduleSlotOption,
+} from "@/lib/booking/reschedule-store"
 
 function safeRevalidatePaths(...paths: string[]) {
   try {
@@ -51,12 +74,16 @@ export interface AdminBookingItem {
   zoomJoinUrl: string | null
   zoomStartUrl: string | null
   zoomHostKey: string | null
-  status: "pending_payment" | "confirmed" | "completed" | "cancelled"
+  status: BookingStatus
+  /** Tahap Booking turunan (lib/booking-cycle); satu-satunya label status yang ditampilkan. */
+  stage: BookingStage
+  stageLabel: string
+  /** True bila No-Show boleh ditandai sekarang (setelah toleransi). */
+  canMarkNoShow: boolean
   paymentMethod: string
   manualPaymentStatus: string
   isExtended: boolean
   extensionFee: number
-  isNoShow: boolean
   noShowMarkedAt: string | null
   isFollowedUp: boolean
   followedUpAt: string | null
@@ -140,7 +167,7 @@ export async function getBookingsAdminAction(
     }
 
     if (filters?.slotIndex && filters.slotIndex > 0) {
-      conditions.push(eq(schedules.slotIndex, filters.slotIndex))
+      conditions.push(sql`coalesce(${schedules.slotIndex}, ${bookings.poolSlotIndex}) = ${filters.slotIndex}`)
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined
@@ -169,68 +196,7 @@ export async function getBookingsAdminAction(
         .orderBy(counselors.fullName),
     ])
 
-    let mapped: AdminBookingItem[] = rows.map((r) => {
-      const b = r.booking
-      const c = r.counselor
-      const s = r.schedule
-      const rep = r.report
-
-      const counselorTypeLabel =
-        c?.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"
-      const dateStr = s?.date ? String(s.date) : ""
-      const timeRange = s
-        ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)}`
-        : "09:00 - 10:30"
-
-      return {
-        id: b.id,
-        bookingCode: b.bookingCode,
-        accessToken: b.accessToken,
-        patientName: b.patientName,
-        patientPhone: b.patientPhone,
-        patientEmail: b.patientEmail,
-        gender: b.gender,
-        age: b.age,
-        domicile: b.domicile,
-        initialNotes: b.initialNotes,
-        counselorId: c?.id || "",
-        counselorName: c?.fullName || "Belum Ditugaskan",
-        counselorTitle: c?.title || "",
-        counselorType: counselorTypeLabel,
-        scheduleDate: dateStr,
-        slotIndex: s?.slotIndex || 1,
-        startTime: s?.startTime ? s.startTime.slice(0, 5) : "08:00",
-        endTime: s?.endTime ? s.endTime.slice(0, 5) : "10:00",
-        timeRange,
-        zoomMeetingId: b.zoomMeetingId,
-        zoomJoinUrl: b.zoomJoinUrl,
-        zoomStartUrl: b.zoomStartUrl,
-        zoomHostKey: b.zoomHostKey,
-        status: b.status as any,
-        paymentMethod: b.paymentMethod,
-        manualPaymentStatus: b.manualPaymentStatus || "NONE",
-        isExtended: b.isExtended,
-        extensionFee: Number(b.extensionFee) || 0,
-        isNoShow: b.isNoShow,
-        noShowMarkedAt: b.noShowMarkedAt ? b.noShowMarkedAt.toISOString() : null,
-        isFollowedUp: b.isFollowedUp,
-        followedUpAt: b.followedUpAt ? b.followedUpAt.toISOString() : null,
-        hasSessionReport: Boolean(rep?.id),
-        sessionReportId: rep?.id || null,
-        reportDetails: rep?.id
-          ? {
-              id: rep.id,
-              mainIssue: rep.mainIssue || "Konsultasi Emosional & Stres",
-              summary: rep.summary || "",
-              actionPlan: rep.actionPlan || null,
-              followUpRecommendation: rep.followUpRecommendation || null,
-              actualDurationMinutes: rep.actualDurationMinutes || null,
-              createdAt: rep.createdAt ? rep.createdAt.toISOString() : b.createdAt.toISOString(),
-            }
-          : null,
-        createdAt: b.createdAt.toISOString(),
-      }
-    })
+    let mapped: AdminBookingItem[] = rows.map(mapBookingRow)
 
     // Apply reportStatus filter if specified
     if (filters?.reportStatus === "filled") {
@@ -274,14 +240,16 @@ export async function getBookingsAdminAction(
 
 /**
  * Action "Tandai No-Show":
- * Flags sessions where clients fail to arrive within 30 minutes of slot start time.
- * Mutates `is_no_show: true`, `status: 'completed'`, and records timestamp.
+ * Flags sessions where clients fail to arrive within the tolerance (default 30 minutes)
+ * of slot start time. Rule owned by lib/booking-cycle. Writes `status: 'no_show'` and timestamp.
  */
 export async function markBookingNoShowAction(
   input: { bookingId: string },
   options?: {
     currentUser?: AdminAuthContext | null
     updateFn?: (bookingId: string, values: any) => Promise<any>
+    getBookingFn?: (bookingId: string) => Promise<NoShowBookingFacts | null>
+    now?: Date
   }
 ) {
   const admin = await getAuthenticatedAdmin(options?.currentUser)
@@ -298,19 +266,34 @@ export async function markBookingNoShowAction(
   }
 
   try {
-    const updateData = {
-      isNoShow: true,
-      noShowMarkedAt: new Date(),
-      status: "completed" as const,
+    const now = options?.now ?? new Date()
+    const booking = options?.getBookingFn
+      ? await options.getBookingFn(bookingId)
+      : await loadNoShowBookingFacts(bookingId)
+    if (!booking) {
+      return { success: false, error: "Data pesanan booking tidak ditemukan." }
     }
+    const check = evaluateNoShow(booking, now)
+    if (!check.allowed) {
+      return { success: false, error: check.reason || "No-Show belum dapat ditandai." }
+    }
+
+    const updateData = noShowUpdate(now)
 
     if (options?.updateFn) {
       await options.updateFn(bookingId, updateData)
     } else {
-      await db
-        .update(bookings)
-        .set(updateData)
-        .where(eq(bookings.id, bookingId))
+      await db.transaction(async (tx) => {
+        await tx.update(bookings).set(updateData).where(eq(bookings.id, bookingId))
+        await recordAudit(tx, {
+          actor: admin,
+          action: "booking.no_show",
+          entityType: "booking",
+          entityId: bookingId,
+          before: { status: booking.status },
+          after: { status: "no_show" },
+        })
+      })
     }
 
     safeRevalidatePaths("/admin/bookings", "/admin/sessions", "/admin")
@@ -378,4 +361,40 @@ export async function markBookingFollowedUpAction(
       error: err.message || "Gagal mencatat status pengiriman laporan WA.",
     }
   }
+}
+
+/** Slot Available milik konselor mana pun, untuk dialog Reschedule Admin. */
+export async function getAdminRescheduleSlotsAction(
+  counselorId: string,
+  options?: { currentUser?: AdminAuthContext | null }
+): Promise<{ success: boolean; error?: string; slots: RescheduleSlotOption[] }> {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) return { success: false, error: "Akses ditolak: Diperlukan role Admin.", slots: [] }
+  if (!counselorId) return { success: false, error: "Konselor wajib dipilih.", slots: [] }
+  try {
+    return { success: true, slots: await listRescheduleSlots(counselorId) }
+  } catch {
+    return { success: false, error: "Gagal memuat slot konselor.", slots: [] }
+  }
+}
+
+/**
+ * Action "Reschedule Admin": kapan saja, boleh ganti konselor, tidak memakai jatah klien.
+ * Tercatat di Jejak Audit dalam transaksi yang sama; Pemenuhan Sesi dijalankan ulang untuk slot baru.
+ */
+export async function rescheduleBookingAdminAction(
+  input: { bookingId: string; newScheduleId: string },
+  options?: { currentUser?: AdminAuthContext | null; deps?: RescheduleDeps }
+) {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) return { success: false, error: "Akses ditolak: Diperlukan role Admin." }
+  if (!input.bookingId || !input.newScheduleId) {
+    return { success: false, error: "Booking dan slot baru wajib dipilih." }
+  }
+  const result = await rescheduleByAdmin(
+    { bookingId: input.bookingId, newScheduleId: input.newScheduleId, actor: admin },
+    options?.deps ?? createRescheduleDeps()
+  )
+  if (result.success) safeRevalidatePaths("/admin/bookings", "/admin/sessions", "/admin")
+  return result
 }

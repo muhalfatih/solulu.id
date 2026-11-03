@@ -48,7 +48,7 @@ export interface SessionBookingData {
   patientEmail: string
   patientPhone: string
   initialNotes: string | null
-  status: "pending_payment" | "confirmed" | "completed" | "cancelled"
+  status: "pending_payment" | "confirmed" | "completed" | "no_show" | "cancelled" | "expired"
   zoomJoinUrl: string | null
   zoomMeetingId: string | null
   zoomAllocationMode?: "standalone" | "breakout_room" | string | null
@@ -125,7 +125,9 @@ export interface SessionPlatformSettings {
 
 export interface SessionPageData {
   booking: SessionBookingData
-  counselor: SessionCounselorData
+  /** Null: booking Konselor Bebas yang belum diklaim / ditugaskan (ADR-0011). */
+  counselor: SessionCounselorData | null
+  /** Untuk booking pool tanpa konselor: slot yang dipesan (id kosong). */
   schedule: SessionScheduleData
   transaction: SessionTransactionData | null
   report?: ClientSessionReportView | null

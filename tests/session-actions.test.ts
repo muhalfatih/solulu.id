@@ -64,8 +64,8 @@ describe("Session Data Fetching Action (Issue #8)", () => {
     expect(res.data).toBeDefined()
     expect(res.data?.booking.accessToken).toBe("valid-test-token-1234567890123456")
     expect(res.data?.booking.patientName).toBe("Ahmad Fauzi")
-    expect(res.data?.counselor.fullName).toBe("Sarah Annisa, M.Psi., Psikolog")
-    expect(res.data?.counselor.specializations).toContain("Kecemasan")
+    expect(res.data?.counselor?.fullName).toBe("Sarah Annisa, M.Psi., Psikolog")
+    expect(res.data?.counselor?.specializations).toContain("Kecemasan")
     expect(res.data?.booking.zoomJoinUrl).toBe("https://zoom.us/j/123456789")
   })
 

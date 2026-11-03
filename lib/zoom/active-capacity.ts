@@ -16,29 +16,22 @@ export interface GetActiveZoomCapacityOptions {
 export async function getActiveZoomCapacity(
   options?: GetActiveZoomCapacityOptions
 ): Promise<number> {
-  try {
-    let rows: Array<{ id: string; name: string; isActive: boolean }> = []
-    if (options?.fetchActiveAccounts) {
-      rows = await options.fetchActiveAccounts()
-    } else {
-      rows = await db
-        .select({
-          id: zoomAccounts.id,
-          name: zoomAccounts.name,
-          isActive: zoomAccounts.isActive,
-        })
-        .from(zoomAccounts)
-        .where(eq(zoomAccounts.isActive, true))
-    }
-
-    const activeCount = rows.filter((r) => r.isActive).length
-    return Math.min(Math.max(activeCount, 0), 4)
-  } catch {
-    // Resilient fallback in dev/test when DB is unseeded/offline:
-    if (process.env.NODE_ENV === "test" || process.env.VITEST) {
-      return 2
-    }
-    // Respects platform architectural max capacity (Master SOP 4 Zoom Pro Accounts)
-    return 4
+  // Fail closed: a DB error propagates so callers fail clearly instead of
+  // proceeding on invented capacity.
+  let rows: Array<{ id: string; name: string; isActive: boolean }> = []
+  if (options?.fetchActiveAccounts) {
+    rows = await options.fetchActiveAccounts()
+  } else {
+    rows = await db
+      .select({
+        id: zoomAccounts.id,
+        name: zoomAccounts.name,
+        isActive: zoomAccounts.isActive,
+      })
+      .from(zoomAccounts)
+      .where(eq(zoomAccounts.isActive, true))
   }
+
+  const activeCount = rows.filter((r) => r.isActive).length
+  return Math.min(Math.max(activeCount, 0), 4)
 }

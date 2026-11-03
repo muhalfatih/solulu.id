@@ -412,7 +412,7 @@ export function TestimonialVariantA({
           Array.from({ length: 3 }).map((_, i) => (
             <article
               key={`testimoni-skel-${i}`}
-              className="p-5 sm:p-6 rounded-2xl border border-border bg-card shadow-xs flex flex-col justify-between gap-4 animate-pulse"
+              className="p-5 sm:p-6 rounded-2xl border border-border bg-card shadow-xs flex flex-col justify-between gap-4"
             >
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">

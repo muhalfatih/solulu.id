@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { MAX_OVERTIME_BLOCKS } from "@/lib/booking-cycle"
 
 export const sessionReportSchema = z.object({
   bookingId: z.string().uuid("ID booking tidak valid"),
@@ -6,8 +7,7 @@ export const sessionReportSchema = z.object({
   mainIssue: z
     .string()
     .trim()
-    .min(3, "Permasalahan utama wajib diisi (minimal 3 karakter)")
-    .default("Konsultasi Emosional & Stres"),
+    .min(3, "Permasalahan utama wajib diisi (minimal 3 karakter)"),
   summary: z
     .string()
     .trim()
@@ -27,6 +27,8 @@ export const sessionReportSchema = z.object({
   actualDurationMinutes: z.number().int().min(15).max(180).optional(),
   timerStartedAt: z.string().optional().nullable(),
   timerStoppedAt: z.string().optional().nullable(),
+  /** Koreksi jumlah blok Perpanjangan Sesi (30 menit); tidak diisi = tidak diubah. */
+  overtimeBlocks: z.number().int().min(0).max(MAX_OVERTIME_BLOCKS).optional(),
 })
 
 export type SessionReportInput = z.input<typeof sessionReportSchema>

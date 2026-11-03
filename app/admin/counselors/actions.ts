@@ -1,7 +1,6 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
 import { eq, desc, sql, and, not, inArray } from "drizzle-orm"
 import { db } from "@/db"
 import { counselors, schedules, bookings, sessionReports } from "@/db/schema"
@@ -14,7 +13,6 @@ import {
 } from "@/lib/r2"
 import { getCounselorRadarAlert, type CounselorRadarAlert } from "@/lib/counselor/credentials"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { createClient } from "@/lib/supabase/server"
 import {
   createCounselorAdminSchema,
   updateCounselorAdminSchema,
@@ -29,44 +27,8 @@ import {
 } from "@/lib/schedules/concurrency"
 import { getSlotByStartTime } from "@/lib/schedules/slots"
 
-export interface AdminAuthContext {
-  id: string
-  app_metadata?: Record<string, any>
-  user_metadata?: Record<string, any>
-}
-
-export async function getAuthenticatedAdmin(
-  customUser?: AdminAuthContext | null
-): Promise<AdminAuthContext | null> {
-  if (customUser !== undefined) {
-    if (!customUser) return null
-    const role = customUser.app_metadata?.role || customUser.user_metadata?.role
-    return (role === "admin" || role === "superadmin") ? customUser : null
-  }
-
-  try {
-    const cookieStore = await cookies()
-    const demoRole = cookieStore.get("solulu_demo_role")?.value
-    if (demoRole === "admin" || demoRole === "superadmin") {
-      return {
-        id: `demo-${demoRole}-id`,
-        app_metadata: { role: demoRole },
-        user_metadata: { role: demoRole },
-      }
-    }
-
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return null
-    const role = user.app_metadata?.role || user.user_metadata?.role
-    return (role === "admin" || role === "superadmin") ? user : null
-  } catch {
-    return null
-  }
-}
+import { getAuthenticatedAdmin, type AdminAuthContext } from "@/lib/auth/admin"
+import { recordAudit } from "@/lib/audit/record"
 
 /**
  * Fetches all counselors for the admin directory, including total sessions and active slot counts.
@@ -394,6 +356,30 @@ export async function getCounselorDetailAdminAction(
 
     const presigner = options?.presigner || generatePresignedGetUrl
 
+    // Akses dokumen privat dicatat sebelum tautan diterbitkan; gagal mencatat = tidak ada tautan.
+    const privateDocumentTypes = (
+      [
+        ["ktp", c.ktpR2Key],
+        ["cv", c.cvR2Key],
+        ["diplomaS1", c.diplomaS1R2Key],
+        ["diplomaProfesi", c.diplomaProfesiR2Key],
+        ["str", c.strR2Key],
+        ["sipp", c.sippR2Key],
+        ["certificate", c.certificateR2Key],
+      ] as const
+    )
+      .filter(([, key]) => Boolean(key))
+      .map(([type]) => type)
+    if (privateDocumentTypes.length > 0) {
+      await recordAudit(db, {
+        actor: admin,
+        action: "counselor_document.download",
+        entityType: "counselor_document",
+        entityId: counselorId,
+        after: { documentTypes: privateDocumentTypes, expiresInSeconds: 900 },
+      })
+    }
+
     // Generate secure pre-signed GET URLs for 8 Cloudflare R2 attachments (15 min TTL)
     const [
       ktpUrl,
@@ -543,12 +529,30 @@ export async function updateCounselorVerificationStatusAction(
     if (options?.updateStatusFn) {
       updatedRecord = await options.updateStatusFn(counselorId, newStatus)
     } else {
-      const [updated] = await db
-        .update(counselors)
-        .set(setPayload)
-        .where(eq(counselors.id, counselorId))
-        .returning()
-      updatedRecord = updated
+      updatedRecord = await db.transaction(async (tx) => {
+        const [before] = await tx
+          .select({
+            verificationStatus: counselors.verificationStatus,
+            isActive: counselors.isActive,
+          })
+          .from(counselors)
+          .where(eq(counselors.id, counselorId))
+          .limit(1)
+        const [updated] = await tx
+          .update(counselors)
+          .set(setPayload)
+          .where(eq(counselors.id, counselorId))
+          .returning()
+        await recordAudit(tx, {
+          actor: admin,
+          action: "counselor.approval",
+          entityType: "counselor",
+          entityId: counselorId,
+          before,
+          after: { verificationStatus: updated?.verificationStatus, isActive: updated?.isActive },
+        })
+        return updated
+      })
     }
 
     try {

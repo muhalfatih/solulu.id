@@ -101,8 +101,8 @@ export async function getCounselorWeeklyGridAction(
     const endDate = weekDays[6].date
 
     // 1. Fetch counselor profile info
-    let counselorName = auth.user_metadata?.full_name || "Mitra Konselor"
-    let counselorTitle = "Konselor Solulu"
+    let counselorName = auth.user_metadata?.full_name || ""
+    let counselorTitle = ""
     let scheduleMode: "manual" | "automatic" = "manual"
 
     if (options?.getCounselor) {
@@ -821,8 +821,8 @@ export async function getCounselorTemplateAction(
       success: true,
       data: {
         counselorId,
-        counselorName: counselor.fullName || auth.user_metadata?.full_name || "Mitra Konselor",
-        counselorTitle: counselor.title || "Konselor Solulu",
+        counselorName: counselor.fullName || auth.user_metadata?.full_name || "",
+        counselorTitle: counselor.title || "",
         scheduleMode,
         weeklySlotTarget: target,
         activeCount,

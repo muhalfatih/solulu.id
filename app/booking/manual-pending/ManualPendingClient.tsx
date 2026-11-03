@@ -1,5 +1,6 @@
 "use client"
 
+import { getSupportWhatsappUrl } from "@/lib/config/support"
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -16,9 +17,9 @@ import {
   HelpCircle,
   Calendar,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/public/public-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { PublicShell } from "@/components/public/public-shell"
@@ -42,9 +43,9 @@ interface ManualPendingClientProps {
       counselorType: string
       counselorTypeDisplay: string
       avatarR2Url: string | null
-    }
+    } | null
     schedule: {
-      id: string
+      id: string | null
       date: string
       startTime: string
       endTime: string
@@ -116,21 +117,16 @@ export default function ManualPendingClient({ data }: ManualPendingClientProps) 
     }
   }
 
-  const whatsappSupportNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT || "6281234567890"
-
   const confirmationMessage = `Halo Admin Solulu, saya ingin mengirimkan bukti transfer untuk pemesanan konseling:
 - Nama Pasien: ${booking.patientName}
 - Kode Referensi: ${referenceNumber}
-- Konselor: ${counselor.fullName}
+- Konselor: ${counselor ? counselor.fullName : "Konselor Bebas"}
 - Jadwal: ${schedule.date} (${schedule.timeRange})
 - Nominal: ${formattedAmount}
 
 Mohon bantuannya untuk diverifikasi. Terima kasih.`
 
-  const whatsappUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(
-    confirmationMessage
-  )}`
+  const whatsappUrl = getSupportWhatsappUrl(confirmationMessage)
 
   return (
     <PublicShell>
@@ -182,7 +178,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                   <span className="text-base sm:text-lg font-bold font-mono tracking-tight text-foreground">
                     {referenceNumber}
                   </span>
-                  <Button
+                  <PublicButton
                     type="button"
                     variant="ghost"
                     size="sm"
@@ -194,7 +190,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                     ) : (
                       <Copy className="size-3.5" />
                     )}
-                  </Button>
+                  </PublicButton>
                 </div>
               </div>
 
@@ -207,7 +203,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                   <span className="text-lg sm:text-xl font-bold tabular-nums font-heading text-primary dark:text-purple-300">
                     {formattedAmount}
                   </span>
-                  <Button
+                  <PublicButton
                     type="button"
                     variant="ghost"
                     size="sm"
@@ -219,7 +215,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                     ) : (
                       <Copy className="size-3.5" />
                     )}
-                  </Button>
+                  </PublicButton>
                 </div>
               </div>
             </div>
@@ -259,7 +255,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                   </div>
                   <span className="text-xs text-muted-foreground">a.n. {acc.accountHolder}</span>
                 </div>
-                <Button
+                <PublicButton
                   type="button"
                   variant="public-secondary"
                   size="pill-sm"
@@ -277,7 +273,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                       <span>Salin Rekening</span>
                     </>
                   )}
-                </Button>
+                </PublicButton>
               </div>
             ))}
           </CardContent>
@@ -314,7 +310,8 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
             </div>
           </CardContent>
           <CardFooter className="p-6 sm:p-7 border-t border-border/40 bg-muted/10 flex flex-col sm:flex-row gap-3">
-            <Button
+{whatsappUrl && (
+            <PublicButton
               asChild
               variant="public"
               size="pill-lg"
@@ -324,8 +321,9 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                 <MessageCircle className="size-4" data-icon="inline-start" />
                 <span>Konfirmasi via WhatsApp Sekarang</span>
               </a>
-            </Button>
-            <Button
+            </PublicButton>
+)}
+            <PublicButton
               asChild
               variant="public-secondary"
               size="pill-lg"
@@ -335,7 +333,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                 <span>Buka Halaman Sesi</span>
                 <ArrowRight className="size-4" data-icon="inline-end" />
               </Link>
-            </Button>
+            </PublicButton>
           </CardFooter>
         </Card>
       </div>

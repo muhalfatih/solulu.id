@@ -36,6 +36,76 @@
       "when": 1792835311980,
       "tag": "0004_late_warbound",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793640422841,
+      "tag": "0005_remove_fabricated_defaults",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793657082064,
+      "tag": "0006_services_layanan",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793666375307,
+      "tag": "0007_booking_status_no_show_expired",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793666384129,
+      "tag": "0008_booking_status_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793667279849,
+      "tag": "0009_payroll_honor",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793679284082,
+      "tag": "0010_audit_log",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793679722397,
+      "tag": "0011_whatsapp_templates_dispatch",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793680016540,
+      "tag": "0012_pool_claim",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793680908430,
+      "tag": "0013_booking_reschedules",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793692927158,
+      "tag": "0014_booking_cepat",
+      "breakpoints": true
     }
   ]
 }

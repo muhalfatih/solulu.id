@@ -2,11 +2,11 @@
 
 import * as React from "react"
 import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion"
+  PublicAccordion,
+  PublicAccordionItem,
+  PublicAccordionTrigger,
+  PublicAccordionContent,
+} from "@/components/public/public-accordion"
 
 export interface FaqItem {
   question: string
@@ -19,13 +19,13 @@ interface FaqAccordionProps {
 
 export function FaqAccordion({ faqs }: FaqAccordionProps) {
   return (
-    <Accordion type="single" collapsible className="flex flex-col gap-3.5 w-full">
+    <PublicAccordion type="single" collapsible className="flex flex-col gap-3.5 w-full">
       {faqs.map((faq, idx) => (
-        <AccordionItem key={idx} value={`item-${idx}`}>
-          <AccordionTrigger id={`faq-trigger-${idx}`}>{faq.question}</AccordionTrigger>
-          <AccordionContent id={`faq-content-${idx}`}>{faq.answer}</AccordionContent>
-        </AccordionItem>
+        <PublicAccordionItem key={idx} value={`item-${idx}`}>
+          <PublicAccordionTrigger id={`faq-trigger-${idx}`}>{faq.question}</PublicAccordionTrigger>
+          <PublicAccordionContent id={`faq-content-${idx}`}>{faq.answer}</PublicAccordionContent>
+        </PublicAccordionItem>
       ))}
-    </Accordion>
+    </PublicAccordion>
   )
 }

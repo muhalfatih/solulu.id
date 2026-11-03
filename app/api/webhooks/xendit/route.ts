@@ -3,6 +3,7 @@ import { eq, or } from "drizzle-orm"
 import { db } from "@/db"
 import { bookings, schedules, transactions } from "@/db/schema"
 import { dispatchFulfillmentJob } from "@/lib/fulfillment/qstash"
+import { getXenditCallbackToken } from "@/lib/config/integrations"
 
 export interface XenditWebhookPayload {
   id: string // Xendit Invoice ID (e.g. "64a...")
@@ -23,17 +24,23 @@ export async function POST(req: Request) {
   try {
     // 1. Validate Xendit Callback Token (Security Guard)
     const callbackTokenHeader = req.headers.get("x-callback-token")
-    const configuredToken = process.env.XENDIT_CALLBACK_TOKEN
+    let configuredToken: string
+    try {
+      configuredToken = getXenditCallbackToken()
+    } catch (configError) {
+      const message =
+        configError instanceof Error ? configError.message : "XENDIT_CALLBACK_TOKEN belum dikonfigurasi."
+      console.error("[XENDIT WEBHOOK] Endpoint ditutup:", message)
+      return NextResponse.json({ error: message }, { status: 500 })
+    }
+    if (!configuredToken) {
+      return NextResponse.json(
+        { error: "Konfigurasi XENDIT_CALLBACK_TOKEN belum dikonfigurasi atau masih berupa placeholder." },
+        { status: 500 }
+      )
+    }
 
-    // In production, token is strictly verified. In test/dev, allow configured or mock token.
-    const isTokenValid =
-      configuredToken && callbackTokenHeader === configuredToken
-        ? true
-        : !configuredToken && callbackTokenHeader === "mock-callback-token"
-        ? true
-        : process.env.NODE_ENV === "test" && callbackTokenHeader === "valid-xendit-token"
-        ? true
-        : false
+    const isTokenValid = callbackTokenHeader === configuredToken
 
     if (!isTokenValid) {
       return NextResponse.json(
@@ -70,7 +77,7 @@ export async function POST(req: Request) {
       })
       .from(transactions)
       .innerJoin(bookings, eq(transactions.bookingId, bookings.id))
-      .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
+      .leftJoin(schedules, eq(bookings.scheduleId, schedules.id))
       .where(or(...conditions))
       .limit(1)
 
@@ -149,15 +156,23 @@ export async function POST(req: Request) {
         })
         .where(eq(bookings.id, booking.id))
 
-      await db
-        .update(schedules)
-        .set({
-          status: "booked",
-        })
-        .where(eq(schedules.id, schedule.id))
+      // Booking Konselor Bebas belum punya baris jadwal (schedule null) sampai diklaim/ditugaskan.
+      if (schedule) {
+        await db
+          .update(schedules)
+          .set({
+            status: "booked",
+          })
+          .where(eq(schedules.id, schedule.id))
+      }
 
       // 6. Decoupled Asynchronous Dispatch to QStash (<1s)
-      await dispatchFulfillmentJob(booking.id)
+      const dispatch = await dispatchFulfillmentJob(booking.id)
+      if (!dispatch.success) {
+        console.error(
+          `[XENDIT WEBHOOK] Fulfillment booking ${booking.id} gagal dijadwalkan: ${dispatch.error}`
+        )
+      }
 
       return NextResponse.json(
         {

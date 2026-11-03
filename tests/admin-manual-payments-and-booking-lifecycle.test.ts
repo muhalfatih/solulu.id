@@ -290,7 +290,9 @@ describe("Ticket 08: Admin Manual Payments and Booking Lifecycle", () => {
         manualPaymentStatus: "NONE",
         isExtended: false,
         extensionFee: 0,
-        isNoShow: false,
+        stage: "ditugaskan",
+        stageLabel: "Ditugaskan",
+        canMarkNoShow: false,
         noShowMarkedAt: null,
         isFollowedUp: false,
         followedUpAt: null,
@@ -327,7 +329,9 @@ describe("Ticket 08: Admin Manual Payments and Booking Lifecycle", () => {
         manualPaymentStatus: "VERIFIED",
         isExtended: true,
         extensionFee: 50000,
-        isNoShow: false,
+        stage: "laporan_masuk",
+        stageLabel: "Laporan Masuk",
+        canMarkNoShow: false,
         noShowMarkedAt: null,
         isFollowedUp: true,
         followedUpAt: new Date().toISOString(),
@@ -395,18 +399,25 @@ describe("Ticket 08: Admin Manual Payments and Booking Lifecycle", () => {
   // 5. Action: "Tandai No-Show" (30 Minutes Timeout)
   // ===========================================================================
   describe("5. Action 'Tandai No-Show' Lifecycle Mutation", () => {
-    it("flags booking as No-Show with is_no_show: true and status: completed", async () => {
-      const mockUpdateFn = vi.fn().mockResolvedValue({
-        id: "b-301",
-        isNoShow: true,
-        status: "completed",
-      })
+    it("flags booking as No-Show with status no_show once the tolerance has passed", async () => {
+      const mockUpdateFn = vi.fn().mockResolvedValue(undefined)
 
       const res = await markBookingNoShowAction(
         { bookingId: "b-301" },
         {
           currentUser: adminUser,
           updateFn: mockUpdateFn,
+          now: new Date("2026-10-21T08:30:00+07:00"),
+          getBookingFn: async () => ({
+            id: "b-301",
+            status: "confirmed",
+            counselorId: "c-1",
+            scheduleId: "s-1",
+            accessToken: "t",
+            scheduleDate: "2026-10-21",
+            startTime: "08:00:00",
+            timerStartedAt: null,
+          }),
         }
       )
 
@@ -414,9 +425,8 @@ describe("Ticket 08: Admin Manual Payments and Booking Lifecycle", () => {
       expect(res.message).toContain("No-Show")
 
       expect(mockUpdateFn).toHaveBeenCalledWith("b-301", {
-        isNoShow: true,
+        status: "no_show",
         noShowMarkedAt: expect.any(Date),
-        status: "completed",
       })
     })
 

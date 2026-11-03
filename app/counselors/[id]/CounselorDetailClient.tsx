@@ -1,5 +1,7 @@
 "use client"
 
+import { getSupportWhatsappUrl } from "@/lib/config/support"
+
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -30,9 +32,9 @@ import {
 
 import type { CatalogCounselorView, CatalogSlot } from "../actions"
 import type { PlatformSettingsData } from "@/lib/settings/platform"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/public/public-card"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
@@ -46,6 +48,9 @@ export default function CounselorDetailClient({
   settings,
 }: CounselorDetailClientProps) {
   const router = useRouter()
+  const supportUrl = getSupportWhatsappUrl(
+    "Halo Solulu, saya butuh bantuan jadwal konseling"
+  )
   const isPsychologist = counselor.counselorType === "psychologist"
 
   // Group slots by date
@@ -173,7 +178,7 @@ export default function CounselorDetailClient({
             </span>
           </nav>
 
-          <Button
+          <PublicButton
             variant="ghost"
             size="sm"
             asChild
@@ -183,7 +188,7 @@ export default function CounselorDetailClient({
               <ArrowLeft data-icon="inline-start" aria-hidden="true" />
               <span>Kembali ke Katalog</span>
             </Link>
-          </Button>
+          </PublicButton>
         </div>
       </div>
 
@@ -661,7 +666,7 @@ export default function CounselorDetailClient({
                 {/* 3. Pricing Breakdown */}
                 <div className="p-4.5 rounded-xl bg-muted/20 border border-border/50 flex flex-col gap-2.5">
                   <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground leading-normal">
-                    <span>Biaya Sesi (90 Menit):</span>
+                    <span>Mulai dari (90 Menit):</span>
                     <div className="flex flex-col items-end">
                       <span className="font-semibold text-foreground tabular-nums leading-normal">
                         {counselor.pricing.displayPriceFormatted}
@@ -682,7 +687,7 @@ export default function CounselorDetailClient({
                   </div>
 
                   <div className="pt-2.5 mt-0.5 border-t border-border/50 flex items-baseline justify-between leading-normal">
-                    <span className="text-xs sm:text-sm font-semibold text-foreground leading-normal">Total Biaya Sesi:</span>
+                    <span className="text-xs sm:text-sm font-semibold text-foreground leading-normal">Mulai dari:</span>
                     <strong className="text-xl font-heading font-bold text-foreground tabular-nums leading-none">
                       {counselor.pricing.displayPriceFormatted}
                     </strong>
@@ -690,7 +695,7 @@ export default function CounselorDetailClient({
                 </div>
 
                 {/* 4. Action Button */}
-                <Button
+                <PublicButton
                   type="button"
                   variant="public"
                   size="pill"
@@ -705,7 +710,7 @@ export default function CounselorDetailClient({
                       : "Lanjut Isi Data Sesi"}
                   </span>
                   <ArrowRight data-icon="inline-end" aria-hidden="true" />
-                </Button>
+                </PublicButton>
 
                 {!selectedSlot && (
                   <p className="text-xs text-center text-muted-foreground leading-relaxed -mt-1">
@@ -728,8 +733,9 @@ export default function CounselorDetailClient({
                 {/* Distilled Integrated WhatsApp Support */}
                 <div className="pt-3 border-t border-border/50 text-center text-xs text-muted-foreground leading-relaxed flex flex-wrap items-center justify-center gap-1.5">
                   <span>Butuh bantuan jadwal khusus?</span>
+{supportUrl && (
                   <a
-                    href="https://wa.me/6281234567890?text=Halo%20Solulu,%20saya%20butuh%20bantuan%20jadwal%20konseling"
+                    href={supportUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-semibold text-purple-600 dark:text-purple-400 hover:underline inline-flex items-center gap-0.5 leading-relaxed"
@@ -737,6 +743,7 @@ export default function CounselorDetailClient({
                     <span>Tanya Admin</span>
                     <ChevronRight className="size-3" />
                   </a>
+)}
                 </div>
               </CardContent>
             </Card>
@@ -747,7 +754,7 @@ export default function CounselorDetailClient({
       {/* 3. Mobile Floating Bottom Bar for Fast Conversion */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 p-3 bg-background/95 backdrop-blur-md border-t border-border/60 z-40 shadow-xs flex items-center justify-between gap-3">
         <div className="flex flex-col">
-          <span className="text-xs text-muted-foreground font-normal leading-normal">Tarif (90 Mnt)</span>
+          <span className="text-xs text-muted-foreground font-normal leading-normal">Mulai dari (90 Mnt)</span>
           <strong className="text-base font-semibold text-foreground tabular-nums leading-normal">
             {counselor.pricing.displayPriceFormatted}
           </strong>
@@ -758,7 +765,7 @@ export default function CounselorDetailClient({
           )}
         </div>
 
-        <Button
+        <PublicButton
           type="button"
           variant="public"
           size="sm"
@@ -773,7 +780,7 @@ export default function CounselorDetailClient({
         >
           <span>{selectedSlot ? "Lanjut Isi Data" : "Pilih Jadwal Sesi"}</span>
           <ArrowRight data-icon="inline-end" aria-hidden="true" />
-        </Button>
+        </PublicButton>
       </div>
     </div>
   )

@@ -68,18 +68,18 @@ export interface BookingSession {
   status: "in_session" | "confirmed" | "completed" | "cancelled" | "pending_payment" | "expired"
   isPast?: boolean
   zoomRoom: string
-  zoomJoinUrl: string
+  zoomJoinUrl: string | null
   zoomAccountId?: string | null
   zoomSlotNumber?: 1 | 2 | null
   zoomAccountName?: string | null
   srqScore: number
   hasSuicidalThoughts: boolean
   waiverSigned?: boolean
-  paymentMethod: string
+  paymentMethod: string | null
   paymentProvider?: "xendit" | "manual"
   referenceNumber?: string
   adminNotes?: string
-  amount: number
+  amount: number | null
   voucherCode?: string
   hasSessionReport?: boolean
   sessionReportId?: string | null

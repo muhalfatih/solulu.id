@@ -1,3 +1,4 @@
+import { getAppBaseUrl } from "@/lib/url"
 import { describe, it, expect } from "vitest"
 import sitemap from "../app/sitemap"
 import robots from "../app/robots"
@@ -13,7 +14,7 @@ describe("Issue #13: Public Surfaces, SEO, Legal Pages & Branded Errors", () => 
       expect(Array.isArray(site)).toBe(true)
 
       const urls = site.map((item) => item.url)
-      const base = process.env.NEXT_PUBLIC_APP_URL || "https://solulu.id"
+      const base = getAppBaseUrl()
       expect(
         urls.some(
           (u) =>

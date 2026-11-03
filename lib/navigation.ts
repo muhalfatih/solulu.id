@@ -1,144 +1,6 @@
-import type { LucideIcon } from "lucide-react"
-import {
-  LayoutDashboard,
-  CalendarCheck,
-  ReceiptText,
-  FileSpreadsheet,
-  Users,
-  Sparkles,
-  Video,
-  Sliders,
-  Tag,
-  MessageSquareQuote,
-  ImageIcon,
-  Clock,
-  Calendar,
-  UserCheck,
-} from "lucide-react"
-
-export interface NavItem {
-  href: string
-  label: string
-  icon: LucideIcon
-  badge?: string | null
-  badgeVariant?: "default" | "destructive" | "secondary" | "outline"
-  description?: string
-  aliases?: string[]
-}
-
-export interface NavGroup {
-  title: string
-  items: NavItem[]
-}
-
-export const ADMIN_NAV_GROUPS: NavGroup[] = [
-  {
-    title: "Operasional & Sesi",
-    items: [
-      {
-        href: "/admin",
-        label: "Dashboard",
-        icon: LayoutDashboard,
-        description: "Ikhtisar jadwal, metrik klinis, dan tugas penting hari ini",
-        aliases: ["/admin/dashboard"],
-      },
-      {
-        href: "/admin/bookings",
-        label: "Pengawasan Booking",
-        icon: CalendarCheck,
-        description: "Manajemen operasional pemesanan, No-Show 30m, dan kirim WA laporan",
-      },
-      {
-        href: "/admin/sessions",
-        label: "Jadwal & Kalender",
-        icon: Calendar,
-        description: "Matriks jadwal konselor, kalender mingguan, dan alokasi ruang Zoom",
-      },
-      {
-        href: "/admin/manual-payments",
-        label: "Verifikasi Transfer Manual",
-        icon: ReceiptText,
-        description: "Antrean verifikasi transfer bank klien (booking awal & extend)",
-      },
-      {
-        href: "/admin/reports/finance",
-        label: "Laporan Keuangan & Sesi",
-        icon: FileSpreadsheet,
-        description: "Rekapitulasi sesi selesai, audit ledger, dan ekspor CSV komisi",
-      },
-    ],
-  },
-  {
-    title: "Kemitraan Konselor",
-    items: [
-      {
-        href: "/admin/counselors",
-        label: "Direktori Konselor",
-        icon: Users,
-        description: "Verifikasi berkas legalitas, radar STR/SIPP, dan konselor aktif",
-      },
-      {
-        href: "/admin/specializations",
-        label: "Fokus & Spesialisasi",
-        icon: Sparkles,
-        description: "Bank topik dan klasifikasi keahlian konseling mitra",
-      },
-    ],
-  },
-  {
-    title: "Sistem & Integrasi",
-    items: [
-      {
-        href: "/admin/zoom-settings",
-        label: "Akun Zoom Pro",
-        icon: Video,
-        description: "Infrastruktur 4 Akun Zoom, Host Key, dan mode Breakout",
-        aliases: ["/admin/zoom"],
-      },
-      {
-        href: "/admin/settings",
-        label: "Pengaturan Sistem",
-        icon: Sliders,
-        description: "Parameter operasional, tarif konseling, extend sesi, dan kuesioner",
-        aliases: ["/admin/pricing"],
-      },
-      {
-        href: "/admin/testimonials",
-        label: "Kurasi Testimoni",
-        icon: MessageSquareQuote,
-        description: "Manajemen ulasan klien terverifikasi untuk website",
-      },
-      {
-        href: "/admin/gallery",
-        label: "Galeri Kegiatan",
-        icon: ImageIcon,
-        description: "Foto kegiatan klinis dan dokumentasi publik",
-      },
-    ],
-  },
-]
-
-export const COUNSELOR_NAV_ITEMS: NavItem[] = [
-  {
-    href: "/counselor/dashboard",
-    label: "Sesi Hari Ini",
-    icon: Clock,
-    description: "Jadwal konseling aktif hari ini, Host Key, dan Floating Timer",
-  },
-  {
-    href: "/counselor/schedule",
-    label: "Komitmen Jadwal Praktik",
-    icon: Calendar,
-    description: "Manajemen komitmen minimal 10 sesi/minggu & pengajuan cuti",
-    aliases: ["/counselor/schedules"],
-  },
-  {
-    href: "/counselor/profile",
-    label: "Profil & Berkas Legalitas",
-    icon: UserCheck,
-    description: "Kelengkapan 21 data profil, STR/SIPP, dan dokumen Cloudflare R2",
-  },
-]
+/**
+ * Breadcrumb derivation. Menu structure lives in lib/shell/nav.ts.
+ */
 
 const ROUTE_SEGMENT_LABELS: Record<string, string> = {
   admin: "Admin",
@@ -158,11 +20,13 @@ const ROUTE_SEGMENT_LABELS: Record<string, string> = {
   gallery: "Galeri Kegiatan",
   testimonials: "Kurasi Testimoni",
   profile: "Profil Saya",
+  honor: "Honor Saya",
   schedules: "Jadwal Praktik Mingguan",
   schedule: "Jadwal Praktik Mingguan",
   applications: "Aplikasi Calon Konselor",
   krisis: "Protokol Krisis",
-  operator: "Konsol Operator",
+  operator: "Operator",
+  konsol: "Konsol Operator",
 }
 
 const UUID_REGEX =

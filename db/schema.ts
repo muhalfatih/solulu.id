@@ -14,6 +14,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { generateBookingCode } from "../lib/booking/code";
 
 // =============================================================================
 // ENUMS
@@ -40,6 +41,8 @@ export const bookingStatusEnum = pgEnum("booking_status_enum", [
   "confirmed",
   "completed",
   "cancelled",
+  "no_show",
+  "expired",
 ]);
 export const transactionStatusEnum = pgEnum("transaction_status_enum", [
   "PENDING",
@@ -47,6 +50,7 @@ export const transactionStatusEnum = pgEnum("transaction_status_enum", [
   "EXPIRED",
   "FAILED",
 ]);
+export const payrollPeriodStatusEnum = pgEnum("payroll_period_status_enum", ["open", "closed"]);
 export const applicationStatusEnum = pgEnum("application_status_enum", [
   "pending",
   "approved",
@@ -75,6 +79,11 @@ export const zoomAccounts = pgTable("zoom_accounts", {
 // =============================================================================
 // 2. PRICING & VOUCHERS
 // =============================================================================
+/**
+ * @deprecated ADR-0010: tarif kini ada di `services` (Layanan). Tabel ini hanya
+ * dipertahankan sebagai sumber migrasi data ke `services` dan tidak boleh dibaca
+ * oleh kode aplikasi. Dapat di-drop pada migrasi lanjutan setelah verifikasi.
+ */
 export const platformPricing = pgTable("platform_pricing", {
   id: uuid("id").defaultRandom().primaryKey(),
   counselorType: counselorTypeEnum("counselor_type").notNull().unique(),
@@ -91,14 +100,39 @@ export const platformSettings = pgTable("platform_settings", {
   bookingCutoffHours: integer("booking_cutoff_hours").default(4).notNull(), // Cutoff H-4 jam pemesanan
   rescheduleCutoffHours: integer("reschedule_cutoff_hours").default(4).notNull(), // Cutoff H-4 jam reschedule
   paymentHoldMinutes: integer("payment_hold_minutes").default(15).notNull(), // Kunci jadwal 15-30 menit
+  bookingCepatHoldMinutes: integer("booking_cepat_hold_minutes").default(60).notNull(), // Hold tautan Xendit Booking Cepat
   maxSlotQuota: integer("max_slot_quota").default(10).notNull(), // Maks. 10 sesi per slot
   minCounselorWeeklySlots: integer("min_counselor_weekly_slots").default(10).notNull(), // Min 10 sesi / minggu
   noShowTimeoutMinutes: integer("no_show_timeout_minutes").default(30).notNull(), // Batas tunggu hadir 30 menit
   basePrice: numeric("base_price", { precision: 12, scale: 2 }).default("150000").notNull(),
-  counselorExtendFeePer30Min: numeric("counselor_extend_fee_per_30_min", { precision: 12, scale: 2 }).default("35000").notNull(), // Rp 35k/30m
-  psychologistExtendFeePer30Min: numeric("psychologist_extend_fee_per_30_min", { precision: 12, scale: 2 }).default("50000").notNull(), // Rp 50k/30m
+  // @deprecated ADR-0010: tarif overtime kini per Layanan (`services.overtime_rate_per_30_min`).
+  // Kolom dipertahankan agar migrasi non-destruktif; tidak dibaca kode aplikasi.
+  counselorExtendFeePer30Min: numeric("counselor_extend_fee_per_30_min", { precision: 12, scale: 2 }).default("35000").notNull(),
+  psychologistExtendFeePer30Min: numeric("psychologist_extend_fee_per_30_min", { precision: 12, scale: 2 }).default("50000").notNull(),
   isManualPaymentEnabled: boolean("is_manual_payment_enabled").default(true).notNull(),
   manualPaymentInstructions: text("manual_payment_instructions").default("Transfer ke Rekening BCA: 123-456-7890 a.n. Solulu Mental Health. Sertakan Kode Booking pada berita transfer."),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/**
+ * Layanan (ADR-0010): jenis konseling yang dijual. Durasi selalu 90 menit (tidak dikonfigurasi).
+ * Tidak pernah dihapus, hanya dinonaktifkan (`isActive`), karena booking dan payroll lama merujuknya.
+ */
+export const services = pgTable("services", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  basePrice: numeric("base_price", { precision: 12, scale: 2 }).notNull(),
+  promoPrice: numeric("promo_price", { precision: 12, scale: 2 }), // null = tidak ada promo
+  allowVoucher: boolean("allow_voucher").default(true).notNull(),
+  overtimeRatePer30Min: numeric("overtime_rate_per_30_min", { precision: 12, scale: 2 }).notNull(),
+  basePayoutPercent: integer("base_payout_percent").notNull(), // Bagi Hasil pokok (%)
+  overtimePayoutPercent: integer("overtime_payout_percent").notNull(), // Bagi Hasil overtime (%)
+  allowedCounselorTypes: counselorTypeEnum("allowed_counselor_types").array().notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -165,6 +199,11 @@ export const counselors = pgTable("counselors", {
   customFeeRate: numeric("custom_fee_rate", { precision: 12, scale: 2 }), // Tarif Khusus
   counselorCommissionRate: numeric("counselor_commission_rate", { precision: 12, scale: 2 }), // Komisi Konselor
 
+  // Rekening bank untuk transfer massal Honor Konselor (ADR-0007)
+  bankName: text("bank_name"),
+  bankAccountNumber: text("bank_account_number"),
+  bankAccountHolder: text("bank_account_holder"),
+
   // Izin Praktik (4 Data)
   sippNumber: text("sipp_number"), // (10) Nomor SIPP / SILP / SIPPK
   sippExpiresAt: date("sipp_expires_at"), // (11) Tanggal Kadaluarsa SIPP
@@ -203,6 +242,28 @@ export const specializations = pgTable("specializations", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// =============================================================================
+// 4B-2. PENGECUALIAN LAYANAN PER KONSELOR (ADR-0010)
+// Default: semua Layanan aktif yang tipenya cocok ditawarkan. Baris di sini =
+// Layanan yang dimatikan Admin untuk konselor tertentu.
+// =============================================================================
+export const counselorServiceExclusions = pgTable(
+  "counselor_service_exclusions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    counselorId: uuid("counselor_id")
+      .references(() => counselors.id, { onDelete: "cascade" })
+      .notNull(),
+    serviceId: uuid("service_id")
+      .references(() => services.id, { onDelete: "cascade" })
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("uq_counselor_service_exclusion").on(table.counselorId, table.serviceId),
+  ]
+);
 
 // =============================================================================
 // 4C. COUNSELOR WEEKLY TEMPLATES (RECURRING BLUEPRINT 7x7 SLOTS)
@@ -262,26 +323,35 @@ export const schedules = pgTable(
 export const bookings = pgTable("bookings", {
   id: uuid("id").defaultRandom().primaryKey(),
   accessToken: text("access_token").notNull().unique(), // Nanoid(32) for URL /session/[token]
-  bookingCode: text("booking_code").notNull().default("SL-1001"), // e.g. "SL-4821" for Zoom display name
+  bookingCode: text("booking_code").notNull().$defaultFn(generateBookingCode), // e.g. "SL-7K2M9Q"; dibuat generator saat insert, tanpa default SQL
 
   // Client Identity (8 Data + Informed Consent)
   patientName: text("patient_name").notNull(), // (1) Nama Lengkap / Panggilan
   patientEmail: text("patient_email").notNull(), // (2) Email
   patientPhone: text("patient_phone").notNull(), // (3) Nomor WhatsApp
-  gender: text("gender").default("Lainnya"), // (4) Jenis Kelamin
-  age: integer("age").default(25), // (5) Umur
+  gender: text("gender"), // (4) Jenis Kelamin
+  age: integer("age"), // (5) Umur
   domicile: text("domicile"), // (6) Domisili
   religion: text("religion"), // (7) Agama
   initialNotes: text("initial_notes"), // (8) Catatan / Keluhan Awal
   informedConsentAcceptedAt: timestamp("informed_consent_accepted_at", { withTimezone: true }), // Checkbox Persetujuan
 
-  scheduleId: uuid("schedule_id")
-    .references(() => schedules.id)
-    .notNull(),
-  counselorId: uuid("counselor_id")
-    .references(() => counselors.id)
-    .notNull(),
+  // Booking Konselor Bebas (pool, ADR-0011): scheduleId dan counselorId NULL sampai
+  // konselor mengklaim / Admin menugaskan; slot yang dipesan disimpan di poolDate + poolSlotIndex.
+  scheduleId: uuid("schedule_id").references(() => schedules.id),
+  counselorId: uuid("counselor_id").references(() => counselors.id),
+  poolDate: date("pool_date"),
+  poolSlotIndex: integer("pool_slot_index"),
+  // Asal booking: 'public' (checkout klien) atau 'booking_cepat' (dibuat Admin dari WhatsApp, #30).
+  source: text("source").default("public").notNull(),
   screeningId: uuid("screening_id").references(() => screenings.id),
+
+  // Layanan yang dibeli + snapshot tarif pokok aktif SEBELUM voucher (ADR-0010).
+  // Perubahan tarif Layanan di kemudian hari tidak boleh menulis ulang riwayat.
+  serviceId: uuid("service_id")
+    .references(() => services.id)
+    .notNull(),
+  basePriceSnapshot: numeric("base_price_snapshot", { precision: 12, scale: 2 }).notNull(),
 
   // Triage / Screening Audit (Informative)
   bypassedRecommendation: boolean("bypassed_recommendation").default(false),
@@ -313,10 +383,13 @@ export const bookings = pgTable("bookings", {
 
   // Lifecycle & Reschedule
   status: bookingStatusEnum("status").default("pending_payment").notNull(),
-  rescheduleCount: integer("reschedule_count").default(0).notNull(), // Maksimal 1 kali
+  rescheduleCount: integer("reschedule_count").default(0).notNull(), // Jatah Reschedule Mandiri terpakai (maks 1); Reschedule Admin tidak menambah
+  adminRescheduleCount: integer("admin_reschedule_count").default(0).notNull(), // Reschedule Admin, di luar jatah klien
   isFollowedUp: boolean("is_followed_up").default(false).notNull(), // Ditandai setelah Admin kirim WA link laporan
   followedUpAt: timestamp("followed_up_at", { withTimezone: true }),
-  isNoShow: boolean("is_no_show").default(false).notNull(), // Toleransi hadir 30 menit
+  // DEPRECATED (ADR-0008): no longer a source of truth, status = 'no_show' is. Kept only so the
+  // backfill migration loses no data; nothing reads or writes it. Drop in a later cleanup.
+  isNoShow: boolean("is_no_show").default(false).notNull(),
   noShowMarkedAt: timestamp("no_show_marked_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -362,7 +435,7 @@ export const sessionReports = pgTable("session_reports", {
     .notNull(),
 
   // Client-Visible Fields (Tampil di Web & Cetak PDF Klien)
-  mainIssue: text("main_issue").notNull().default("Konsultasi Emosional & Stres"), // Permasalahan Utama
+  mainIssue: text("main_issue").notNull(), // Permasalahan Utama
   summary: text("summary").notNull(), // Ringkasan Dinamika Sesi
   actionPlan: text("action_plan"), // Saran / Tindak Lanjut (Opsional)
   followUpRecommendation: text("follow_up_recommendation"),
@@ -380,6 +453,60 @@ export const sessionReports = pgTable("session_reports", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// =============================================================================
+// 8B. PAYROLL: PERIODE PAYROLL & HONOR KONSELOR PER SESI (ADR-0007)
+// =============================================================================
+/** Periode Payroll 2 mingguan (1-15 dan 16-akhir bulan, WIB). Setelah `closed`, isinya beku. */
+export const payrollPeriods = pgTable(
+  "payroll_periods",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    startDate: date("start_date").notNull(),
+    endDate: date("end_date").notNull(),
+    status: payrollPeriodStatusEnum("status").default("open").notNull(),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    closedBy: uuid("closed_by"), // Supabase Auth UID Admin yang menutup periode
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("uq_payroll_period_start").on(table.startDate)]
+);
+
+/**
+ * Honor Konselor per sesi. Bagian pokok dan overtime ditempatkan ke periode secara terpisah;
+ * periode null berarti honor tertahan (Payroll Hold). Persentase Bagi Hasil dibekukan di baris
+ * ini begitu bagiannya ditempatkan di periode yang ditutup.
+ */
+export const counselorHonors = pgTable(
+  "counselor_honors",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    bookingId: uuid("booking_id")
+      .references(() => bookings.id)
+      .notNull()
+      .unique(),
+    counselorId: uuid("counselor_id")
+      .references(() => counselors.id)
+      .notNull(),
+    serviceId: uuid("service_id")
+      .references(() => services.id)
+      .notNull(),
+    sessionDate: date("session_date").notNull(),
+    baseAmount: numeric("base_amount", { precision: 12, scale: 2 }).notNull(),
+    overtimeAmount: numeric("overtime_amount", { precision: 12, scale: 2 }).default("0").notNull(),
+    basePayoutPercent: integer("base_payout_percent").notNull(),
+    overtimePayoutPercent: integer("overtime_payout_percent").notNull(),
+    basePeriodId: uuid("base_period_id").references(() => payrollPeriods.id),
+    overtimePeriodId: uuid("overtime_period_id").references(() => payrollPeriods.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_counselor_honors_counselor").on(table.counselorId, table.sessionDate),
+    index("idx_counselor_honors_base_period").on(table.basePeriodId),
+    index("idx_counselor_honors_overtime_period").on(table.overtimePeriodId),
+  ]
+);
 
 // =============================================================================
 // 9. PUBLIC DOCUMENTATIONS (GALERI PRIVACY-FIRST)
@@ -456,6 +583,10 @@ export const bookingsRelations = relations(bookings, ({ one }) => ({
     fields: [bookings.screeningId],
     references: [screenings.id],
   }),
+  service: one(services, {
+    fields: [bookings.serviceId],
+    references: [services.id],
+  }),
   zoomAccount: one(zoomAccounts, {
     fields: [bookings.zoomAccountId],
     references: [zoomAccounts.id],
@@ -492,8 +623,100 @@ export const sessionReportsRelations = relations(sessionReports, ({ one }) => ({
   }),
 }));
 
+// =============================================================================
+// JEJAK AUDIT (#24) - append-only. Tidak ada jalur update/delete: trigger DB
+// menolak UPDATE/DELETE/TRUNCATE (lihat migrasi audit_log) dan kode aplikasi
+// hanya mengekspor insert (lib/audit/record.ts) dan select (lib/audit/query.ts).
+// =============================================================================
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    actorId: text("actor_id"), // Supabase auth user id; null untuk aksi sistem
+    actorRole: text("actor_role"),
+    action: text("action").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id"),
+    ip: text("ip"),
+    before: jsonb("before"),
+    after: jsonb("after"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    createdAtIdx: index("audit_logs_created_at_idx").on(table.createdAt),
+    actorIdx: index("audit_logs_actor_idx").on(table.actorId),
+    entityIdx: index("audit_logs_entity_idx").on(table.entityType, table.entityId),
+  })
+);
+
+// =============================================================================
+// BOOKING RESCHEDULES (riwayat jadwal; sumber tahap Dijadwal Ulang, #28)
+// =============================================================================
+export const bookingReschedules = pgTable(
+  "booking_reschedules",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    bookingId: uuid("booking_id")
+      .references(() => bookings.id, { onDelete: "cascade" })
+      .notNull(),
+    initiatedBy: text("initiated_by").notNull(), // 'client' | 'admin'
+    actorId: text("actor_id"), // Supabase auth user id untuk admin; null untuk klien
+    fromScheduleId: uuid("from_schedule_id")
+      .references(() => schedules.id)
+      .notNull(),
+    toScheduleId: uuid("to_schedule_id")
+      .references(() => schedules.id)
+      .notNull(),
+    fromCounselorId: uuid("from_counselor_id")
+      .references(() => counselors.id)
+      .notNull(),
+    toCounselorId: uuid("to_counselor_id")
+      .references(() => counselors.id)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("booking_reschedules_booking_idx").on(table.bookingId, table.createdAt)]
+);
+export type BookingReschedule = typeof bookingReschedules.$inferSelect;
+
+// =============================================================================
+
+// WHATSAPP TEMPLATES & DISPATCH LOG (#31)
+// =============================================================================
+// Teks baku berparameter yang dikelola Superadmin. `key` tetap (lihat lib/whatsapp/templates.ts).
+export const whatsappTemplates = pgTable("whatsapp_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  key: text("key").notNull().unique(), // 'dispatch_link_sesi' | 'laporan_siap'
+  name: text("name").notNull(),
+  body: text("body").notNull(), // placeholder {{nama_klien}} {{tanggal}} {{slot}} {{link_sesi}} {{nama_konselor}}
+  updatedBy: uuid("updated_by"), // auth.users.id Superadmin terakhir
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Setiap klik kirim = satu baris "Sudah Dikirim" (template, booking, oleh siapa, kapan).
+export const whatsappDispatches = pgTable(
+  "whatsapp_dispatches",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    bookingId: uuid("booking_id")
+      .references(() => bookings.id, { onDelete: "cascade" })
+      .notNull(),
+    templateId: uuid("template_id").references(() => whatsappTemplates.id, { onDelete: "set null" }),
+    templateKey: text("template_key").notNull(),
+    sentBy: uuid("sent_by").notNull(), // auth.users.id staf yang mengklik
+    sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("idx_wa_dispatch_booking").on(table.bookingId, table.templateKey, table.sentAt)]
+);
+
+export type WhatsappTemplate = typeof whatsappTemplates.$inferSelect;
+export type WhatsappDispatch = typeof whatsappDispatches.$inferSelect;
+
 // Type helpers inferred from schema
 export type CounselorWeeklyTemplate = typeof counselorWeeklyTemplates.$inferSelect;
 export type NewCounselorWeeklyTemplate = typeof counselorWeeklyTemplates.$inferInsert;
 export type ScheduleMode = (typeof scheduleModeEnum.enumValues)[number];
 
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type NewAuditLog = typeof auditLogs.$inferInsert;

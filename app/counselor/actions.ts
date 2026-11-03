@@ -1,12 +1,21 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
+import { getStaffRole } from "@/lib/auth/staff-role"
+import { wibDateOf } from "@/lib/finance/period"
 import { eq, and, sql, desc, asc } from "drizzle-orm"
 import { db } from "@/db"
-import { bookings, schedules, screenings, sessionReports, counselors, zoomAccounts, platformSettings } from "@/db/schema"
+import { bookings, schedules, screenings, sessionReports, counselors, zoomAccounts, platformSettings, services } from "@/db/schema"
+import {
+  evaluateNoShow,
+  loadNoShowBookingFacts,
+  noShowUpdate,
+  type NoShowBookingFacts,
+} from "@/lib/booking/no-show"
 import { formatTimeRange } from "@/lib/schedules/concurrency"
 import { calculateExtendFee } from "@/lib/counselor/timer"
+import { applyOvertimeCorrection } from "@/lib/session/overtime-store"
+import { currentOvertimeBlocks, type OvertimeCorrectionPlan } from "@/lib/session/overtime"
 import { getAuthenticatedCounselor, resolveCounselorId } from "@/lib/counselor/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
 import {
@@ -80,12 +89,11 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
 
   try {
     const now = new Date()
-    const todayStr = now.toISOString().split("T")[0]
-    const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-    const sevenDaysLaterStr = sevenDaysLater.toISOString().split("T")[0]
+    // Hari ini dan 7 hari ke depan menurut kalender WIB (bukan UTC).
+    const todayStr = wibDateOf(now)
+    const sevenDaysLaterStr = wibDateOf(new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000))
 
-    const [rows, settingsRows] = await Promise.all([
-      withDbTimeout(
+    const rows = await withDbTimeout(
         db
           .select({
             booking: bookings,
@@ -94,42 +102,25 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
             report: sessionReports,
             counselor: counselors,
             zoomAccount: zoomAccounts,
+            service: services,
           })
           .from(bookings)
           .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
           .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
+          .innerJoin(services, eq(bookings.serviceId, services.id))
           .leftJoin(zoomAccounts, eq(bookings.zoomAccountId, zoomAccounts.id))
           .leftJoin(screenings, eq(bookings.screeningId, screenings.id))
           .leftJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
           .where(
             and(
               eq(bookings.counselorId, counselorId),
-              sql`${bookings.status} IN ('pending_payment', 'confirmed', 'completed', 'cancelled')`,
+              sql`${bookings.status} IN ('pending_payment', 'confirmed', 'completed', 'no_show', 'cancelled', 'expired')`,
               sql`${schedules.date} >= ${todayStr} AND ${schedules.date} <= ${sevenDaysLaterStr}`
             )
           )
           .orderBy(asc(schedules.date), asc(schedules.startTime)),
         10000
-      ),
-      withDbTimeout(
-        db
-          .select({
-            counselorExtendFeePer30Min: platformSettings.counselorExtendFeePer30Min,
-            psychologistExtendFeePer30Min: platformSettings.psychologistExtendFeePer30Min,
-          })
-          .from(platformSettings)
-          .where(eq(platformSettings.id, "default"))
-          .limit(1),
-        5000
-      ).catch(() => []),
-    ])
-
-    const customRates = settingsRows?.length
-      ? {
-          peerRate: Number(settingsRows[0].counselorExtendFeePer30Min),
-          psychologistRate: Number(settingsRows[0].psychologistExtendFeePer30Min),
-        }
-      : undefined
+    )
 
     const sessions: CounselorUpcomingSessionView[] = rows.map((r) => {
       const startTime = String(r.schedule.startTime)
@@ -165,7 +156,8 @@ export async function getCounselorUpcomingSessionsAction(deps?: {
         extensionMinutes: r.booking.extensionMinutes ?? 0,
         extensionFee: r.booking.extensionFee ?? "0",
         extensionPaymentStatus: r.booking.extensionPaymentStatus || "NONE",
-        customRates,
+        overtimeRatePer30Min: Number(r.service.overtimeRatePer30Min),
+        serviceName: r.service.name,
         srqScore: r.screening ? r.screening.totalScore : null,
         hasSuicidalThoughts: r.screening ? Boolean(r.screening.hasSuicidalThoughts) : false,
         bypassedRecommendation: Boolean(r.booking.bypassedRecommendation),
@@ -278,7 +270,7 @@ export async function getSessionReportAction(
     return { success: false, error: "Akses ditolak. Silakan login terlebih dahulu." }
   }
 
-  const role = auth.app_metadata?.role || auth.user_metadata?.role
+  const role = getStaffRole(auth)
   const counselorId = await resolveCounselorId(auth)
 
   if (deps?.getReportData) {
@@ -286,7 +278,7 @@ export async function getSessionReportAction(
     if (!report) {
       return { success: false, error: "Laporan sesi tidak ditemukan." }
     }
-    if (role !== "admin" && report.counselorId !== counselorId) {
+    if (role !== "admin" && role !== "superadmin" && report.counselorId !== counselorId) {
       return { success: false, error: "Anda hanya dapat melihat catatan sesi Anda sendiri (RLS)." }
     }
     const safeReport: SessionReportDetailView = { ...report }
@@ -309,6 +301,10 @@ export async function getSessionReportAction(
           booking: bookings,
           schedule: schedules,
           screening: screenings,
+          service: {
+            overtimeRatePer30Min: services.overtimeRatePer30Min,
+            overtimePayoutPercent: services.overtimePayoutPercent,
+          },
           report: {
             id: sessionReports.id,
             bookingId: sessionReports.bookingId,
@@ -329,6 +325,7 @@ export async function getSessionReportAction(
         .from(bookings)
         .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
         .leftJoin(screenings, eq(bookings.screeningId, screenings.id))
+        .leftJoin(services, eq(bookings.serviceId, services.id))
         .leftJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
         .where(eq(bookings.id, bookingId))
         .limit(1),
@@ -339,7 +336,7 @@ export async function getSessionReportAction(
       return { success: false, error: "Sesi konseling tidak ditemukan." }
     }
 
-    const { booking, schedule, screening, report } = rows[0]
+    const { booking, schedule, screening, report, service } = rows[0]
 
     if (!isAdminOrSuper && booking.counselorId !== counselorId) {
       return { success: false, error: "Anda hanya dapat melihat catatan sesi Anda sendiri (RLS)." }
@@ -350,8 +347,8 @@ export async function getSessionReportAction(
     const detail: SessionReportDetailView = {
       id: report?.id || "",
       bookingId: booking.id,
-      counselorId: booking.counselorId,
-      mainIssue: report?.mainIssue || "Konsultasi Emosional & Stres",
+      counselorId: booking.counselorId ?? "",
+      mainIssue: report?.mainIssue ?? "",
       summary: report?.summary || "",
       actionPlan: report?.actionPlan || "",
       // Confidentiality Guard: internalNotes is STRICTLY excluded from Admin & Superadmin payloads
@@ -362,6 +359,14 @@ export async function getSessionReportAction(
       timerStartedAt: report?.timerStartedAt ? report.timerStartedAt.toISOString() : null,
       timerStoppedAt: report?.timerStoppedAt ? report.timerStoppedAt.toISOString() : null,
       createdAt: report ? report.createdAt.toISOString() : new Date().toISOString(),
+      overtime: service
+        ? {
+            blocks: currentOvertimeBlocks(booking),
+            ratePer30Min: Number(service.overtimeRatePer30Min),
+            payoutPercent: service.overtimePayoutPercent,
+            paymentStatus: booking.extensionPaymentStatus || "NONE",
+          }
+        : undefined,
       booking: {
         id: booking.id,
         patientName: booking.patientName,
@@ -401,6 +406,11 @@ export async function submitSessionReportAction(
     currentUser?: CounselorAuthContext | null
     getBooking?: (id: string) => Promise<any>
     saveReport?: (data: any) => Promise<{ id: string }>
+    applyOvertimeCorrection?: (
+      bookingId: string,
+      counselorId: string,
+      blocks: number
+    ) => Promise<OvertimeCorrectionPlan>
   }
 ): Promise<CounselorActionResponse<{ reportId: string }>> {
   const auth = await getAuthenticatedCounselor(deps?.currentUser)
@@ -459,13 +469,28 @@ export async function submitSessionReportAction(
       return { success: false, error: "Anda tidak berwenang mengisi laporan untuk sesi konselor lain." }
     }
 
+    // Koreksi blok Perpanjangan Sesi (tagihan klien + honor overtime) sebelum laporan disimpan.
+    if (parsed.data.overtimeBlocks !== undefined) {
+      const apply =
+        deps?.applyOvertimeCorrection ??
+        (UUID_REGEX.test(bookingId)
+          ? (id: string, cid: string, blocks: number) => applyOvertimeCorrection(id, cid, blocks)
+          : null)
+      if (apply) {
+        const plan = await apply(bookingId, counselorId, parsed.data.overtimeBlocks)
+        if (!plan.ok) {
+          return { success: false, error: plan.error }
+        }
+      }
+    }
+
     let reportId = ""
 
     if (deps?.saveReport) {
       const res = await deps.saveReport({
         bookingId,
         counselorId,
-        mainIssue: mainIssue || "Konsultasi Emosional & Stres",
+        mainIssue,
         summary,
         actionPlan: actionPlan || null,
         internalNotes: internalNotes || null,
@@ -486,7 +511,7 @@ export async function submitSessionReportAction(
       if (existing.length > 0) {
         reportId = existing[0].id
         const updatePayload: any = {
-          mainIssue: mainIssue || "Konsultasi Emosional & Stres",
+          mainIssue,
           summary,
           actionPlan: actionPlan || null,
           internalNotes: internalNotes || null,
@@ -510,7 +535,7 @@ export async function submitSessionReportAction(
         const insertPayload: any = {
           bookingId,
           counselorId,
-          mainIssue: mainIssue || "Konsultasi Emosional & Stres",
+          mainIssue,
           summary,
           actionPlan: actionPlan || null,
           internalNotes: internalNotes || null,
@@ -602,7 +627,7 @@ export async function getCounselorProfileAction(deps?: {
     }
 
     const c = rows[0]
-    let counselorEmail = c.email || auth.user_metadata?.email || (auth as any).email || ""
+    let counselorEmail = c.email || ""
     if (!counselorEmail && c.userId) {
       try {
         const supabaseAdmin = createAdminClient()
@@ -621,7 +646,7 @@ export async function getCounselorProfileAction(deps?: {
       specializations: (c.specializations as string[]) || [],
       avatarR2Url: c.avatarR2Url,
       isActive: c.isActive,
-      email: counselorEmail || "-",
+      email: counselorEmail || undefined,
     }
 
     return { success: true, data: profile }
@@ -832,55 +857,8 @@ export async function updateCounselorPasswordAction(
 }
 
 /**
- * Switches the active demo counselor identity for testing and simulation.
- */
-export async function switchDemoCounselorAction(counselorId: string) {
-  const cookieStore = await cookies()
-  cookieStore.set("solulu_demo_role", "counselor", {
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24,
-  })
-  cookieStore.set("solulu_demo_counselor_id", counselorId, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24,
-  })
-  safeRevalidatePath("/counselor/dashboard")
-  safeRevalidatePath("/counselor/profile")
-  safeRevalidatePath("/counselor/schedules")
-  return { success: true }
-}
-
-/**
- * Returns available real counselors in the database for the switcher dropdown.
- */
-export async function getCounselorsListForSwitchAction() {
-  try {
-    const rows = await db
-      .select({
-        id: counselors.id,
-        fullName: counselors.fullName,
-        title: counselors.title,
-        counselorType: counselors.counselorType,
-      })
-      .from(counselors)
-      .where(eq(counselors.isActive, true))
-      .orderBy(counselors.fullName)
-
-    return { success: true, data: rows }
-  } catch (err: any) {
-    return { success: false, error: err.message, data: [] }
-  }
-}
-
-/**
  * Ticket 04: Automatically records 30-minute extension fee in PostgreSQL bookings table.
- * Standard extend rules:
- * - Sebaya (Peer Counselor): Rp 35.000
- * - Psikolog Klinis: Rp 50.000
+ * The fee is the overtime rate per 30 minutes of the booking's Layanan (ADR-0010).
  * Automatically triggered at minute 96 or when counselor clicks "Catat Perpanjangan".
  */
 export async function recordSessionExtensionAction(
@@ -911,10 +889,10 @@ export async function recordSessionExtensionAction(
       dbConn
         .select({
           booking: bookings,
-          counselor: counselors,
+          service: services,
         })
         .from(bookings)
-        .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
+        .innerJoin(services, eq(bookings.serviceId, services.id))
         .where(and(eq(bookings.id, bookingId), eq(bookings.counselorId, counselorId)))
         .limit(1),
       10000
@@ -924,32 +902,22 @@ export async function recordSessionExtensionAction(
       return { success: false, error: "Sesi konseling tidak ditemukan atau bukan milik Anda." }
     }
 
-    const { booking, counselor } = bookingRows[0]
-    const counselorType = (counselor.counselorType || "peer") as "peer" | "psychologist"
+    const { booking, service } = bookingRows[0]
 
-    // Fetch custom pricing if set
-    let customRates: { peerRate?: number; psychologistRate?: number } | undefined
-    try {
-      const settingsRows = await dbConn
-        .select({
-          counselorExtendFeePer30Min: platformSettings.counselorExtendFeePer30Min,
-          psychologistExtendFeePer30Min: platformSettings.psychologistExtendFeePer30Min,
-        })
-        .from(platformSettings)
-        .where(eq(platformSettings.id, "default"))
-        .limit(1)
-
-      if (settingsRows.length) {
-        customRates = {
-          peerRate: Number(settingsRows[0].counselorExtendFeePer30Min),
-          psychologistRate: Number(settingsRows[0].psychologistExtendFeePer30Min),
-        }
+    // Idempoten: blok yang sudah tercatat (otomatis atau hasil koreksi) tidak ditimpa.
+    if (booking.isExtended && (booking.extensionMinutes ?? 0) > 0) {
+      return {
+        success: true,
+        data: {
+          isExtended: true,
+          extensionMinutes: booking.extensionMinutes,
+          fee: Number(booking.extensionFee) || 0,
+        },
       }
-    } catch {
-      // Fallback to default in calculateExtendFee
     }
 
-    const feeCalc = calculateExtendFee(96, counselorType, customRates)
+    // Tarif overtime diambil dari Layanan yang dibeli klien (ADR-0010).
+    const feeCalc = calculateExtendFee(96, Number(service.overtimeRatePer30Min))
 
     await withDbTimeout(
       dbConn
@@ -1058,7 +1026,7 @@ export async function recordSessionTimerAction(
           .values({
             bookingId,
             counselorId,
-            mainIssue: "Konsultasi Emosional & Stres",
+            mainIssue: "",
             summary: "Sesi konseling telah terekam melalui Floating Timer.",
             actualDurationMinutes: payload.actualDurationMinutes,
             timerStartedAt: timerStarted,
@@ -1153,6 +1121,68 @@ export async function counselorAdmitClientAction(
     }
   } catch (err: any) {
     return { success: false, error: err.message || "Gagal menandai kehadiran klien." }
+  }
+}
+
+/**
+ * Counselor marks the client No-Show. Allowed only for the counselor's own confirmed booking,
+ * after the tolerance (default 30 minutes) from session start; the rule is owned by
+ * lib/booking-cycle. Honor stays full (CONTEXT.md: No-Show).
+ */
+export async function markNoShowAction(
+  bookingId: string,
+  deps?: {
+    currentUser?: CounselorAuthContext | null
+    getBooking?: (id: string) => Promise<NoShowBookingFacts | null>
+    updateBooking?: (id: string, values: ReturnType<typeof noShowUpdate>) => Promise<void>
+    now?: Date
+  }
+): Promise<CounselorActionResponse<{ markedAt: string }>> {
+  if (!bookingId || (!deps?.getBooking && !UUID_REGEX.test(bookingId))) {
+    return { success: false, error: "ID booking tidak valid." }
+  }
+
+  const auth = await getAuthenticatedCounselor(deps?.currentUser)
+  if (!auth) {
+    return { success: false, error: "Akses ditolak. Silakan login sebagai Mitra Konselor." }
+  }
+
+  const counselorId = await resolveCounselorId(auth)
+  if (!counselorId) {
+    return { success: false, error: "Profil konselor tidak ditemukan." }
+  }
+
+  try {
+    const now = deps?.now ?? new Date()
+    const booking = deps?.getBooking
+      ? await deps.getBooking(bookingId)
+      : await loadNoShowBookingFacts(bookingId)
+
+    if (!booking) {
+      return { success: false, error: "Sesi konseling tidak ditemukan." }
+    }
+    if (booking.counselorId !== counselorId) {
+      return { success: false, error: "Anda tidak berwenang mengelola sesi konselor lain." }
+    }
+
+    const check = evaluateNoShow(booking, now)
+    if (!check.allowed) {
+      return { success: false, error: check.reason || "No-Show belum dapat ditandai." }
+    }
+
+    const values = noShowUpdate(now)
+    if (deps?.updateBooking) {
+      await deps.updateBooking(bookingId, values)
+    } else {
+      await db.update(bookings).set(values).where(eq(bookings.id, bookingId))
+    }
+
+    safeRevalidatePath("/counselor/dashboard")
+    safeRevalidatePath("/admin/bookings")
+
+    return { success: true, data: { markedAt: now.toISOString() } }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Gagal menandai klien sebagai No-Show." }
   }
 }
 

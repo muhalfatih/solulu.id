@@ -1,0 +1,361 @@
+/**
+ * Modul Siklus Booking (ADR-0008): pure logic, no I/O.
+ *
+ * The booking status column stores only what cannot be derived
+ * (pending_payment, confirmed, completed, no_show, cancelled, expired).
+ * Every other Tahap Booking is derived here from facts stored elsewhere.
+ */
+
+export type BookingStatus =
+  | "pending_payment"
+  | "confirmed"
+  | "completed"
+  | "no_show"
+  | "cancelled"
+  | "expired"
+
+export type BookingStage =
+  | "menunggu_bayar"
+  | "terkonfirmasi"
+  | "ditugaskan"
+  | "dijadwal_ulang"
+  | "sesi_berjalan"
+  | "selesai"
+  | "laporan_masuk"
+  | "payroll_ditutup"
+  | "kedaluwarsa"
+  | "dibatalkan"
+  | "no_show"
+
+export const STAGE_LABELS: Record<BookingStage, string> = {
+  menunggu_bayar: "Menunggu Bayar",
+  terkonfirmasi: "Terkonfirmasi",
+  ditugaskan: "Ditugaskan",
+  dijadwal_ulang: "Dijadwal Ulang",
+  sesi_berjalan: "Sesi Berjalan",
+  selesai: "Selesai",
+  laporan_masuk: "Laporan Masuk",
+  payroll_ditutup: "Payroll Ditutup",
+  kedaluwarsa: "Kedaluwarsa",
+  dibatalkan: "Dibatalkan",
+  no_show: "No-Show",
+}
+
+export function stageLabel(stage: BookingStage): string {
+  return STAGE_LABELS[stage]
+}
+
+export interface StageInput {
+  status: BookingStatus
+  /** Konselor sudah ditetapkan pada booking. */
+  counselorAssigned: boolean
+  rescheduleCount: number
+  /** Timer sesi sudah dimulai (session_reports.timer_started_at). */
+  timerStartedAt?: Date | string | null
+  /** Laporan sesi sudah ada. */
+  hasReport: boolean
+  /** Sesi masuk Periode Payroll yang sudah ditutup (diisi oleh tiket payroll). */
+  payrollClosed?: boolean
+}
+
+export function deriveStage(input: StageInput): BookingStage {
+  switch (input.status) {
+    case "pending_payment":
+      return "menunggu_bayar"
+    case "expired":
+      return "kedaluwarsa"
+    case "cancelled":
+      return "dibatalkan"
+    case "no_show":
+      return "no_show"
+    case "completed":
+      if (input.payrollClosed) return "payroll_ditutup"
+      if (input.hasReport) return "laporan_masuk"
+      return "selesai"
+    case "confirmed":
+      if (input.timerStartedAt) return "sesi_berjalan"
+      if (input.rescheduleCount > 0) return "dijadwal_ulang"
+      if (input.counselorAssigned) return "ditugaskan"
+      return "terkonfirmasi"
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Session time (WIB)
+// ---------------------------------------------------------------------------
+
+/** Builds the session start instant from a schedule date ("YYYY-MM-DD") and time ("HH:mm[:ss]") in WIB (UTC+7). */
+export function sessionStartAt(date: string, startTime: string): Date {
+  const timeClean = startTime.includes(":") ? startTime.slice(0, 5) : startTime
+  return new Date(`${date}T${timeClean}:00+07:00`)
+}
+
+// ---------------------------------------------------------------------------
+// No-Show
+// ---------------------------------------------------------------------------
+
+export const NO_SHOW_TOLERANCE_MINUTES = 30
+
+export interface NoShowInput {
+  status: BookingStatus
+  sessionStart: Date
+  now?: Date
+  toleranceMinutes?: number
+  timerStartedAt?: Date | string | null
+}
+
+export interface NoShowCheck {
+  allowed: boolean
+  reason?: string
+}
+
+export function canMarkNoShow(input: NoShowInput): NoShowCheck {
+  const now = input.now ?? new Date()
+  const tolerance = input.toleranceMinutes ?? NO_SHOW_TOLERANCE_MINUTES
+
+  if (input.status !== "confirmed") {
+    return { allowed: false, reason: "No-Show hanya dapat ditandai pada booking berstatus Terkonfirmasi." }
+  }
+  if (input.timerStartedAt) {
+    return { allowed: false, reason: "Sesi sudah berjalan (timer dimulai), klien tidak dapat ditandai No-Show." }
+  }
+  if (Number.isNaN(input.sessionStart.getTime())) {
+    return { allowed: false, reason: "Jadwal sesi tidak valid." }
+  }
+  const earliest = input.sessionStart.getTime() + tolerance * 60_000
+  if (now.getTime() < earliest) {
+    return {
+      allowed: false,
+      reason: `No-Show baru dapat ditandai setelah toleransi ${tolerance} menit dari jam mulai sesi.`,
+    }
+  }
+  return { allowed: true }
+}
+
+// ---------------------------------------------------------------------------
+// Slot hold
+// ---------------------------------------------------------------------------
+
+export type HoldSource = "public" | "booking_cepat"
+
+/** 15-minute Xendit invoice + 2-minute webhook latency buffer. */
+export const SLOT_HOLD_MINUTES = 17
+export const BOOKING_CEPAT_HOLD_MINUTES = 60
+
+/**
+ * `minutesOverride` is the Booking Cepat hold from Platform Settings (Superadmin);
+ * it is ignored for public holds, which are fixed by the Xendit invoice duration.
+ */
+export function holdMinutes(source: HoldSource = "public", minutesOverride?: number): number {
+  if (source !== "booking_cepat") return SLOT_HOLD_MINUTES
+  return minutesOverride && minutesOverride > 0 ? minutesOverride : BOOKING_CEPAT_HOLD_MINUTES
+}
+
+export function holdExpiresAt(startedAt: Date, source: HoldSource = "public", minutesOverride?: number): Date {
+  return new Date(startedAt.getTime() + holdMinutes(source, minutesOverride) * 60_000)
+}
+
+export function isHoldExpired(
+  startedAt: Date | string,
+  source: HoldSource = "public",
+  now: Date = new Date(),
+  minutesOverride?: number
+): boolean {
+  const start = typeof startedAt === "string" ? new Date(startedAt) : startedAt
+  return now.getTime() > holdExpiresAt(start, source, minutesOverride).getTime()
+}
+
+// ---------------------------------------------------------------------------
+// Overtime
+// ---------------------------------------------------------------------------
+
+export const FREE_TOLERANCE_END_MINUTE = 95
+export const OVERTIME_BLOCK_MINUTES = 30
+export const HARD_STOP_MINUTES = 120
+
+/** Number of 30-minute overtime blocks billed for a session of the given length. Free through minute 95; slot hard-stops at 120. */
+export function overtimeBlocks(durationMinutes: number): number {
+  if (durationMinutes <= FREE_TOLERANCE_END_MINUTE) return 0
+  const billable = Math.min(durationMinutes, HARD_STOP_MINUTES) - 90
+  return Math.ceil(billable / OVERTIME_BLOCK_MINUTES)
+}
+
+/** Menit ke-96: overtime pertama tercatat otomatis oleh Timer Melayang. */
+export const OVERTIME_RECORD_MINUTE = FREE_TOLERANCE_END_MINUTE + 1
+
+/** Blok overtime maksimum dalam satu sesi (slot berhenti di menit 120). */
+export const MAX_OVERTIME_BLOCKS = overtimeBlocks(HARD_STOP_MINUTES)
+
+// ---------------------------------------------------------------------------
+// Reschedule (absorbed from lib/admin/reschedule.ts)
+// ---------------------------------------------------------------------------
+
+export interface RescheduleCheckResult {
+  allowed: boolean
+  hoursUntilSession: number
+  reason?: string
+}
+
+/** Cutoff Reschedule default (H-4); the live value comes from Platform Settings (Superadmin). */
+export const DEFAULT_RESCHEDULE_CUTOFF_HOURS = 4
+/** Jatah Reschedule Mandiri per booking. Reschedule Admin does not consume it. */
+export const MAX_SELF_RESCHEDULES = 1
+
+/**
+ * Evaluates whether a session can still be rescheduled by the client based on the
+ * Cutoff Reschedule (Platform Settings, default H-4).
+ */
+export function canRescheduleSession(
+  sessionDate: string,
+  startTime: string,
+  currentTime: Date = new Date(),
+  cutoffHours: number = DEFAULT_RESCHEDULE_CUTOFF_HOURS
+): RescheduleCheckResult {
+  const sessionTimestamp = sessionStartAt(sessionDate, startTime).getTime()
+
+  if (isNaN(sessionTimestamp)) {
+    return {
+      allowed: false,
+      hoursUntilSession: 0,
+      reason: "Format tanggal atau jam sesi tidak valid.",
+    }
+  }
+
+  const diffMs = sessionTimestamp - currentTime.getTime()
+  const hoursUntilSession = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10
+
+  if (hoursUntilSession <= 0) {
+    return {
+      allowed: false,
+      hoursUntilSession,
+      reason: "Sesi konseling telah berlangsung atau telah lewat dari jadwal.",
+    }
+  }
+
+  if (hoursUntilSession < cutoffHours) {
+    return {
+      allowed: false,
+      hoursUntilSession,
+      reason: `Perubahan jadwal ditutup karena sesi dimulai dalam ${hoursUntilSession} jam (Aturan H-${cutoffHours} mengharuskan minimal ${cutoffHours} jam sebelumnya).`,
+    }
+  }
+
+  return { allowed: true, hoursUntilSession }
+}
+
+// ---------------------------------------------------------------------------
+// Konselor Bebas pool: Klaim Sesi (ADR-0011)
+// ---------------------------------------------------------------------------
+
+/** Klaim ditutup H-4 jam sebelum sesi; sisanya ditugaskan Admin. */
+export const CLAIM_CUTOFF_HOURS = 4
+
+export function isPastClaimCutoff(
+  sessionStart: Date,
+  now: Date = new Date(),
+  cutoffHours: number = CLAIM_CUTOFF_HOURS
+): boolean {
+  return sessionStart.getTime() - now.getTime() <= cutoffHours * 3_600_000
+}
+
+/**
+ * Opsi Konselor Bebas hanya ditawarkan selama jumlah booking pool di slot itu
+ * lebih kecil dari jumlah konselor yang memenuhi syarat dan belum terpakai.
+ */
+export function isPoolOfferable(input: { poolBookings: number; eligibleCounselors: number }): boolean {
+  return input.poolBookings < input.eligibleCounselors
+}
+
+export interface ClaimInput {
+  status: BookingStatus
+  /** Booking pool sudah punya konselor. */
+  alreadyClaimed: boolean
+  sessionStart: Date
+  now?: Date
+  cutoffHours?: number
+  counselor: {
+    /** Tipe konselor sesuai Layanan. */
+    typeAllowed: boolean
+    /** Konselor punya jadwal kosong di slot ini. */
+    slotFree: boolean
+    onLeave: boolean
+  }
+}
+
+export function canClaim(input: ClaimInput): { allowed: boolean; reason?: string } {
+  if (input.status !== "confirmed") {
+    return { allowed: false, reason: "Booking belum terkonfirmasi atau sudah tidak aktif." }
+  }
+  if (input.alreadyClaimed) {
+    return { allowed: false, reason: "Sesi ini sudah diambil konselor lain." }
+  }
+  const cutoff = input.cutoffHours ?? CLAIM_CUTOFF_HOURS
+  if (isPastClaimCutoff(input.sessionStart, input.now ?? new Date(), cutoff)) {
+    return { allowed: false, reason: `Klaim ditutup pada H-${cutoff} jam sebelum sesi; Admin akan menugaskan konselor.` }
+  }
+  if (!input.counselor.typeAllowed) {
+    return { allowed: false, reason: "Tipe konselor Anda tidak sesuai dengan Layanan ini." }
+  }
+  if (input.counselor.onLeave) {
+    return { allowed: false, reason: "Anda sedang cuti pada slot ini." }
+  }
+  if (!input.counselor.slotFree) {
+    return { allowed: false, reason: "Anda tidak punya slot kosong pada waktu ini." }
+  }
+  return { allowed: true }
+}
+
+export interface RescheduleSelfInput {
+  status: BookingStatus
+  /** Reschedule Mandiri yang sudah dipakai klien pada booking ini. */
+  selfRescheduleCount: number
+  sessionDate: string
+  startTime: string
+  timerStartedAt?: Date | string | null
+  now?: Date
+  /** Cutoff Reschedule dari Platform Settings; default H-4. */
+  cutoffHours?: number
+}
+
+export interface RescheduleAdminInput {
+  status: BookingStatus
+  timerStartedAt?: Date | string | null
+}
+
+export type RescheduleCheck = { allowed: true } | { allowed: false; reason: string }
+
+/** Reschedule Mandiri: status Terkonfirmasi, maks 1 kali, sebelum Cutoff Reschedule. */
+export function canRescheduleSelf(input: RescheduleSelfInput): RescheduleCheck {
+  if (input.status !== "confirmed") {
+    return { allowed: false, reason: "Reschedule hanya dapat dilakukan pada booking yang sudah Terkonfirmasi." }
+  }
+  if (input.timerStartedAt) {
+    return { allowed: false, reason: "Sesi sudah berjalan, jadwal tidak dapat diubah." }
+  }
+  if (input.selfRescheduleCount >= MAX_SELF_RESCHEDULES) {
+    return {
+      allowed: false,
+      reason: `Jatah reschedule sudah habis (maksimal ${MAX_SELF_RESCHEDULES} kali per booking). Hubungi Admin bila membutuhkan bantuan.`,
+    }
+  }
+  const cutoff = input.cutoffHours ?? DEFAULT_RESCHEDULE_CUTOFF_HOURS
+  const timing = canRescheduleSession(input.sessionDate, input.startTime, input.now ?? new Date(), cutoff)
+  if (!timing.allowed) {
+    return {
+      allowed: false,
+      reason: timing.reason ?? `Reschedule ditutup (batas H-${cutoff}). Hubungi Admin bila membutuhkan bantuan.`,
+    }
+  }
+  return { allowed: true }
+}
+
+/** Reschedule Admin: kapan saja selama booking Terkonfirmasi dan sesi belum berjalan; tanpa jatah. */
+export function canRescheduleAdmin(input: RescheduleAdminInput): RescheduleCheck {
+  if (input.status !== "confirmed") {
+    return { allowed: false, reason: "Reschedule hanya dapat dilakukan pada booking berstatus Terkonfirmasi." }
+  }
+  if (input.timerStartedAt) {
+    return { allowed: false, reason: "Sesi sudah berjalan, jadwal tidak dapat diubah." }
+  }
+  return { allowed: true }
+}

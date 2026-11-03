@@ -1,5 +1,6 @@
 "use client"
 
+import { getSupportWhatsappUrl } from "@/lib/config/support"
 import * as React from "react"
 import Link from "next/link"
 import {
@@ -14,9 +15,9 @@ import {
   HelpCircle,
   Video,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/public/public-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { PublicShell } from "@/components/public/public-shell"
@@ -38,9 +39,9 @@ interface BookingSuccessClientProps {
       counselorType: string
       counselorTypeDisplay: string
       avatarR2Url: string | null
-    }
+    } | null
     schedule: {
-      id: string
+      id: string | null
       date: string
       startTime: string
       endTime: string
@@ -75,12 +76,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
     setTimeout(() => setCopiedLink(false), 2500)
   }
 
-  const whatsappSupportNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT || "6281234567890"
-
-  const helpDeskUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(
-    `Halo Tim Solulu, saya ingin bertanya terkait sesi konseling dengan token: ${booking.accessToken}`
-  )}`
+  const helpDeskUrl = getSupportWhatsappUrl(`Halo Tim Solulu, saya ingin bertanya terkait sesi konseling dengan token: ${booking.accessToken}`)
 
   return (
     <PublicShell>
@@ -114,7 +110,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
 
         {/* Primary CTA: Buka Halaman Sesi Saya Sekarang */}
         <div className="w-full mb-8">
-          <Button
+          <PublicButton
             asChild
             variant="public"
             size="pill-lg"
@@ -125,7 +121,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
               <span>Buka Halaman Sesi Saya Sekarang</span>
               <ArrowRight className="size-4" data-icon="inline-end" />
             </Link>
-          </Button>
+          </PublicButton>
           <p className="text-xs text-muted-foreground text-center mt-2.5">
             Anda dapat langsung mengakses ruang sesi tanpa perlu registrasi akun atau kata sandi.
           </p>
@@ -143,6 +139,14 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
           </CardHeader>
           <CardContent className="p-6 sm:p-7 flex flex-col gap-5 text-xs sm:text-sm">
             {/* Counselor */}
+            {!counselor ? (
+              <div className="flex flex-col gap-1 p-4 rounded-xl bg-muted/30 border border-border/60">
+                <span className="font-semibold text-sm text-foreground">Konselor Bebas</span>
+                <span className="text-xs text-muted-foreground">
+                  Konselor Anda sedang ditentukan. Nama konselor akan dikirim ke email Anda setelah sesi diambil.
+                </span>
+              </div>
+            ) : (
             <div className="flex items-start gap-3.5 p-4 rounded-xl bg-muted/30 border border-border/60">
               <Avatar className="size-12 rounded-xl border border-border/80 shrink-0">
                 {counselor.avatarR2Url ? (
@@ -166,6 +170,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
                 <span className="text-xs text-muted-foreground line-clamp-1">{counselor.title}</span>
               </div>
             </div>
+            )}
 
             {/* Time details */}
             <div className="flex flex-col gap-2">
@@ -213,7 +218,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
                 <div className="flex-1 bg-background px-3 py-2 rounded-xl border border-border/80 text-xs font-mono truncate text-muted-foreground">
                   {sessionUrl}
                 </div>
-                <Button
+                <PublicButton
                   type="button"
                   variant="public-secondary"
                   size="pill-sm"
@@ -231,7 +236,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
                       <span>Salin</span>
                     </>
                   )}
-                </Button>
+                </PublicButton>
               </div>
             </div>
           </CardContent>
@@ -268,6 +273,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
               </span>
             </div>
           </CardContent>
+{helpDeskUrl && (
           <CardFooter className="p-6 sm:p-7 border-t border-border/40 bg-muted/10">
             <a
               href={helpDeskUrl}
@@ -279,6 +285,7 @@ export default function BookingSuccessClient({ data }: BookingSuccessClientProps
               <span>Ada pertanyaan? Hubungi Bantuan Solulu via WhatsApp</span>
             </a>
           </CardFooter>
+)}
         </Card>
       </div>
     </PublicShell>

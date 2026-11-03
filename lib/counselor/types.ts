@@ -37,7 +37,9 @@ export interface CounselorUpcomingSessionView {
   extensionMinutes: number
   extensionFee: string | number
   extensionPaymentStatus: string
-  customRates?: { peerRate?: number; psychologistRate?: number }
+  /** Tarif overtime per 30 menit dari Layanan booking ini (ADR-0010). */
+  overtimeRatePer30Min: number
+  serviceName: string
   srqScore: number | null
   hasSuicidalThoughts: boolean
   bypassedRecommendation: boolean
@@ -76,6 +78,15 @@ export interface SessionReportDetailView {
   timerStartedAt?: string | null
   timerStoppedAt?: string | null
   createdAt: string
+  /** Perpanjangan Sesi yang tercatat otomatis oleh Timer Melayang; dapat dikoreksi di Laporan Sesi. */
+  overtime?: {
+    blocks: number
+    ratePer30Min: number
+    /** Bagi Hasil overtime Layanan (%). */
+    payoutPercent: number
+    /** 'NONE' | 'PENDING' | 'PAID' */
+    paymentStatus: string
+  }
   booking: {
     id: string
     patientName: string

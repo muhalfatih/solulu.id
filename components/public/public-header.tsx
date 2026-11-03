@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { ArrowRight, Menu, X, Heart } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
 
@@ -95,7 +95,7 @@ export function PublicHeader() {
         <div className="flex items-center gap-2 sm:gap-3">
           <ThemeToggle variant="icon" />
 
-          <Button
+          <PublicButton
             asChild
             variant="public"
             size="pill-sm"
@@ -111,10 +111,10 @@ export function PublicHeader() {
               <span>Pilih Konselor</span>
               <ArrowRight className="size-3.5" data-icon="inline-end" />
             </Link>
-          </Button>
+          </PublicButton>
 
           {/* Mobile Menu Button */}
-          <Button
+          <PublicButton
             variant="ghost"
             size="icon"
             className="md:hidden size-9 rounded-lg"
@@ -128,7 +128,7 @@ export function PublicHeader() {
             ) : (
               <Menu className="size-5" />
             )}
-          </Button>
+          </PublicButton>
         </div>
       </div>
 
@@ -167,7 +167,7 @@ export function PublicHeader() {
           })}
 
           <div className="pt-2 border-t border-border/60">
-            <Button
+            <PublicButton
               asChild
               variant="public"
               size="pill"
@@ -182,7 +182,7 @@ export function PublicHeader() {
                 <span>Pilih Konselor Sekarang</span>
                 <ArrowRight className="size-4" data-icon="inline-end" />
               </Link>
-            </Button>
+            </PublicButton>
           </div>
         </div>
       )}

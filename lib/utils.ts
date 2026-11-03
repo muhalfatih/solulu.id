@@ -7,3 +7,8 @@ export function formatRupiah(amount: number): string {
     maximumFractionDigits: 0,
   }).format(amount)
 }
+
+/** Nominal untuk layar; "-" bila belum ada transaksi (tidak pernah mengarang angka). */
+export function formatRupiahOrDash(amount: number | null | undefined): string {
+  return amount == null ? "-" : formatRupiah(amount)
+}

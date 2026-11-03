@@ -3,7 +3,8 @@
 import * as React from "react"
 import Link from "next/link"
 import { AlertTriangle, RefreshCcw, Home, MessageSquare } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton as Button } from "@/components/public/public-button"
+import { getSupportWhatsappUrl } from "@/lib/config/support"
 import { Badge } from "@/components/ui/badge"
 
 export default function GlobalError({
@@ -13,6 +14,7 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const supportUrl = getSupportWhatsappUrl()
   React.useEffect(() => {
     // Log unexpected runtime errors for telemetry
     console.error("Solulu runtime error:", error)
@@ -53,12 +55,14 @@ export default function GlobalError({
             </Link>
           </Button>
 
+{supportUrl && (
           <Button asChild variant="ghost" className="h-9 text-xs text-muted-foreground hover:text-foreground gap-2 w-full">
-            <a href="https://wa.me/6281234567890" target="_blank" rel="noopener noreferrer">
+            <a href={supportUrl} target="_blank" rel="noopener noreferrer">
               <MessageSquare className="size-3.5" />
               <span>Hubungi Bantuan di WhatsApp</span>
             </a>
           </Button>
+          )}
         </div>
       </div>
     </main>

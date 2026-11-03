@@ -9,6 +9,7 @@ import { formatIndonesianDate } from "@/lib/session/time"
 import { recoverSessionSchema, type RecoverSessionInput } from "@/lib/validations/session"
 import { checkRateLimit, type RateLimitResult } from "./rate-limit"
 import { getAppBaseUrl } from "@/lib/url"
+import { getResendConfig } from "@/lib/config/integrations"
 
 import {
   PRIVACY_SAFE_SUCCESS_MESSAGE,
@@ -142,8 +143,10 @@ export async function recoverSessionLinkAction(
     if (matches.length > 0) {
       if (deps?.sendRecoveryEmail) {
         await deps.sendRecoveryEmail(email, matches)
-      } else if (process.env.RESEND_API_KEY) {
+      } else {
         try {
+          const resend = getResendConfig()
+          if (!resend.apiKey) throw new Error("RESEND_API_KEY belum dikonfigurasi")
           const appBaseUrl = getAppBaseUrl()
           const sessionLinksHtml = matches
             .map(
@@ -152,14 +155,14 @@ export async function recoverSessionLinkAction(
             )
             .join("")
 
-          await fetch("https://api.resend.com/emails", {
+          const resendResponse = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+              Authorization: `Bearer ${resend.apiKey}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: process.env.RESEND_FROM_EMAIL || "Solulu Support <halo@solulu.id>",
+              from: resend.fromEmail,
               to: [email],
               subject: "Pemulihan Tautan Ruang Sesi Konseling - Solulu",
               html: `
@@ -175,15 +178,12 @@ export async function recoverSessionLinkAction(
               `,
             }),
           })
+          if (!resendResponse.ok) {
+            console.error("Resend rejected recovery email:", await resendResponse.text())
+          }
         } catch (mailErr) {
           console.error("Failed to send recovery email via Resend:", mailErr)
         }
-      } else {
-        // Dev fallback log
-        console.log(
-          `[DEV RECOVERY] Email dispatched to ${email} with ${matches.length} session(s):`,
-          matches.map((m) => `/session/${m.accessToken}`)
-        )
       }
     }
 

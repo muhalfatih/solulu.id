@@ -70,8 +70,8 @@ export function calculateCredentialExpiry(
   const formattedDate = expDate.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
-    year: "numeric",
-  })
+    year: "numeric", timeZone: "Asia/Jakarta"
+})
 
   if (daysRemaining <= 0) {
     const daysAgo = Math.abs(daysRemaining)

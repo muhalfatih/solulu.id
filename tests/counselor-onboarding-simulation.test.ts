@@ -229,7 +229,7 @@ describe("End-to-End Simulation: Counselor Onboarding Pipeline (/apply -> Admin 
     it("4.2 RBAC menolak konselor mengakses rute admin dan mengarahkan ke dashboard konselor", () => {
       const activeCounselorUser = {
         id: "auth-dewi-uid-888",
-        user_metadata: { role: "counselor" },
+        app_metadata: { role: "counselor" },
       }
 
       const decision = evaluateRbac(activeCounselorUser, "/admin/counselors")
@@ -254,7 +254,7 @@ describe("End-to-End Simulation: Counselor Onboarding Pipeline (/apply -> Admin 
       const counselorAuthContext = {
         id: "auth-dewi-uid-888",
         counselorId: "counselor-dewi-db-999",
-        user_metadata: { role: "counselor" },
+        app_metadata: { role: "counselor" },
       }
 
       let updatedPasswordValue = ""
@@ -276,7 +276,7 @@ describe("End-to-End Simulation: Counselor Onboarding Pipeline (/apply -> Admin 
     it("5.2 Menolak pembaruan kata sandi jika kurang dari 8 karakter", async () => {
       const counselorAuthContext = {
         id: "auth-dewi-uid-888",
-        user_metadata: { role: "counselor" },
+        app_metadata: { role: "counselor" },
       }
 
       const res = await updateCounselorPasswordAction("pendek", {
