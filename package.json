@@ -18,7 +18,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:reset": "node scripts/reset.mjs",
     "db:seed": "node scripts/seed.mjs",
-    "db:reset-and-seed": "node scripts/reset.mjs && node scripts/seed.mjs"
+    "db:reset-and-seed": "node scripts/reset.mjs && node scripts/seed.mjs",
+    "db:reset-production": "node scripts/reset-production.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1141.0",
