@@ -28,9 +28,10 @@ export async function DispatchWaPage({
     )
   }
 
+  const kind = state.filters.kind
+  let data: [Awaited<ReturnType<typeof queryDispatchQueue>>, number]
   try {
-    const kind = state.filters.kind
-    const [page, pendingTotal] = await Promise.all([
+    data = await Promise.all([
       queryDispatchQueue({
         filter: {
           q: state.filters.q,
@@ -43,15 +44,6 @@ export async function DispatchWaPage({
       }),
       countBookingsPendingWhatsAppDispatch(),
     ])
-    return (
-      <DispatchWaClient
-        rows={page.rows}
-        total={page.total}
-        pendingTotal={pendingTotal}
-        state={state}
-        pathname={pathname}
-      />
-    )
   } catch (err) {
     console.error("[dispatch-wa] gagal memuat antrean", err)
     return (
@@ -60,4 +52,15 @@ export async function DispatchWaPage({
       </div>
     )
   }
+
+  const [page, pendingTotal] = data
+  return (
+    <DispatchWaClient
+      rows={page.rows}
+      total={page.total}
+      pendingTotal={pendingTotal}
+      state={state}
+      pathname={pathname}
+    />
+  )
 }
