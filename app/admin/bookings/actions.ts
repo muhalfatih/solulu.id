@@ -6,6 +6,7 @@ import { db } from "@/db"
 import { bookings, counselors, schedules, transactions, sessionReports } from "@/db/schema"
 import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
 import { getAppBaseUrl } from "@/lib/url"
+import { mapBookingRow } from "./map-row"
 import {
   evaluateNoShow,
   loadNoShowBookingFacts,
@@ -187,86 +188,7 @@ export async function getBookingsAdminAction(
         .orderBy(counselors.fullName),
     ])
 
-    let mapped: AdminBookingItem[] = rows.map((r) => {
-      const b = r.booking
-      const c = r.counselor
-      const s = r.schedule
-      const rep = r.report
-
-      const counselorTypeLabel =
-        c?.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"
-      const dateStr = s?.date ? String(s.date) : ""
-      const timeRange = s
-        ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)}`
-        : ""
-
-      const stage = deriveStage({
-        status: b.status,
-        counselorAssigned: Boolean(b.counselorId),
-        rescheduleCount: b.rescheduleCount,
-        timerStartedAt: rep?.timerStartedAt ?? null,
-        hasReport: Boolean(rep?.id),
-      })
-      const noShowCheck =
-        s?.date && s?.startTime
-          ? canMarkNoShow({
-              status: b.status,
-              sessionStart: sessionStartAt(String(s.date), s.startTime),
-              timerStartedAt: rep?.timerStartedAt ?? null,
-            })
-          : { allowed: false }
-
-      return {
-        id: b.id,
-        bookingCode: b.bookingCode,
-        accessToken: b.accessToken,
-        patientName: b.patientName,
-        patientPhone: b.patientPhone,
-        patientEmail: b.patientEmail,
-        gender: b.gender,
-        age: b.age,
-        domicile: b.domicile,
-        initialNotes: b.initialNotes,
-        counselorId: c?.id || "",
-        counselorName: c?.fullName || "Belum Ditugaskan",
-        counselorTitle: c?.title || "",
-        counselorType: counselorTypeLabel,
-        scheduleDate: dateStr,
-        slotIndex: s?.slotIndex || 1,
-        startTime: s?.startTime ? s.startTime.slice(0, 5) : "08:00",
-        endTime: s?.endTime ? s.endTime.slice(0, 5) : "10:00",
-        timeRange,
-        zoomMeetingId: b.zoomMeetingId,
-        zoomJoinUrl: b.zoomJoinUrl,
-        zoomStartUrl: b.zoomStartUrl,
-        zoomHostKey: b.zoomHostKey,
-        status: b.status,
-        stage,
-        stageLabel: stageLabel(stage),
-        canMarkNoShow: noShowCheck.allowed,
-        paymentMethod: b.paymentMethod,
-        manualPaymentStatus: b.manualPaymentStatus || "NONE",
-        isExtended: b.isExtended,
-        extensionFee: Number(b.extensionFee) || 0,
-        noShowMarkedAt: b.noShowMarkedAt ? b.noShowMarkedAt.toISOString() : null,
-        isFollowedUp: b.isFollowedUp,
-        followedUpAt: b.followedUpAt ? b.followedUpAt.toISOString() : null,
-        hasSessionReport: Boolean(rep?.id),
-        sessionReportId: rep?.id || null,
-        reportDetails: rep?.id
-          ? {
-              id: rep.id,
-              mainIssue: rep.mainIssue,
-              summary: rep.summary || "",
-              actionPlan: rep.actionPlan || null,
-              followUpRecommendation: rep.followUpRecommendation || null,
-              actualDurationMinutes: rep.actualDurationMinutes || null,
-              createdAt: rep.createdAt ? rep.createdAt.toISOString() : b.createdAt.toISOString(),
-            }
-          : null,
-        createdAt: b.createdAt.toISOString(),
-      }
-    })
+    let mapped: AdminBookingItem[] = rows.map(mapBookingRow)
 
     // Apply reportStatus filter if specified
     if (filters?.reportStatus === "filled") {
