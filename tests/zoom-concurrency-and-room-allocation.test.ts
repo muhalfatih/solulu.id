@@ -1,6 +1,23 @@
 import { describe, it, expect } from "vitest"
 import { getActiveZoomCapacity } from "../lib/zoom/active-capacity"
 import { executeCreateGuestBooking } from "../lib/booking/checkout"
+
+const TEST_SERVICE = {
+  id: "svc-test",
+  name: "Layanan Uji",
+  slug: "layanan-uji",
+  description: null,
+  basePrice: "75000.00",
+  promoPrice: null,
+  allowVoucher: true,
+  overtimeRatePer30Min: "35000.00",
+  basePayoutPercent: 70,
+  overtimePayoutPercent: 80,
+  allowedCounselorTypes: ["peer", "psychologist"] as ("peer" | "psychologist")[],
+  isActive: true,
+  sortOrder: 0,
+}
+
 import { DEMO_COUNSELORS } from "./fixtures/demo-sessions"
 import { getCounselorsCatalogAction } from "../app/counselors/actions"
 import { getWIBDateString } from "../lib/schedules/concurrency"
@@ -58,6 +75,7 @@ describe("Zoom Configuration (1 vs 2 Accounts) & Room Allocation Telemetry", () 
         {
           scheduleId: "slot-tomorrow-2",
           counselorId: "c-2",
+          serviceId: "svc-test",
           patientName: "Ani Lestari",
           patientEmail: "ani@example.com",
           patientEmailConfirm: "ani@example.com",
@@ -90,6 +108,7 @@ describe("Zoom Configuration (1 vs 2 Accounts) & Room Allocation Telemetry", () 
         {
           scheduleId: "slot-tomorrow-2",
           counselorId: "c-2",
+          serviceId: "svc-test",
           patientName: "Ani Lestari",
           patientEmail: "ani@example.com",
           patientEmailConfirm: "ani@example.com",
@@ -110,7 +129,8 @@ describe("Zoom Configuration (1 vs 2 Accounts) & Room Allocation Telemetry", () 
             { startTime: "14:00", endTime: "15:30" }, // 1 active session
           ],
           getZoomCapacity: async () => 2, // 2 active Zoom accounts!
-          getPricing: async () => ({ basePrice: "150000", promoPrice: null, isSaleActive: false, allowVoucher: true }),
+          getServices: async () => [TEST_SERVICE],
+          getExcludedServiceIds: async () => [],
           now: () => testNow,
           reserveSlotAndCreateBooking: async () => ({ bookingId: "b-1", transactionId: "t-1" }),
         }
@@ -149,10 +169,8 @@ describe("Zoom Configuration (1 vs 2 Accounts) & Room Allocation Telemetry", () 
               isActive: true,
             },
           ],
-          getPricing: async () => [
-            { counselorType: "peer", basePrice: "75000", promoPrice: null, isSaleActive: false, allowVoucher: true },
-            { counselorType: "psychologist", basePrice: "150000", promoPrice: null, isSaleActive: false, allowVoucher: true },
-          ],
+          getServices: async () => [TEST_SERVICE],
+          getExclusions: async () => ({}),
           getSlots: async () => [
             {
               id: "slot-c1-1400",
@@ -206,9 +224,8 @@ describe("Zoom Configuration (1 vs 2 Accounts) & Room Allocation Telemetry", () 
               isActive: true,
             },
           ],
-          getPricing: async () => [
-            { counselorType: "peer", basePrice: "75000", promoPrice: null, isSaleActive: false, allowVoucher: true },
-          ],
+          getServices: async () => [TEST_SERVICE],
+          getExclusions: async () => ({}),
           getSlots: async () => [
             {
               id: "slot-c1-1400",

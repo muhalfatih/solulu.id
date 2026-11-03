@@ -68,7 +68,11 @@ export default function BookingClient({
   isScreeningRequired = false,
 }: BookingClientProps) {
   const router = useRouter()
-  const { counselor, schedule, pricing, screening } = initialData
+  const { counselor, schedule, services, selectedServiceId, screening } = initialData
+
+  // Layanan yang dipilih klien (ADR-0010); harga selalu mengikuti Layanan terpilih.
+  const [serviceId, setServiceId] = React.useState<string | null>(selectedServiceId)
+  const selectedService = services.find((svc) => svc.serviceId === serviceId) ?? null
 
   // Patient Identity state
   const [patientName, setPatientName] = React.useState("")
@@ -103,14 +107,31 @@ export default function BookingClient({
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
   // Pricing calculations
-  const grossAmount = pricing.grossAmount
+  const grossAmount = selectedService ? selectedService.activePrice : 0
+  const allowVoucher = selectedService ? selectedService.allowVoucher : false
   const discountAmount = appliedVoucher ? appliedVoucher.discountAmount : 0
   const netAmount = Math.max(0, grossAmount - discountAmount)
   const netAmountFormatted = formatRupiah(netAmount)
 
+  const handleSelectService = (nextServiceId: string) => {
+    setServiceId(nextServiceId)
+    // Voucher dihitung dari tarif Layanan, jadi harus divalidasi ulang.
+    setAppliedVoucher(null)
+    setVoucherCodeInput("")
+    setVoucherError(null)
+    setErrors((prev) => {
+      const { serviceId: _removed, ...rest } = prev
+      return rest
+    })
+  }
+
   // Validate voucher handler
   const handleApplyVoucher = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!selectedService) {
+      setVoucherError("Pilih Layanan terlebih dahulu")
+      return
+    }
     if (!voucherCodeInput.trim()) {
       setVoucherError("Masukkan kode voucher terlebih dahulu")
       return
@@ -122,8 +143,7 @@ export default function BookingClient({
     try {
       const res = await validateVoucherAction({
         code: voucherCodeInput.trim(),
-        counselorType: counselor.counselorType,
-        grossAmount,
+        serviceId: selectedService.serviceId,
       })
 
       if (res.success && res.data) {
@@ -156,6 +176,10 @@ export default function BookingClient({
   // Client-side validation before submission
   const validateForm = (): boolean => {
     const errs: Record<string, string> = {}
+
+    if (!selectedService) {
+      errs.serviceId = "Pilih Layanan terlebih dahulu"
+    }
 
     if (!patientName.trim() || patientName.trim().length < 2) {
       errs.patientName = "Nama lengkap wajib diisi minimal 2 karakter"
@@ -190,12 +214,17 @@ export default function BookingClient({
       return
     }
 
+    if (!selectedService) {
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
       const res = await createGuestBookingAction({
         scheduleId: schedule.id,
         counselorId: counselor.id,
+        serviceId: selectedService.serviceId,
         screeningId: screeningId || undefined,
         patientName: patientName.trim(),
         patientEmail: patientEmail.trim().toLowerCase(),
@@ -573,6 +602,46 @@ export default function BookingClient({
                     </div>
                   </div>
 
+                  {/* Layanan (ADR-0010): klien memilih Layanan, harga akhir mengikuti pilihan */}
+                  <div className="flex flex-col gap-2" role="radiogroup" aria-label="Pilih Layanan">
+                    <span className="text-xs font-semibold text-foreground">Layanan</span>
+                    {services.map((svc) => {
+                      const isSelected = svc.serviceId === serviceId
+                      return (
+                        <button
+                          key={svc.serviceId}
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          onClick={() => handleSelectService(svc.serviceId)}
+                          className={`flex items-start justify-between gap-3 rounded-xl border p-3 text-left transition-colors cursor-pointer ${
+                            isSelected
+                              ? "border-primary bg-primary/5"
+                              : "border-border/70 hover:border-primary/40"
+                          }`}
+                        >
+                          <span className="flex flex-col gap-0.5 min-w-0">
+                            <span className="font-semibold text-foreground">{svc.name}</span>
+                            {svc.description && (
+                              <span className="text-[11px] text-muted-foreground line-clamp-2">{svc.description}</span>
+                            )}
+                          </span>
+                          <span className="flex flex-col items-end shrink-0">
+                            <span className="font-semibold text-foreground tabular-nums">{svc.activePriceFormatted}</span>
+                            {svc.originalPriceFormatted && (
+                              <span className="text-[11px] text-muted-foreground line-through tabular-nums">
+                                {svc.originalPriceFormatted}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      )
+                    })}
+                    {errors.serviceId && (
+                      <span className="text-xs text-destructive font-medium">{errors.serviceId}</span>
+                    )}
+                  </div>
+
                   {/* Schedule Details */}
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between py-2.5 border-b border-border/40">
@@ -646,14 +715,14 @@ export default function BookingClient({
                             value={voucherCodeInput}
                             onChange={(e) => setVoucherCodeInput(e.target.value.toUpperCase())}
                             className="h-9 rounded-xl text-xs sm:text-sm font-mono tracking-wider uppercase border-border/80"
-                            disabled={isValidatingVoucher || !pricing.allowVoucher}
+                            disabled={isValidatingVoucher || !allowVoucher}
                           />
                           <Button
                             type="button"
                             variant="public-secondary"
                             size="pill-sm"
                             onClick={handleApplyVoucher}
-                            disabled={isValidatingVoucher || !voucherCodeInput.trim() || !pricing.allowVoucher}
+                            disabled={isValidatingVoucher || !voucherCodeInput.trim() || !allowVoucher}
                             className="h-9 px-4 text-xs font-semibold shrink-0 cursor-pointer"
                           >
                             {isValidatingVoucher ? (
@@ -663,9 +732,9 @@ export default function BookingClient({
                             )}
                           </Button>
                         </div>
-                        {!pricing.allowVoucher && (
+                        {selectedService && !allowVoucher && (
                           <span className="text-[11px] text-muted-foreground">
-                            Voucher tidak dapat digunakan untuk tipe konselor ini.
+                            Voucher tidak dapat digunakan untuk Layanan ini.
                           </span>
                         )}
                         {voucherError && (
@@ -702,15 +771,15 @@ export default function BookingClient({
                   <div className="pt-2 border-t border-border/40 flex flex-col gap-2 text-xs sm:text-sm">
                     <div className="flex justify-between text-muted-foreground">
                       <span>Tarif Konseling (90 Menit):</span>
-                      <span className={pricing.isSaleActive ? "line-through" : "text-foreground font-medium"}>
-                        {formatRupiah(pricing.basePrice)}
+                      <span className={selectedService?.isPromoActive ? "line-through" : "text-foreground font-medium"}>
+                        {selectedService ? formatRupiah(selectedService.basePrice) : "Pilih Layanan"}
                       </span>
                     </div>
 
-                    {pricing.isSaleActive && pricing.promoPrice && (
+                    {selectedService?.isPromoActive && selectedService.promoPrice !== null && (
                       <div className="flex justify-between text-emerald-700 dark:text-emerald-400 font-medium">
                         <span>Potongan Promosi:</span>
-                        <span>- {formatRupiah(pricing.basePrice - pricing.promoPrice)}</span>
+                        <span>- {formatRupiah(selectedService.basePrice - selectedService.promoPrice)}</span>
                       </div>
                     )}
 
@@ -735,7 +804,7 @@ export default function BookingClient({
                     type="submit"
                     variant="public"
                     size="pill-lg"
-                    disabled={isSubmitting || (isScreeningRequired && !screening)}
+                    disabled={isSubmitting || !selectedService || (isScreeningRequired && !screening)}
                     className="w-full h-12 sm:h-13 text-sm sm:text-base font-semibold shadow-md shadow-purple-600/20 hover:shadow-lg active:scale-[0.99] transition-all"
                   >
                     {isSubmitting ? (

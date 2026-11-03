@@ -46,6 +46,20 @@ const sql = postgres(dbUrl, {
   connect_timeout: 15,
 });
 
+// Layanan (ADR-0010): booking menyimpan Layanan + snapshot tarif pokok aktif. Layanan awal dibuat
+// oleh migrasi 0006_services_layanan; seed hanya mengambil Layanan aktif yang cocok dengan tipe konselor.
+const serviceIdFor = (counselorId) => sql`(
+  SELECT s.id FROM services s JOIN counselors c ON c.id = ${counselorId}
+  WHERE s.is_active AND c.counselor_type = ANY(s.allowed_counselor_types)
+  ORDER BY s.sort_order LIMIT 1
+)`;
+const basePriceFor = (counselorId) => sql`(
+  SELECT CASE WHEN s.promo_price IS NOT NULL AND s.promo_price < s.base_price THEN s.promo_price ELSE s.base_price END
+  FROM services s JOIN counselors c ON c.id = ${counselorId}
+  WHERE s.is_active AND c.counselor_type = ANY(s.allowed_counselor_types)
+  ORDER BY s.sort_order LIMIT 1
+)`;
+
 // Enkripsi AES-256-GCM untuk Client Secret Zoom
 function encryptSecret(plaintext) {
   const rawKey = process.env.APP_ENCRYPTION_KEY || "8823ff37db8ef773ece41596c16c00101309fa354a55a9e0768958dd2f20124c";
@@ -491,13 +505,13 @@ async function runSeed() {
   const token1 = generateNanoId(32);
   const [bookingConfirmed] = await sql`
     INSERT INTO bookings (
-      id, access_token, booking_code, patient_name, patient_email, patient_phone,
+      id, access_token, service_id, base_price_snapshot, booking_code, patient_name, patient_email, patient_phone,
       gender, age, domicile, religion, initial_notes, informed_consent_accepted_at,
       schedule_id, counselor_id, screening_id, bypassed_recommendation,
       zoom_account_id, zoom_account_number, zoom_allocation_mode, zoom_meeting_id,
       zoom_join_url, zoom_start_url, zoom_host_key, payment_method, status, created_at
     ) VALUES (
-      gen_random_uuid(), ${token1}, 'SL-4821', 'Rian Kurniawan', 'rian.k@example.com',
+      gen_random_uuid(), ${token1}, ${serviceIdFor(sarah.id)}, ${basePriceFor(sarah.id)}, 'SL-4821', 'Rian Kurniawan', 'rian.k@example.com',
       '081298761122', 'Laki-laki', 27, 'Jakarta', 'Islam', 'Sering merasa cemas dan susah tidur memikirkan karir.',
       now(), ${todaySlot ? todaySlot.id : pastSchedule.id}, ${sarah.id}, ${createdScreenings[1].id}, false,
       ${zoom1.id}, 1, 'standalone', '91283719283', 'https://zoom.us/j/91283719283',
@@ -519,12 +533,12 @@ async function runSeed() {
   const tokenCompleted = generateNanoId(32);
   const [bookingCompleted] = await sql`
     INSERT INTO bookings (
-      id, access_token, booking_code, patient_name, patient_email, patient_phone,
+      id, access_token, service_id, base_price_snapshot, booking_code, patient_name, patient_email, patient_phone,
       gender, age, domicile, religion, initial_notes, informed_consent_accepted_at,
       schedule_id, counselor_id, screening_id, zoom_account_id, zoom_account_number,
       zoom_allocation_mode, payment_method, status, is_followed_up, created_at
     ) VALUES (
-      gen_random_uuid(), ${tokenCompleted}, 'SL-1001', 'Ananda Putri', 'ananda.putri@example.com',
+      gen_random_uuid(), ${tokenCompleted}, ${serviceIdFor(sarah.id)}, ${basePriceFor(sarah.id)}, 'SL-1001', 'Ananda Putri', 'ananda.putri@example.com',
       '081398127361', 'Perempuan', 24, 'Bandung', 'Islam', 'Kelelahan emosional dan burnout tugas akhir.',
       now(), ${pastSchedule.id}, ${sarah.id}, ${createdScreenings[0].id},
       ${zoom1.id}, 1, 'standalone', 'xendit', 'completed', true, now()
@@ -560,11 +574,11 @@ async function runSeed() {
   const tokenPending = generateNanoId(32);
   const [bookingPending] = await sql`
     INSERT INTO bookings (
-      id, access_token, booking_code, patient_name, patient_email, patient_phone,
+      id, access_token, service_id, base_price_snapshot, booking_code, patient_name, patient_email, patient_phone,
       gender, age, domicile, religion, initial_notes, schedule_id, counselor_id,
       screening_id, payment_method, status, created_at
     ) VALUES (
-      gen_random_uuid(), ${tokenPending}, 'SL-5521', 'Farhan Ramadhan', 'farhan.r@example.com',
+      gen_random_uuid(), ${tokenPending}, ${serviceIdFor(rian.id)}, ${basePriceFor(rian.id)}, 'SL-5521', 'Farhan Ramadhan', 'farhan.r@example.com',
       '085291823712', 'Laki-laki', 22, 'Yogyakarta', 'Islam', 'Bingung menentukan arah karir pasca lulus.',
       ${tomorrowSlot ? tomorrowSlot.id : pastSchedule.id}, ${rian.id}, ${createdScreenings[3].id},
       'xendit', 'pending_payment', now()
@@ -585,11 +599,11 @@ async function runSeed() {
   const tokenManual = generateNanoId(32);
   const [bookingManual] = await sql`
     INSERT INTO bookings (
-      id, access_token, booking_code, patient_name, patient_email, patient_phone,
+      id, access_token, service_id, base_price_snapshot, booking_code, patient_name, patient_email, patient_phone,
       gender, age, domicile, religion, initial_notes, schedule_id, counselor_id,
       payment_method, manual_payment_status, manual_payment_proof_r2_key, status, created_at
     ) VALUES (
-      gen_random_uuid(), ${tokenManual}, 'SL-9932', 'Dewi Lestari', 'dewi.lestari@example.com',
+      gen_random_uuid(), ${tokenManual}, ${serviceIdFor(rian.id)}, ${basePriceFor(rian.id)}, 'SL-9932', 'Dewi Lestari', 'dewi.lestari@example.com',
       '081928374651', 'Perempuan', 29, 'Jakarta', 'Kristen', 'Stres relasi keluarga dan batasan emosional.',
       ${pastSchedule.id}, ${rian.id}, 'manual_bank_transfer', 'PENDING',
       'manual-proofs/dewi-transfer-bca.jpg', 'pending_payment', now()

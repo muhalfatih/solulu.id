@@ -930,7 +930,7 @@ export default function CounselorsCatalogClient({
                     <div className="pt-3.5 mt-auto border-t border-border/60 flex items-center justify-between min-h-[48px]">
                       <div className="flex flex-col justify-center">
                         <span className="text-xs text-muted-foreground font-medium">
-                          Tarif sesi (90 mnt):
+                          Mulai dari (90 mnt):
                         </span>
                       </div>
                       <div className="flex flex-col items-end">
@@ -1136,7 +1136,7 @@ export default function CounselorsCatalogClient({
 
               {/* Pricing Notice */}
               <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Biaya Sesi (90 Menit):</span>
+                <span className="text-muted-foreground">Mulai dari (90 Menit):</span>
                 <div className="flex flex-col items-end">
                   <strong className="text-foreground font-heading font-bold text-sm sm:text-base tabular-nums">
                     {selectedBioCounselor.pricing.displayPriceFormatted}
@@ -1237,7 +1237,7 @@ export default function CounselorsCatalogClient({
                     <span className="text-foreground font-semibold text-sm sm:text-base tabular-nums leading-snug">
                       {scheduleModalCounselor.pricing.displayPriceFormatted}
                     </span>
-                    <span className="text-[11px] text-muted-foreground leading-none">/ 90 menit</span>
+                    <span className="text-[11px] text-muted-foreground leading-none">mulai dari / 90 menit</span>
                   </div>
                 </div>
 

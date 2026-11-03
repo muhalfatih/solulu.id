@@ -532,15 +532,20 @@ export async function processExtensionPayment(
           },
         }
       } else {
+        // Tagihan perpanjangan = tarif overtime Layanan yang sudah dicatat saat sesi (ADR-0010).
         const payerEmail = typeof b.patientEmail === "string" ? b.patientEmail.trim() : ""
         if (!payerEmail) {
           return { success: false, error: MISSING_PAYER_EMAIL_ERROR }
+        }
+        const extensionAmount = Number(b.extensionFee)
+        if (!(extensionAmount > 0)) {
+          return { success: false, error: "Tagihan perpanjangan sesi belum tercatat untuk sesi ini." }
         }
         const createInvoiceFn = deps.createXenditInvoice || createXenditInvoice
         const appUrl = getAppBaseUrl()
         const invoice = await createInvoiceFn({
           externalId: `EXT-${b.bookingCode || b.id.slice(0, 8)}-${Date.now()}`,
-          amount: b.extensionFee || 35000,
+          amount: extensionAmount,
           payerEmail,
           description: `Perpanjangan Sesi Konseling (${b.extensionMinutes || 30} menit)`,
           successRedirectUrl: `${appUrl}/session/${accessToken}?extend_status=success`,
@@ -598,7 +603,10 @@ export async function processExtensionPayment(
         return { success: false, error: MISSING_PAYER_EMAIL_ERROR }
       }
       const appUrl = getAppBaseUrl()
-      const fee = booking.extensionFee ? Number(booking.extensionFee) : 35000
+      const fee = Number(booking.extensionFee)
+      if (!(fee > 0)) {
+        return { success: false, error: "Tagihan perpanjangan sesi belum tercatat untuk sesi ini." }
+      }
       const externalId = `EXT-${booking.bookingCode || booking.id.slice(0, 8)}-${Date.now()}`
 
       const invoice = await createXenditInvoice({

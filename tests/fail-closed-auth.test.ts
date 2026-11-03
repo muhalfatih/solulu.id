@@ -149,7 +149,26 @@ describe("tarif and voucher changes are Superadmin-only (Admin is read-only)", (
   })
 
   it("allows updateRolePricingAction for Superadmin", async () => {
-    const result = await updateRolePricingAction("sebaya", pricing, { currentUser: superadmin })
+    const result = await updateRolePricingAction("sebaya", pricing, {
+      currentUser: superadmin,
+      updateServiceFn: async (slug) => ({
+        id: "svc-1",
+        name: "Partner Cerita",
+        slug,
+        description: null,
+        basePrice: "100000.00",
+        promoPrice: null,
+        allowVoucher: true,
+        overtimeRatePer30Min: "35000.00",
+        basePayoutPercent: 70,
+        overtimePayoutPercent: 80,
+        allowedCounselorTypes: ["peer"],
+        isActive: true,
+        sortOrder: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    })
     expect(result.success).toBe(true)
   })
 

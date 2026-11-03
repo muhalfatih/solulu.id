@@ -9,10 +9,7 @@ export const validateVoucherSchema = z.object({
     .trim()
     .min(1, "Kode voucher tidak boleh kosong")
     .transform((val) => val.toUpperCase()),
-  counselorType: z.enum(["peer", "psychologist"], {
-    message: "Tipe konselor tidak valid",
-  }),
-  grossAmount: z.number().positive("Tarif konseling harus lebih dari 0"),
+  serviceId: z.string().min(1, "Layanan tidak valid"),
 })
 
 export type ValidateVoucherInput = z.infer<typeof validateVoucherSchema>
@@ -21,6 +18,9 @@ export const createGuestBookingSchema = z
   .object({
     scheduleId: z.string().min(1, "ID slot jadwal tidak valid"),
     counselorId: z.string().min(1, "ID konselor tidak valid"),
+    serviceId: z
+      .string({ message: "Pilih Layanan terlebih dahulu" })
+      .min(1, "Pilih Layanan terlebih dahulu"),
     screeningId: z.string().min(1, "ID skrining tidak valid").optional().nullable(),
 
     // Patient info (Guest checkout)

@@ -101,8 +101,6 @@ function AdminSettingsContent() {
     minCounselorWeeklySlots: 10,
     noShowTimeoutMinutes: 30,
     basePrice: "150000",
-    counselorExtendFeePer30Min: "35000",
-    psychologistExtendFeePer30Min: "50000",
     isManualPaymentEnabled: true,
     manualPaymentInstructions:
       "Transfer ke Rekening BCA: 123-456-7890 a.n. Solulu Mental Health. Sertakan Kode Booking pada berita transfer.",
@@ -150,8 +148,6 @@ function AdminSettingsContent() {
         minCounselorWeeklySlots: Number(formData.minCounselorWeeklySlots),
         noShowTimeoutMinutes: Number(formData.noShowTimeoutMinutes),
         basePrice: String(formData.basePrice),
-        counselorExtendFeePer30Min: String(formData.counselorExtendFeePer30Min),
-        psychologistExtendFeePer30Min: String(formData.psychologistExtendFeePer30Min),
         isManualPaymentEnabled: formData.isManualPaymentEnabled,
         manualPaymentInstructions: formData.manualPaymentInstructions,
         isScreeningRequired: formData.isScreeningRequired,

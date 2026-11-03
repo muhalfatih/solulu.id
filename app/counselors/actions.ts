@@ -2,7 +2,7 @@
 
 import { eq, and, gte, lte, inArray, desc } from "drizzle-orm"
 import { db } from "@/db"
-import { counselors, schedules, platformPricing } from "@/db/schema"
+import { counselors, schedules } from "@/db/schema"
 import {
   formatTimeRange,
   filterSlotsByConcurrencyGuard,
@@ -15,7 +15,14 @@ import {
   catalogFilterSchema,
   type CatalogFilterInput,
 } from "@/lib/validations/schedules"
-import { getPlatformPricing } from "@/lib/pricing/platform-pricing"
+import {
+  listOfferedServices,
+  startingFromView,
+  toServicePricingView,
+  type ServiceLike,
+  type ServicePricingView,
+} from "@/lib/services/pricing"
+import { listAllServices, getExclusionsByCounselor } from "@/lib/services/repository"
 import { getActiveZoomCapacity } from "@/lib/zoom/active-capacity"
 
 export interface CatalogPricing {
@@ -52,7 +59,10 @@ export interface CatalogCounselorView {
   rating?: string
   experience?: string
   availableSoon?: string
+  /** "Mulai dari": tarif aktif termurah di antara Layanan yang ditawarkan konselor ini. */
   pricing: CatalogPricing
+  /** Layanan aktif yang ditawarkan konselor ini (tipe cocok, tidak dikecualikan Admin). */
+  services: ServicePricingView[]
   availableSlots: CatalogSlot[]
   totalAvailableSlotsCount: number
 }
@@ -61,14 +71,6 @@ export interface ActionResponse<T = any> {
   success: boolean
   data?: T
   error?: string
-}
-
-function formatRupiah(amount: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(amount)
 }
 
 /**
@@ -83,7 +85,8 @@ export async function getCounselorsCatalogAction(
   rawFilters?: CatalogFilterInput,
   options?: {
     getCounselors?: () => Promise<any[]>
-    getPricing?: () => Promise<any[]>
+    getServices?: () => Promise<ServiceLike[]>
+    getExclusions?: (counselorIds: string[]) => Promise<Record<string, string[]>>
     getSlots?: (counselorIds: string[], date?: string) => Promise<any[]>
     getActiveSessions?: (dates: string[]) => Promise<Record<string, SlotInterval[]>>
     getZoomCapacity?: () => Promise<number>
@@ -97,7 +100,7 @@ export async function getCounselorsCatalogAction(
     }
   }
 
-  const { type: typeFilter, date: dateFilter } = parsed.data
+  const { type: typeFilter, date: dateFilter, serviceId: serviceFilter } = parsed.data
 
   try {
     // 1. Fetch active counselors
@@ -122,45 +125,24 @@ export async function getCounselorsCatalogAction(
 
     const counselorIds = counselorRows.map((c) => c.id)
 
-    // 2. Fetch platform pricing
-    // 2. Fetch platform pricing tier configs (SSOT)
-    const platformPricingData = await getPlatformPricing()
-
-    const pricingMap: Record<string, CatalogPricing> = {}
-    for (const type of ["peer", "psychologist"] as const) {
-      const p = platformPricingData[type]
-      const isSale = Boolean(p.isSaleActive && p.promoPrice && p.promoPrice < p.basePrice)
-      const displayPrice = isSale && p.promoPrice ? p.promoPrice : p.basePrice
-      pricingMap[type] = {
-        basePrice: p.basePrice,
-        promoPrice: p.promoPrice,
-        isSaleActive: isSale,
-        allowVoucher: p.allowVoucher,
-        displayPrice,
-        displayPriceFormatted: formatRupiah(displayPrice),
-        originalPriceFormatted: isSale ? formatRupiah(p.basePrice) : undefined,
-      }
+    // 2. Fetch Layanan (ADR-0010) and per-counselor exclusions. No fallback prices:
+    // a counselor without an offered Layanan simply is not listed.
+    const allServices = options?.getServices ? await options.getServices() : await listAllServices()
+    let exclusionsByCounselor: Record<string, string[]> = {}
+    if (options?.getExclusions) {
+      exclusionsByCounselor = await options.getExclusions(counselorIds)
+    } else {
+      const map = await getExclusionsByCounselor(counselorIds)
+      exclusionsByCounselor = Object.fromEntries(map)
     }
 
-    let pricingRows: any[] = []
-    if (options?.getPricing) {
-      pricingRows = await options.getPricing()
-      for (const pr of pricingRows) {
-        const base = parseFloat(pr.basePrice)
-        const promo = pr.promoPrice ? parseFloat(pr.promoPrice) : null
-        const isSale = Boolean(pr.isSaleActive && promo && promo < base)
-        const displayPrice = isSale && promo ? promo : base
-
-        pricingMap[pr.counselorType] = {
-          basePrice: base,
-          promoPrice: promo,
-          isSaleActive: isSale,
-          allowVoucher: pr.allowVoucher ?? true,
-          displayPrice,
-          displayPriceFormatted: formatRupiah(displayPrice),
-          originalPriceFormatted: isSale ? formatRupiah(base) : undefined,
-        }
-      }
+    const servicesByCounselor: Record<string, ServicePricingView[]> = {}
+    for (const c of counselorRows) {
+      servicesByCounselor[c.id] = listOfferedServices(
+        allServices,
+        { id: c.id, counselorType: c.counselorType },
+        exclusionsByCounselor[c.id] ?? []
+      ).map(toServicePricingView)
     }
 
     // 3. Fetch candidate available slots within valid booking window (today until +14 days)
@@ -263,11 +245,27 @@ export async function getCounselorsCatalogAction(
     }
 
     // 6. Map to CatalogCounselorView
-    let catalog: CatalogCounselorView[] = counselorRows.map((c) => {
+    const toCatalogPricing = (v: ServicePricingView): CatalogPricing => ({
+      basePrice: v.basePrice,
+      promoPrice: v.promoPrice,
+      isSaleActive: v.isPromoActive,
+      allowVoucher: v.allowVoucher,
+      displayPrice: v.activePrice,
+      displayPriceFormatted: v.activePriceFormatted,
+      originalPriceFormatted: v.originalPriceFormatted,
+    })
+
+    const listedCounselors = counselorRows
+      .map((c) => {
+        const offered = servicesByCounselor[c.id] ?? []
+        const relevant = serviceFilter ? offered.filter((v) => v.serviceId === serviceFilter) : offered
+        return { c, offered, start: startingFromView(relevant) }
+      })
+      .filter((entry) => entry.start !== null)
+
+    let catalog: CatalogCounselorView[] = listedCounselors.map(({ c, offered, start }) => {
       const slots = visibleSlotsByCounselor[c.id] || []
-      const pricing =
-        pricingMap[c.counselorType] ||
-        (c.counselorType === "psychologist" ? pricingMap["psychologist"] : pricingMap["peer"])
+      const pricing = toCatalogPricing(start as ServicePricingView)
 
       const isPsychologist = c.counselorType === "psychologist"
       const defaultAvatar = isPsychologist
@@ -306,6 +304,7 @@ export async function getCounselorsCatalogAction(
         experience: isPsychologist ? "4+ Tahun" : "3+ Tahun",
         availableSoon,
         pricing,
+        services: offered,
         availableSlots: slots,
         totalAvailableSlotsCount: slots.length,
       }

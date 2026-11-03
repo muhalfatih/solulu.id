@@ -188,6 +188,7 @@ export async function getManualPaymentsQueueAdminAction(options?: {
           }
         }
 
+        // Nominal tagihan = tarif overtime Layanan yang tercatat di booking (ADR-0010); null bila belum tercatat.
         const extNominal = Number(b.extensionFee) > 0 ? Number(b.extensionFee) : null
 
         items.push({

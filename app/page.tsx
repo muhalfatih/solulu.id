@@ -27,7 +27,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PublicShell } from "@/components/public/public-shell"
 import { FaqAccordion } from "@/components/public/FaqAccordion"
-import { getPlatformPricing } from "@/lib/pricing/platform-pricing"
+import { getStartingPricesByCounselorType } from "@/lib/services/catalog"
 import { formatRupiah } from "@/lib/utils"
 import { getFeaturedCounselorsForHomepageAction } from "@/app/admin/counselors/actions"
 import { getFeaturedTestimonialsForHomepageAction } from "@/app/admin/testimonials/actions"
@@ -125,7 +125,7 @@ const FAQS = [
 ]
 
 export default async function HomePage() {
-  const pricing = await getPlatformPricing()
+  const pricing = await getStartingPricesByCounselorType()
   const featuredRes = await getFeaturedCounselorsForHomepageAction()
   const testimonialsRes = await getFeaturedTestimonialsForHomepageAction()
 
@@ -175,13 +175,12 @@ export default async function HomePage() {
     src: c.avatar,
   }))
 
-  const peerActivePrice = pricing.peer.isSaleActive ? pricing.peer.promoPrice : pricing.peer.basePrice
-  const peerHasDiscount = pricing.peer.isSaleActive && pricing.peer.promoPrice < pricing.peer.basePrice
-  const psychologistActivePrice = pricing.psychologist.isSaleActive
-    ? pricing.psychologist.promoPrice
-    : pricing.psychologist.basePrice
-  const psychologistHasDiscount =
-    pricing.psychologist.isSaleActive && pricing.psychologist.promoPrice < pricing.psychologist.basePrice
+  // "Mulai dari" per Tipe Konselor, dari Layanan aktif (ADR-0010). null = belum ada Layanan.
+  const peerActivePrice = pricing.peer?.activePrice ?? null
+  const peerHasDiscount = pricing.peer?.isPromoActive ?? false
+  const psychologistActivePrice = pricing.psychologist?.activePrice ?? null
+  const psychologistHasDiscount = pricing.psychologist?.isPromoActive ?? false
+  const priceLabel = (amount: number | null) => (amount === null ? "Segera hadir" : formatRupiah(amount))
 
   return (
     <PublicShell>
@@ -538,15 +537,16 @@ export default async function HomePage() {
 
                   <div className="pt-3 border-t border-border/50 flex flex-col gap-1">
                     <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap">Mulai dari</span>
                       <span className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight tabular-nums whitespace-nowrap">
-                        {formatRupiah(peerActivePrice)}
+                        {priceLabel(peerActivePrice)}
                       </span>
                       <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap"> / 90 menit</span>
                     </div>
                     {peerHasDiscount && (
                       <div className="pt-0.5 pb-2">
                         <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
-                          {formatRupiah(pricing.peer.basePrice)}
+                          {formatRupiah(pricing.peer?.basePrice ?? 0)}
                         </span>
                       </div>
                     )}
@@ -629,15 +629,16 @@ export default async function HomePage() {
 
                   <div className="pt-3 border-t border-border/50 flex flex-col gap-1">
                     <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap">Mulai dari</span>
                       <span className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight tabular-nums whitespace-nowrap">
-                        {formatRupiah(psychologistActivePrice)}
+                        {priceLabel(psychologistActivePrice)}
                       </span>
                       <span className="text-xs sm:text-sm text-muted-foreground font-medium shrink-0 whitespace-nowrap"> / 90 menit</span>
                     </div>
                     {psychologistHasDiscount && (
                       <div className="pt-0.5 pb-2">
                         <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
-                          {formatRupiah(pricing.psychologist.basePrice)}
+                          {formatRupiah(pricing.psychologist?.basePrice ?? 0)}
                         </span>
                       </div>
                     )}
@@ -728,10 +729,9 @@ export default async function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7 items-stretch">
               {featuredCounselors.map((c, cIdx) => {
               const cPriceData = pricing[c.type]
-              const cActivePrice = cPriceData.isSaleActive ? cPriceData.promoPrice : cPriceData.basePrice
-              const cHasDiscount = cPriceData.isSaleActive && cPriceData.promoPrice < cPriceData.basePrice
-              const cRateFormatted = formatRupiah(cActivePrice)
-              const cOriginalRateFormatted = formatRupiah(cPriceData.basePrice)
+              const cHasDiscount = cPriceData?.isPromoActive ?? false
+              const cRateFormatted = priceLabel(cPriceData?.activePrice ?? null)
+              const cOriginalRateFormatted = formatRupiah(cPriceData?.basePrice ?? 0)
 
               return (
                 <ScrollReveal

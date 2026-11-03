@@ -61,7 +61,6 @@ import {
   toggleVoucherStatusAction,
   deleteVoucherAdminAction,
 } from "@/app/admin/pricing/actions"
-import { updatePlatformSettingsAction } from "./actions"
 import type { PlatformSettingsData } from "@/lib/settings/platform"
 
 export interface RolePricingState {
@@ -74,6 +73,7 @@ export interface RolePricingState {
   isSaleActive: boolean
   salePrice: number
   allowVoucher: boolean
+  overtimeRate: number
 }
 
 export interface VoucherItem {
@@ -99,6 +99,7 @@ const INITIAL_ROLES: RolePricingState[] = [
     isSaleActive: true,
     salePrice: 49000,
     allowVoucher: true,
+    overtimeRate: 35000,
   },
   {
     id: "psikolog",
@@ -110,6 +111,7 @@ const INITIAL_ROLES: RolePricingState[] = [
     isSaleActive: true,
     salePrice: 129000,
     allowVoucher: true,
+    overtimeRate: 60000,
   },
 ]
 
@@ -163,30 +165,21 @@ export function FeesTab({
       ])
 
       if (pricingRes.success && pricingRes.data) {
-        setRoles([
-          {
-            id: "sebaya",
-            title: "Konselor Sebaya",
-            subtitle: "Pendampingan emosional, stres ringan hingga sedang (Lulusan S1 Psikologi).",
-            badge: "Non-Klinis",
-            duration: "90 Menit",
-            regularPrice: pricingRes.data.peer.basePrice,
-            isSaleActive: pricingRes.data.peer.isSaleActive,
-            salePrice: pricingRes.data.peer.promoPrice,
-            allowVoucher: pricingRes.data.peer.allowVoucher,
-          },
-          {
-            id: "psikolog",
-            title: "Psikolog Klinis",
-            subtitle: "Intervensi klinis psikoterapeutik, rujukan SRQ-20 & asesmen mendalam.",
-            badge: "Izin Praktik STR/SIPP",
-            duration: "90 Menit",
-            regularPrice: pricingRes.data.psychologist.basePrice,
-            isSaleActive: pricingRes.data.psychologist.isSaleActive,
-            salePrice: pricingRes.data.psychologist.promoPrice,
-            allowVoucher: pricingRes.data.psychologist.allowVoucher,
-          },
-        ])
+        const { peer, psychologist } = pricingRes.data
+        setRoles((prev) =>
+          prev.map((role) => {
+            const source = role.id === "sebaya" ? peer : psychologist
+            if (!source) return role
+            return {
+              ...role,
+              regularPrice: source.basePrice,
+              isSaleActive: source.isSaleActive,
+              salePrice: source.promoPrice,
+              allowVoucher: source.allowVoucher,
+              overtimeRate: source.overtimeRatePer30Min,
+            }
+          })
+        )
       }
 
       if (vouchersRes.success && vouchersRes.data) {
@@ -249,25 +242,16 @@ export function FeesTab({
     setIsSavingPricing(true)
     setErrorMessage(null)
     try {
-      // 1. Simpan tarif 90 menit kedua role
+      // Simpan tarif 90 menit dan tarif overtime masing-masing Layanan (ADR-0010)
       for (const role of roles) {
         const res = await updateRolePricingAction(role.id, {
           regularPrice: role.regularPrice,
           salePrice: role.salePrice,
           isSaleActive: role.isSaleActive,
           allowVoucher: role.allowVoucher,
+          overtimeRatePer30Min: role.overtimeRate,
         })
         if (!res.success) throw new Error(res.error)
-      }
-
-      // 2. Simpan extend fee ke platform settings jika user superadmin
-      if (isSuperadmin) {
-        const settingsRes = await updatePlatformSettingsAction({
-          basePrice: String(formData.basePrice),
-          counselorExtendFeePer30Min: String(formData.counselorExtendFeePer30Min),
-          psychologistExtendFeePer30Min: String(formData.psychologistExtendFeePer30Min),
-        })
-        if (!settingsRes.success) throw new Error(settingsRes.error)
       }
 
       showToast("Seluruh konfigurasi tarif layanan & extend sesi berhasil disimpan ke database.")
@@ -706,17 +690,14 @@ export function FeesTab({
                     Rp
                   </span>
                   <Input
-                    id="counselorExtendFeePer30Min"
+                    id="overtime-rate-sebaya"
                     type="number"
                     step="5000"
                     min="0"
                     disabled={isLoading || isSavingPricing || !isSuperadmin}
-                    value={formData.counselorExtendFeePer30Min}
+                    value={roles[0].overtimeRate}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        counselorExtendFeePer30Min: e.target.value,
-                      })
+                      handleUpdateRole("sebaya", { overtimeRate: Number(e.target.value) })
                     }
                     className="pl-9 text-xs font-semibold bg-background font-mono tabular-nums"
                   />
@@ -741,17 +722,14 @@ export function FeesTab({
                     Rp
                   </span>
                   <Input
-                    id="psychologistExtendFeePer30Min"
+                    id="overtime-rate-psikolog"
                     type="number"
                     step="5000"
                     min="0"
                     disabled={isLoading || isSavingPricing || !isSuperadmin}
-                    value={formData.psychologistExtendFeePer30Min}
+                    value={roles[1].overtimeRate}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        psychologistExtendFeePer30Min: e.target.value,
-                      })
+                      handleUpdateRole("psikolog", { overtimeRate: Number(e.target.value) })
                     }
                     className="pl-9 text-xs font-semibold bg-background font-mono tabular-nums"
                   />

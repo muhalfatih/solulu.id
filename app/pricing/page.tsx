@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { PublicShell } from "@/components/public/public-shell"
-import { getPlatformPricing } from "@/lib/pricing/platform-pricing"
+import { getStartingPricesByCounselorType } from "@/lib/services/catalog"
 import { formatRupiah } from "@/lib/utils"
 
 export const metadata = {
@@ -25,14 +25,13 @@ export const metadata = {
 }
 
 export default async function PublicPricingPage() {
-  const pricing = await getPlatformPricing()
-  const peerActivePrice = pricing.peer.isSaleActive ? pricing.peer.promoPrice : pricing.peer.basePrice
-  const peerHasDiscount = pricing.peer.isSaleActive && pricing.peer.promoPrice < pricing.peer.basePrice
-  const psychologistActivePrice = pricing.psychologist.isSaleActive
-    ? pricing.psychologist.promoPrice
-    : pricing.psychologist.basePrice
-  const psychologistHasDiscount =
-    pricing.psychologist.isSaleActive && pricing.psychologist.promoPrice < pricing.psychologist.basePrice
+  const pricing = await getStartingPricesByCounselorType()
+  // "Mulai dari" per Tipe Konselor, dari Layanan aktif (ADR-0010). null = belum ada Layanan.
+  const peerActivePrice = pricing.peer?.activePrice ?? null
+  const peerHasDiscount = pricing.peer?.isPromoActive ?? false
+  const psychologistActivePrice = pricing.psychologist?.activePrice ?? null
+  const psychologistHasDiscount = pricing.psychologist?.isPromoActive ?? false
+  const priceLabel = (amount: number | null) => (amount === null ? "Segera hadir" : formatRupiah(amount))
   return (
     <PublicShell>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 md:py-20 flex flex-col gap-14 sm:gap-16">
@@ -95,8 +94,9 @@ export default async function PublicPricingPage() {
               {/* Price display */}
               <div className="flex flex-col gap-1 pb-2 border-b border-border/60">
                 <div className="flex items-baseline gap-2">
+                  <span className="text-xs text-muted-foreground font-medium">Mulai dari</span>
                   <span className="text-4xl sm:text-5xl font-bold font-heading tracking-tight text-foreground tabular-nums">
-                    {formatRupiah(peerActivePrice)}
+                    {priceLabel(peerActivePrice)}
                   </span>
                   <span className="text-xs text-muted-foreground font-medium tabular-nums">
                     / sesi (90 menit)
@@ -105,7 +105,7 @@ export default async function PublicPricingPage() {
                 {peerHasDiscount && (
                   <div className="pt-0.5 pb-2">
                     <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
-                      {formatRupiah(pricing.peer.basePrice)}
+                      {formatRupiah(pricing.peer?.basePrice ?? 0)}
                     </span>
                   </div>
                 )}
@@ -187,7 +187,7 @@ export default async function PublicPricingPage() {
               <div className="flex flex-col gap-1 pb-2 border-b border-border/60">
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl sm:text-5xl font-bold font-heading tracking-tight text-foreground tabular-nums">
-                    {formatRupiah(psychologistActivePrice)}
+                    {priceLabel(psychologistActivePrice)}
                   </span>
                   <span className="text-xs text-muted-foreground font-medium tabular-nums">
                     / sesi (90 menit)
@@ -196,7 +196,7 @@ export default async function PublicPricingPage() {
                 {psychologistHasDiscount && (
                   <div className="pt-0.5 pb-2">
                     <span className="text-sm sm:text-base font-medium text-muted-foreground line-through tabular-nums">
-                      {formatRupiah(pricing.psychologist.basePrice)}
+                      {formatRupiah(pricing.psychologist?.basePrice ?? 0)}
                     </span>
                   </div>
                 )}

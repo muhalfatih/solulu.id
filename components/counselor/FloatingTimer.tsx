@@ -117,8 +117,8 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
   )
   const elapsedMinutes = Math.floor(elapsedSeconds / 60)
   const feeCalculation = React.useMemo(
-    () => calculateExtendFee(elapsedMinutes, session.counselorType, session.customRates),
-    [elapsedMinutes, session.counselorType, session.customRates]
+    () => calculateExtendFee(elapsedMinutes, session.overtimeRatePer30Min),
+    [elapsedMinutes, session.overtimeRatePer30Min]
   )
 
   // Host Key fallback
