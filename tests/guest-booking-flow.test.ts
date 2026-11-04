@@ -2,6 +2,11 @@ import { describe, it, expect, vi } from "vitest"
 
 // Zoom capacity is a DB read that now fails closed; isolate it in these unit tests.
 vi.mock("@/lib/zoom/active-capacity", () => ({ getActiveZoomCapacity: async () => 2 }))
+// Cutoff Booking dibaca dari Platform Settings; test checkout ini memakai cutoff 2 jam yang tetap.
+vi.mock("@/lib/settings/platform", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/settings/platform")>()),
+  getBookingLeadTimeMinutes: async () => 120,
+}))
 import {
   calculateDiscount,
   evaluateVoucherEligibility,

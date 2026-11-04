@@ -401,7 +401,8 @@ export function BookingsClient({
                               </TooltipProvider>
                             ) : null}
 
-                            {/* 2. Tombol Kirim WA Laporan */}
+                            {/* 2. Tombol Kirim WA Laporan (hanya sesi selesai) */}
+                            {b.status === "completed" && (
                             <Button
                               type="button"
                               size="sm"
@@ -437,6 +438,7 @@ export function BookingsClient({
                                 </>
                               )}
                             </Button>
+                            )}
                           </div>
           </>
         )

@@ -95,7 +95,7 @@ export function mapBookingRow(r: BookingJoinRow): AdminBookingItem {
     noShowMarkedAt: b.noShowMarkedAt ? b.noShowMarkedAt.toISOString() : null,
     isFollowedUp: b.isFollowedUp,
     followedUpAt: b.followedUpAt ? b.followedUpAt.toISOString() : null,
-    hasSessionReport: Boolean(rep?.id),
+    hasSessionReport: Boolean(rep?.submittedAt),
     sessionReportId: rep?.id || null,
     reportDetails: rep?.id
       ? {

@@ -118,6 +118,8 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
       screeningId={screeningId}
       initialError={error}
       isScreeningRequired={settings.isScreeningRequired}
+      isManualPaymentEnabled={settings.isManualPaymentEnabled}
+      manualPaymentInstructions={settings.manualPaymentInstructions}
     />
   )
 }

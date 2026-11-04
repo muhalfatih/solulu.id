@@ -2,6 +2,7 @@
 
 import { eq, and, gte, lte, inArray, desc } from "drizzle-orm"
 import { db } from "@/db"
+import { getBookingLeadTimeMinutes } from "@/lib/settings/platform"
 import { counselors, schedules } from "@/db/schema"
 import {
   formatTimeRange,
@@ -217,13 +218,15 @@ export async function getCounselorsCatalogAction(
     }
 
     const now = new Date()
+    // Cutoff Booking dari Platform Settings (default H-4), sama dengan validasi checkout.
+    const leadTimeMinutes = await getBookingLeadTimeMinutes()
     for (const slot of slotRows) {
       // Exclude active slot hold (payment in-flight)
       if (slot.reservedUntil && new Date(slot.reservedUntil) > now) {
         continue
       }
       // Must be bookable (not in the past, >= 2h buffer if today, <= 14 days)
-      const bookableCheck = isSlotBookable(slot.date, slot.startTime, now)
+      const bookableCheck = isSlotBookable(slot.date, slot.startTime, now, leadTimeMinutes)
       if (!bookableCheck.bookable) {
         continue
       }

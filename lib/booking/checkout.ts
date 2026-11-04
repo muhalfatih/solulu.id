@@ -15,8 +15,8 @@ import {
   MAX_PLATFORM_CONCURRENCY,
   isSlotBookable,
   getWIBDateString,
-  MIN_BOOKING_LEAD_TIME_MINUTES,
 } from "@/lib/schedules/concurrency"
+import { getBookingLeadTimeMinutes } from "@/lib/settings/platform"
 import {
   validateVoucherSchema,
   createGuestBookingSchema,
@@ -345,7 +345,7 @@ export async function executeGetBookingContext(
       }
     }
 
-    const leadTime = deps?.leadTimeMinutes ?? MIN_BOOKING_LEAD_TIME_MINUTES
+    const leadTime = deps?.leadTimeMinutes ?? (await getBookingLeadTimeMinutes())
     const bookableCheck = isSlotBookable(schedule.date, schedule.startTime, now, leadTime)
     if (!bookableCheck.bookable) {
       return {
@@ -507,7 +507,7 @@ export async function executeCreateGuestBooking(
       return { success: false, error: "Slot jadwal tidak dimiliki konselor yang dipilih." }
     }
 
-    const leadTime = deps?.leadTimeMinutes ?? (isCepat ? 0 : MIN_BOOKING_LEAD_TIME_MINUTES)
+    const leadTime = deps?.leadTimeMinutes ?? (isCepat ? 0 : await getBookingLeadTimeMinutes())
     const bookableCheck = isSlotBookable(schedule.date, schedule.startTime, now, leadTime)
     if (!bookableCheck.bookable) {
       return {

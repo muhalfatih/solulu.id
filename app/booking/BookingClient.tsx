@@ -19,7 +19,6 @@ import {
   Info,
   Loader2,
   Smartphone,
-  Check,
   Heart,
 } from "lucide-react"
 import { PublicButton } from "@/components/public/public-button"
@@ -40,6 +39,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle"
 import { PublicShell } from "@/components/public/public-shell"
 import { indonesianPhoneRegex } from "@/lib/validations/booking"
+import { ManualTransferInstructions } from "@/components/public/manual-transfer-instructions"
 import {
   validateVoucherAction,
   createGuestBookingAction,
@@ -51,6 +51,9 @@ interface BookingClientProps {
   screeningId?: string
   initialError?: string
   isScreeningRequired?: boolean
+  /** Dari Platform Settings: opsi transfer manual hanya tampil bila diaktifkan Superadmin. */
+  isManualPaymentEnabled?: boolean
+  manualPaymentInstructions?: string
 }
 
 function formatRupiah(amount: number): string {
@@ -66,6 +69,8 @@ export default function BookingClient({
   screeningId,
   initialError,
   isScreeningRequired = false,
+  isManualPaymentEnabled = false,
+  manualPaymentInstructions = "",
 }: BookingClientProps) {
   const router = useRouter()
   const { counselor, schedule, services, selectedServiceId, screening } = initialData
@@ -101,7 +106,6 @@ export default function BookingClient({
 
   // Payment method state
   const [paymentProvider, setPaymentProvider] = React.useState<"xendit" | "manual">("xendit")
-  const [manualBank, setManualBank] = React.useState<string>("Bank BCA")
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -233,7 +237,7 @@ export default function BookingClient({
         initialNotes: initialNotes.trim() || undefined,
         voucherCode: appliedVoucher ? appliedVoucher.code : undefined,
         paymentProvider,
-        paymentMethod: paymentProvider === "manual" ? manualBank : "Xendit Gateway",
+        paymentMethod: paymentProvider === "manual" ? "Transfer Bank Manual" : "Xendit Gateway",
       })
 
       if (!res.success || !res.data) {
@@ -505,6 +509,7 @@ export default function BookingClient({
                     </label>
 
                     {/* Path B: Manual Bank Transfer */}
+                    {isManualPaymentEnabled && (
                     <label
                       htmlFor="pay-manual"
                       className={`flex items-start gap-3.5 p-4 sm:p-5 rounded-xl border cursor-pointer transition-all duration-200 ${
@@ -524,38 +529,20 @@ export default function BookingClient({
                           </Badge>
                         </div>
                         <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                          Transfer langsung ke rekening resmi platform (BCA, Mandiri, BRI). Pengecekan mutasi dilakukan oleh Tim Solulu via WhatsApp.
+                          Transfer ke rekening tujuan yang tercantum di bawah. Pengecekan mutasi dilakukan oleh Tim Solulu via WhatsApp.
                         </p>
                       </div>
                     </label>
+                    )}
                   </RadioGroup>
 
                   {/* Manual Bank Choice (if manual selected) */}
                   {paymentProvider === "manual" && (
                     <div className="mt-2 p-4 sm:p-5 rounded-xl bg-muted/30 border border-border/60 flex flex-col gap-3">
                       <span className="text-xs sm:text-sm font-semibold text-foreground">
-                        Pilih Rekening Tujuan Transfer:
+                        Rekening Tujuan Transfer:
                       </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        {["Bank BCA", "Bank Mandiri", "Bank BRI"].map((bank) => (
-                          <PublicButton
-                            key={bank}
-                            type="button"
-                            variant={manualBank === bank ? "public" : "outline"}
-                            size="pill-sm"
-                            onClick={() => setManualBank(bank)}
-                            className="h-9 text-xs sm:text-sm font-medium justify-center cursor-pointer"
-                          >
-                            {manualBank === bank && (
-                              <Check className="size-3.5 mr-1" data-icon="inline-start" />
-                            )}
-                            <span>{bank}</span>
-                          </PublicButton>
-                        ))}
-                      </div>
-                      <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed mt-0.5">
-                        Nomor rekening lengkap dan petunjuk transfer akan ditampilkan setelah Anda menekan tombol konfirmasi di samping.
-                      </p>
+                      <ManualTransferInstructions instructions={manualPaymentInstructions} />
                     </div>
                   )}
                 </CardContent>

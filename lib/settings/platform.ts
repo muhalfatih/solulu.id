@@ -88,6 +88,11 @@ export async function getPlatformSettings(): Promise<PlatformSettingsData> {
   }
 }
 
+/** Cutoff Booking dari Platform Settings, dalam menit (dipakai daftar slot publik & checkout). */
+export async function getBookingLeadTimeMinutes(): Promise<number> {
+  return (await getPlatformSettings()).bookingCutoffHours * 60
+}
+
 export interface AuthContext {
   id: string
   app_metadata?: Record<string, any>
