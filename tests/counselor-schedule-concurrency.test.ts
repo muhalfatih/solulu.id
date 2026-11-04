@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from "vitest"
+
+// Zoom capacity is a DB read that now fails closed; isolate it in these unit tests.
+vi.mock("@/lib/zoom/active-capacity", () => ({ getActiveZoomCapacity: async () => 2 }))
 import {
   computeEndTime,
   formatTimeRange,
@@ -380,9 +383,37 @@ describe("Issue #5: Counselor Schedule Management & Concurrency Guard", () => {
       },
     ]
 
-    const mockPricing = [
-      { counselorType: "peer", basePrice: "50000", promoPrice: "35000", isSaleActive: true },
-      { counselorType: "psychologist", basePrice: "150000", promoPrice: null, isSaleActive: false },
+    const mockServices = [
+      {
+        id: "svc-sebaya",
+        name: "Partner Cerita",
+        slug: "partner-cerita",
+        description: null,
+        basePrice: "50000.00",
+        promoPrice: "35000.00",
+        allowVoucher: true,
+        overtimeRatePer30Min: "35000.00",
+        basePayoutPercent: 70,
+        overtimePayoutPercent: 80,
+        allowedCounselorTypes: ["peer" as const],
+        isActive: true,
+        sortOrder: 1,
+      },
+      {
+        id: "svc-psikolog",
+        name: "Psikolog Klinis",
+        slug: "psikolog-klinis",
+        description: null,
+        basePrice: "150000.00",
+        promoPrice: null,
+        allowVoucher: true,
+        overtimeRatePer30Min: "60000.00",
+        basePayoutPercent: 80,
+        overtimePayoutPercent: 85,
+        allowedCounselorTypes: ["psychologist" as const],
+        isActive: true,
+        sortOrder: 2,
+      },
     ]
 
     it("filters catalog counselors by type (peer vs psychologist)", async () => {
@@ -390,7 +421,8 @@ describe("Issue #5: Counselor Schedule Management & Concurrency Guard", () => {
         { type: "peer" },
         {
           getCounselors: async () => mockCounselors,
-          getPricing: async () => mockPricing,
+          getServices: async () => mockServices,
+          getExclusions: async () => ({}),
           getSlots: async () => [],
           getActiveSessions: async () => ({}),
         }
@@ -439,7 +471,8 @@ describe("Issue #5: Counselor Schedule Management & Concurrency Guard", () => {
         { date: testDateStr },
         {
           getCounselors: async () => mockCounselors,
-          getPricing: async () => mockPricing,
+          getServices: async () => mockServices,
+          getExclusions: async () => ({}),
           getSlots: async () => candidateSlots,
           getActiveSessions: async () => activeSessions,
           getZoomCapacity: async () => 2,

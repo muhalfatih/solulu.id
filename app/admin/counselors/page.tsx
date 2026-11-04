@@ -1,5 +1,6 @@
 "use client"
 
+import { toast } from "sonner"
 import * as React from "react"
 import type { CounselorApplicant } from "@/lib/types/admin"
 import Link from "next/link"
@@ -153,7 +154,6 @@ export default function DistilledCounselorsPage() {
       )
     }
   }
-  const [toastMessage, setToastMessage] = React.useState<string | null>(null)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<"all" | "verified" | "pending" | "radar" | "active" | "suspended">("all")
 
@@ -207,8 +207,8 @@ export default function DistilledCounselorsPage() {
             appliedAt: new Date(app.createdAt).toLocaleDateString("id-ID", {
               day: "numeric",
               month: "short",
-              year: "numeric",
-            }),
+              year: "numeric", timeZone: "Asia/Jakarta"
+}),
             status: app.status as any,
             education: app.counselorType === "psychologist" ? "S2 Profesi Psikologi" : "S1 Psikologi",
             bio: app.bio || "",
@@ -242,8 +242,8 @@ export default function DistilledCounselorsPage() {
   }, [loadData])
 
   const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 4000)
+    if (/gagal|ditolak|kesalahan/i.test(msg)) toast.error(msg)
+    else toast.success(msg)
   }
 
   const handleApprove = async (id: string, name: string, email: string) => {
@@ -404,24 +404,6 @@ export default function DistilledCounselorsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="size-4 text-primary shrink-0" />
-            <span>{toastMessage}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => setToastMessage(null)}
-            className="size-6 text-muted-foreground hover:text-foreground"
-            aria-label="Tutup notifikasi"
-          >
-            <X className="size-3.5" />
-          </Button>
-        </div>
-      )}
 
       {/* 1. Header: Standardized Admin Page Header */}
       <AdminPageHeader
@@ -496,7 +478,7 @@ export default function DistilledCounselorsPage() {
             <div>
               <p className="text-xs font-bold flex items-center gap-2">
                 <span>Radar Peringatan STR / SIPP</span>
-                <Badge variant="warning" className="text-[10px] py-0 px-1.5 font-bold">
+                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 font-bold">
                   {radarAlertCount} Psikolog Mendekati / Lewat Jatuh Tempo
                 </Badge>
               </p>
@@ -570,7 +552,7 @@ export default function DistilledCounselorsPage() {
               Array.from({ length: 2 }).map((_, i) => (
                 <div
                   key={`applicant-skeleton-${i}`}
-                  className="rounded-2xl border border-border bg-card p-6 flex flex-col justify-between gap-6 shadow-xs animate-pulse"
+                  className="rounded-2xl border border-border bg-card p-6 flex flex-col justify-between gap-6 shadow-xs"
                 >
                   <div className="flex flex-col gap-5">
                     <div className="flex items-start justify-between gap-3">
@@ -610,7 +592,7 @@ export default function DistilledCounselorsPage() {
               applicants.map((app) => (
               <div
                 key={app.id}
-                className={`rounded-xl border bg-card p-6 flex flex-col justify-between gap-6 transition-all ${
+                className={`rounded-xl border bg-card p-6 flex flex-col justify-between gap-6 transition-colors ${
                   app.status === "approved"
                     ? "border-primary/40 bg-primary/5"
                     : app.status === "rejected"
@@ -840,7 +822,7 @@ export default function DistilledCounselorsPage() {
 
         {/* TAB 2: REGISTERED COUNSELORS DIRECTORY (Unified Surface) */}
         <TabsContent value="active" className="flex flex-col gap-0 mt-0">
-          <Card className="overflow-hidden shadow-xs">
+          <Card className="overflow-hidden">
             {/* Integrated Toolbar Header: Filter + Search + Stats in one surface */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-border bg-muted/20">
               <div className="relative flex-1 min-w-[220px] max-w-xs">
@@ -1061,8 +1043,8 @@ export default function DistilledCounselorsPage() {
                         {c.radar?.hasRadarAlert && (
                           <div className="mt-1 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                             <Badge
-                              variant={c.radar.alertSeverity === "critical" ? "destructive" : "warning"}
-                              className="text-[10px] font-bold gap-1 py-0.5 px-2 animate-pulse"
+                              variant={c.radar.alertSeverity === "critical" ? "destructive" : "secondary"}
+                              className="text-[10px] font-bold gap-1 py-0.5 px-2"
                             >
                               <AlertTriangle className="size-3" />
                               Radar: {c.radar.alertMessage}

@@ -1,9 +1,9 @@
 import { eq, and, sql } from "drizzle-orm"
 import { db } from "@/db"
+import { keepsPoolReserveWithout, POOL_RESERVE_MESSAGE } from "@/lib/pool/store"
 import {
   counselors,
   schedules,
-  platformPricing,
   vouchers,
   bookings,
   transactions,
@@ -15,8 +15,8 @@ import {
   MAX_PLATFORM_CONCURRENCY,
   isSlotBookable,
   getWIBDateString,
-  MIN_BOOKING_LEAD_TIME_MINUTES,
 } from "@/lib/schedules/concurrency"
+import { getBookingLeadTimeMinutes } from "@/lib/settings/platform"
 import {
   validateVoucherSchema,
   createGuestBookingSchema,
@@ -29,14 +29,30 @@ import {
   evaluateVoucherEligibility,
   type VoucherRecord,
 } from "@/lib/booking/voucher"
+import { holdExpiresAt } from "@/lib/booking-cycle"
 import {
   computeHoldExpiry,
   generateSessionAccessToken,
   generateReferenceNumber,
   isHoldExpired,
 } from "@/lib/booking/hold"
+import {
+  activePrice,
+  listOfferedServices,
+  resolveServiceSelection,
+  toServicePricingView,
+  type ServiceLike,
+  type ServicePricingView,
+} from "@/lib/services/pricing"
+import {
+  listAllServices,
+  getServiceById,
+  getExcludedServiceIds,
+} from "@/lib/services/repository"
 import { createXenditInvoice, getXenditInvoice } from "@/lib/xendit"
+import { getXenditConfig } from "@/lib/config/integrations"
 import { dispatchFulfillmentJob } from "@/lib/fulfillment/qstash"
+import { poolSlotDisplay } from "@/lib/pool/display"
 
 export interface ActionResponse<T = any> {
   success: boolean
@@ -65,15 +81,10 @@ export interface BookingContextData {
     timeRange: string
     isAvailable: boolean
   }
-  pricing: {
-    basePrice: number
-    promoPrice: number | null
-    isSaleActive: boolean
-    allowVoucher: boolean
-    grossAmount: number
-    grossAmountFormatted: string
-    originalPriceFormatted?: string
-  }
+  /** Layanan aktif yang ditawarkan konselor ini (tipe cocok, tidak dikecualikan Admin). */
+  services: ServicePricingView[]
+  /** Layanan terpilih; null bila klien masih harus memilih di checkout. */
+  selectedServiceId: string | null
   screening?: {
     id: string
     totalScore: number
@@ -82,10 +93,41 @@ export interface BookingContextData {
   } | null
 }
 
+/** Eksekutor transaksi (tx Drizzle atau pengganti uji) yang diteruskan ke hook `inTransaction`. */
+export type CheckoutTx = Pick<typeof db, "insert" | "update">
+
+export interface CheckoutCreatedContext {
+  bookingId: string
+  transactionId: string
+  scheduleId: string
+  counselorId: string
+  serviceId: string
+  accessToken: string
+  referenceNumber: string
+  grossAmount: number
+  netAmount: number
+  reservedUntil: Date
+}
+
+/**
+ * Opsi jalur checkout. `source: "booking_cepat"` (Admin, dari WhatsApp #30) memakai jalur yang sama
+ * dengan klien, kecuali: hold Booking Cepat (default 60 menit), tanpa batas anti-hoarding dan lead time,
+ * dan booking diberi `source = booking_cepat`. `inTransaction` berjalan di transaksi yang sama dengan
+ * pembuatan booking sehingga Jejak Audit dan pelunasan oleh Admin commit/rollback bersama.
+ */
+export interface CheckoutOptions {
+  source?: "public" | "booking_cepat"
+  holdMinutes?: number
+  inTransaction?: (tx: CheckoutTx, ctx: CheckoutCreatedContext) => Promise<void>
+}
+
 export interface BookingDependencies {
+  /** Pengganti `tx` untuk hook `inTransaction` pada jalur DI `reserveSlotAndCreateBooking`. */
+  executor?: CheckoutTx
   getCounselor?: (counselorId: string) => Promise<any>
   getSchedule?: (scheduleId: string) => Promise<any>
-  getPricing?: (counselorType: "peer" | "psychologist") => Promise<any>
+  getServices?: () => Promise<ServiceLike[]>
+  getExcludedServiceIds?: (counselorId: string) => Promise<string[]>
   getScreening?: (screeningId: string) => Promise<any>
   getVoucher?: (code: string) => Promise<any>
   getActiveSessionsOnDate?: (date: string, excludeScheduleId?: string) => Promise<{ startTime: string; endTime: string }[]>
@@ -93,6 +135,9 @@ export interface BookingDependencies {
     scheduleId: string
     counselorId: string
     screeningId?: string | null
+    serviceId: string
+    /** Tarif pokok aktif Layanan sebelum voucher. */
+    basePriceSnapshot: number
     patientName: string
     patientEmail: string
     patientPhone: string
@@ -116,12 +161,28 @@ export interface BookingDependencies {
 }
 
 /**
- * Validates voucher code against platform pricing policy and quotas.
+ * Layanan yang ditawarkan konselor tertentu (ADR-0010): aktif, tipe cocok,
+ * dan tidak dimatikan Admin untuk konselor itu. Mengembalikan [] bila kosong.
+ */
+async function loadOfferedServices(
+  counselor: { id: string; counselorType: "peer" | "psychologist" },
+  deps?: Pick<BookingDependencies, "getServices" | "getExcludedServiceIds">
+): Promise<ServiceLike[]> {
+  const all = deps?.getServices ? await deps.getServices() : await listAllServices()
+  const excluded = deps?.getExcludedServiceIds
+    ? await deps.getExcludedServiceIds(counselor.id)
+    : await getExcludedServiceIds(counselor.id)
+  return listOfferedServices(all, counselor, excluded)
+}
+
+/**
+ * Validates voucher code against the Layanan voucher policy and quotas.
+ * The gross amount is always the Layanan's active price, never a client-supplied number.
  */
 export async function executeValidateVoucher(
   input: ValidateVoucherInput,
   deps?: {
-    getPricing?: (type: "peer" | "psychologist") => Promise<any>
+    getService?: (serviceId: string) => Promise<ServiceLike | null>
     getVoucher?: (code: string) => Promise<VoucherRecord | null>
     now?: () => Date
   }
@@ -144,21 +205,17 @@ export async function executeValidateVoucher(
       }
     }
 
-    const { code, counselorType, grossAmount } = parseResult.data
+    const { code, serviceId } = parseResult.data
 
-    let pricingRecord: any
-    if (deps?.getPricing) {
-      pricingRecord = await deps.getPricing(counselorType)
-    } else {
-      const records = await db
-        .select()
-        .from(platformPricing)
-        .where(eq(platformPricing.counselorType, counselorType))
-        .limit(1)
-      pricingRecord = records[0]
+    const service = deps?.getService
+      ? await deps.getService(serviceId)
+      : await getServiceById(serviceId)
+    if (!service || !service.isActive) {
+      return { success: false, error: "Layanan tidak ditemukan atau tidak aktif" }
     }
 
-    const allowVoucher = pricingRecord ? pricingRecord.allowVoucher : true
+    const allowVoucher = service.allowVoucher
+    const grossAmount = activePrice(service)
 
     let voucherRecord: VoucherRecord | null = null
     if (deps?.getVoucher) {
@@ -229,10 +286,12 @@ export async function executeGetBookingContext(
     scheduleId,
     counselorId,
     screeningId,
+    serviceId,
   }: {
     scheduleId: string
     counselorId: string
     screeningId?: string | null
+    serviceId?: string | null
   },
   deps?: BookingDependencies
 ): Promise<ActionResponse<BookingContextData>> {
@@ -286,7 +345,7 @@ export async function executeGetBookingContext(
       }
     }
 
-    const leadTime = deps?.leadTimeMinutes ?? MIN_BOOKING_LEAD_TIME_MINUTES
+    const leadTime = deps?.leadTimeMinutes ?? (await getBookingLeadTimeMinutes())
     const bookableCheck = isSlotBookable(schedule.date, schedule.startTime, now, leadTime)
     if (!bookableCheck.bookable) {
       return {
@@ -309,24 +368,20 @@ export async function executeGetBookingContext(
       }
     }
 
-    let pricingRow: any
-    if (deps?.getPricing) {
-      pricingRow = await deps.getPricing(counselor.counselorType)
-    } else {
-      const rows = await db
-        .select()
-        .from(platformPricing)
-        .where(eq(platformPricing.counselorType, counselor.counselorType))
-        .limit(1)
-      pricingRow = rows[0]
+    const offered = (await loadOfferedServices(counselor, deps)).map(toServicePricingView)
+    if (offered.length === 0) {
+      return {
+        success: false,
+        error: "Mitra konselor ini belum menawarkan Layanan aktif. Silakan pilih konselor lain.",
+      }
     }
-
-    const basePrice = pricingRow ? Number(pricingRow.basePrice) : 50000
-    const promoPrice = pricingRow?.promoPrice ? Number(pricingRow.promoPrice) : null
-    const isSaleActive = pricingRow?.isSaleActive ?? false
-    const allowVoucher = pricingRow?.allowVoucher ?? true
-
-    const grossAmount = isSaleActive && promoPrice !== null ? promoPrice : basePrice
+    if (serviceId && !offered.some((v) => v.serviceId === serviceId)) {
+      return {
+        success: false,
+        error: "Layanan yang dipilih tidak tersedia untuk mitra konselor ini.",
+      }
+    }
+    const selected = resolveServiceSelection(offered, serviceId)
 
     let screening: any = null
     if (screeningId) {
@@ -368,15 +423,8 @@ export async function executeGetBookingContext(
           timeRange,
           isAvailable,
         },
-        pricing: {
-          basePrice,
-          promoPrice,
-          isSaleActive,
-          allowVoucher,
-          grossAmount,
-          grossAmountFormatted: formatRupiah(grossAmount),
-          originalPriceFormatted: isSaleActive ? formatRupiah(basePrice) : undefined,
-        },
+        services: offered,
+        selectedServiceId: selected ? selected.serviceId : null,
         screening: screening
           ? {
               id: screening.id,
@@ -400,7 +448,8 @@ export async function executeGetBookingContext(
  */
 export async function executeCreateGuestBooking(
   input: CreateGuestBookingInput,
-  deps?: BookingDependencies
+  deps?: BookingDependencies,
+  options: CheckoutOptions = {}
 ): Promise<ActionResponse<{
   bookingId: string
   accessToken: string
@@ -422,6 +471,12 @@ export async function executeCreateGuestBooking(
 
     const data = parseResult.data
     const now = deps?.now ? deps.now() : new Date()
+    const isCepat = options.source === "booking_cepat"
+
+    // Fail closed before reserving anything: no Xendit key means no payable invoice.
+    if (data.paymentProvider === "xendit" && !deps?.createInvoice) {
+      getXenditConfig()
+    }
 
     let schedule: any
     if (deps?.getSchedule) {
@@ -448,7 +503,11 @@ export async function executeCreateGuestBooking(
       }
     }
 
-    const leadTime = deps?.leadTimeMinutes ?? MIN_BOOKING_LEAD_TIME_MINUTES
+    if (schedule.counselorId && schedule.counselorId !== data.counselorId) {
+      return { success: false, error: "Slot jadwal tidak dimiliki konselor yang dipilih." }
+    }
+
+    const leadTime = deps?.leadTimeMinutes ?? (isCepat ? 0 : await getBookingLeadTimeMinutes())
     const bookableCheck = isSlotBookable(schedule.date, schedule.startTime, now, leadTime)
     if (!bookableCheck.bookable) {
       return {
@@ -478,8 +537,10 @@ export async function executeCreateGuestBooking(
       }
     }
 
-    // Anti-hoarding check: Max 1 active unexpired reservation per patient
-    if (deps?.checkExistingPendingHold) {
+    // Anti-hoarding check: Max 1 active unexpired reservation per patient (tidak berlaku untuk Booking Cepat)
+    if (isCepat) {
+      // Admin boleh menahan beberapa slot untuk klien yang sama.
+    } else if (deps?.checkExistingPendingHold) {
       const hasHold = await deps.checkExistingPendingHold(data.patientEmail, data.patientPhone)
       if (hasHold) {
         return {
@@ -564,14 +625,12 @@ export async function executeCreateGuestBooking(
     if (deps?.getZoomCapacity) {
       effectiveLimit = await deps.getZoomCapacity()
     } else {
-      try {
-        const cap = await getActiveZoomCapacity()
-        if (cap >= 4) {
-          effectiveLimit = 10
-        } else if (cap > 0) {
-          effectiveLimit = cap
-        }
-      } catch {}
+      const cap = await getActiveZoomCapacity()
+      if (cap >= 4) {
+        effectiveLimit = 10
+      } else if (cap > 0) {
+        effectiveLimit = cap
+      }
     }
 
     if (overlapCount >= effectiveLimit) {
@@ -581,24 +640,18 @@ export async function executeCreateGuestBooking(
       }
     }
 
-    let pricingRow: any
-    if (deps?.getPricing) {
-      pricingRow = await deps.getPricing(counselor.counselorType)
-    } else {
-      const rows = await db
-        .select()
-        .from(platformPricing)
-        .where(eq(platformPricing.counselorType, counselor.counselorType))
-        .limit(1)
-      pricingRow = rows[0]
+    const offeredServices = await loadOfferedServices(counselor, deps)
+    const service = offeredServices.find((svc) => svc.id === data.serviceId)
+    if (!service) {
+      return {
+        success: false,
+        error: "Layanan yang dipilih tidak tersedia untuk mitra konselor ini.",
+      }
     }
 
-    const basePrice = pricingRow ? Number(pricingRow.basePrice) : 50000
-    const promoPrice = pricingRow?.promoPrice ? Number(pricingRow.promoPrice) : null
-    const isSaleActive = pricingRow?.isSaleActive ?? false
-    const allowVoucher = pricingRow?.allowVoucher ?? true
-
-    const grossAmount = isSaleActive && promoPrice !== null ? promoPrice : basePrice
+    const allowVoucher = service.allowVoucher
+    // Tarif pokok aktif sebelum voucher; ini yang di-snapshot ke booking.
+    const grossAmount = activePrice(service)
     let discountAmount = 0
     let netAmount = grossAmount
     let appliedVoucher: VoucherRecord | null = null
@@ -648,7 +701,9 @@ export async function executeCreateGuestBooking(
 
     const accessToken = generateSessionAccessToken()
     const referenceNumber = generateReferenceNumber(now)
-    const reservedUntil = computeHoldExpiry(now)
+    const reservedUntil = isCepat
+      ? holdExpiresAt(now, "booking_cepat", options.holdMinutes)
+      : computeHoldExpiry(now)
     const appUrl = getAppBaseUrl()
 
     let bookingId: string
@@ -659,6 +714,8 @@ export async function executeCreateGuestBooking(
         scheduleId: schedule.id,
         counselorId: counselor.id,
         screeningId: data.screeningId,
+        serviceId: service.id,
+        basePriceSnapshot: grossAmount,
         patientName: data.patientName,
         patientEmail: data.patientEmail,
         patientPhone: data.patientPhone,
@@ -676,8 +733,26 @@ export async function executeCreateGuestBooking(
       })
       bookingId = res.bookingId
       transactionId = res.transactionId
+      if (options.inTransaction && deps.executor) {
+        await options.inTransaction(deps.executor, {
+          bookingId,
+          transactionId,
+          scheduleId: schedule.id,
+          counselorId: counselor.id,
+          serviceId: service.id,
+          accessToken,
+          referenceNumber,
+          grossAmount,
+          netAmount,
+          reservedUntil,
+        })
+      }
     } else {
       const txResult = await db.transaction(async (tx) => {
+        // ADR-0011: jangan pakai jadwal terakhir yang dibutuhkan booking Konselor Bebas di slot ini.
+        if (!(await keepsPoolReserveWithout(schedule.id, tx as unknown as typeof db))) {
+          throw new Error(POOL_RESERVE_MESSAGE)
+        }
         await tx
           .update(schedules)
           .set({
@@ -706,7 +781,10 @@ export async function executeCreateGuestBooking(
             scheduleId: schedule.id,
             counselorId: counselor.id,
             screeningId: data.screeningId || null,
+            serviceId: service.id,
+            basePriceSnapshot: String(grossAmount),
             status: "pending_payment",
+            source: isCepat ? "booking_cepat" : "public",
           })
           .returning({ id: bookings.id })
 
@@ -724,6 +802,21 @@ export async function executeCreateGuestBooking(
             status: "PENDING",
           })
           .returning({ id: transactions.id })
+
+        if (options.inTransaction) {
+          await options.inTransaction(tx, {
+            bookingId: newBooking.id,
+            transactionId: newTx.id,
+            scheduleId: schedule.id,
+            counselorId: counselor.id,
+            serviceId: service.id,
+            accessToken,
+            referenceNumber,
+            grossAmount,
+            netAmount,
+            reservedUntil,
+          })
+        }
 
         return {
           bookingId: newBooking.id,
@@ -746,7 +839,9 @@ export async function executeCreateGuestBooking(
         amount: netAmount,
         payerEmail: data.patientEmail,
         description: `Konseling Solulu: ${counselor.fullName} (${schedule.date} ${timeFormatted})`,
-        invoiceDuration: 900,
+        invoiceDuration: isCepat
+          ? Math.round((reservedUntil.getTime() - now.getTime()) / 1000)
+          : 900,
         successRedirectUrl: `${appUrl}/booking/success?token=${accessToken}`,
         failureRedirectUrl: `${appUrl}/booking?counselorId=${counselor.id}&scheduleId=${schedule.id}&error=payment_cancelled`,
       })
@@ -821,14 +916,17 @@ export async function executeGetBookingByToken(
     counselorType: string
     counselorTypeDisplay: string
     avatarR2Url: string | null
-  }
+  } | null
   schedule: {
-    id: string
+    /** Kosong untuk booking Konselor Bebas yang belum diklaim. */
+    id: string | null
     date: string
     startTime: string
     endTime: string
     timeRange: string
   }
+  /** True: booking Konselor Bebas yang belum punya konselor (counselor = null). */
+  awaitingCounselor: boolean
   transaction: {
     id: string
     paymentProvider: string
@@ -860,8 +958,8 @@ export async function executeGetBookingByToken(
         transaction: transactions,
       })
       .from(bookings)
-      .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
-      .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
+      .leftJoin(counselors, eq(bookings.counselorId, counselors.id))
+      .leftJoin(schedules, eq(bookings.scheduleId, schedules.id))
       .leftJoin(transactions, eq(bookings.id, transactions.bookingId))
       .where(eq(bookings.accessToken, accessToken))
       .limit(1)
@@ -871,6 +969,10 @@ export async function executeGetBookingByToken(
     }
 
     const item = rows[0]
+    const poolSlot = item.schedule ? null : poolSlotDisplay(item.booking)
+    if (!item.schedule && !poolSlot) {
+      return { success: false, error: "Pemesanan dengan tautan ini tidak ditemukan" }
+    }
 
     // AUTO-SYNC GUARD FOR PAYMENT GATEWAY (XENDIT):
     // If booking is pending_payment and provider is xendit, check Xendit invoice status directly.
@@ -905,10 +1007,12 @@ export async function executeGetBookingByToken(
             .set({ status: "confirmed" })
             .where(eq(bookings.id, item.booking.id))
 
-          await db
-            .update(schedules)
-            .set({ status: "booked" })
-            .where(eq(schedules.id, item.schedule.id))
+          if (item.schedule) {
+            await db
+              .update(schedules)
+              .set({ status: "booked" })
+              .where(eq(schedules.id, item.schedule.id))
+          }
 
           await dispatchFulfillmentJob(item.booking.id)
 
@@ -936,24 +1040,35 @@ export async function executeGetBookingByToken(
           status: item.booking.status,
           createdAt: item.booking.createdAt,
         },
-        counselor: {
-          id: item.counselor.id,
-          fullName: item.counselor.fullName,
-          title: item.counselor.title,
-          counselorType: item.counselor.counselorType,
-          counselorTypeDisplay:
-            item.counselor.counselorType === "psychologist"
-              ? "Psikolog Klinis"
-              : "Konselor Sebaya",
-          avatarR2Url: item.counselor.avatarR2Url,
-        },
-        schedule: {
-          id: item.schedule.id,
-          date: item.schedule.date,
-          startTime: item.schedule.startTime,
-          endTime: item.schedule.endTime,
-          timeRange: formatTimeRange(item.schedule.startTime, item.schedule.endTime),
-        },
+        counselor: item.counselor
+          ? {
+              id: item.counselor.id,
+              fullName: item.counselor.fullName,
+              title: item.counselor.title,
+              counselorType: item.counselor.counselorType,
+              counselorTypeDisplay:
+                item.counselor.counselorType === "psychologist"
+                  ? "Psikolog Klinis"
+                  : "Konselor Sebaya",
+              avatarR2Url: item.counselor.avatarR2Url,
+            }
+          : null,
+        awaitingCounselor: !item.counselor,
+        schedule: item.schedule
+          ? {
+              id: item.schedule.id,
+              date: item.schedule.date,
+              startTime: item.schedule.startTime,
+              endTime: item.schedule.endTime,
+              timeRange: formatTimeRange(item.schedule.startTime, item.schedule.endTime),
+            }
+          : {
+              id: null,
+              date: poolSlot!.date,
+              startTime: poolSlot!.startTime,
+              endTime: poolSlot!.endTime,
+              timeRange: formatTimeRange(poolSlot!.startTime, poolSlot!.endTime),
+            },
         transaction: item.transaction
           ? {
               id: item.transaction.id,

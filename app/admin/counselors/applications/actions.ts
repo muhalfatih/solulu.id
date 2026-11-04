@@ -1,13 +1,14 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
 import { eq, desc } from "drizzle-orm"
 import { db } from "@/db"
 import { counselorApplications, counselors } from "@/db/schema"
 import { generatePresignedGetUrl } from "@/lib/r2"
+import { recordAudit } from "@/lib/audit/record"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { createClient } from "@/lib/supabase/server"
+import { requireStaffUser } from "@/lib/auth/staff"
+import { ADMIN_ROLES } from "@/lib/auth/staff-role"
 import { reviewApplicationInputSchema, type ReviewApplicationInput } from "@/lib/validations/counselor-application"
 import { sendCounselorWelcomeCredentialsEmail } from "@/lib/fulfillment/emails"
 
@@ -20,34 +21,7 @@ export interface AdminAuthContext {
 async function getAuthenticatedAdmin(
   customUser?: AdminAuthContext | null
 ): Promise<AdminAuthContext | null> {
-  if (customUser !== undefined) {
-    if (!customUser) return null
-    const role = customUser.app_metadata?.role || customUser.user_metadata?.role
-    return role === "admin" ? customUser : null
-  }
-
-  try {
-    const cookieStore = await cookies()
-    const demoRole = cookieStore.get("solulu_demo_role")?.value
-    if (demoRole === "admin") {
-      return {
-        id: "demo-admin-id",
-        app_metadata: { role: "admin" },
-        user_metadata: { role: "admin" },
-      }
-    }
-
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return null
-    const role = user.app_metadata?.role || user.user_metadata?.role
-    return role === "admin" ? user : null
-  } catch {
-    return null
-  }
+  return requireStaffUser(customUser, ADMIN_ROLES)
 }
 
 /**
@@ -157,6 +131,16 @@ export async function getApplicationDocumentUrlAction(
     }
 
     const presigner = options?.presigner || generatePresignedGetUrl
+    // Dicatat sebelum tautan diterbitkan; gagal mencatat = tidak ada tautan. Jalur injeksi (tes) dilewati.
+    if (!options?.fetchApplicationFn) {
+      await recordAudit(db, {
+        actor: admin,
+        action: "counselor_document.download",
+        entityType: "counselor_document",
+        entityId: input.applicationId,
+        after: { documentType: input.documentType, source: "application", expiresInSeconds: 900 },
+      })
+    }
     const url = await presigner({
       key: r2Key,
       expiresIn: 900, // 15 minutes as per Solulu PRD spec

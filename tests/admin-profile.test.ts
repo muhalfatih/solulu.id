@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi } from "vitest"
 import {
   getAdminProfileDataAction,
   updateAdminContactAction,
@@ -7,15 +7,17 @@ import {
 
 describe("Admin Profile Server Actions", () => {
   const superadminAuth = {
-    id: "demo-superadmin-id",
+    id: "superadmin-user-1",
     app_metadata: { role: "superadmin" },
-    user_metadata: { role: "superadmin", email: "superadmin@solulu.id", phone: "0812-9999-8888" },
+    email: "superadmin@solulu.id",
+    user_metadata: { role: "superadmin", phone: "0812-9999-8888" },
   }
 
   const adminAuth = {
-    id: "demo-admin-id",
+    id: "admin-user-1",
     app_metadata: { role: "admin" },
-    user_metadata: { role: "admin", email: "admin@solulu.id", phone: "0812-3456-7890" },
+    email: "admin@solulu.id",
+    user_metadata: { role: "admin", phone: "0812-3456-7890" },
   }
 
   const unauthorizedAuth = {
@@ -66,12 +68,17 @@ describe("Admin Profile Server Actions", () => {
     })
 
     it("successfully updates contact for admin", async () => {
+      const updateUserFn = vi.fn().mockResolvedValue({ error: null })
       const res = await updateAdminContactAction(
         { phone: "0812-9876-5432", notifyUrgent: true, notifyCounselor: false, notifySession: true },
-        { currentUser: adminAuth as any }
+        { currentUser: adminAuth as any, updateUserFn }
       )
       expect(res.success).toBe(true)
       expect(res.message).toContain("berhasil disimpan")
+      expect(updateUserFn).toHaveBeenCalledWith(
+        "admin-user-1",
+        expect.objectContaining({ user_metadata: expect.objectContaining({ phone: "0812-9876-5432" }) })
+      )
     })
   })
 
@@ -89,8 +96,13 @@ describe("Admin Profile Server Actions", () => {
     })
 
     it("successfully updates password for admin", async () => {
-      const res = await updateAdminPasswordAction("NewValidPassword2026!", { currentUser: adminAuth as any })
+      const updateUserFn = vi.fn().mockResolvedValue({ error: null })
+      const res = await updateAdminPasswordAction("NewValidPassword2026!", {
+        currentUser: adminAuth as any,
+        updateUserFn,
+      })
       expect(res.success).toBe(true)
+      expect(updateUserFn).toHaveBeenCalledWith("admin-user-1", { password: "NewValidPassword2026!" })
       expect(res.message).toContain("berhasil diperbarui")
     })
   })

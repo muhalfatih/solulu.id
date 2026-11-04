@@ -1,5 +1,6 @@
 "use client"
 
+import { getSupportWhatsappUrl } from "@/lib/config/support"
 import * as React from "react"
 import Link from "next/link"
 import {
@@ -16,10 +17,10 @@ import {
   AlertTriangle,
   Sparkles,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton as Button } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
-import { OFFICIAL_BANK_ACCOUNTS } from "@/lib/booking/hold"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/public/public-card"
+import { ManualTransferInstructions } from "@/components/public/manual-transfer-instructions"
 import type {
   SessionBookingData,
   SessionScheduleData,
@@ -33,6 +34,8 @@ interface PaymentVerificationWaitingCardProps {
   counselor: SessionCounselorData
   transaction: SessionTransactionData | null
   patientName: string
+  /** Instruksi transfer dari Platform Settings; kosong bila belum diatur. */
+  manualPaymentInstructions: string
   onRefresh?: () => void
   isRefreshing?: boolean
 }
@@ -43,6 +46,7 @@ export function PaymentVerificationWaitingCard({
   counselor,
   transaction,
   patientName,
+  manualPaymentInstructions,
   onRefresh,
   isRefreshing = false,
 }: PaymentVerificationWaitingCardProps) {
@@ -98,9 +102,6 @@ export function PaymentVerificationWaitingCard({
     }
   }
 
-  const whatsappSupportNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT || "6281234567890"
-
   const waMessage = `Halo Admin Solulu, saya telah melakukan pembayaran untuk pemesanan konseling:
 - Nama Klien: ${patientName}
 - Kode Referensi: ${referenceNumber}
@@ -110,7 +111,7 @@ export function PaymentVerificationWaitingCard({
 
 Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. Terima kasih!`
 
-  const whatsappUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(waMessage)}`
+  const whatsappUrl = getSupportWhatsappUrl(waMessage)
 
   return (
     <Card className="rounded-3xl border border-amber-500/25 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(245,158,11,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(245,158,11,0.10)] transition-all overflow-hidden gap-0">
@@ -303,39 +304,8 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
 
           {/* Official Bank Accounts */}
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium text-foreground">Rekening Resmi Solulu (Transfer Manual):</span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {OFFICIAL_BANK_ACCOUNTS.map((bank) => (
-                <div
-                  key={bank.id}
-                  className="p-3 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="size-8 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                      <Building2 className="size-4" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-foreground">{bank.bankName}</span>
-                      <span className="text-xs font-mono font-medium text-muted-foreground">{bank.accountNumber}</span>
-                      <span className="text-[10px] text-muted-foreground/80">{bank.accountHolder}</span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleCopy(bank.accountNumber, "account", bank.id)}
-                    className="text-xs h-7 px-2 gap-1 text-muted-foreground hover:text-foreground"
-                  >
-                    {copiedAccount === bank.id ? (
-                      <Check className="size-3 text-emerald-500" />
-                    ) : (
-                      <Copy className="size-3" />
-                    )}
-                    <span className="text-[11px]">{copiedAccount === bank.id ? "Tersalin" : "Salin"}</span>
-                  </Button>
-                </div>
-              ))}
-            </div>
+            <span className="text-xs font-medium text-foreground">Rekening Tujuan Transfer:</span>
+            <ManualTransferInstructions instructions={manualPaymentInstructions} />
           </div>
         </div>
       </CardContent>
@@ -360,6 +330,7 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
             </Button>
           )}
 
+{whatsappUrl && (
           <a
             href={whatsappUrl}
             target="_blank"
@@ -373,6 +344,7 @@ Berikut saya lampirkan bukti transfer. Mohon bantuannya untuk verifikasi sesi. T
               <span>{isExpired ? "Bantuan CS via WhatsApp" : "Konfirmasi via WhatsApp Admin"}</span>
             </Button>
           </a>
+)}
         </div>
       </CardFooter>
     </Card>

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache"
 import { eq, and, gte, inArray, sql } from "drizzle-orm"
 import { db } from "@/db"
+import { keepsPoolReserveWithout, POOL_RESERVE_MESSAGE } from "@/lib/pool/store"
+import { recordAudit } from "@/lib/audit/record"
 import { counselors, schedules, bookings, transactions, zoomAccounts } from "@/db/schema"
 import {
   computeEndTime,
@@ -13,12 +15,20 @@ import {
   parseTimeToMinutes,
 } from "@/lib/schedules/concurrency"
 import { generateSessionAccessToken } from "@/lib/booking/hold"
-import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, type AdminAuthContext } from "@/lib/auth/admin"
 import {
   adminManualBookingSchema,
   type AdminManualBookingInput,
 } from "@/lib/validations/admin-manual-booking"
 import { fulfillSession } from "@/lib/fulfillment/fulfill"
+import {
+  activePrice,
+  listOfferedServices,
+  toServicePricingView,
+  type ServiceLike,
+  type ServicePricingView,
+} from "@/lib/services/pricing"
+import { listAllServices, getExcludedServiceIds } from "@/lib/services/repository"
 import { getActiveZoomCapacity } from "@/lib/zoom/active-capacity"
 
 /**
@@ -58,6 +68,48 @@ export async function getAvailableCounselorsAction(options?: {
     return { success: true, data: rows || [] }
   } catch (err: any) {
     return { success: false, error: err.message, data: [] }
+  }
+}
+
+/**
+ * Layanan aktif yang ditawarkan konselor tertentu (tipe cocok, tidak dikecualikan Admin).
+ */
+export async function getOfferedServicesForCounselorAction(
+  counselorId: string,
+  options?: {
+    currentUser?: AdminAuthContext | null
+    fetchCounselorFn?: (id: string) => Promise<any>
+    fetchServicesFn?: () => Promise<ServiceLike[]>
+    fetchExcludedServiceIdsFn?: (counselorId: string) => Promise<string[]>
+  }
+): Promise<{ success: boolean; data: ServicePricingView[]; error?: string }> {
+  const admin = await getAuthenticatedAdmin(options?.currentUser)
+  if (!admin) {
+    return { success: false, error: "Akses ditolak: Diperlukan role Admin.", data: [] }
+  }
+  try {
+    let counselor: any = null
+    if (options?.fetchCounselorFn) {
+      counselor = await options.fetchCounselorFn(counselorId)
+    } else {
+      const rows = await db.select().from(counselors).where(eq(counselors.id, counselorId)).limit(1)
+      counselor = rows[0] || null
+    }
+    if (!counselor) {
+      return { success: false, error: "Mitra konselor tidak ditemukan.", data: [] }
+    }
+    const all = options?.fetchServicesFn ? await options.fetchServicesFn() : await listAllServices()
+    const excluded = options?.fetchExcludedServiceIdsFn
+      ? await options.fetchExcludedServiceIdsFn(counselorId)
+      : await getExcludedServiceIds(counselorId)
+    const offered = listOfferedServices(
+      all,
+      { id: counselor.id, counselorType: counselor.counselorType },
+      excluded
+    ).map(toServicePricingView)
+    return { success: true, data: offered }
+  } catch (err: any) {
+    return { success: false, error: err.message || "Gagal memuat Layanan.", data: [] }
   }
 }
 
@@ -138,10 +190,19 @@ export async function getActiveZoomCapacityAction(options?: {
     }
   }
 
-  const capacity = await getActiveZoomCapacity()
-  return {
-    success: true,
-    data: capacity > 0 ? capacity : 1,
+  try {
+    const capacity = await getActiveZoomCapacity()
+    return {
+      success: true,
+      data: capacity > 0 ? capacity : 1,
+    }
+  } catch (error) {
+    console.error("[ZOOM CAPACITY] Gagal membaca kapasitas akun Zoom:", error)
+    return {
+      success: false,
+      error: "Gagal membaca kapasitas akun Zoom. Silakan coba lagi.",
+      data: 1,
+    }
   }
 }
 
@@ -236,6 +297,8 @@ export async function createAdminManualBookingAction(
   options?: {
     currentUser?: AdminAuthContext | null
     fetchCounselorFn?: (id: string) => Promise<any>
+    fetchServicesFn?: () => Promise<ServiceLike[]>
+    fetchExcludedServiceIdsFn?: (counselorId: string) => Promise<string[]>
     fetchScheduleFn?: (id: string) => Promise<any>
     createScheduleFn?: (schedule: any) => Promise<any>
     updateScheduleStatusFn?: (id: string, status: string) => Promise<any>
@@ -283,6 +346,32 @@ export async function createAdminManualBookingAction(
     if (!counselor) {
       return { success: false, error: "Mitra konselor yang dipilih tidak ditemukan." }
     }
+
+    // 1b. Resolve the Layanan purchased (ADR-0010): must be offered by this counselor.
+    const allServices = options?.fetchServicesFn ? await options.fetchServicesFn() : await listAllServices()
+    const excludedServiceIds = options?.fetchExcludedServiceIdsFn
+      ? await options.fetchExcludedServiceIdsFn(counselor.id)
+      : await getExcludedServiceIds(counselor.id)
+    const offeredServices = listOfferedServices(
+      allServices,
+      { id: counselor.id, counselorType: counselor.counselorType },
+      excludedServiceIds
+    )
+    const service = data.serviceId
+      ? offeredServices.find((svc) => svc.id === data.serviceId)
+      : offeredServices.length === 1
+        ? offeredServices[0]
+        : undefined
+    if (!service) {
+      return {
+        success: false,
+        error:
+          offeredServices.length > 1 && !data.serviceId
+            ? "Pilih Layanan untuk booking ini."
+            : "Layanan yang dipilih tidak tersedia untuk mitra konselor ini.",
+      }
+    }
+    const servicePrice = activePrice(service)
 
     // 2. Prepare Schedule Slot
     let scheduleId = data.scheduleId
@@ -391,10 +480,13 @@ export async function createAdminManualBookingAction(
       if (options?.updateScheduleStatusFn) {
         await options.updateScheduleStatusFn(scheduleId!, "booked")
       } else {
-        await db
-          .update(schedules)
-          .set({ status: "booked" })
-          .where(eq(schedules.id, scheduleId!))
+        const kept = await db.transaction(async (tx) => {
+          // ADR-0011: jadwal terakhir yang dibutuhkan booking Konselor Bebas tidak boleh dipakai.
+          if (!(await keepsPoolReserveWithout(scheduleId!, tx as unknown as typeof db))) return false
+          await tx.update(schedules).set({ status: "booked" }).where(eq(schedules.id, scheduleId!))
+          return true
+        })
+        if (!kept) return { success: false, error: POOL_RESERVE_MESSAGE }
       }
     }
 
@@ -410,6 +502,8 @@ export async function createAdminManualBookingAction(
       initialNotes: data.initialNotes || null,
       scheduleId: scheduleId!,
       counselorId: data.counselorId,
+      serviceId: service.id,
+      basePriceSnapshot: String(servicePrice),
       status: "confirmed",
       zoomAccountId: null,
       zoomMeetingId: null,
@@ -417,21 +511,11 @@ export async function createAdminManualBookingAction(
       zoomStartUrl: data.manualMeetingUrl || null,
     }
 
-    let bookingRecord: any = null
-    if (options?.insertBookingFn) {
-      bookingRecord = await options.insertBookingFn(bookingPayload)
-    } else {
-      const [inserted] = await db
-        .insert(bookings)
-        .values(bookingPayload as any)
-        .returning()
-      bookingRecord = inserted
-    }
-
-    // 5. Insert Rp0 Audit Transaction
-    const normalPrice = counselor.counselorType === "psychologist" ? "130000.00" : "85000.00"
-    const txPayload = {
-      bookingId: bookingRecord.id,
+    // 5. Rp0 Audit Transaction. Tarif pokok aktif Layanan sebelum diskon 100%
+    // (honor konselor tetap dihitung dari tarif ini).
+    const normalPrice = servicePrice.toFixed(2)
+    const buildTxPayload = (bookingId: string) => ({
+      bookingId,
       paymentProvider: "admin_bypass",
       paymentMethod: "Admin Bypass (Rp 0)",
       referenceNumber: `ADMIN-BYPASS-${accessToken.slice(0, 8).toUpperCase()}`,
@@ -441,17 +525,51 @@ export async function createAdminManualBookingAction(
       status: "PAID",
       paidAt: new Date(),
       adminNotes: data.adminNotes,
-    }
+    })
 
+    let bookingRecord: any = null
     let transactionRecord: any = null
-    if (options?.insertTransactionFn) {
-      transactionRecord = await options.insertTransactionFn(txPayload)
+    if (options?.insertBookingFn || options?.insertTransactionFn) {
+      if (options.insertBookingFn) {
+        bookingRecord = await options.insertBookingFn(bookingPayload)
+      } else {
+        const [inserted] = await db.insert(bookings).values(bookingPayload as any).returning()
+        bookingRecord = inserted
+      }
+      const txPayload = buildTxPayload(bookingRecord.id)
+      if (options.insertTransactionFn) {
+        transactionRecord = await options.insertTransactionFn(txPayload)
+      } else {
+        const [insertedTx] = await db.insert(transactions).values(txPayload as any).returning()
+        transactionRecord = insertedTx
+      }
     } else {
-      const [insertedTx] = await db
-        .insert(transactions)
-        .values(txPayload as any)
-        .returning()
-      transactionRecord = insertedTx
+      // Booking, transaksi Rp0, dan Jejak Audit commit/rollback bersama.
+      await db.transaction(async (tx) => {
+        const [inserted] = await tx.insert(bookings).values(bookingPayload as any).returning()
+        const [insertedTx] = await tx
+          .insert(transactions)
+          .values(buildTxPayload(inserted.id) as any)
+          .returning()
+        await recordAudit(tx, {
+          actor: admin,
+          action: "booking.manual_create",
+          entityType: "booking",
+          entityId: inserted.id,
+          before: null,
+          after: {
+            bookingCode: inserted.bookingCode,
+            status: inserted.status,
+            counselorId: inserted.counselorId,
+            scheduleId: inserted.scheduleId,
+            serviceId: inserted.serviceId,
+            transactionId: insertedTx.id,
+            adminNotes: data.adminNotes,
+          },
+        })
+        bookingRecord = inserted
+        transactionRecord = insertedTx
+      })
     }
 
     // 6. Delegate technical fulfillment to the deep Session Fulfillment module

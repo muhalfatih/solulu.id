@@ -2,7 +2,7 @@
  * Voucher Calculation & Policy Evaluation for Solulu
  *
  * Rules:
- * 1. platformPricing.allowVoucher must be true for the counselor type.
+ * 1. service.allowVoucher must be true for the Layanan (ADR-0010).
  * 2. voucher.isActive must be true.
  * 3. voucher.expiresAt (if set) must be in the future.
  * 4. voucher.usedCount must be strictly less than voucher.quota.
@@ -79,11 +79,11 @@ export function evaluateVoucherEligibility({
     }
   }
 
-  // 1. Check counselor type voucher policy
+  // 1. Check Layanan voucher policy
   if (!allowVoucher) {
     return {
       eligible: false,
-      reason: "Voucher potongan harga tidak berlaku untuk tipe konselor ini",
+      reason: "Voucher potongan harga tidak berlaku untuk Layanan ini",
       discountAmount: 0,
       netAmount: grossAmount,
       voucher,

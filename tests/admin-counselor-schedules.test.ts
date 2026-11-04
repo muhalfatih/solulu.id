@@ -3,8 +3,8 @@ import {
   getCounselorSlotsAdminAction,
   createCounselorSlotsAdminAction,
   deleteCounselorSlotAdminAction,
-  type AdminAuthContext,
 } from "../app/admin/counselors/actions"
+import type { AdminAuthContext } from "../lib/auth/admin"
 
 describe("Admin Counselor Schedules Management", () => {
   const adminUser: AdminAuthContext = {

@@ -8,7 +8,7 @@ async function syncRealCounselors() {
 
   // 1. Find all schedule IDs referenced in bookings
   const existingBookings = await db.select({ scheduleId: bookings.scheduleId }).from(bookings)
-  const referencedScheduleIds = existingBookings.map((b) => b.scheduleId)
+  const referencedScheduleIds = existingBookings.flatMap((b) => (b.scheduleId ? [b.scheduleId] : []))
   console.log(`Found ${referencedScheduleIds.length} schedules referenced by bookings. Preserving them.`)
 
   // 2. Delete only unreferenced available schedules

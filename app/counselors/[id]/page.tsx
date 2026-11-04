@@ -7,7 +7,7 @@ import { ArrowLeft, UserX } from "lucide-react"
 import { getCounselorByIdAction } from "../actions"
 import { getPlatformSettings } from "@/lib/settings/platform"
 import { PublicShell } from "@/components/public/public-shell"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import CounselorDetailClient from "./CounselorDetailClient"
 
 interface CounselorPageProps {
@@ -70,12 +70,12 @@ export default async function CounselorDetailPage({
           <p className="text-sm text-muted-foreground leading-relaxed">
             Mitra konselor atau psikolog yang kamu cari mungkin sedang tidak aktif atau alamat tautan tidak sesuai.
           </p>
-          <Button asChild variant="public" className="rounded-full mt-2">
+          <PublicButton asChild variant="public" className="rounded-full mt-2">
             <Link href="/counselors">
               <ArrowLeft data-icon="inline-start" />
               <span>Kembali ke Katalog Konselor</span>
             </Link>
-          </Button>
+          </PublicButton>
         </div>
       </PublicShell>
     )

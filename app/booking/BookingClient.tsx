@@ -19,12 +19,11 @@ import {
   Info,
   Loader2,
   Smartphone,
-  Check,
   Heart,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/public/public-card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -40,6 +39,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle"
 import { PublicShell } from "@/components/public/public-shell"
 import { indonesianPhoneRegex } from "@/lib/validations/booking"
+import { ManualTransferInstructions } from "@/components/public/manual-transfer-instructions"
 import {
   validateVoucherAction,
   createGuestBookingAction,
@@ -51,6 +51,9 @@ interface BookingClientProps {
   screeningId?: string
   initialError?: string
   isScreeningRequired?: boolean
+  /** Dari Platform Settings: opsi transfer manual hanya tampil bila diaktifkan Superadmin. */
+  isManualPaymentEnabled?: boolean
+  manualPaymentInstructions?: string
 }
 
 function formatRupiah(amount: number): string {
@@ -66,9 +69,15 @@ export default function BookingClient({
   screeningId,
   initialError,
   isScreeningRequired = false,
+  isManualPaymentEnabled = false,
+  manualPaymentInstructions = "",
 }: BookingClientProps) {
   const router = useRouter()
-  const { counselor, schedule, pricing, screening } = initialData
+  const { counselor, schedule, services, selectedServiceId, screening } = initialData
+
+  // Layanan yang dipilih klien (ADR-0010); harga selalu mengikuti Layanan terpilih.
+  const [serviceId, setServiceId] = React.useState<string | null>(selectedServiceId)
+  const selectedService = services.find((svc) => svc.serviceId === serviceId) ?? null
 
   // Patient Identity state
   const [patientName, setPatientName] = React.useState("")
@@ -97,20 +106,36 @@ export default function BookingClient({
 
   // Payment method state
   const [paymentProvider, setPaymentProvider] = React.useState<"xendit" | "manual">("xendit")
-  const [manualBank, setManualBank] = React.useState<string>("Bank BCA")
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
   // Pricing calculations
-  const grossAmount = pricing.grossAmount
+  const grossAmount = selectedService ? selectedService.activePrice : 0
+  const allowVoucher = selectedService ? selectedService.allowVoucher : false
   const discountAmount = appliedVoucher ? appliedVoucher.discountAmount : 0
   const netAmount = Math.max(0, grossAmount - discountAmount)
   const netAmountFormatted = formatRupiah(netAmount)
 
+  const handleSelectService = (nextServiceId: string) => {
+    setServiceId(nextServiceId)
+    // Voucher dihitung dari tarif Layanan, jadi harus divalidasi ulang.
+    setAppliedVoucher(null)
+    setVoucherCodeInput("")
+    setVoucherError(null)
+    setErrors((prev) => {
+      const { serviceId: _removed, ...rest } = prev
+      return rest
+    })
+  }
+
   // Validate voucher handler
   const handleApplyVoucher = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!selectedService) {
+      setVoucherError("Pilih Layanan terlebih dahulu")
+      return
+    }
     if (!voucherCodeInput.trim()) {
       setVoucherError("Masukkan kode voucher terlebih dahulu")
       return
@@ -122,8 +147,7 @@ export default function BookingClient({
     try {
       const res = await validateVoucherAction({
         code: voucherCodeInput.trim(),
-        counselorType: counselor.counselorType,
-        grossAmount,
+        serviceId: selectedService.serviceId,
       })
 
       if (res.success && res.data) {
@@ -156,6 +180,10 @@ export default function BookingClient({
   // Client-side validation before submission
   const validateForm = (): boolean => {
     const errs: Record<string, string> = {}
+
+    if (!selectedService) {
+      errs.serviceId = "Pilih Layanan terlebih dahulu"
+    }
 
     if (!patientName.trim() || patientName.trim().length < 2) {
       errs.patientName = "Nama lengkap wajib diisi minimal 2 karakter"
@@ -190,12 +218,17 @@ export default function BookingClient({
       return
     }
 
+    if (!selectedService) {
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
       const res = await createGuestBookingAction({
         scheduleId: schedule.id,
         counselorId: counselor.id,
+        serviceId: selectedService.serviceId,
         screeningId: screeningId || undefined,
         patientName: patientName.trim(),
         patientEmail: patientEmail.trim().toLowerCase(),
@@ -204,7 +237,7 @@ export default function BookingClient({
         initialNotes: initialNotes.trim() || undefined,
         voucherCode: appliedVoucher ? appliedVoucher.code : undefined,
         paymentProvider,
-        paymentMethod: paymentProvider === "manual" ? manualBank : "Xendit Gateway",
+        paymentMethod: paymentProvider === "manual" ? "Transfer Bank Manual" : "Xendit Gateway",
       })
 
       if (!res.success || !res.data) {
@@ -476,6 +509,7 @@ export default function BookingClient({
                     </label>
 
                     {/* Path B: Manual Bank Transfer */}
+                    {isManualPaymentEnabled && (
                     <label
                       htmlFor="pay-manual"
                       className={`flex items-start gap-3.5 p-4 sm:p-5 rounded-xl border cursor-pointer transition-all duration-200 ${
@@ -495,38 +529,20 @@ export default function BookingClient({
                           </Badge>
                         </div>
                         <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                          Transfer langsung ke rekening resmi platform (BCA, Mandiri, BRI). Pengecekan mutasi dilakukan oleh Tim Solulu via WhatsApp.
+                          Transfer ke rekening tujuan yang tercantum di bawah. Pengecekan mutasi dilakukan oleh Tim Solulu via WhatsApp.
                         </p>
                       </div>
                     </label>
+                    )}
                   </RadioGroup>
 
                   {/* Manual Bank Choice (if manual selected) */}
                   {paymentProvider === "manual" && (
                     <div className="mt-2 p-4 sm:p-5 rounded-xl bg-muted/30 border border-border/60 flex flex-col gap-3">
                       <span className="text-xs sm:text-sm font-semibold text-foreground">
-                        Pilih Rekening Tujuan Transfer:
+                        Rekening Tujuan Transfer:
                       </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        {["Bank BCA", "Bank Mandiri", "Bank BRI"].map((bank) => (
-                          <Button
-                            key={bank}
-                            type="button"
-                            variant={manualBank === bank ? "public" : "outline"}
-                            size="pill-sm"
-                            onClick={() => setManualBank(bank)}
-                            className="h-9 text-xs sm:text-sm font-medium justify-center cursor-pointer"
-                          >
-                            {manualBank === bank && (
-                              <Check className="size-3.5 mr-1" data-icon="inline-start" />
-                            )}
-                            <span>{bank}</span>
-                          </Button>
-                        ))}
-                      </div>
-                      <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed mt-0.5">
-                        Nomor rekening lengkap dan petunjuk transfer akan ditampilkan setelah Anda menekan tombol konfirmasi di samping.
-                      </p>
+                      <ManualTransferInstructions instructions={manualPaymentInstructions} />
                     </div>
                   )}
                 </CardContent>
@@ -573,6 +589,46 @@ export default function BookingClient({
                     </div>
                   </div>
 
+                  {/* Layanan (ADR-0010): klien memilih Layanan, harga akhir mengikuti pilihan */}
+                  <div className="flex flex-col gap-2" role="radiogroup" aria-label="Pilih Layanan">
+                    <span className="text-xs font-semibold text-foreground">Layanan</span>
+                    {services.map((svc) => {
+                      const isSelected = svc.serviceId === serviceId
+                      return (
+                        <button
+                          key={svc.serviceId}
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          onClick={() => handleSelectService(svc.serviceId)}
+                          className={`flex items-start justify-between gap-3 rounded-xl border p-3 text-left transition-colors cursor-pointer ${
+                            isSelected
+                              ? "border-primary bg-primary/5"
+                              : "border-border/70 hover:border-primary/40"
+                          }`}
+                        >
+                          <span className="flex flex-col gap-0.5 min-w-0">
+                            <span className="font-semibold text-foreground">{svc.name}</span>
+                            {svc.description && (
+                              <span className="text-[11px] text-muted-foreground line-clamp-2">{svc.description}</span>
+                            )}
+                          </span>
+                          <span className="flex flex-col items-end shrink-0">
+                            <span className="font-semibold text-foreground tabular-nums">{svc.activePriceFormatted}</span>
+                            {svc.originalPriceFormatted && (
+                              <span className="text-[11px] text-muted-foreground line-through tabular-nums">
+                                {svc.originalPriceFormatted}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      )
+                    })}
+                    {errors.serviceId && (
+                      <span className="text-xs text-destructive font-medium">{errors.serviceId}</span>
+                    )}
+                  </div>
+
                   {/* Schedule Details */}
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between py-2.5 border-b border-border/40">
@@ -612,21 +668,21 @@ export default function BookingClient({
                             </span>
                           </div>
                         </div>
-                        <Button asChild variant="public" size="pill-sm" className="w-full text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white">
+                        <PublicButton asChild variant="public" size="pill-sm" className="w-full text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white">
                           <Link href={`/screening?counselorId=${counselor.id}&scheduleId=${schedule.id}`}>
                             <span>Isi Skrining SRQ-20 Sekarang</span>
                             <ArrowRight className="size-3.5" />
                           </Link>
-                        </Button>
+                        </PublicButton>
                       </div>
                     ) : (
                       <div className="p-4 rounded-xl bg-muted/30 border border-border/60 text-xs text-muted-foreground flex items-center justify-between gap-2">
                         <span>Ingin memberi konteks emosional ke konselor?</span>
-                        <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs text-primary font-medium">
+                        <PublicButton asChild variant="link" size="sm" className="h-auto p-0 text-xs text-primary font-medium">
                           <Link href={`/screening?counselorId=${counselor.id}&scheduleId=${schedule.id}`}>
                             Isi Skrining (Opsional)
                           </Link>
-                        </Button>
+                        </PublicButton>
                       </div>
                     )}
                   </div>
@@ -646,14 +702,14 @@ export default function BookingClient({
                             value={voucherCodeInput}
                             onChange={(e) => setVoucherCodeInput(e.target.value.toUpperCase())}
                             className="h-9 rounded-xl text-xs sm:text-sm font-mono tracking-wider uppercase border-border/80"
-                            disabled={isValidatingVoucher || !pricing.allowVoucher}
+                            disabled={isValidatingVoucher || !allowVoucher}
                           />
-                          <Button
+                          <PublicButton
                             type="button"
                             variant="public-secondary"
                             size="pill-sm"
                             onClick={handleApplyVoucher}
-                            disabled={isValidatingVoucher || !voucherCodeInput.trim() || !pricing.allowVoucher}
+                            disabled={isValidatingVoucher || !voucherCodeInput.trim() || !allowVoucher}
                             className="h-9 px-4 text-xs font-semibold shrink-0 cursor-pointer"
                           >
                             {isValidatingVoucher ? (
@@ -661,11 +717,11 @@ export default function BookingClient({
                             ) : (
                               <span>Terapkan</span>
                             )}
-                          </Button>
+                          </PublicButton>
                         </div>
-                        {!pricing.allowVoucher && (
+                        {selectedService && !allowVoucher && (
                           <span className="text-[11px] text-muted-foreground">
-                            Voucher tidak dapat digunakan untuk tipe konselor ini.
+                            Voucher tidak dapat digunakan untuk Layanan ini.
                           </span>
                         )}
                         {voucherError && (
@@ -685,7 +741,7 @@ export default function BookingClient({
                             </div>
                           </div>
                         </div>
-                        <Button
+                        <PublicButton
                           type="button"
                           variant="ghost"
                           size="sm"
@@ -693,7 +749,7 @@ export default function BookingClient({
                           className="h-7 text-xs text-destructive hover:bg-destructive/10 px-2.5 rounded-full cursor-pointer"
                         >
                           Hapus
-                        </Button>
+                        </PublicButton>
                       </div>
                     )}
                   </div>
@@ -702,15 +758,15 @@ export default function BookingClient({
                   <div className="pt-2 border-t border-border/40 flex flex-col gap-2 text-xs sm:text-sm">
                     <div className="flex justify-between text-muted-foreground">
                       <span>Tarif Konseling (90 Menit):</span>
-                      <span className={pricing.isSaleActive ? "line-through" : "text-foreground font-medium"}>
-                        {formatRupiah(pricing.basePrice)}
+                      <span className={selectedService?.isPromoActive ? "line-through" : "text-foreground font-medium"}>
+                        {selectedService ? formatRupiah(selectedService.basePrice) : "Pilih Layanan"}
                       </span>
                     </div>
 
-                    {pricing.isSaleActive && pricing.promoPrice && (
+                    {selectedService?.isPromoActive && selectedService.promoPrice !== null && (
                       <div className="flex justify-between text-emerald-700 dark:text-emerald-400 font-medium">
                         <span>Potongan Promosi:</span>
-                        <span>- {formatRupiah(pricing.basePrice - pricing.promoPrice)}</span>
+                        <span>- {formatRupiah(selectedService.basePrice - selectedService.promoPrice)}</span>
                       </div>
                     )}
 
@@ -731,11 +787,11 @@ export default function BookingClient({
                 </CardContent>
 
                 <CardFooter className="p-6 sm:p-7 border-t border-border/40 bg-muted/10 flex flex-col gap-3.5">
-                  <Button
+                  <PublicButton
                     type="submit"
                     variant="public"
                     size="pill-lg"
-                    disabled={isSubmitting || (isScreeningRequired && !screening)}
+                    disabled={isSubmitting || !selectedService || (isScreeningRequired && !screening)}
                     className="w-full h-12 sm:h-13 text-sm sm:text-base font-semibold shadow-md shadow-purple-600/20 hover:shadow-lg active:scale-[0.99] transition-all"
                   >
                     {isSubmitting ? (
@@ -756,7 +812,7 @@ export default function BookingClient({
                         <ArrowRight className="size-4" data-icon="inline-end" />
                       </>
                     )}
-                  </Button>
+                  </PublicButton>
 
                   {isScreeningRequired && !screening && (
                     <span className="text-xs text-amber-600 dark:text-amber-400 text-center font-medium">

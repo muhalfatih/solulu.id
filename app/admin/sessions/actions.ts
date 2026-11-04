@@ -4,19 +4,24 @@ import { revalidatePath } from "next/cache"
 import { eq, desc } from "drizzle-orm"
 import { db } from "@/db"
 import { bookings, counselors, schedules, transactions, zoomAccounts, sessionReports } from "@/db/schema"
-import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, AdminAuthContext } from "@/lib/auth/admin"
 import {
   confirmManualPayment,
   type ConfirmManualPaymentInput,
   type ManualPaymentDependencies,
   type ConfirmManualPaymentResult,
 } from "@/lib/fulfillment/manual"
+import { recordAudit } from "@/lib/audit/record"
+import { evaluateNoShow, loadNoShowBookingFacts, noShowUpdate } from "@/lib/booking/no-show"
 
 /**
  * Admin Server Action to verify and confirm manual bank transfer payments.
  * Triggers dynamic Zoom host allocation, updates transaction/booking/schedule,
  * and sends confirmation emails to patient and counselor.
  */
+/** Booking pool belum punya jadwal; UUID nol tidak cocok dengan baris mana pun. */
+const NO_SCHEDULE_ID = "00000000-0000-0000-0000-000000000000"
+
 export async function confirmManualPaymentAction(
   input: ConfirmManualPaymentInput,
   deps?: ManualPaymentDependencies
@@ -138,6 +143,15 @@ export async function rejectManualPaymentAction(
     }
 
     await db.transaction(async (tx) => {
+      await recordAudit(tx, {
+        actor: admin,
+        action: "payment.reject",
+        entityType: "booking",
+        entityId: input.bookingId,
+        before: { status: booking.status },
+        after: { status: "cancelled", paymentStatus: "FAILED", reason: input.reason },
+      })
+
       // 1. Cancel booking
       await tx
         .update(bookings)
@@ -148,7 +162,7 @@ export async function rejectManualPaymentAction(
       await tx
         .update(schedules)
         .set({ status: "available", reservedUntil: null })
-        .where(eq(schedules.id, booking.scheduleId))
+        .where(eq(schedules.id, booking.scheduleId ?? NO_SCHEDULE_ID))
 
       // 3. Mark transaction as FAILED with rejection reason
       await tx
@@ -186,8 +200,8 @@ export async function rejectManualPaymentAction(
 
 /**
  * Admin Server Action to mark a booking as No-Show (Spec 0003 - US 42).
- * Marks booking with isNoShow: true, noShowMarkedAt, and transitions status to 'completed'
- * without penalizing the counselor.
+ * Writes status 'no_show' (ADR-0008) once the 30 minute tolerance has elapsed
+ * (rule owned by lib/booking-cycle), without penalizing the counselor.
  */
 export async function markBookingNoShowAction(
   bookingId: string,
@@ -212,20 +226,33 @@ export async function markBookingNoShowAction(
       return { success: false, error: "Data pesanan booking tidak ditemukan." }
     }
 
+    const facts = await loadNoShowBookingFacts(bookingId)
+    const check = facts
+      ? evaluateNoShow(facts)
+      : { allowed: false, reason: "Jadwal sesi tidak ditemukan." }
+    if (!check.allowed) {
+      return { success: false, error: check.reason || "No-Show belum dapat ditandai." }
+    }
+
     await db.transaction(async (tx) => {
       await tx
         .update(bookings)
-        .set({
-          isNoShow: true,
-          noShowMarkedAt: new Date(),
-          status: "completed",
-        })
+        .set(noShowUpdate())
         .where(eq(bookings.id, bookingId))
 
       await tx
         .update(schedules)
         .set({ status: "booked" })
-        .where(eq(schedules.id, booking.scheduleId))
+        .where(eq(schedules.id, booking.scheduleId ?? NO_SCHEDULE_ID))
+
+      await recordAudit(tx, {
+        actor: admin,
+        action: "booking.no_show",
+        entityType: "booking",
+        entityId: bookingId,
+        before: { status: booking.status },
+        after: { status: "no_show" },
+      })
     })
 
     try {

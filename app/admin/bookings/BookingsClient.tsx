@@ -2,10 +2,9 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   CalendarCheck,
-  Search,
-  Filter,
   CheckCircle2,
   AlertTriangle,
   MessageSquare,
@@ -24,6 +23,7 @@ import {
   Eye,
 } from "lucide-react"
 import { toast } from "sonner"
+import { RescheduleAdminDialog } from "./RescheduleAdminDialog"
 import {
   Card,
   CardContent,
@@ -33,23 +33,6 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -59,14 +42,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -74,6 +49,13 @@ import {
 } from "@/components/ui/tooltip"
 import { Spinner } from "@/components/ui/spinner"
 import { FIXED_SLOTS } from "@/lib/operator/types"
+import { DataTable, type DataTableColumn } from "@/components/data-table/data-table"
+import { DataTableToolbar } from "@/components/data-table/data-table-toolbar"
+import { buildTableHref, type TableState } from "@/lib/data-table/search-params"
+import { formatDateId, formatDateTimeWib } from "@/lib/format/datetime"
+import { formatRupiah } from "@/lib/utils"
+import type { BookingKpis } from "./list-query"
+import { BOOKINGS_PATH, bookingsTableConfig } from "./table-config"
 import {
   type AdminBookingItem,
   type BookingCounselorOption,
@@ -83,48 +65,49 @@ import {
 } from "./actions"
 
 interface BookingsClientProps {
-  initialBookings: AdminBookingItem[]
+  bookings: AdminBookingItem[]
+  total: number
+  kpis: BookingKpis
   counselorOptions: BookingCounselorOption[]
+  state: TableState
 }
 
-const SLOT_OPTIONS = [
-  { value: "0", label: "Semua Slot (1-7)" },
-  ...FIXED_SLOTS.map((slot) => ({
-    value: String(slot.slotIndex),
-    label: `Slot ${slot.slotIndex} (${slot.startTime} - ${slot.endTime})`,
-  })),
-]
+const SLOT_OPTIONS = FIXED_SLOTS.map((slot) => ({
+  value: String(slot.slotIndex),
+  label: `Slot ${slot.slotIndex} (${slot.startTime} - ${slot.endTime} WIB)`,
+}))
 
 const STATUS_OPTIONS = [
-  { value: "all", label: "Semua Status Sesi" },
   { value: "pending_payment", label: "Menunggu Pembayaran" },
   { value: "confirmed", label: "Terkonfirmasi (Aktif)" },
   { value: "completed", label: "Selesai (Completed)" },
   { value: "cancelled", label: "Dibatalkan (Cancelled)" },
+  { value: "no_show", label: "No-Show" },
+  { value: "expired", label: "Kedaluwarsa" },
 ]
 
 const REPORT_STATUS_OPTIONS = [
-  { value: "all", label: "Semua Status Laporan" },
   { value: "filled", label: "Laporan Lengkap (Siap)" },
   { value: "pending", label: "Menunggu Laporan Konselor" },
 ]
 
 export function BookingsClient({
-  initialBookings,
+  bookings,
+  total,
+  kpis,
   counselorOptions,
+  state,
 }: BookingsClientProps) {
-  const [bookingsList, setBookingsList] = React.useState<AdminBookingItem[]>(initialBookings)
-  const [searchQuery, setSearchQuery] = React.useState("")
-  const [selectedSlot, setSelectedSlot] = React.useState("0")
-  const [selectedStatus, setSelectedStatus] = React.useState("all")
-  const [selectedReportStatus, setSelectedReportStatus] = React.useState<"all" | "filled" | "pending">("all")
-  const [selectedCounselor, setSelectedCounselor] = React.useState("all")
+  const router = useRouter()
 
   // Report Detail Preview Modal
   const [selectedReportBooking, setSelectedReportBooking] = React.useState<AdminBookingItem | null>(null)
 
   // Send WhatsApp Without Report Confirmation Dialog
   const [confirmSendWithoutReportItem, setConfirmSendWithoutReportItem] = React.useState<AdminBookingItem | null>(null)
+
+  // Reschedule Admin Dialog State
+  const [rescheduleItem, setRescheduleItem] = React.useState<AdminBookingItem | null>(null)
 
   // No-Show Dialog State
   const [noShowItem, setNoShowItem] = React.useState<AdminBookingItem | null>(null)
@@ -133,71 +116,11 @@ export function BookingsClient({
   // Follow-Up Loading State by Booking ID
   const [followingUpId, setFollowingUpId] = React.useState<string | null>(null)
 
-  // Read URL query parameter on mount (e.g. ?reportStatus=pending)
-  React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search)
-      const rep = params.get("reportStatus") || params.get("reportFilter")
-      if (rep === "pending" || rep === "filled") {
-        setSelectedReportStatus(rep)
-      }
-    }
-  }, [])
-
-  // Filter Bookings
-  const filteredBookings = React.useMemo(() => {
-    return bookingsList.filter((b) => {
-      // Slot Index filter
-      if (selectedSlot !== "0" && b.slotIndex !== parseInt(selectedSlot, 10)) {
-        return false
-      }
-
-      // Status filter
-      if (selectedStatus !== "all" && b.status !== selectedStatus) {
-        return false
-      }
-
-      // Counselor filter
-      if (selectedCounselor !== "all" && b.counselorId !== selectedCounselor) {
-        return false
-      }
-
-      // Report Status filter
-      if (selectedReportStatus === "filled" && !b.hasSessionReport) {
-        return false
-      }
-      if (selectedReportStatus === "pending" && (b.hasSessionReport || b.status !== "completed")) {
-        return false
-      }
-
-      // Search keyword filter
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim()
-        const matchCode = b.bookingCode.toLowerCase().includes(q)
-        const matchName = b.patientName.toLowerCase().includes(q)
-        const matchPhone = b.patientPhone.includes(q)
-        const matchEmail = b.patientEmail.toLowerCase().includes(q)
-        const matchCounselor = b.counselorName.toLowerCase().includes(q)
-        if (!matchCode && !matchName && !matchPhone && !matchEmail && !matchCounselor) {
-          return false
-        }
-      }
-
-      return true
+  const activeReport = state.filters.report
+  const reportHref = (value: "filled" | "pending") =>
+    buildTableHref(BOOKINGS_PATH, state, bookingsTableConfig, {
+      report: activeReport === value ? null : value,
     })
-  }, [bookingsList, selectedSlot, selectedStatus, selectedReportStatus, selectedCounselor, searchQuery])
-
-  // Top Metrics
-  const totalBookings = bookingsList.length
-  const confirmedCount = bookingsList.filter((b) => b.status === "confirmed").length
-  const completedCount = bookingsList.filter((b) => b.status === "completed").length
-  const reportsFilledCount = bookingsList.filter((b) => b.hasSessionReport).length
-  const reportsPendingCount = bookingsList.filter(
-    (b) => b.status === "completed" && !b.hasSessionReport
-  ).length
-  const needFollowUpCount = bookingsList.filter(
-    (b) => b.status === "completed" && !b.isFollowedUp
-  ).length
 
   // Action: Tandai No-Show
   const handleConfirmNoShow = async () => {
@@ -208,18 +131,7 @@ export function BookingsClient({
       const res = await markBookingNoShowAction({ bookingId: noShowItem.id })
       if (res.success) {
         toast.success(res.message || "Sesi berhasil ditandai sebagai No-Show.")
-        setBookingsList((prev) =>
-          prev.map((item) =>
-            item.id === noShowItem.id
-              ? {
-                  ...item,
-                  isNoShow: true,
-                  status: "completed",
-                  noShowMarkedAt: new Date().toISOString(),
-                }
-              : item
-          )
-        )
+        router.refresh()
         setNoShowItem(null)
       } else {
         toast.error(res.error || "Gagal menandai No-Show.")
@@ -252,17 +164,7 @@ export function BookingsClient({
       const res = await markBookingFollowedUpAction({ bookingId: booking.id })
       if (res.success) {
         toast.success(`Tautan laporan berhasil disiapkan untuk ${booking.patientName}!`)
-        setBookingsList((prev) =>
-          prev.map((item) =>
-            item.id === booking.id
-              ? {
-                  ...item,
-                  isFollowedUp: true,
-                  followedUpAt: new Date().toISOString(),
-                }
-              : item
-          )
-        )
+        router.refresh()
       } else {
         toast.error(res.error || "Gagal mencatat status follow-up.")
       }
@@ -273,312 +175,31 @@ export function BookingsClient({
     }
   }
 
-  return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16">
-      {/* Top Header */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-5">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-              Pengawasan Operasional Booking
-            </h1>
-            <Badge variant="outline" className="text-xs px-2.5 py-0.5 gap-1 font-mono">
-              <Layers className="size-3 text-primary" />
-              <span>{bookingsList.length} Sesi Terdata</span>
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Oversight siklus pemesanan, filter matriks slot, monitoring No-Show 30 menit, dan gerbang WhatsApp laporan.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5 cursor-pointer">
-            <Link href="/admin/manual-payments">
-              <Clock className="size-3.5 text-amber-500" data-icon="inline-start" />
-              <span>Verifikasi Transfer Manual</span>
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild className="h-8 text-xs gap-1.5 cursor-pointer">
-            <Link href="/admin/sessions">
-              <Calendar className="size-3.5 text-primary" data-icon="inline-start" />
-              <span>Kalender Jadwal</span>
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4 flex flex-col gap-1">
-            <span className="text-xs font-medium text-muted-foreground">Total Pemesanan</span>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold font-mono text-foreground">{totalBookings}</span>
-              <Badge variant="secondary" className="text-[10px]">Database Real</Badge>
-            </div>
-            <span className="text-[11px] text-muted-foreground">Seluruh sesi terdaftar</span>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4 flex flex-col gap-1">
-            <span className="text-xs font-medium text-muted-foreground">Terkonfirmasi &amp; Aktif</span>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold font-mono text-primary">{confirmedCount}</span>
-              <Badge variant="outline" className="text-[10px] text-primary border-primary/20">
-                Siap Sesi
-              </Badge>
-            </div>
-            <span className="text-[11px] text-muted-foreground">Zoom Pro telah dialokasikan</span>
-          </CardContent>
-        </Card>
-
-        {/* KPI: Laporan Lengkap */}
-        <Card
-          onClick={() => setSelectedReportStatus((prev) => (prev === "filled" ? "all" : "filled"))}
-          className={`border shadow-xs cursor-pointer transition-colors ${
-            selectedReportStatus === "filled"
-              ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20"
-              : "border-border/80 hover:border-emerald-500/50"
-          }`}
-          title="Klik untuk menyaring sesi dengan laporan lengkap"
-        >
-          <CardContent className="p-4 flex flex-col gap-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">Laporan Selesai</span>
-              {selectedReportStatus === "filled" && (
-                <Badge variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-300 border-emerald-500/40">
-                  Aktif
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
-                {reportsFilledCount}
-              </span>
-              <Badge variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-300 border-emerald-500/30 bg-emerald-500/10">
-                Siap Kirim
-              </Badge>
-            </div>
-            <span className="text-[11px] text-muted-foreground">Catatan klinis sudah diisi</span>
-          </CardContent>
-        </Card>
-
-        {/* KPI: Menunggu Catatan Konselor */}
-        <Card
-          onClick={() => setSelectedReportStatus((prev) => (prev === "pending" ? "all" : "pending"))}
-          className={`border shadow-xs cursor-pointer transition-colors ${
-            selectedReportStatus === "pending"
-              ? "border-amber-500 bg-amber-500/15 ring-2 ring-amber-500/25"
-              : reportsPendingCount > 0
-              ? "border-amber-500/60 bg-amber-500/5 hover:border-amber-500"
-              : "border-border/80"
-          }`}
-          title="Klik untuk menyaring sesi yang konselornya belum mengisi laporan klinis"
-        >
-          <CardContent className="p-4 flex flex-col gap-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">Menunggu Laporan</span>
-              {selectedReportStatus === "pending" && (
-                <Badge variant="outline" className="text-[10px] text-amber-700 dark:text-amber-300 border-amber-500/40">
-                  Filter Aktif
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">
-                {reportsPendingCount}
-              </span>
-              <Badge
-                variant={reportsPendingCount > 0 ? "destructive" : "secondary"}
-                className="text-[10px]"
-              >
-                {reportsPendingCount > 0 ? "Perlu Diisi" : "Tuntas"}
-              </Badge>
-            </div>
-            <span className="text-[11px] text-muted-foreground">
-              {reportsPendingCount > 0
-                ? "Sesi selesai belum ada catatan klinis"
-                : "Semua rekam medis lengkap"}
-            </span>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Filterable Table Card */}
-      <Card className="border border-border/80 shadow-xs">
-        <CardHeader className="pb-3 border-b border-border/60">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <CardTitle className="text-base font-semibold text-foreground">
-                  Daftar Booking Sesi Klinis
-                </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground">
-                  Filter berdasarkan slot harian, status sesi, status kelengkapan laporan konselor, dan mitra pendamping.
-                </CardDescription>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground font-mono">
-                  Menampilkan {filteredBookings.length} dari {bookingsList.length} sesi
-                </span>
-              </div>
-            </div>
-
-            {/* Filter Controls Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 pt-1">
-              {/* Search Keyword */}
-              <div className="relative">
-                <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari kode booking / nama / kontak..."
-                  className="pl-8 h-8 text-xs bg-background"
-                />
-              </div>
-
-              {/* Slot Index Filter */}
-              <Select value={selectedSlot} onValueChange={setSelectedSlot}>
-                <SelectTrigger className="h-8 text-xs bg-background">
-                  <SelectValue placeholder="Pilih Slot Waktu..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {SLOT_OPTIONS.map((slot) => (
-                      <SelectItem key={slot.value} value={slot.value} className="text-xs">
-                        {slot.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              {/* Status Filter */}
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="h-8 text-xs bg-background">
-                  <SelectValue placeholder="Pilih Status Sesi..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {STATUS_OPTIONS.map((status) => (
-                      <SelectItem key={status.value} value={status.value} className="text-xs">
-                        {status.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              {/* Report Status Filter */}
-              <Select value={selectedReportStatus} onValueChange={(val: any) => setSelectedReportStatus(val)}>
-                <SelectTrigger className="h-8 text-xs bg-background">
-                  <SelectValue placeholder="Status Laporan..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {REPORT_STATUS_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-
-              {/* Counselor Filter */}
-              <Select value={selectedCounselor} onValueChange={setSelectedCounselor}>
-                <SelectTrigger className="h-8 text-xs bg-background">
-                  <SelectValue placeholder="Pilih Konselor..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all" className="text-xs">
-                      Semua Konselor
-                    </SelectItem>
-                    {counselorOptions.map((c) => (
-                      <SelectItem key={c.id} value={c.id} className="text-xs">
-                        {c.fullName} ({c.counselorType})
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="p-0">
-          {filteredBookings.length === 0 ? (
-            <Empty className="py-16">
-              <EmptyMedia variant="icon">
-                <CalendarCheck className="size-6 text-muted-foreground" />
-              </EmptyMedia>
-              <EmptyHeader>
-                <EmptyTitle>Tidak Ada Sesi yang Cocok</EmptyTitle>
-                <EmptyDescription>
-                  Tidak ditemukan sesi booking yang sesuai dengan kriteria filter atau kata kunci pencarian Anda.
-                </EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSearchQuery("")
-                    setSelectedSlot("0")
-                    setSelectedStatus("all")
-                    setSelectedReportStatus("all")
-                    setSelectedCounselor("all")
-                  }}
-                  className="h-8 text-xs cursor-pointer"
-                >
-                  Reset Semua Filter
-                </Button>
-              </EmptyContent>
-            </Empty>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[110px]">Kode Booking</TableHead>
-                    <TableHead>Klien &amp; WhatsApp</TableHead>
-                    <TableHead>Mitra Konselor</TableHead>
-                    <TableHead>Jadwal &amp; Slot</TableHead>
-                    <TableHead>Ruang Zoom Pro</TableHead>
-                    <TableHead>Status Sesi</TableHead>
-                    <TableHead className="text-right">Aksi Operasional</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredBookings.map((b) => {
-                    const statusVariant =
-                      b.status === "confirmed"
-                        ? "default"
-                        : b.status === "completed"
-                        ? "secondary"
-                        : b.status === "cancelled"
-                        ? "destructive"
-                        : "outline"
-
-                    return (
-                      <TableRow key={b.id}>
-                        <TableCell className="font-mono text-xs">
+  const columns: DataTableColumn<AdminBookingItem>[] = [
+    {
+      id: "code",
+      header: "Kode Booking",
+      sortKey: "bookingCode",
+      cell: (b) => {
+        return (
+          <>
                           <div className="flex flex-col">
                             <span className="font-bold text-foreground">{b.bookingCode}</span>
                             <span className="text-[10px] text-muted-foreground">
-                              {new Date(b.createdAt).toLocaleDateString("id-ID", {
-                                day: "numeric",
-                                month: "short",
-                              })}
+                              {formatDateId(b.createdAt)}
                             </span>
                           </div>
-                        </TableCell>
-
-                        <TableCell>
+          </>
+        )
+      },
+    },
+    {
+      id: "client",
+      header: "Klien & WhatsApp",
+      sortKey: "patientName",
+      cell: (b) => {
+        return (
+          <>
                           <div className="flex flex-col">
                             <span className="font-medium text-xs text-foreground">
                               {b.patientName}
@@ -587,9 +208,17 @@ export function BookingsClient({
                               {b.patientPhone}
                             </span>
                           </div>
-                        </TableCell>
-
-                        <TableCell>
+          </>
+        )
+      },
+    },
+    {
+      id: "counselor",
+      header: "Mitra Konselor",
+      sortKey: "counselorName",
+      cell: (b) => {
+        return (
+          <>
                           <div className="flex flex-col">
                             <span className="text-xs font-medium text-foreground">
                               {b.counselorName}
@@ -598,11 +227,19 @@ export function BookingsClient({
                               {b.counselorType}
                             </span>
                           </div>
-                        </TableCell>
-
-                        <TableCell>
+          </>
+        )
+      },
+    },
+    {
+      id: "schedule",
+      header: "Jadwal & Slot",
+      sortKey: "scheduleDate",
+      cell: (b) => {
+        return (
+          <>
                           <div className="flex flex-col text-xs font-mono">
-                            <span className="text-foreground">{b.scheduleDate || "Belum ada jadwal"}</span>
+                            <span className="text-foreground">{b.scheduleDate ? formatDateId(b.scheduleDate) : "Belum ada jadwal"}</span>
                             <div className="flex items-center gap-1.5 mt-0.5">
                               <Badge
                                 variant="outline"
@@ -611,13 +248,20 @@ export function BookingsClient({
                                 Slot {b.slotIndex}
                               </Badge>
                               <span className="text-[11px] text-muted-foreground">
-                                {b.timeRange}
+                                {b.timeRange ? `${b.timeRange} WIB` : ""}
                               </span>
                             </div>
                           </div>
-                        </TableCell>
-
-                        <TableCell>
+          </>
+        )
+      },
+    },
+    {
+      id: "zoom",
+      header: "Ruang Zoom Pro",
+      cell: (b) => {
+        return (
+          <>
                           {b.zoomMeetingId ? (
                             <div className="flex flex-col text-xs font-mono">
                               <span className="text-foreground truncate max-w-[140px]">
@@ -634,18 +278,28 @@ export function BookingsClient({
                               Belum dialokasikan
                             </span>
                           )}
-                        </TableCell>
-
-                        <TableCell>
+          </>
+        )
+      },
+    },
+    {
+      id: "status",
+      header: "Status Sesi",
+      sortKey: "status",
+      cell: (b) => {
+        const statusVariant =
+          b.status === "confirmed"
+            ? "default"
+            : b.status === "completed"
+            ? "secondary"
+            : b.status === "cancelled" || b.status === "no_show"
+            ? "destructive"
+            : "outline"
+        return (
+          <>
                           <div className="flex flex-col gap-1 items-start">
                             <Badge variant={statusVariant} className="text-[10px]">
-                              {b.status === "confirmed"
-                                ? "Terkonfirmasi"
-                                : b.status === "completed"
-                                ? "Selesai"
-                                : b.status === "cancelled"
-                                ? "Dibatalkan"
-                                : "Menunggu Bayar"}
+                              {b.stageLabel}
                             </Badge>
 
                             {/* Clinical Report Status Badge */}
@@ -669,27 +323,24 @@ export function BookingsClient({
                               )
                             )}
 
-                            {/* No-Show Marker Badge */}
-                            {b.isNoShow && (
-                              <Badge
-                                variant="destructive"
-                                className="text-[10px] px-1.5 py-0 gap-1 font-mono"
-                              >
-                                <AlertTriangle className="size-2.5" />
-                                <span>No-Show</span>
-                              </Badge>
-                            )}
-
                             {/* Extended Marker */}
                             {b.isExtended && (
                               <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
-                                +{b.extensionFee ? `Rp ${b.extensionFee.toLocaleString("id-ID")}` : "Extend"}
+                                +{b.extensionFee ? `${formatRupiah(b.extensionFee)}` : "Extend"}
                               </span>
                             )}
                           </div>
-                        </TableCell>
-
-                        <TableCell className="text-right">
+          </>
+        )
+      },
+    },
+    {
+      id: "actions",
+      header: "Aksi Operasional",
+      align: "right",
+      cell: (b) => {
+        return (
+          <>
                           <div className="flex items-center justify-end gap-1.5">
                             {/* Tombol Lihat Laporan Klinis (Jika sudah diisi) */}
                             {b.hasSessionReport && (
@@ -706,8 +357,21 @@ export function BookingsClient({
                               </Button>
                             )}
 
+                            {b.status === "confirmed" && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setRescheduleItem(b)}
+                                className="h-7 text-[11px] gap-1 cursor-pointer"
+                              >
+                                <Calendar className="size-3" data-icon="inline-start" />
+                                <span>Reschedule</span>
+                              </Button>
+                            )}
+
                             {/* 1. Tombol Tandai No-Show (Syarat: Tidak hadir dalam 30 menit) */}
-                            {!b.isNoShow && b.status !== "cancelled" ? (
+                            {b.canMarkNoShow ? (
                               <Button
                                 type="button"
                                 variant="outline"
@@ -718,7 +382,7 @@ export function BookingsClient({
                                 <AlertTriangle className="size-3" data-icon="inline-start" />
                                 <span>Tandai No-Show</span>
                               </Button>
-                            ) : b.isNoShow ? (
+                            ) : b.status === "no_show" ? (
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -730,14 +394,15 @@ export function BookingsClient({
                                   <TooltipContent className="text-xs">
                                     Ditandai pada:{" "}
                                     {b.noShowMarkedAt
-                                      ? new Date(b.noShowMarkedAt).toLocaleString("id-ID")
+                                      ? formatDateTimeWib(b.noShowMarkedAt)
                                       : "Waktu tercatat"}
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
                             ) : null}
 
-                            {/* 2. Tombol Kirim WA Laporan */}
+                            {/* 2. Tombol Kirim WA Laporan (hanya sesi selesai) */}
+                            {b.status === "completed" && (
                             <Button
                               type="button"
                               size="sm"
@@ -773,17 +438,154 @@ export function BookingsClient({
                                 </>
                               )}
                             </Button>
+                            )}
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          </>
+        )
+      },
+    },
+  ]
+
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16">
+      {/* Top Header */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-5">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+              Pengawasan Operasional Booking
+            </h1>
+            <Badge variant="outline">
+              <Layers data-icon="inline-start" />
+              <span>{kpis.total} Sesi Terdata</span>
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Oversight siklus pemesanan, filter matriks slot, monitoring No-Show 30 menit, dan gerbang WhatsApp laporan.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/admin/manual-payments">
+              <Clock data-icon="inline-start" />
+              <span>Verifikasi Transfer Manual</span>
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/admin/sessions">
+              <Calendar data-icon="inline-start" />
+              <span>Kalender Jadwal</span>
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <Card>
+          <CardContent className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted-foreground">Total Pemesanan</span>
+            <span className="text-2xl font-bold font-mono">{kpis.total}</span>
+            <span className="text-xs text-muted-foreground">Seluruh sesi terdaftar</span>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-muted-foreground">Terkonfirmasi &amp; Aktif</span>
+            <span className="text-2xl font-bold font-mono">{kpis.confirmed}</span>
+            <span className="text-xs text-muted-foreground">Zoom Pro telah dialokasikan</span>
+          </CardContent>
+        </Card>
+
+        <Link href={reportHref("filled")} scroll={false} className="block" title="Klik untuk menyaring sesi dengan laporan lengkap">
+          <Card>
+            <CardContent className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Laporan Selesai</span>
+                {activeReport === "filled" ? <Badge>Filter aktif</Badge> : null}
+              </div>
+              <span className="text-2xl font-bold font-mono">{kpis.reportsFilled}</span>
+              <span className="text-xs text-muted-foreground">Catatan klinis sudah diisi</span>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href={reportHref("pending")} scroll={false} className="block" title="Klik untuk menyaring sesi yang konselornya belum mengisi laporan klinis">
+          <Card>
+            <CardContent className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">Menunggu Laporan</span>
+                {activeReport === "pending" ? <Badge>Filter aktif</Badge> : null}
+              </div>
+              <span className="text-2xl font-bold font-mono">{kpis.reportsPending}</span>
+              <span className="text-xs text-muted-foreground">
+                {kpis.reportsPending > 0
+                  ? "Sesi selesai belum ada catatan klinis"
+                  : "Semua rekam medis lengkap"}
+              </span>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+
+      {/* Main Filterable Table Card */}
+      <Card>
+        <CardHeader className="gap-4">
+          <div className="flex flex-col gap-1">
+            <CardTitle>Daftar Booking Sesi Klinis</CardTitle>
+            <CardDescription>
+              Filter berdasarkan slot harian, status sesi, status kelengkapan laporan konselor, dan mitra pendamping.
+              Semua pilihan tersimpan di URL sehingga dapat dibagikan.
+            </CardDescription>
+          </div>
+          <DataTableToolbar
+            pathname={BOOKINGS_PATH}
+            state={state}
+            config={bookingsTableConfig}
+            search={{ name: "q", placeholder: "Cari kode booking / nama / kontak..." }}
+            selects={[
+              { name: "slot", placeholder: "Pilih slot waktu", allLabel: "Semua Slot (1-7)", options: SLOT_OPTIONS },
+              { name: "status", placeholder: "Pilih status sesi", allLabel: "Semua Status Sesi", options: STATUS_OPTIONS },
+              { name: "report", placeholder: "Status laporan", allLabel: "Semua Status Laporan", options: REPORT_STATUS_OPTIONS },
+              {
+                name: "counselor",
+                placeholder: "Pilih konselor",
+                allLabel: "Semua Konselor",
+                options: counselorOptions.map((c) => ({
+                  value: c.id,
+                  label: `${c.fullName} (${c.counselorType})`,
+                })),
+              },
+            ]}
+          />
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={columns}
+            rows={bookings}
+            rowKey={(b) => b.id}
+            total={total}
+            state={state}
+            config={bookingsTableConfig}
+            pathname={BOOKINGS_PATH}
+            empty={{
+              icon: <CalendarCheck />,
+              title: "Tidak Ada Sesi yang Cocok",
+              description:
+                "Tidak ditemukan sesi booking yang sesuai dengan kriteria filter atau kata kunci pencarian Anda.",
+            }}
+          />
         </CardContent>
       </Card>
+
+      <RescheduleAdminDialog
+        booking={rescheduleItem}
+        counselors={counselorOptions}
+        onClose={() => setRescheduleItem(null)}
+        onDone={() => router.refresh()}
+      />
 
       {/* DIALOG KONFIRMASI TANDAI NO-SHOW */}
       <Dialog open={Boolean(noShowItem)} onOpenChange={(open) => !open && setNoShowItem(null)}>
@@ -829,7 +631,7 @@ export function BookingsClient({
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status Baru:</span>
                 <span className="font-semibold text-foreground">
-                  Status diubah ke <Badge variant="secondary" className="text-[10px]">completed</Badge> dengan flag <Badge variant="destructive" className="text-[10px]">is_no_show: true</Badge>
+                  Status diubah ke <Badge variant="destructive" className="text-[10px]">no_show</Badge>
                 </span>
               </div>
             </div>
@@ -910,10 +712,7 @@ export function BookingsClient({
                 <span className="text-[10px] text-muted-foreground block font-medium">Waktu Diserahkan</span>
                 <span className="font-semibold text-foreground">
                   {selectedReportBooking?.reportDetails?.createdAt
-                    ? new Date(selectedReportBooking.reportDetails.createdAt).toLocaleString("id-ID", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })
+                    ? formatDateTimeWib(selectedReportBooking.reportDetails.createdAt)
                     : "-"}
                 </span>
               </div>
@@ -925,7 +724,7 @@ export function BookingsClient({
                 Permasalahan Utama (Main Issue)
               </span>
               <div className="p-3 rounded-md bg-background border border-border text-foreground font-medium">
-                {selectedReportBooking?.reportDetails?.mainIssue || "Konsultasi Emosional & Stres"}
+                {selectedReportBooking?.reportDetails?.mainIssue || "-"}
               </div>
             </div>
 

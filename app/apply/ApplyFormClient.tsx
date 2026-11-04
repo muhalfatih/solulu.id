@@ -7,7 +7,7 @@ import {
   type CounselorType,
 } from "@/lib/validations/counselor-application"
 import { submitCounselorApplicationAction } from "./actions"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -248,9 +248,9 @@ export function ApplyFormClient() {
           </div>
 
           <div className="pt-2">
-            <Button asChild variant="public" size="pill" className="w-full sm:w-auto">
+            <PublicButton asChild variant="public" size="pill" className="w-full sm:w-auto">
               <Link href="/">Kembali ke Beranda Solulu</Link>
-            </Button>
+            </PublicButton>
           </div>
         </div>
       </div>
@@ -552,7 +552,7 @@ export function ApplyFormClient() {
                   onChange={(e) => handleFileUpload(e, "cv", setCvDoc)}
                   disabled={cvDoc.uploading}
                 />
-                <Button
+                <PublicButton
                   type="button"
                   variant={cvDoc.r2Key ? "secondary" : "outline"}
                   size="sm"
@@ -582,7 +582,7 @@ export function ApplyFormClient() {
                       </>
                     )}
                   </label>
-                </Button>
+                </PublicButton>
               </div>
             </div>
 
@@ -636,7 +636,7 @@ export function ApplyFormClient() {
                   onChange={(e) => handleFileUpload(e, "ktp", setKtpDoc)}
                   disabled={ktpDoc.uploading}
                 />
-                <Button
+                <PublicButton
                   type="button"
                   variant={ktpDoc.r2Key ? "secondary" : "outline"}
                   size="sm"
@@ -666,7 +666,7 @@ export function ApplyFormClient() {
                       </>
                     )}
                   </label>
-                </Button>
+                </PublicButton>
               </div>
             </div>
 
@@ -720,7 +720,7 @@ export function ApplyFormClient() {
                   onChange={(e) => handleFileUpload(e, "diploma", setDiplomaDoc)}
                   disabled={diplomaDoc.uploading}
                 />
-                <Button
+                <PublicButton
                   type="button"
                   variant={diplomaDoc.r2Key ? "secondary" : "outline"}
                   size="sm"
@@ -750,7 +750,7 @@ export function ApplyFormClient() {
                       </>
                     )}
                   </label>
-                </Button>
+                </PublicButton>
               </div>
             </div>
 
@@ -820,7 +820,7 @@ export function ApplyFormClient() {
                   onChange={(e) => handleFileUpload(e, "str", setStrDoc)}
                   disabled={strDoc.uploading}
                 />
-                <Button
+                <PublicButton
                   type="button"
                   variant={strDoc.r2Key ? "secondary" : "outline"}
                   size="sm"
@@ -850,7 +850,7 @@ export function ApplyFormClient() {
                       </>
                     )}
                   </label>
-                </Button>
+                </PublicButton>
               </div>
             </div>
           </div>
@@ -895,7 +895,7 @@ export function ApplyFormClient() {
             <span className="text-xs text-muted-foreground text-center sm:text-left leading-relaxed">
               Semua data dan berkas Anda diperiksa langsung secara rahasia oleh tim Solulu.
             </span>
-            <Button
+            <PublicButton
               type="submit"
               variant="public"
               size="pill-lg"
@@ -914,7 +914,7 @@ export function ApplyFormClient() {
                   <ArrowRight className="size-4 ml-2" />
                 </>
               )}
-            </Button>
+            </PublicButton>
           </div>
         </section>
       </form>
@@ -956,7 +956,7 @@ export function ApplyFormClient() {
             </div>
           </div>
           <DialogFooter className="pt-2">
-            <Button
+            <PublicButton
               type="button"
               variant="public"
               size="pill"
@@ -966,7 +966,7 @@ export function ApplyFormClient() {
               }}
             >
               Saya Mengerti &amp; Setuju
-            </Button>
+            </PublicButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

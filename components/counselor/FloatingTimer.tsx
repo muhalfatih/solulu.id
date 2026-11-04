@@ -17,12 +17,11 @@ import {
   X,
   CreditCard,
   Video,
-  ChevronDown,
-  ChevronUp,
-  FastForward,
   Sparkles,
   Loader2,
   UserCheck,
+  Volume2,
+  VolumeX,
 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -35,8 +34,14 @@ import {
   calculateExtendFee,
   formatTimerDisplay,
   getTimerProgressPercentage,
+  advanceTimer,
+  crossesChimeMinute,
+  shouldAutoRecordOvertime,
+  CHIME_MESSAGE,
+  HARD_STOP_SECONDS,
   type TimerStageInfo,
 } from "@/lib/counselor/timer"
+import { playChime, readChimeMuted, writeChimeMuted } from "@/lib/counselor/chime"
 import {
   recordSessionExtensionAction,
   recordSessionTimerAction,
@@ -57,7 +62,6 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
   const [elapsedSeconds, setElapsedSeconds] = React.useState<number>(0)
   const [isRunning, setIsRunning] = React.useState<boolean>(true)
   const [isMinimized, setIsMinimized] = React.useState<boolean>(false)
-  const [showSimControls, setShowSimControls] = React.useState<boolean>(false)
   const [copiedKey, setCopiedKey] = React.useState<boolean>(false)
   const [isSavingExtension, setIsSavingExtension] = React.useState<boolean>(false)
   const [extensionRecorded, setExtensionRecorded] = React.useState<boolean>(session.isExtended)
@@ -69,6 +73,26 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
   const [isClientAdmitted, setIsClientAdmitted] = React.useState<boolean>(Boolean(session.operatorAdmittedAt))
   const [isAdmittingClient, setIsAdmittingClient] = React.useState<boolean>(false)
   const autoAdmittedOnceRef = React.useRef<boolean>(false)
+
+  // Chime menit 80: dapat dibisukan; pengumuman screen reader hanya sekali lewat region status.
+  const [chimeMuted, setChimeMuted] = React.useState<boolean>(false)
+  const [srAnnouncement, setSrAnnouncement] = React.useState<string>("")
+  const previousElapsedRef = React.useRef<number>(0)
+  const autoRecordStartedRef = React.useRef<boolean>(false)
+  const chimeMutedRef = React.useRef<boolean>(false)
+
+  React.useEffect(() => {
+    const muted = readChimeMuted()
+    chimeMutedRef.current = muted
+    setChimeMuted(muted)
+  }, [])
+
+  const handleToggleChimeMuted = () => {
+    const next = !chimeMuted
+    chimeMutedRef.current = next
+    setChimeMuted(next)
+    writeChimeMuted(next)
+  }
 
   // Track stages for notification triggers
   const lastTriggeredStageRef = React.useRef<string>("normal")
@@ -121,12 +145,11 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
   )
   const elapsedMinutes = Math.floor(elapsedSeconds / 60)
   const feeCalculation = React.useMemo(
-    () => calculateExtendFee(elapsedMinutes, session.counselorType, session.customRates),
-    [elapsedMinutes, session.counselorType, session.customRates]
+    () => calculateExtendFee(elapsedMinutes, session.overtimeRatePer30Min),
+    [elapsedMinutes, session.overtimeRatePer30Min]
   )
 
-  // Host Key fallback
-  const hostKey = session.zoomHostKey || "849201"
+  const hostKey = session.zoomHostKey
 
   // 1. Tick Interval
   React.useEffect(() => {
@@ -134,14 +157,8 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
 
     if (isRunning) {
       interval = setInterval(() => {
-        setElapsedSeconds((prev) => {
-          // Hard stop at 120 minutes (7200 seconds)
-          if (prev >= 120 * 60) {
-            setIsRunning(false)
-            return 120 * 60
-          }
-          return prev + 1
-        })
+        // Berhenti otomatis di menit 120 (lihat efek hard stop di bawah).
+        setElapsedSeconds((prev) => advanceTimer(prev).elapsedSeconds)
       }, 1000)
     }
 
@@ -149,6 +166,20 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
       if (interval) clearInterval(interval)
     }
   }, [isRunning])
+
+  // 1b. Chime menit 80 (sekali) dan hard stop menit 120
+  React.useEffect(() => {
+    const previous = previousElapsedRef.current
+    previousElapsedRef.current = elapsedSeconds
+
+    if (crossesChimeMinute(previous, elapsedSeconds)) {
+      setSrAnnouncement(CHIME_MESSAGE)
+      if (!chimeMutedRef.current) playChime()
+    }
+    if (elapsedSeconds >= HARD_STOP_SECONDS) {
+      setIsRunning(false)
+    }
+  }, [elapsedSeconds])
 
   // 2. Stage Transition Alert & Toast Triggers
   React.useEffect(() => {
@@ -180,7 +211,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
           {
             id: "timer-alert-96m",
             duration: 8000,
-            description: "Durasi melebihi 95 menit. Klik 'Catat Perpanjangan' untuk memperbarui billing database.",
+            description: "Durasi melebihi 95 menit. Perpanjangan dicatat otomatis; koreksi jumlah blok di Laporan Sesi bila perlu.",
           }
         )
       }
@@ -198,6 +229,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
 
   // Copy Host Key
   const handleCopyHostKey = async () => {
+    if (!hostKey) return
     try {
       await navigator.clipboard.writeText(hostKey)
       setCopiedKey(true)
@@ -210,8 +242,8 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
     }
   }
 
-  // Record Extension in DB
-  const handleRecordExtension = async () => {
+  // Record Extension in DB (otomatis di menit 96; tombol hanya fallback bila gagal)
+  const handleRecordExtension = React.useCallback(async () => {
     setIsSavingExtension(true)
     try {
       const res = await recordSessionExtensionAction(session.id)
@@ -231,7 +263,14 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
     } finally {
       setIsSavingExtension(false)
     }
-  }
+  }, [session.id])
+
+  React.useEffect(() => {
+    if (autoRecordStartedRef.current) return
+    if (!shouldAutoRecordOvertime(elapsedMinutes, extensionRecorded)) return
+    autoRecordStartedRef.current = true
+    void handleRecordExtension()
+  }, [elapsedMinutes, extensionRecorded, handleRecordExtension])
 
   // Record timer duration when ending
   const handleEndSession = async () => {
@@ -248,11 +287,6 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
     onCompleteSession(session)
   }
 
-  // Fast-Forward Helpers for Testing & Browser Automation
-  const jumpToSeconds = (seconds: number) => {
-    setElapsedSeconds(seconds)
-    setIsRunning(true)
-  }
 
   // Minimized Compact Pill
   if (isMinimized) {
@@ -261,11 +295,14 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
         id="floating-timer-minimized"
         aria-label="Timer Sesi Konseling (Minimalis)"
         className={cn(
-          "fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-2.5 rounded-full border shadow-lg backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-3",
+          "fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-2.5 rounded-full border shadow-lg backdrop-blur-md transition-colors duration-300 animate-in fade-in slide-in-from-bottom-3",
           currentStage.containerClassName,
           currentStage.glowClassName
         )}
       >
+        <p role="status" aria-live="polite" className="sr-only">
+          {srAnnouncement}
+        </p>
         <div className="flex items-center gap-2">
           <span
             className={cn(
@@ -320,14 +357,17 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
       id="floating-timer-widget"
       role="region"
       aria-label="Floating Timer Konseling"
-      aria-live="polite"
       className={cn(
-        "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[410px] rounded-2xl border shadow-2xl backdrop-blur-md transition-all duration-300 animate-in fade-in zoom-in-95",
+        "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[410px] rounded-2xl border shadow-2xl backdrop-blur-md transition-colors duration-300 animate-in fade-in zoom-in-95",
         currentStage.containerClassName,
         currentStage.glowClassName
       )}
     >
-      <Card className="border-0 bg-background/95 shadow-none overflow-hidden">
+      {/* Satu-satunya region live: hanya berisi pengumuman menit 80, bukan detik berjalan. */}
+      <p role="status" aria-live="polite" className="sr-only">
+        {srAnnouncement}
+      </p>
+      <Card className="overflow-hidden">
         {/* Header Bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/70 bg-muted/40">
           <div className="flex items-center gap-2">
@@ -358,6 +398,21 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
               size="icon"
               variant="ghost"
               className="size-7 rounded-lg text-muted-foreground hover:text-foreground"
+              onClick={handleToggleChimeMuted}
+              aria-pressed={chimeMuted}
+              aria-label={chimeMuted ? "Aktifkan chime menit 80" : "Bisukan chime menit 80"}
+              id="btn-timer-chime-mute"
+            >
+              {chimeMuted ? (
+                <VolumeX className="size-3.5" aria-hidden="true" />
+              ) : (
+                <Volume2 className="size-3.5" aria-hidden="true" />
+              )}
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-7 rounded-lg text-muted-foreground hover:text-foreground"
               onClick={() => setIsMinimized(true)}
               aria-label="Kecilkan widget timer"
               id="btn-timer-minimize"
@@ -377,7 +432,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
           </div>
         </div>
 
-        <CardContent className="p-4 flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-4">
           {/* Main Digital Clock & Stage Banner */}
           <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-muted/30 border border-border/70 relative overflow-hidden text-center gap-1.5">
             <span className="text-[10px] font-semibold tracking-wider uppercase text-muted-foreground">
@@ -391,9 +446,9 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
                 className={cn(
                   "font-mono text-4xl sm:text-5xl font-black tracking-tight tabular-nums transition-colors duration-300",
                   currentStage.color === "green" && "text-emerald-700 dark:text-emerald-400",
-                  currentStage.color === "amber" && "text-amber-700 dark:text-amber-400 animate-pulse",
+                  currentStage.color === "amber" && "text-amber-700 dark:text-amber-400",
                   currentStage.color === "blue" && "text-sky-700 dark:text-sky-400",
-                  currentStage.color === "orange" && "text-orange-700 dark:text-orange-400 animate-pulse",
+                  currentStage.color === "orange" && "text-orange-700 dark:text-orange-400",
                   currentStage.color === "red" && "text-rose-600 dark:text-rose-400 animate-bounce"
                 )}
               >
@@ -411,6 +466,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
             <div className="w-full flex flex-col gap-1 pt-2">
               <div className="flex items-center justify-between text-[10px] font-medium text-muted-foreground">
                 <span>0m</span>
+                <span className="text-muted-foreground">80m (Chime)</span>
                 <span className="text-amber-700 dark:text-amber-400">85m (Warning)</span>
                 <span className="text-sky-700 dark:text-sky-400">90-95m (Grace)</span>
                 <span className="text-orange-700 dark:text-orange-400">96m (Extend)</span>
@@ -434,7 +490,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
                   Host Key Zoom (6 Digit)
                 </span>
                 <span className="font-mono text-base font-bold text-foreground tracking-wider" id="zoom-host-key-text">
-                  {hostKey}
+                  {hostKey ?? "Belum tersedia"}
                 </span>
               </div>
             </div>
@@ -447,6 +503,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
                     variant="outline"
                     className="h-8 gap-1.5 text-xs font-semibold border-border/80"
                     onClick={handleCopyHostKey}
+                    disabled={!hostKey}
                     id="btn-copy-host-key"
                   >
                     {copiedKey ? (
@@ -528,7 +585,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
           {elapsedMinutes >= 96 && (
             <div
               className={cn(
-                "p-3.5 rounded-xl border flex flex-col gap-2.5 transition-all duration-300",
+                "p-3.5 rounded-xl border flex flex-col gap-2.5 transition-colors duration-300",
                 extensionRecorded
                   ? "border-emerald-500/40 bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
                   : "border-orange-500/40 bg-orange-500/10 text-orange-800 dark:text-orange-300"
@@ -550,7 +607,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
                       : "border-orange-500/40 bg-orange-500/20 text-orange-800 dark:text-orange-200"
                   )}
                 >
-                  {extensionRecorded ? "Tercatat di DB" : "Perlu Dicatat"}
+                  {extensionRecorded ? "Tercatat Otomatis" : "Belum Tercatat"}
                 </Badge>
               </div>
 
@@ -585,7 +642,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
                   ) : (
                     <>
                       <CreditCard className="size-3.5" data-icon="inline-start" />
-                      <span>Catat Perpanjangan ke Database</span>
+                      <span>Coba Catat Ulang Perpanjangan</span>
                     </>
                   )}
                 </Button>
@@ -650,7 +707,7 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
               className={cn(
                 "flex-1 h-9 gap-1.5 text-xs font-semibold shadow-xs",
                 elapsedSeconds >= 120 * 60
-                  ? "bg-rose-600 hover:bg-rose-700 text-white animate-pulse"
+                  ? "bg-rose-600 hover:bg-rose-700 text-white"
                   : "bg-primary text-primary-foreground"
               )}
               onClick={handleEndSession}
@@ -659,63 +716,6 @@ export function FloatingTimer({ session, onClose, onCompleteSession }: FloatingT
               <CheckCircle2 className="size-3.5" data-icon="inline-start" />
               <span>Akhiri Sesi & Buat Catatan</span>
             </Button>
-          </div>
-
-          {/* QA / Dogfooding Simulation Fast-Forward Controls */}
-          <div className="pt-2 border-t border-border/60 flex flex-col gap-1.5">
-            <button
-              type="button"
-              className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer py-1"
-              onClick={() => setShowSimControls(!showSimControls)}
-              id="btn-toggle-sim-controls"
-            >
-              <span className="flex items-center gap-1.5">
-                <FastForward className="size-3 text-primary" data-icon="inline-start" />
-                <span>Simulasi Transisi Waktu (Uji SOP)</span>
-              </span>
-              {showSimControls ? <ChevronUp className="size-3" data-icon="inline-start" /> : <ChevronDown className="size-3" data-icon="inline-start" />}
-            </button>
-
-            {showSimControls && (
-              <div className="grid grid-cols-2 gap-1.5 pt-1.5 animate-in fade-in">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-7 text-[10px] font-medium justify-start"
-                  onClick={() => jumpToSeconds(84 * 60 + 55)}
-                  id="btn-jump-85m"
-                >
-                  Ke 84:55 (Tes 85m Amber)
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-7 text-[10px] font-medium justify-start"
-                  onClick={() => jumpToSeconds(89 * 60 + 55)}
-                  id="btn-jump-90m"
-                >
-                  Ke 89:55 (Tes 90m Grace)
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-7 text-[10px] font-medium justify-start"
-                  onClick={() => jumpToSeconds(95 * 60 + 55)}
-                  id="btn-jump-96m"
-                >
-                  Ke 95:55 (Tes 96m Extend)
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="h-7 text-[10px] font-medium justify-start"
-                  onClick={() => jumpToSeconds(119 * 60 + 55)}
-                  id="btn-jump-120m"
-                >
-                  Ke 119:55 (Tes 120m Stop)
-                </Button>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

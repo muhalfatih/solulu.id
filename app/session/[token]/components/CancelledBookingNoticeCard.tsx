@@ -1,11 +1,12 @@
 "use client"
 
+import { getSupportWhatsappUrl } from "@/lib/config/support"
 import * as React from "react"
 import Link from "next/link"
 import { AlertCircle, Calendar, MessageCircle, ArrowRight, ShieldCheck, HeartHandshake } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton as Button } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/public/public-card"
 import type { SessionBookingData, SessionScheduleData, SessionCounselorData } from "@/lib/session/types"
 
 interface CancelledBookingNoticeCardProps {
@@ -19,9 +20,6 @@ export function CancelledBookingNoticeCard({
   schedule,
   counselor,
 }: CancelledBookingNoticeCardProps) {
-  const whatsappSupportNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT || "6281234567890"
-
   const waHelpMessage = `Halo Admin Solulu, pemesanan sesi saya (${booking.accessToken}) berstatus dibatalkan:
 - Nama: ${booking.patientName}
 - Konselor: ${counselor.fullName}
@@ -29,7 +27,7 @@ export function CancelledBookingNoticeCard({
 
 Mohon bantuan untuk verifikasi kendala pembayaran / penjadwalan ulang sesi. Terima kasih!`
 
-  const whatsappUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(waHelpMessage)}`
+  const whatsappUrl = getSupportWhatsappUrl(waHelpMessage)
 
   return (
     <Card className="rounded-3xl border border-rose-500/20 dark:border-border/80 bg-card/95 backdrop-blur-sm shadow-[0_16px_40px_-12px_rgba(244,63,94,0.06)] hover:shadow-[0_20px_50px_-12px_rgba(244,63,94,0.10)] transition-all overflow-hidden gap-0">
@@ -93,6 +91,7 @@ Mohon bantuan untuk verifikasi kendala pembayaran / penjadwalan ulang sesi. Teri
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+{whatsappUrl && (
           <a
             href={whatsappUrl}
             target="_blank"
@@ -107,6 +106,7 @@ Mohon bantuan untuk verifikasi kendala pembayaran / penjadwalan ulang sesi. Teri
               <span>Hubungi CS WhatsApp</span>
             </Button>
           </a>
+)}
 
           <Button
             asChild

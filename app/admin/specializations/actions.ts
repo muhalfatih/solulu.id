@@ -3,8 +3,9 @@
 import { revalidatePath } from "next/cache"
 import { eq, desc, asc } from "drizzle-orm"
 import { db } from "@/db"
+import { recordAudit } from "@/lib/audit/record"
 import { specializations } from "@/db/schema"
-import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, AdminAuthContext } from "@/lib/auth/admin"
 
 export interface SpecializationItem {
   id: string
@@ -115,16 +116,27 @@ export async function createSpecializationAction(
   }
 
   try {
-    const [inserted] = await db
-      .insert(specializations)
-      .values({
-        name: cleanName,
-        description: input.description?.trim() || null,
-        isActive: input.isActive ?? true,
-        sortOrder: input.sortOrder ?? 0,
-        updatedAt: new Date(),
+    const inserted = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(specializations)
+        .values({
+          name: cleanName,
+          description: input.description?.trim() || null,
+          isActive: input.isActive ?? true,
+          sortOrder: input.sortOrder ?? 0,
+          updatedAt: new Date(),
+        })
+        .returning()
+      await recordAudit(tx, {
+        actor: admin,
+        action: "specialization.create",
+        entityType: "specialization",
+        entityId: row.id,
+        before: null,
+        after: row,
       })
-      .returning()
+      return row
+    })
 
     revalidatePath("/admin/specializations")
     revalidatePath("/admin/counselors/new")
@@ -174,17 +186,33 @@ export async function updateSpecializationAction(
   }
 
   try {
-    const [updated] = await db
-      .update(specializations)
-      .set({
-        name: cleanName,
-        description: input.description?.trim() || null,
-        isActive: input.isActive ?? true,
-        sortOrder: input.sortOrder ?? 0,
-        updatedAt: new Date(),
+    const updated = await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select()
+        .from(specializations)
+        .where(eq(specializations.id, input.id))
+        .limit(1)
+      const [row] = await tx
+        .update(specializations)
+        .set({
+          name: cleanName,
+          description: input.description?.trim() || null,
+          isActive: input.isActive ?? true,
+          sortOrder: input.sortOrder ?? 0,
+          updatedAt: new Date(),
+        })
+        .where(eq(specializations.id, input.id))
+        .returning()
+      await recordAudit(tx, {
+        actor: admin,
+        action: "specialization.update",
+        entityType: "specialization",
+        entityId: input.id,
+        before,
+        after: row,
       })
-      .where(eq(specializations.id, input.id))
-      .returning()
+      return row
+    })
 
     revalidatePath("/admin/specializations")
     revalidatePath("/admin/counselors/new")
@@ -227,14 +255,30 @@ export async function toggleSpecializationAction(
   }
 
   try {
-    const [updated] = await db
-      .update(specializations)
-      .set({
-        isActive,
-        updatedAt: new Date(),
+    const updated = await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select()
+        .from(specializations)
+        .where(eq(specializations.id, id))
+        .limit(1)
+      const [row] = await tx
+        .update(specializations)
+        .set({
+          isActive,
+          updatedAt: new Date(),
+        })
+        .where(eq(specializations.id, id))
+        .returning()
+      await recordAudit(tx, {
+        actor: admin,
+        action: "specialization.toggle",
+        entityType: "specialization",
+        entityId: id,
+        before,
+        after: row,
       })
-      .where(eq(specializations.id, id))
-      .returning()
+      return row
+    })
 
     revalidatePath("/admin/specializations")
     revalidatePath("/admin/counselors/new")
@@ -269,7 +313,22 @@ export async function deleteSpecializationAction(
   }
 
   try {
-    await db.delete(specializations).where(eq(specializations.id, id))
+    await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select()
+        .from(specializations)
+        .where(eq(specializations.id, id))
+        .limit(1)
+      await tx.delete(specializations).where(eq(specializations.id, id))
+      await recordAudit(tx, {
+        actor: admin,
+        action: "specialization.delete",
+        entityType: "specialization",
+        entityId: id,
+        before,
+        after: null,
+      })
+    })
 
     revalidatePath("/admin/specializations")
     revalidatePath("/admin/counselors/new")

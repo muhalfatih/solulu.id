@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ShieldCheck, ArrowLeft, Clock, Lock, BadgeCheck, Sparkles } from "lucide-react"
 import { PublicShell } from "@/components/public/public-shell"
 import { SessionCountdownCard } from "./components/SessionCountdownCard"
+import { RescheduleCard } from "./components/RescheduleCard"
 import { PaymentVerificationWaitingCard } from "./components/PaymentVerificationWaitingCard"
 import { CancelledBookingNoticeCard } from "./components/CancelledBookingNoticeCard"
 import { CompletedSessionReportCard } from "./components/CompletedSessionReportCard"
@@ -18,12 +19,14 @@ import { getSessionByTokenAction } from "@/lib/session/actions"
 import type { SessionPageData, ClientSessionReportView } from "@/lib/session/types"
 import { toast } from "sonner"
 
+type ScheduledSessionData = SessionPageData & { counselor: NonNullable<SessionPageData["counselor"]> }
+
 interface SessionClientProps {
-  initialData: SessionPageData
+  initialData: ScheduledSessionData
 }
 
-export default function SessionClient({ initialData }: SessionClientProps) {
-  const [data, setData] = React.useState<SessionPageData>(initialData)
+function ScheduledSession({ initialData }: SessionClientProps) {
+  const [data, setData] = React.useState<ScheduledSessionData>(initialData)
   const [isRefreshing, setIsRefreshing] = React.useState(false)
   const isExtendUnpaid = Boolean(
     data.booking.isExtended &&
@@ -40,8 +43,9 @@ export default function SessionClient({ initialData }: SessionClientProps) {
     setIsRefreshing(true)
     try {
       const res = await getSessionByTokenAction(data.booking.accessToken)
-      if (res.success && res.data) {
-        setData(res.data)
+      if (res.success && res.data?.counselor) {
+        const next = res.data as ScheduledSessionData
+        setData(next)
         const updatedIsExtendUnpaid = Boolean(
           res.data.booking.isExtended &&
             Number(res.data.booking.extensionFee) > 0 &&
@@ -244,6 +248,7 @@ export default function SessionClient({ initialData }: SessionClientProps) {
                 counselor={data.counselor}
                 transaction={data.transaction}
                 patientName={data.booking.patientName}
+                manualPaymentInstructions={data.platformSettings?.manualPaymentInstructions ?? ""}
                 onRefresh={handleRefresh}
                 isRefreshing={isRefreshing}
               />
@@ -273,6 +278,12 @@ export default function SessionClient({ initialData }: SessionClientProps) {
                 onRefresh={handleRefresh}
                 isRefreshing={isRefreshing}
               />
+            )}
+
+            {data.booking.status === "confirmed" && (
+              <div className="print:hidden">
+                <RescheduleCard accessToken={data.booking.accessToken} />
+              </div>
             )}
 
             <div className="print:hidden">
@@ -305,4 +316,54 @@ export default function SessionClient({ initialData }: SessionClientProps) {
       </div>
     </PublicShell>
   )
+}
+
+/**
+ * Booking Konselor Bebas yang belum diklaim: konselor sedang ditentukan (ADR-0011).
+ * Halaman memuat ulang berkala sampai ada konselor.
+ */
+function AwaitingCounselorView({ initialData }: { initialData: SessionPageData }) {
+  const [data, setData] = React.useState<SessionPageData>(initialData)
+  React.useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await getSessionByTokenAction(data.booking.accessToken)
+        if (res.success && res.data) setData(res.data)
+      } catch {
+        // Keep existing data on error
+      }
+    }, 15000)
+    return () => clearInterval(interval)
+  }, [data.booking.accessToken])
+
+  if (data.counselor) return <ScheduledSession initialData={data as ScheduledSessionData} />
+
+  const paid = data.booking.status === "confirmed"
+  return (
+    <PublicShell>
+      <div className="flex-1 max-w-lg mx-auto w-full px-4 sm:px-6 py-16 flex flex-col gap-4 text-center">
+        <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          Konselor sedang ditentukan
+        </h1>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Halo, <strong className="font-semibold text-foreground">{data.booking.patientName}</strong>.{" "}
+          {paid
+            ? "Pembayaran Anda sudah kami terima. Tim Solulu sedang menentukan konselor untuk sesi Anda."
+            : "Pesanan Anda tercatat dan menunggu pembayaran selesai."}
+        </p>
+        <div className="rounded-2xl border border-border/60 bg-card p-5 text-sm">
+          <p className="font-semibold text-foreground">{data.schedule.formattedDate}</p>
+          <p className="text-muted-foreground">{data.schedule.timeRange}</p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Tautan Zoom dan nama konselor akan muncul di halaman ini dan dikirim lewat email begitu konselor ditetapkan.
+        </p>
+      </div>
+    </PublicShell>
+  )
+}
+
+export default function SessionClient({ initialData }: { initialData: SessionPageData }) {
+  if (!initialData.counselor) return <AwaitingCounselorView initialData={initialData} />
+  return <ScheduledSession initialData={initialData as ScheduledSessionData} />
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { toast } from "sonner"
 import * as React from "react"
 import {
   ShieldAlert,
@@ -143,7 +144,6 @@ export function ZoomSettingsClient({
   const [accounts, setAccounts] = React.useState<ZoomAccountView[]>(initialAccounts)
   const [showSecret, setShowSecret] = React.useState<{ [key: string]: boolean }>({})
   const [copiedKey, setCopiedKey] = React.useState<string | null>(null)
-  const [toast, setToast] = React.useState<{ message: string; type: "success" | "error" } | null>(null)
 
   // Interactive Action States
   const [inspectingAccountId, setInspectingAccountId] = React.useState<string | null>(null)
@@ -239,8 +239,8 @@ export function ZoomSettingsClient({
   }, [selectedDate, accounts])
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
-    setToast({ message, type })
-    setTimeout(() => setToast(null), 4500)
+    if (type === "error") toast.error(message)
+    else toast.success(message)
   }
 
   const toggleSecret = async (id: string, currentSecret?: string) => {
@@ -503,34 +503,6 @@ export function ZoomSettingsClient({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-16 font-sans">
-      {/* Toast Notification */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 right-6 z-50 p-4 rounded-xl border text-foreground text-xs shadow-xl animate-in fade-in flex items-center justify-between gap-4 max-w-md ${
-            toast.type === "success"
-              ? "bg-card border-primary/40 text-foreground"
-              : "bg-destructive/15 border-destructive/40 text-destructive-foreground"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {toast.type === "success" ? (
-              <Check className="size-4 text-primary shrink-0" />
-            ) : (
-              <AlertTriangle className="size-4 text-destructive shrink-0" />
-            )}
-            <span className="leading-relaxed">{toast.message}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setToast(null)}
-            className="size-6 text-muted-foreground hover:text-foreground shrink-0"
-            aria-label="Tutup notifikasi"
-          >
-            <X className="size-3.5" />
-          </Button>
-        </div>
-      )}
 
       {/* Page Header */}
       <AdminPageHeader
@@ -629,7 +601,7 @@ export function ZoomSettingsClient({
       </div>
 
       {/* Dynamic Concurrency Timeline (Auto-Scale + Date Picker) */}
-      <Card className="p-5 flex flex-col gap-4 shadow-xs">
+      <Card className="flex flex-col gap-4">
         {/* Timeline Header Toolbar */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 border-b border-border/60 pb-3.5">
           <div className="flex items-center gap-2.5">
@@ -774,7 +746,7 @@ export function ZoomSettingsClient({
                           onMouseEnter={() => setHoveredSession(ses)}
                           onMouseLeave={() => setHoveredSession(null)}
                           onClick={() => setInspectingAccountId(account.id)}
-                          className={`absolute top-1 bottom-1 ${style.blockColor} border rounded-md px-2 flex items-center justify-between text-[10px] font-medium cursor-pointer transition-all ${
+                          className={`absolute top-1 bottom-1 ${style.blockColor} border rounded-md px-2 flex items-center justify-between text-[10px] font-medium cursor-pointer transition-colors ${
                             isHovered ? `ring-2 ${style.ringColor} ring-offset-1 z-20` : ""
                           }`}
                           title={`${ses.bookingId.slice(0, 7).toUpperCase()} (${ses.startTime.slice(0, 5)} - ${ses.endTime.slice(0, 5)} WIB): ${ses.patientName}`}
@@ -915,7 +887,7 @@ export function ZoomSettingsClient({
 
       {/* Empty State: If no Zoom accounts are configured in DB yet */}
       {accounts.length === 0 && (
-        <Card className="border-dashed p-10 flex flex-col items-center justify-center text-center gap-4 shadow-xs">
+        <Card className="flex flex-col items-center justify-center text-center gap-4">
           <div className="size-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
             <Video className="size-6" />
           </div>
@@ -965,7 +937,7 @@ export function ZoomSettingsClient({
             return (
               <Card
                 key={acc.id}
-                className="p-6 flex flex-col gap-5 shadow-xs transition-colors h-full"
+                className="flex flex-col gap-5 transition-colors h-full"
               >
                 {/* Card Header: Slot & Identity */}
                 <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-4">
@@ -988,7 +960,7 @@ export function ZoomSettingsClient({
                   >
                     <span
                       className={`size-2 rounded-full ${
-                        isLocked ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground"
+                        isLocked ? "bg-emerald-400" : "bg-muted-foreground"
                       }`}
                     />
                     <span>{isLocked ? "Sesi Aktif / Terikat" : "Siaga (Standby)"}</span>
@@ -1155,7 +1127,7 @@ export function ZoomSettingsClient({
                       <div className="flex items-center gap-1.5 font-sans">
                         <span className="text-muted-foreground text-xs">
                           {acc.tokenExpiresAt
-                            ? `Kedaluwarsa: ${new Date(acc.tokenExpiresAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB`
+                            ? `Kedaluwarsa: ${new Date(acc.tokenExpiresAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB`
                             : "Auto-refresh S2S Aktif"}
                         </span>
                         <Badge variant={acc.isActive ? "default" : "secondary"} className="text-[10px] h-4">
@@ -1279,7 +1251,7 @@ export function ZoomSettingsClient({
 
           {/* If accounts < 4, show invitation card for next slot */}
           {accounts.length < 4 && (
-            <Card className="bg-card/50 border-dashed p-6 flex flex-col items-center justify-center text-center gap-4 h-full shadow-xs">
+            <Card className="flex flex-col items-center justify-center text-center gap-4 h-full">
               <div className="size-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
                 <Plus className="size-5" />
               </div>
@@ -1321,7 +1293,7 @@ export function ZoomSettingsClient({
       )}
 
       {/* Capacity Guard Info: Executive Architectural Note */}
-      <Card className="p-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground shadow-xs">
+      <Card className="flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2.5 min-w-0">
           <Server className="size-4 text-primary shrink-0" />
           <span>

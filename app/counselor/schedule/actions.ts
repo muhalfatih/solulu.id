@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { eq, and, sql, gte, lte, inArray } from "drizzle-orm"
 import { db, type DbClient } from "@/db"
+import { keepsPoolReserveWithout } from "@/lib/pool/store"
 import { schedules, bookings, counselors, counselorWeeklyTemplates } from "@/db/schema"
 import { FIXED_SLOTS, type FixedSlot } from "@/lib/schedules/slots"
 import {
@@ -101,8 +102,8 @@ export async function getCounselorWeeklyGridAction(
     const endDate = weekDays[6].date
 
     // 1. Fetch counselor profile info
-    let counselorName = auth.user_metadata?.full_name || "Mitra Konselor"
-    let counselorTitle = "Konselor Solulu"
+    let counselorName = auth.user_metadata?.full_name || ""
+    let counselorTitle = ""
     let scheduleMode: "manual" | "automatic" = "manual"
 
     if (options?.getCounselor) {
@@ -387,10 +388,12 @@ export async function toggleSlotAvailabilityAction(
         if (options?.updateSlot) {
           await options.updateSlot(existing.id, { status: "cancelled" })
         } else {
-          await db
-            .update(schedules)
-            .set({ status: "cancelled" })
-            .where(eq(schedules.id, existing.id))
+          const applied = await db.transaction(async (tx) => {
+            if (!(await keepsPoolReserveWithout(existing.id, tx as unknown as typeof db))) return false
+            await tx.update(schedules).set({ status: "cancelled" }).where(eq(schedules.id, existing.id))
+            return true
+          })
+          if (!applied) return { success: false, error: "Slot ini dicadangkan untuk klien Konselor Bebas yang sudah membayar dan tidak dapat dinonaktifkan." }
         }
 
         safeRevalidatePath("/counselor/schedule")
@@ -602,14 +605,20 @@ export async function submitLeaveRequestAction(
           if (options?.saveLeaveSlots) {
             await options.saveLeaveSlots([{ id: existing.id, isLeave: true, leaveReason }])
           } else {
-            await db
-              .update(schedules)
-              .set({
-                isLeave: true,
-                leaveReason,
-                status: "cancelled",
-              })
-              .where(eq(schedules.id, existing.id))
+            const applied = await db.transaction(async (tx) => {
+              // ADR-0011: jadwal yang dibutuhkan booking Konselor Bebas tidak bisa dijadikan cuti.
+              if (!(await keepsPoolReserveWithout(existing.id, tx as unknown as typeof db))) return false
+              await tx
+                .update(schedules)
+                .set({
+                  isLeave: true,
+                  leaveReason,
+                  status: "cancelled",
+                })
+                .where(eq(schedules.id, existing.id))
+              return true
+            })
+            if (!applied) continue
           }
           affectedSlotsCount++
         } else {
@@ -821,8 +830,8 @@ export async function getCounselorTemplateAction(
       success: true,
       data: {
         counselorId,
-        counselorName: counselor.fullName || auth.user_metadata?.full_name || "Mitra Konselor",
-        counselorTitle: counselor.title || "Konselor Solulu",
+        counselorName: counselor.fullName || auth.user_metadata?.full_name || "",
+        counselorTitle: counselor.title || "",
         scheduleMode,
         weeklySlotTarget: target,
         activeCount,

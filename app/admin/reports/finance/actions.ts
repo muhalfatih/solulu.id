@@ -9,7 +9,7 @@ import {
   transactions,
   sessionReports,
 } from "@/db/schema"
-import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, type AdminAuthContext } from "@/lib/auth/admin"
 import {
   type FinanceLedgerItem,
   type FinanceReportMetrics,
@@ -68,7 +68,6 @@ export async function getFinanceReportDataAction(params?: {
         extensionFee: bookings.extensionFee,
         extensionPaymentStatus: bookings.extensionPaymentStatus,
         status: bookings.status,
-        isNoShow: bookings.isNoShow,
         createdAt: bookings.createdAt,
         // schedules
         scheduleId: schedules.id,
@@ -118,8 +117,6 @@ export async function getFinanceReportDataAction(params?: {
         baseFee = Number(r.grossAmount)
       } else if (r.customFeeRate && Number(r.customFeeRate) > 0) {
         baseFee = Number(r.customFeeRate)
-      } else {
-        baseFee = r.counselorType === "psychologist" ? 150000 : 85000
       }
 
       // Compute total amount (base session fee + any extension fee):
@@ -167,7 +164,7 @@ export async function getFinanceReportDataAction(params?: {
         bookingStatus: r.status as FinanceLedgerItem["bookingStatus"],
         isExtended: r.isExtended || false,
         extensionMinutes: r.extensionMinutes || 0,
-        isNoShow: r.isNoShow || false,
+        isNoShow: r.status === "no_show",
         createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
       }
     })

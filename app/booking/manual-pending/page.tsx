@@ -1,11 +1,12 @@
 import * as React from "react"
 import Link from "next/link"
 import { AlertCircle, ArrowLeft, Search } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { PublicButton } from "@/components/public/public-button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/public/public-card"
 import { PublicShell } from "@/components/public/public-shell"
 import { getBookingByTokenAction } from "../actions"
 import ManualPendingClient from "./ManualPendingClient"
+import { getPlatformSettings } from "@/lib/settings/platform"
 
 interface ManualPendingPageProps {
   searchParams: Promise<{
@@ -45,18 +46,18 @@ export default async function ManualPendingPage({ searchParams }: ManualPendingP
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row gap-3 p-6 sm:p-8">
-              <Button asChild variant="public" size="pill" className="w-full flex-1">
+              <PublicButton asChild variant="public" size="pill" className="w-full flex-1">
                 <Link href="/">
                   <ArrowLeft className="size-4" data-icon="inline-start" />
                   <span>Kembali ke Beranda</span>
                 </Link>
-              </Button>
-              <Button asChild variant="public-secondary" size="pill" className="w-full flex-1">
+              </PublicButton>
+              <PublicButton asChild variant="public-secondary" size="pill" className="w-full flex-1">
                 <Link href="/cek-sesi">
                   <Search className="size-4" data-icon="inline-start" />
                   <span>Cek Sesi Saya</span>
                 </Link>
-              </Button>
+              </PublicButton>
             </CardContent>
           </Card>
         </div>
@@ -64,7 +65,7 @@ export default async function ManualPendingPage({ searchParams }: ManualPendingP
     )
   }
 
-  const bookingRes = await getBookingByTokenAction(token)
+  const [bookingRes, settings] = await Promise.all([getBookingByTokenAction(token), getPlatformSettings()])
 
   if (!bookingRes.success || !bookingRes.data) {
     return (
@@ -89,16 +90,16 @@ export default async function ManualPendingPage({ searchParams }: ManualPendingP
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row gap-3 p-6 sm:p-8">
-              <Button asChild variant="public" size="pill" className="w-full flex-1">
+              <PublicButton asChild variant="public" size="pill" className="w-full flex-1">
                 <Link href="/counselors">
                   <span>Buka Katalog Konselor</span>
                 </Link>
-              </Button>
-              <Button asChild variant="public-secondary" size="pill" className="w-full flex-1">
+              </PublicButton>
+              <PublicButton asChild variant="public-secondary" size="pill" className="w-full flex-1">
                 <Link href="/cek-sesi">
                   <span>Cek Status Sesi</span>
                 </Link>
-              </Button>
+              </PublicButton>
             </CardContent>
           </Card>
         </div>
@@ -106,5 +107,5 @@ export default async function ManualPendingPage({ searchParams }: ManualPendingP
     )
   }
 
-  return <ManualPendingClient data={bookingRes.data} />
+  return <ManualPendingClient data={bookingRes.data} manualPaymentInstructions={settings.manualPaymentInstructions} />
 }

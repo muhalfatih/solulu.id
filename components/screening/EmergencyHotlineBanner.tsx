@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ShieldAlert, HeartHandshake, ExternalLink } from "lucide-react";
 import { cn } from "cn";
-import { Button } from "@/components/ui/button";
+import { PublicButton as Button } from "@/components/public/public-button"
 
 export interface EmergencyHotlineBannerProps {
   variant?: "supportive" | "crisis";

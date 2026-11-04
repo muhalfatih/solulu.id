@@ -1,49 +1,19 @@
 import crypto from "crypto"
+import { SLOT_HOLD_MINUTES, holdExpiresAt } from "@/lib/booking-cycle"
 
-export const SLOT_HOLD_MINUTES = 17 // 15-minute Xendit invoice + 2-minute latency buffer per CONTEXT.md
+export { SLOT_HOLD_MINUTES }
 export const XENDIT_INVOICE_DURATION_SECONDS = 900 // 15 minutes
-
-export interface OfficialBankAccount {
-  id: string
-  bankName: string
-  accountNumber: string
-  accountHolder: string
-  badge: string
-}
-
-export const OFFICIAL_BANK_ACCOUNTS: OfficialBankAccount[] = [
-  {
-    id: "bca",
-    bankName: "Bank BCA",
-    accountNumber: "1234567890",
-    accountHolder: "PT Solulu Kesehatan Indonesia",
-    badge: "Verifikasi Cepat",
-  },
-  {
-    id: "mandiri",
-    bankName: "Bank Mandiri",
-    accountNumber: "1370001234567",
-    accountHolder: "PT Solulu Kesehatan Indonesia",
-    badge: "Transfer Online",
-  },
-  {
-    id: "bri",
-    bankName: "Bank BRI",
-    accountNumber: "001201000123456",
-    accountHolder: "PT Solulu Kesehatan Indonesia",
-    badge: "Transfer Online",
-  },
-]
 
 /**
  * Computes the reserved_until timestamp: NOW() + 17 minutes
  */
 export function computeHoldExpiry(now: Date = new Date()): Date {
-  return new Date(now.getTime() + SLOT_HOLD_MINUTES * 60 * 1000)
+  return holdExpiresAt(now, "public")
 }
 
 /**
- * Checks whether a slot hold has expired
+ * Checks whether a stored reserved_until deadline has passed.
+ * (Duration rules per hold source live in lib/booking-cycle.)
  */
 export function isHoldExpired(
   reservedUntil: Date | string | null | undefined,

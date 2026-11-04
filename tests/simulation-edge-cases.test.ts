@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { executeSlotCleanupAndArchiving, isSessionPastTwoHours } from "@/lib/cron/cleanup"
 import { computeHoldExpiry, isHoldExpired } from "@/lib/booking/hold"
-import { canRescheduleSession } from "@/lib/admin/reschedule"
+import { canRescheduleSession } from "@/lib/booking-cycle"
 import { sessionReportSchema } from "@/lib/validations/counselor"
 import { calculateSessionTimeInfo, getSessionCountdown } from "@/lib/session/time"
 
@@ -41,7 +41,7 @@ describe("End-to-End Simulation: Operational Edge Cases & Failure Scenarios (Pil
 
       expect(result.success).toBe(true)
       expect(result.releasedSlotsCount).toBe(1)
-      expect(result.cancelledBookingsCount).toBe(1)
+      expect(result.expiredBookingsCount).toBe(1)
       expect(result.expiredTransactionsCount).toBe(1)
       expect(result.vouchersRolledBackCount).toBe(1)
 
@@ -136,6 +136,7 @@ describe("End-to-End Simulation: Operational Edge Cases & Failure Scenarios (Pil
       // tanpa membedakan apakah sesi dihadiri atau no-show
       const dummyNoShowReport = {
         bookingId: "123e4567-e89b-12d3-a456-426614174000",
+        mainIssue: "Kecemasan akademik",
         summary: "Klien tidak hadir dalam panggilan Zoom sampai sesi berakhir (No-Show).",
         actionPlan: "Menjadwalkan kontak lanjutan via admin atau menawarkan sesi pengganti.",
       }
@@ -147,6 +148,7 @@ describe("End-to-End Simulation: Operational Edge Cases & Failure Scenarios (Pil
     it("2.4 Mendukung field attendanceStatus ('attended' vs 'no_show') pada sessionReportSchema", () => {
       const reportAttended = {
         bookingId: "123e4567-e89b-12d3-a456-426614174000",
+        mainIssue: "Kecemasan akademik",
         summary: "Sesi konseling berjalan lancar mengenai kecemasan akademik.",
         actionPlan: "Latihan pernapasan 4-7-8 dan pencatatan trigger harian.",
         attendanceStatus: "attended",
@@ -155,6 +157,7 @@ describe("End-to-End Simulation: Operational Edge Cases & Failure Scenarios (Pil
 
       const reportNoShow = {
         bookingId: "123e4567-e89b-12d3-a456-426614174000",
+        mainIssue: "Kecemasan akademik",
         summary: "Klien tidak hadir dalam panggilan Zoom setelah ditunggu 30 menit.",
         actionPlan: "Rekomendasi tindak lanjut oleh tim customer care Solulu.",
         attendanceStatus: "no_show",
@@ -168,20 +171,27 @@ describe("End-to-End Simulation: Operational Edge Cases & Failure Scenarios (Pil
   })
 
   // ===========================================================================
-  // CASE 3A: RESCHEDULE H-12 POLICY
+  // CASE 3A: RESCHEDULE CUTOFF (default H-4, bisa diatur di Platform Settings)
   // ===========================================================================
-  describe("Case 3A — Evaluasi Kebijakan Reschedule H-12", () => {
-    it("3.1 Memblokir permintaan reschedule jika kurang dari 12 jam sebelum sesi", () => {
+  describe("Case 3A — Evaluasi Cutoff Reschedule", () => {
+    it("3.1 Memblokir reschedule di dalam cutoff default H-4, mengizinkan di luar", () => {
       const fixedNow = new Date("2026-10-08T10:00:00+07:00")
 
-      // 6 jam lagi: Diblokir
-      const blocked = canRescheduleSession("2026-10-08", "16:00", fixedNow)
+      // 3 jam lagi: Diblokir
+      const blocked = canRescheduleSession("2026-10-08", "13:00", fixedNow)
+      expect(blocked.allowed).toBe(false)
+      expect(blocked.reason).toContain("Aturan H-4")
+
+      // 6 jam lagi: Diizinkan dengan default H-4
+      expect(canRescheduleSession("2026-10-08", "16:00", fixedNow).allowed).toBe(true)
+    })
+
+    it("3.2 Menghormati cutoff yang dikonfigurasi (mis. H-12)", () => {
+      const fixedNow = new Date("2026-10-08T10:00:00+07:00")
+      const blocked = canRescheduleSession("2026-10-08", "16:00", fixedNow, 12)
       expect(blocked.allowed).toBe(false)
       expect(blocked.reason).toContain("Aturan H-12")
-
-      // 24 jam lagi: Diizinkan
-      const allowed = canRescheduleSession("2026-10-09", "10:00", fixedNow)
-      expect(allowed.allowed).toBe(true)
+      expect(canRescheduleSession("2026-10-09", "10:00", fixedNow, 12).allowed).toBe(true)
     })
   })
 })

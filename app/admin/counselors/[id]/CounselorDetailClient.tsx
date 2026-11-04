@@ -1,5 +1,6 @@
 "use client"
 
+import { toast } from "sonner"
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -103,7 +104,7 @@ export interface CounselorDetailData {
       isExpired: boolean
       label: string
       formattedDate: string | null
-      badgeVariant: "destructive" | "warning" | "default" | "secondary" | "outline"
+      badgeVariant: "destructive" | "default" | "secondary" | "outline"
     }
     sippStatus: {
       status: string
@@ -112,7 +113,7 @@ export interface CounselorDetailData {
       isExpired: boolean
       label: string
       formattedDate: string | null
-      badgeVariant: "destructive" | "warning" | "default" | "secondary" | "outline"
+      badgeVariant: "destructive" | "default" | "secondary" | "outline"
     }
   }
   attachments: CounselorAttachment[]
@@ -126,7 +127,6 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
   const router = useRouter()
   const [counselor, setCounselor] = React.useState<CounselorDetailData>(initialCounselor)
   const [isActionPending, setIsActionPending] = React.useState(false)
-  const [toastMessage, setToastMessage] = React.useState<{ title: string; desc?: string; type?: "success" | "error" } | null>(null)
 
   // Document Preview Modal State
   const [previewDoc, setPreviewDoc] = React.useState<{
@@ -139,8 +139,8 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
   const [showRejectDialog, setShowRejectDialog] = React.useState(false)
 
   const showToast = (title: string, desc?: string, type: "success" | "error" = "success") => {
-    setToastMessage({ title, desc, type })
-    setTimeout(() => setToastMessage(null), 4500)
+    if (type === "error") toast.error(title, { description: desc })
+    else toast.success(title, { description: desc })
   }
 
   const handleVerify = async () => {
@@ -241,25 +241,11 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
   const registeredDateFormatted = new Date(counselor.createdAt).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
-    year: "numeric",
-  })
+    year: "numeric", timeZone: "Asia/Jakarta"
+})
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex flex-col gap-6 pb-20">
-      {/* Toast Feedback */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-card border border-border shadow-xl animate-in fade-in flex items-start gap-3 max-w-md">
-          {toastMessage.type === "error" ? (
-            <XCircle className="size-5 text-destructive shrink-0 mt-0.5" />
-          ) : (
-            <CheckCircle2 className="size-5 text-primary shrink-0 mt-0.5" />
-          )}
-          <div className="flex-1">
-            <p className="text-xs font-semibold text-foreground">{toastMessage.title}</p>
-            {toastMessage.desc && <p className="text-[11px] text-muted-foreground mt-0.5">{toastMessage.desc}</p>}
-          </div>
-        </div>
-      )}
 
       {/* Breadcrumb Navigation */}
       <Breadcrumb>
@@ -307,7 +293,7 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
                   Radar Peringatan Kredensial Izin Praktik Kemenkes
                 </span>
                 <Badge
-                  variant={radar.alertSeverity === "critical" ? "destructive" : "warning"}
+                  variant={radar.alertSeverity === "critical" ? "destructive" : "secondary"}
                   className="text-[10px] uppercase font-bold"
                 >
                   {radar.alertSeverity === "critical" ? "Tindakan Mendesak" : "Perhatian Khusus"}
@@ -337,7 +323,7 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
       )}
 
       {/* Main Header Card */}
-      <Card className="border-border/60 overflow-hidden shadow-xs">
+      <Card className="overflow-hidden">
         <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start md:items-center gap-4">
             <Avatar className="size-16 rounded-2xl border-2 border-border/80 shrink-0">
@@ -479,15 +465,15 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
       {/* Grid: 21 Data Fields in Structural Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Card 1: Informasi Kontak & Domisili (5 Fields) */}
-        <Card className="border-border/60 shadow-2xs">
-          <CardHeader className="pb-3 border-b border-border/40">
+        <Card>
+          <CardHeader>
             <div className="flex items-center gap-2">
               <User className="size-4 text-primary" />
               <CardTitle className="text-sm font-semibold">Identitas & Kontak</CardTitle>
             </div>
             <CardDescription className="text-xs">Data profil dasar dan kontak operasional</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4 flex flex-col gap-3 text-xs">
+          <CardContent className="flex flex-col gap-3 text-xs">
             <div>
               <span className="text-[11px] text-muted-foreground font-medium block">Nama Lengkap & Gelar</span>
               <span className="font-semibold text-foreground text-sm">{counselor.fullName}</span>
@@ -517,15 +503,15 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
         </Card>
 
         {/* Card 2: Kualifikasi & Praktik Klinis (6 Fields) */}
-        <Card className="border-border/60 shadow-2xs">
-          <CardHeader className="pb-3 border-b border-border/40">
+        <Card>
+          <CardHeader>
             <div className="flex items-center gap-2">
               <GraduationCap className="size-4 text-primary" />
               <CardTitle className="text-sm font-semibold">Kualifikasi Klinis</CardTitle>
             </div>
             <CardDescription className="text-xs">Pendidikan, asosiasi profesi, dan pengalaman</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4 flex flex-col gap-3 text-xs">
+          <CardContent className="flex flex-col gap-3 text-xs">
             <div>
               <span className="text-[11px] text-muted-foreground font-medium block">Jenis Mitra</span>
               <div className="mt-0.5">
@@ -564,12 +550,8 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
         </Card>
 
         {/* Card 3: Izin Praktik STR & SIPP (4 Fields + Expiry Radar) */}
-        <Card
-          className={`border-border/60 shadow-2xs ${
-            radar.hasRadarAlert ? "border-amber-400/50 dark:border-amber-700/50 bg-amber-500/5" : ""
-          }`}
-        >
-          <CardHeader className="pb-3 border-b border-border/40">
+        <Card>
+          <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Award className="size-4 text-primary" />
@@ -577,7 +559,7 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
               </div>
               {isPsychologist && (
                 <Badge
-                  variant={radar.hasRadarAlert ? (radar.alertSeverity === "critical" ? "destructive" : "warning") : "outline"}
+                  variant={radar.hasRadarAlert ? (radar.alertSeverity === "critical" ? "destructive" : "secondary") : "outline"}
                   className="text-[10px]"
                 >
                   {radar.hasRadarAlert ? "Radar Aktif" : "Kredensial Sah"}
@@ -586,7 +568,7 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
             </div>
             <CardDescription className="text-xs">Nomor registrasi dan status kadaluarsa</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4 flex flex-col gap-3.5 text-xs">
+          <CardContent className="flex flex-col gap-3.5 text-xs">
             {isPsychologist ? (
               <>
                 {/* STR Status */}
@@ -641,12 +623,12 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
       {/* Bio & Operasional Platform (Tarif, Komisi, Kuota) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Bio Narrative */}
-        <Card className="md:col-span-2 border-border/60 shadow-2xs">
-          <CardHeader className="pb-3 border-b border-border/40">
+        <Card className="md:col-span-2">
+          <CardHeader>
             <CardTitle className="text-sm font-semibold">Bio & Pendekatan Konseling</CardTitle>
             <CardDescription className="text-xs">Deskripsi publik yang tampil pada profil klien</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4">
+          <CardContent>
             <p className="text-xs leading-relaxed text-foreground whitespace-pre-line">
               {counselor.bio || "Tidak ada deskripsi bio yang dicantumkan."}
             </p>
@@ -654,15 +636,15 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
         </Card>
 
         {/* Tarif & Operasional */}
-        <Card className="border-border/60 shadow-2xs">
-          <CardHeader className="pb-3 border-b border-border/40">
+        <Card>
+          <CardHeader>
             <div className="flex items-center gap-2">
               <DollarSign className="size-4 text-primary" />
               <CardTitle className="text-sm font-semibold">Tarif & Operasional</CardTitle>
             </div>
             <CardDescription className="text-xs">Pengaturan komisi dan komitmen jadwal</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4 flex flex-col gap-3 text-xs">
+          <CardContent className="flex flex-col gap-3 text-xs">
             <div>
               <span className="text-[11px] text-muted-foreground font-medium block">Tarif Sesi Per 90 Menit</span>
               <span className="font-semibold text-foreground text-sm">{formatCurrency(counselor.customFeeRate)}</span>
@@ -703,8 +685,8 @@ export function CounselorDetailClient({ initialCounselor }: CounselorDetailClien
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {counselor.attachments.map((doc, idx) => (
-            <Card key={doc.type} className="border-border/60 shadow-2xs hover:border-primary/40 transition-colors">
-              <CardContent className="p-4 flex flex-col justify-between h-full gap-3">
+            <Card key={doc.type} className="transition-colors">
+              <CardContent className="flex flex-col justify-between h-full gap-3">
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono uppercase text-muted-foreground">Lampiran #{idx + 1}</span>

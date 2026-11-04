@@ -364,8 +364,8 @@ export function ApplicationsClient({
       </div>
 
       {/* Controls & Search */}
-      <Card className="border-border">
-        <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <Card>
+        <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="relative w-full sm:w-80">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -420,7 +420,7 @@ export function ApplicationsClient({
       </Card>
 
       {/* Applications Table */}
-      <Card className="border-border overflow-hidden shadow-xs">
+      <Card className="overflow-hidden">
         <div className="w-full overflow-hidden">
           <Table className="w-full text-xs">
             <TableHeader className="bg-muted/40">
@@ -458,7 +458,7 @@ export function ApplicationsClient({
                           </Badge>
                           <span
                             className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 px-1.5 py-0.2 rounded-full border border-emerald-500/20"
-                            title={`Persetujuan Etik: Pelamar telah menyetujui kode etik (${new Date(app.agreedToTermsAt).toLocaleDateString("id-ID")})`}
+                            title={`Persetujuan Etik: Pelamar telah menyetujui kode etik (${new Date(app.agreedToTermsAt).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta" })})`}
                           >
                             <CheckCircle2 className="size-2.5" />
                             <span>Etik ✓</span>
@@ -496,8 +496,8 @@ export function ApplicationsClient({
                             {new Date(app.createdAt).toLocaleDateString("id-ID", {
                               day: "numeric",
                               month: "short",
-                              year: "numeric",
-                            })}
+                              year: "numeric", timeZone: "Asia/Jakarta"
+})}
                           </span>
                         </span>
                       </div>

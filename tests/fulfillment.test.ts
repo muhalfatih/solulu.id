@@ -2,7 +2,12 @@ import { describe, it, expect, vi } from "vitest"
 import { fulfillSession, fulfillBooking } from "@/lib/fulfillment/fulfill"
 import { confirmManualPayment } from "@/lib/fulfillment/manual"
 import { POST as xenditWebhookHandler } from "@/app/api/webhooks/xendit/route"
-import { POST as fulfillJobHandler } from "@/app/api/jobs/fulfill-booking/route"
+import { createFulfillBookingHandler } from "@/lib/fulfillment/job-handler"
+
+const fulfillJobHandler = createFulfillBookingHandler({
+  verify: async () => true,
+  fulfill: async () => ({ success: false, error: "Booking tidak ditemukan" }),
+})
 
 describe("Deep Module: Session Fulfillment (Pemenuhan Sesi & Dispatcher 4 Zoom)", () => {
   const mockZoomAccounts = [

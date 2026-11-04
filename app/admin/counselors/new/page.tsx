@@ -142,8 +142,9 @@ export default function NewCounselorPage() {
 
       setAvatarUrl(uploadJson.data.publicUrl)
     } catch (err: any) {
-      console.warn("Direct upload error (using local preview fallback):", err.message)
-      // Keep local preview for form submission demo
+      // Do not keep the blob: preview URL; it would be submitted as the photo URL.
+      setAvatarUrl("")
+      setErrorMessage(err.message || "Gagal mengunggah foto profil.")
     } finally {
       setIsUploadingAvatar(false)
     }
@@ -441,7 +442,7 @@ export default function NewCounselorPage() {
                   type="button"
                   key={preset}
                   onClick={() => toggleSpec(preset)}
-                  className={`text-xs px-3 py-1.5 rounded-md border transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`text-xs px-3 py-1.5 rounded-md border transition-colors cursor-pointer flex items-center gap-1.5 ${
                     active
                       ? "bg-primary text-primary-foreground border-primary font-medium shadow-2xs"
                       : "bg-background text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"

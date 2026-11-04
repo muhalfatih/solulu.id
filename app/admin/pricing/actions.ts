@@ -1,81 +1,13 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import {
-  getPlatformPricing,
-  updatePlatformPricing,
-  type RolePricing,
-  type PlatformPricingData,
-} from "@/lib/pricing/platform-pricing"
-import { getAuthenticatedAdmin, type AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, type AdminAuthContext } from "@/lib/auth/admin"
+import { requireStaffUser } from "@/lib/auth/staff"
+import { recordAudit } from "@/lib/audit/record"
+import { SUPERADMIN_ONLY } from "@/lib/auth/staff-role"
 
-export async function getPlatformPricingAction(): Promise<{
-  success: boolean
-  data: PlatformPricingData
-}> {
-  const data = await getPlatformPricing()
-  return {
-    success: true,
-    data,
-  }
-}
-
-export async function updateRolePricingAction(
-  roleId: "sebaya" | "psikolog",
-  data: {
-    regularPrice: number
-    salePrice: number
-    isSaleActive: boolean
-    allowVoucher: boolean
-  },
-  options?: { currentUser?: AdminAuthContext | null }
-): Promise<{
-  success: boolean
-  data?: RolePricing
-  error?: string
-  message?: string
-}> {
-  const admin = await getAuthenticatedAdmin(options?.currentUser)
-  if (!admin) {
-    return {
-      success: false,
-      error: "Akses ditolak: Diperlukan role Admin atau Superadmin.",
-    }
-  }
-
-  try {
-    const counselorType = roleId === "sebaya" ? "peer" : "psychologist"
-    const updated = await updatePlatformPricing(counselorType, {
-      basePrice: data.regularPrice,
-      promoPrice: data.salePrice,
-      isSaleActive: data.isSaleActive,
-      allowVoucher: data.allowVoucher,
-    })
-
-    try {
-      revalidatePath("/")
-      revalidatePath("/pricing")
-      revalidatePath("/counselors")
-      revalidatePath("/booking")
-      revalidatePath("/admin/pricing")
-      revalidatePath("/admin/settings")
-    } catch {
-      // Safe fallback when running outside of Next.js HTTP server context (e.g. unit tests)
-    }
-
-    const roleName = roleId === "sebaya" ? "Konselor Sebaya" : "Psikolog Klinis"
-    return {
-      success: true,
-      data: updated,
-      message: `Tarif untuk ${roleName} berhasil diperbarui dan disinkronkan ke seluruh sistem.`,
-    }
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error?.message || "Gagal memperbarui tarif",
-    }
-  }
-}
+const SUPERADMIN_ONLY_MESSAGE =
+  "Akses ditolak: Hanya peran Superadmin yang berwenang mengubah tarif dan voucher. Admin hanya dapat melihat."
 
 import { db } from "@/db"
 import { vouchers } from "@/db/schema"
@@ -125,30 +57,42 @@ export async function createVoucherAdminAction(
   input: VoucherInput,
   options?: { currentUser?: AdminAuthContext | null }
 ) {
-  const admin = await getAuthenticatedAdmin(options?.currentUser)
-  if (!admin) {
+  const superadmin = await requireStaffUser(options?.currentUser, SUPERADMIN_ONLY)
+  if (!superadmin) {
     return {
       success: false,
-      error: "Akses ditolak: Diperlukan role Admin.",
+      error: SUPERADMIN_ONLY_MESSAGE,
     }
   }
 
   try {
-    const [inserted] = await db
-      .insert(vouchers)
-      .values({
-        code: input.code.toUpperCase().trim(),
-        discountType: input.discountType,
-        discountValue: String(input.discountValue),
-        quota: input.quota,
-        usedCount: 0,
-        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
-        isActive: input.isActive ?? true,
+    const inserted = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(vouchers)
+        .values({
+          code: input.code.toUpperCase().trim(),
+          discountType: input.discountType,
+          discountValue: String(input.discountValue),
+          quota: input.quota,
+          usedCount: 0,
+          expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+          isActive: input.isActive ?? true,
+        })
+        .returning()
+      await recordAudit(tx, {
+        actor: superadmin,
+        action: "voucher.create",
+        entityType: "voucher",
+        entityId: row.id,
+        before: null,
+        after: row,
       })
-      .returning()
+      return row
+    })
 
     try {
       revalidatePath("/admin/pricing")
+      revalidatePath("/admin/vouchers")
       revalidatePath("/admin/settings")
       revalidatePath("/booking")
     } catch {}
@@ -170,23 +114,36 @@ export async function toggleVoucherStatusAction(
   isActive: boolean,
   options?: { currentUser?: AdminAuthContext | null }
 ) {
-  const admin = await getAuthenticatedAdmin(options?.currentUser)
-  if (!admin) {
+  const superadmin = await requireStaffUser(options?.currentUser, SUPERADMIN_ONLY)
+  if (!superadmin) {
     return {
       success: false,
-      error: "Akses ditolak: Diperlukan role Admin.",
+      error: SUPERADMIN_ONLY_MESSAGE,
     }
   }
 
   try {
-    const [updated] = await db
-      .update(vouchers)
-      .set({ isActive })
-      .where(eq(vouchers.id, id))
-      .returning()
+    const updated = await db.transaction(async (tx) => {
+      const [before] = await tx.select().from(vouchers).where(eq(vouchers.id, id)).limit(1)
+      const [row] = await tx
+        .update(vouchers)
+        .set({ isActive })
+        .where(eq(vouchers.id, id))
+        .returning()
+      await recordAudit(tx, {
+        actor: superadmin,
+        action: "voucher.toggle",
+        entityType: "voucher",
+        entityId: id,
+        before,
+        after: row,
+      })
+      return row
+    })
 
     try {
       revalidatePath("/admin/pricing")
+      revalidatePath("/admin/vouchers")
       revalidatePath("/admin/settings")
       revalidatePath("/booking")
     } catch {}
@@ -207,19 +164,31 @@ export async function deleteVoucherAdminAction(
   id: string,
   options?: { currentUser?: AdminAuthContext | null }
 ) {
-  const admin = await getAuthenticatedAdmin(options?.currentUser)
-  if (!admin) {
+  const superadmin = await requireStaffUser(options?.currentUser, SUPERADMIN_ONLY)
+  if (!superadmin) {
     return {
       success: false,
-      error: "Akses ditolak: Diperlukan role Admin.",
+      error: SUPERADMIN_ONLY_MESSAGE,
     }
   }
 
   try {
-    await db.delete(vouchers).where(eq(vouchers.id, id))
+    await db.transaction(async (tx) => {
+      const [before] = await tx.select().from(vouchers).where(eq(vouchers.id, id)).limit(1)
+      await tx.delete(vouchers).where(eq(vouchers.id, id))
+      await recordAudit(tx, {
+        actor: superadmin,
+        action: "voucher.delete",
+        entityType: "voucher",
+        entityId: id,
+        before,
+        after: null,
+      })
+    })
 
     try {
       revalidatePath("/admin/pricing")
+      revalidatePath("/admin/vouchers")
       revalidatePath("/admin/settings")
       revalidatePath("/booking")
     } catch {}

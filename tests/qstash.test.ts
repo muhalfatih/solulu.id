@@ -1,27 +1,15 @@
 import { describe, it, expect, vi } from "vitest"
 import { dispatchFulfillmentJob } from "@/lib/fulfillment/qstash"
-import { POST as fulfillJobHandler } from "@/app/api/jobs/fulfill-booking/route"
+import { createFulfillBookingHandler } from "@/lib/fulfillment/job-handler"
+
+const fulfillJobHandler = createFulfillBookingHandler({
+  verify: async () => true,
+  fulfill: async () => ({ success: false, error: "Booking tidak ditemukan" }),
+})
 import { handleCronRequest } from "@/lib/cron/handler"
 
 describe("Upstash QStash Asynchronous Processing & Cron Architecture (ADR-0001 / US-55 / US-56 / US-58)", () => {
   describe("dispatchFulfillmentJob (Dispatcher)", () => {
-    it("uses direct async fulfillment in dev/test environment by default", async () => {
-      let directCalledWith: string | null = null
-      const mockDirectFulfill = vi.fn().mockImplementation(async (id: string) => {
-        directCalledWith = id
-        return { success: true }
-      })
-
-      const res = await dispatchFulfillmentJob("booking-dev-123", {
-        directFulfillFn: mockDirectFulfill,
-      })
-
-      expect(res.success).toBe(true)
-      expect(res.directExecuted).toBe(true)
-      expect(res.messageId).toBe("mock_qstash_msg_id")
-      expect(directCalledWith).toBe("booking-dev-123")
-    })
-
     it("publishes to Upstash QStash REST API with unencoded destination URL and retries header when forceRemote is true", async () => {
       let requestedUrl = ""
       let requestedHeaders: Record<string, string> = {}
@@ -39,9 +27,11 @@ describe("Upstash QStash Asynchronous Processing & Cron Architecture (ADR-0001 /
       })
 
       const res = await dispatchFulfillmentJob("booking-live-456", {
-        forceRemote: true,
-        overrideToken: "test_qstash_secret_token",
-        overrideUrl: "https://qstash.upstash.io/v2",
+        env: {
+          NODE_ENV: "production",
+          QSTASH_TOKEN: "test_qstash_secret_token",
+          QSTASH_URL: "https://qstash.upstash.io/v2",
+        },
         fetchFn: mockFetch as any,
       })
 
@@ -78,8 +68,7 @@ describe("Upstash QStash Asynchronous Processing & Cron Architecture (ADR-0001 /
       })
 
       const res = await dispatchFulfillmentJob("booking-fail-789", {
-        forceRemote: true,
-        overrideToken: "valid_token",
+        env: { NODE_ENV: "production", QSTASH_TOKEN: "valid_token" },
         fetchFn: mockFetch as any,
         directFulfillFn: mockDirectFulfill,
       })
@@ -100,8 +89,7 @@ describe("Upstash QStash Asynchronous Processing & Cron Architecture (ADR-0001 /
       })
 
       const res = await dispatchFulfillmentJob("booking-net-err", {
-        forceRemote: true,
-        overrideToken: "valid_token",
+        env: { NODE_ENV: "production", QSTASH_TOKEN: "valid_token" },
         fetchFn: mockFetch as any,
         directFulfillFn: mockDirectFulfill,
       })
@@ -168,7 +156,7 @@ describe("Upstash QStash Asynchronous Processing & Cron Architecture (ADR-0001 /
         return {
           success: true,
           releasedSlotsCount: 1,
-          cancelledBookingsCount: 1,
+          expiredBookingsCount: 1,
           expiredTransactionsCount: 1,
           vouchersRolledBackCount: 0,
           autoArchivedSessionsCount: 2,

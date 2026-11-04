@@ -20,8 +20,11 @@ export default async function CounselorsCatalogPage({
   const recommendedType =
     rawType === "clinical" ? "psychologist" : rawType === "peer" ? "peer" : undefined
 
+  const serviceId = typeof params.serviceId === "string" ? params.serviceId : undefined
+
   const result = await getCounselorsCatalogAction({
     type: recommendedType,
+    serviceId,
   })
 
   const initialCounselors: CatalogCounselorView[] =

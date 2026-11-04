@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest"
-import { canRescheduleSession } from "../lib/admin/reschedule"
+import { canRescheduleSession } from "../lib/booking-cycle"
 import {
   validateVoucherEligibility,
   type PricingTierConfig,
@@ -14,9 +14,9 @@ import { confirmManualPayment } from "../lib/fulfillment/manual"
 
 describe("Issue #12: Admin Portal, Session Management, Pricing, Vouchers & Gallery", () => {
   // ===========================================================================
-  // 1. Reschedule H-12 Rule Enforcement
+  // 1. Reschedule H-4 Rule Enforcement
   // ===========================================================================
-  describe("1. Reschedule H-12 Rule Enforcement", () => {
+  describe("1. Reschedule H-4 Rule Enforcement", () => {
     const fixedNow = new Date("2026-09-28T09:00:00+07:00") // 09:00 WIB
 
     it("allows reschedule when session is > 12 hours away (e.g. 24 hours)", () => {
@@ -33,12 +33,12 @@ describe("Issue #12: Admin Portal, Session Management, Pricing, Vouchers & Galle
       expect(res.hoursUntilSession).toBe(14)
     })
 
-    it("blocks reschedule when session is less than 12 hours away (e.g. 6 hours)", () => {
-      // Today at 15:00 WIB (6 hours away)
-      const res = canRescheduleSession("2026-09-28", "15:00", fixedNow)
+    it("blocks reschedule when session is inside the default H-4 cutoff (e.g. 3 hours)", () => {
+      // Today at 12:00 WIB (3 hours away)
+      const res = canRescheduleSession("2026-09-28", "12:00", fixedNow)
       expect(res.allowed).toBe(false)
-      expect(res.hoursUntilSession).toBe(6)
-      expect(res.reason).toContain("H-12")
+      expect(res.hoursUntilSession).toBe(3)
+      expect(res.reason).toContain("H-4")
     })
 
     it("blocks reschedule when session is 30 minutes away or in the past", () => {

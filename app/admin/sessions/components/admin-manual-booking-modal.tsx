@@ -48,13 +48,14 @@ import {
   checkZoomConcurrencyAction,
   getActiveZoomCapacityAction,
   createAdminManualBookingAction,
+  getOfferedServicesForCounselorAction,
 } from "../manual-booking-actions"
-import type { BookingSession } from "@/lib/types/admin"
+import type { ServicePricingView } from "@/lib/services/pricing"
 
 export interface AdminManualBookingModalProps {
   isOpen: boolean
   onClose: () => void
-  onBookingCreated: (session: BookingSession) => void
+  onBookingCreated: (created: { bookingId: string; patientName: string }) => void | Promise<void>
 }
 
 const DEFAULT_ADMIN_NOTES = "Booking manual via Admin Console"
@@ -69,6 +70,10 @@ export function AdminManualBookingModal({
   const [selectedCounselorId, setSelectedCounselorId] = React.useState<string>("")
   const [availableSlots, setAvailableSlots] = React.useState<any[]>([])
   const [isLoadingSlots, setIsLoadingSlots] = React.useState(false)
+
+  // Layanan yang ditawarkan konselor terpilih (ADR-0010)
+  const [offeredServices, setOfferedServices] = React.useState<ServicePricingView[]>([])
+  const [selectedServiceId, setSelectedServiceId] = React.useState<string>("")
 
   const [scheduleMode, setScheduleMode] = React.useState<"existing" | "adhoc">("existing")
   const [selectedScheduleId, setSelectedScheduleId] = React.useState<string>("")
@@ -129,6 +134,27 @@ export function AdminManualBookingModal({
     }
     loadCounselors()
   }, [isOpen, selectedCounselorId])
+
+  // Load Layanan offered by the selected counselor
+  React.useEffect(() => {
+    if (!selectedCounselorId || !isOpen) return
+    let cancelled = false
+    getOfferedServicesForCounselorAction(selectedCounselorId)
+      .then((res) => {
+        if (cancelled) return
+        const list = res.success ? res.data : []
+        setOfferedServices(list)
+        setSelectedServiceId(list.length === 1 ? list[0].serviceId : "")
+      })
+      .catch(() => {
+        if (cancelled) return
+        setOfferedServices([])
+        setSelectedServiceId("")
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedCounselorId, isOpen])
 
   // Load counselor available slots when counselor changes
   React.useEffect(() => {
@@ -243,11 +269,17 @@ export function AdminManualBookingModal({
       return
     }
 
+    if (!selectedServiceId) {
+      setErrorMessage("Pilih Layanan untuk booking ini. Konselor harus menawarkan minimal satu Layanan aktif.")
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
       const res = await createAdminManualBookingAction({
         counselorId: selectedCounselorId,
+        serviceId: selectedServiceId,
         scheduleMode,
         scheduleId: scheduleMode === "existing" ? selectedScheduleId : null,
         adhocDate: scheduleMode === "adhoc" ? adhocDate : null,
@@ -274,40 +306,8 @@ export function AdminManualBookingModal({
         bookingId: res.data.bookingId,
       })
 
-      // Notify parent to append or update session list
-      const selectedCounselor = counselorsList.find((c) => c.id === selectedCounselorId)
-      const newSessionObj: BookingSession = {
-        id: res.data.bookingId,
-        code: `SOL-${res.data.accessToken.slice(0, 6).toUpperCase()}`,
-        patientName,
-        patientContact: `${patientPhone} • ${patientEmail}`,
-        counselorName: selectedCounselor?.fullName || "Mitra Konselor",
-        counselorType:
-          selectedCounselor?.counselorType === "psychologist"
-            ? "Psikolog Klinis"
-            : "Konselor Sebaya",
-        date: scheduleMode === "adhoc" ? adhocDate : "Hari Ini",
-        timeRange:
-          scheduleMode === "adhoc"
-            ? formatTimeRange(adhocStartTime, adhocEndTime)
-            : "19:00 – 20:30 WIB",
-        hoursUntilSession: 24,
-        status: "confirmed",
-        zoomRoom: createZoom ? "Zoom Pro 1" : "Ruang Rapat Manual",
-        zoomJoinUrl:
-          manualMeetingUrl ||
-          `https://zoom.us/j/88${Math.floor(10000000 + Math.random() * 90000000)}`,
-        srqScore: 0,
-        hasSuicidalThoughts: false,
-        waiverSigned: true,
-        paymentProvider: "manual",
-        paymentMethod: "Admin Bypass (Rp 0)",
-        referenceNumber: `ADMIN-BYPASS-${res.data.accessToken.slice(0, 8).toUpperCase()}`,
-        adminNotes: DEFAULT_ADMIN_NOTES,
-        amount: 0,
-      }
-
-      onBookingCreated(newSessionObj)
+      // Induk memuat ulang daftar sesi dari database; tidak ada baris lokal yang dikarang.
+      onBookingCreated({ bookingId: res.data.bookingId, patientName })
     } catch (err: any) {
       setErrorMessage(err.message || "Terjadi kesalahan saat memproses booking.")
     } finally {
@@ -494,6 +494,33 @@ export function AdminManualBookingModal({
                   </Select>
                 </div>
 
+                {/* Pilih Layanan */}
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="select-service" className="text-xs font-medium text-foreground">
+                    Layanan
+                  </label>
+                  <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
+                    <SelectTrigger id="select-service" className="h-9 text-xs bg-background">
+                      <SelectValue
+                        placeholder={
+                          offeredServices.length === 0
+                            ? "Konselor ini belum menawarkan Layanan aktif"
+                            : "Pilih Layanan"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {offeredServices.map((svc) => (
+                          <SelectItem key={svc.serviceId} value={svc.serviceId} className="text-xs">
+                            {svc.name} ({svc.activePriceFormatted})
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Mode Jadwal (Segmented Control Compact) */}
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-medium text-foreground">
@@ -504,7 +531,7 @@ export function AdminManualBookingModal({
                       type="button"
                       onClick={() => setScheduleMode("existing")}
                       disabled={availableSlots.length === 0}
-                      className={`h-7.5 px-2.5 flex items-center justify-center gap-1.5 rounded text-xs font-medium transition-all cursor-pointer ${
+                      className={`h-7.5 px-2.5 flex items-center justify-center gap-1.5 rounded text-xs font-medium transition-colors cursor-pointer ${
                         scheduleMode === "existing"
                           ? "bg-background text-foreground shadow-xs font-semibold"
                           : "text-muted-foreground hover:text-foreground disabled:opacity-40"
@@ -520,7 +547,7 @@ export function AdminManualBookingModal({
                     <button
                       type="button"
                       onClick={() => setScheduleMode("adhoc")}
-                      className={`h-7.5 px-2.5 flex items-center justify-center gap-1 rounded text-xs font-medium transition-all cursor-pointer ${
+                      className={`h-7.5 px-2.5 flex items-center justify-center gap-1 rounded text-xs font-medium transition-colors cursor-pointer ${
                         scheduleMode === "adhoc"
                           ? "bg-background text-foreground shadow-xs font-semibold"
                           : "text-muted-foreground hover:text-foreground"

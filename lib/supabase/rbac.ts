@@ -1,3 +1,5 @@
+import { getStaffRole } from "@/lib/auth/staff-role";
+
 export type UserWithRoles = {
   id: string;
   app_metadata?: {
@@ -28,6 +30,9 @@ export type RbacDecision =
  *   - role != 'counselor' -> redirect to `/admin/dashboard` (if admin) or `/unauthorized`
  *   - role == 'counselor' -> allow
  */
+/** Halaman /admin/* yang hanya boleh dibuka Superadmin (Admin biasa ditolak). */
+export const SUPERADMIN_ONLY_PATHS = ["/admin/audit"] as const;
+
 export function evaluateRbac(
   user: UserWithRoles,
   pathname: string
@@ -46,10 +51,16 @@ export function evaluateRbac(
     return { type: "redirect", destination: redirectUrl };
   }
 
-  const role = user.app_metadata?.role || user.user_metadata?.role;
+  const role = getStaffRole(user);
 
   // 2. Admin routes
   if (isAdminRoute) {
+    const superadminOnly = SUPERADMIN_ONLY_PATHS.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`)
+    );
+    if (superadminOnly && role === "admin") {
+      return { type: "redirect", destination: "/unauthorized" };
+    }
     if (role === "admin" || role === "superadmin") {
       return { type: "allow" };
     }
@@ -94,17 +105,14 @@ export function evaluateRbac(
  * Checks if a user has the 'superadmin' role.
  */
 export function isSuperadmin(user: UserWithRoles): boolean {
-  if (!user) return false;
-  const role = user.app_metadata?.role || user.user_metadata?.role;
-  return role === "superadmin";
+  return getStaffRole(user) === "superadmin";
 }
 
 /**
  * Checks if a user has 'admin' or 'superadmin' role.
  */
 export function isAdminOrSuperadmin(user: UserWithRoles): boolean {
-  if (!user) return false;
-  const role = user.app_metadata?.role || user.user_metadata?.role;
+  const role = getStaffRole(user);
   return role === "admin" || role === "superadmin";
 }
 

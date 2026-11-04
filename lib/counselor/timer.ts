@@ -1,3 +1,5 @@
+import { HARD_STOP_MINUTES, OVERTIME_RECORD_MINUTE, overtimeBlocks } from "@/lib/booking-cycle"
+
 export type TimerStageKey =
   | "normal"
   | "warning_85"
@@ -115,19 +117,16 @@ export function getTimerStage(elapsedSeconds: number): TimerStageInfo {
 }
 
 /**
- * Computes extend session fee based on duration and counselor type.
+ * Computes extend session fee based on duration and the Layanan overtime rate (ADR-0010).
  * SOP Rules:
  * - <= 95 minutes: Rp 0 (standard duration or within 5-minute grace period).
- * - 96–120 minutes: 1 block of 30 minutes:
- *   - Konselor Sebaya (peer): Rp 35.000 (default)
- *   - Psikolog Klinis (psychologist): Rp 50.000 (default)
+ * - 96–120 minutes: 1 block of 30 minutes billed at the booking Layanan's overtime rate.
  */
 export function calculateExtendFee(
   durationMinutes: number,
-  counselorType: "peer" | "psychologist",
-  customRates?: { peerRate?: number; psychologistRate?: number }
+  overtimeRatePer30Min: number
 ): ExtendFeeCalculation {
-  if (durationMinutes <= 95) {
+  if (overtimeBlocks(durationMinutes) === 0) {
     return {
       isExtended: false,
       extensionMinutes: 0,
@@ -136,9 +135,7 @@ export function calculateExtendFee(
     }
   }
 
-  const peerRate = customRates?.peerRate ?? 35000
-  const psychologistRate = customRates?.psychologistRate ?? 50000
-  const fee = counselorType === "psychologist" ? psychologistRate : peerRate
+  const fee = overtimeRatePer30Min
 
   const formattedFee = new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -180,4 +177,30 @@ export function getTimerProgressPercentage(elapsedSeconds: number): number {
   const maxSeconds = 120 * 60 // 7200s
   const capped = Math.min(Math.max(0, elapsedSeconds), maxSeconds)
   return Math.round((capped / maxSeconds) * 100)
+}
+
+// ---------------------------------------------------------------------------
+// Chime menit 80, hard stop menit 120, overtime otomatis
+// ---------------------------------------------------------------------------
+
+/** Menit chime lembut "10 menit tersisa". */
+export const CHIME_MINUTE = 80
+export const CHIME_MESSAGE = "10 menit tersisa"
+export const HARD_STOP_SECONDS = HARD_STOP_MINUTES * 60
+
+/** Satu tick timer (1 detik); berhenti dan tidak maju lagi di menit 120. */
+export function advanceTimer(elapsedSeconds: number): { elapsedSeconds: number; stopped: boolean } {
+  const next = Math.min(elapsedSeconds + 1, HARD_STOP_SECONDS)
+  return { elapsedSeconds: next, stopped: next >= HARD_STOP_SECONDS }
+}
+
+/** True tepat pada tick yang melewati detik ke CHIME_MINUTE*60 (sehingga chime berbunyi sekali). */
+export function crossesChimeMinute(prevSeconds: number, nextSeconds: number): boolean {
+  const at = CHIME_MINUTE * 60
+  return prevSeconds < at && nextSeconds >= at
+}
+
+/** Overtime dicatat otomatis begitu timer mencapai menit ke-96, sekali saja. */
+export function shouldAutoRecordOvertime(elapsedMinutes: number, alreadyRecorded: boolean): boolean {
+  return !alreadyRecorded && elapsedMinutes >= OVERTIME_RECORD_MINUTE
 }

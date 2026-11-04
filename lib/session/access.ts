@@ -1,4 +1,4 @@
-import { eq, or, and, desc, ilike } from "drizzle-orm"
+import { eq, or, and, desc, ilike, isNotNull } from "drizzle-orm"
 import { db } from "@/db"
 import {
   bookings,
@@ -9,6 +9,7 @@ import {
   platformSettings,
 } from "@/db/schema"
 import { formatTimeRange } from "@/lib/schedules/concurrency"
+import { resolveSessionSchedule } from "@/lib/pool/display"
 import { formatIndonesianDate } from "@/lib/session/time"
 import { normalizeIndonesianPhone, extensionPaymentSchema } from "@/lib/validations/session"
 import { createXenditInvoice, getXenditInvoice } from "@/lib/xendit"
@@ -19,6 +20,9 @@ import {
   type SessionPageData,
   type ClientSessionReportView,
 } from "./types"
+
+const MISSING_PAYER_EMAIL_ERROR =
+  "Email klien pada booking ini belum tersedia, sehingga invoice perpanjangan tidak dapat dibuat. Hubungi Admin."
 
 export interface SessionDataDependencies {
   findBookingByAccessToken?: (token: string) => Promise<any>
@@ -74,9 +78,6 @@ export async function getGuestSessionByToken(
         }
       }
 
-      if (customRes.booking && !customRes.booking.bookingCode) {
-        customRes.booking.bookingCode = "SL-1001"
-      }
       if (customRes.booking && customRes.booking.isExtended === undefined) {
         customRes.booking.isExtended = false
         customRes.booking.extensionMinutes = 0
@@ -95,13 +96,7 @@ export async function getGuestSessionByToken(
         data: {
           ...customRes,
           hasReport: customRes.hasReport ?? Boolean(customRes.report),
-          platformSettings: customRes.platformSettings || {
-            isManualPaymentEnabled: true,
-            manualPaymentInstructions:
-              "Transfer ke Rekening BCA: 123-456-7890 a.n. Solulu Mental Health.",
-            bcaAccountNumber: "123-456-7890",
-            bcaAccountName: "Solulu Mental Health",
-          },
+          platformSettings: customRes.platformSettings ?? null,
         },
       }
     }
@@ -124,11 +119,12 @@ export async function getGuestSessionByToken(
             actionPlan: sessionReports.actionPlan,
             followUpRecommendation: sessionReports.followUpRecommendation,
             createdAt: sessionReports.createdAt,
+            submittedAt: sessionReports.submittedAt,
           },
         })
         .from(bookings)
-        .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
-        .innerJoin(schedules, eq(bookings.scheduleId, schedules.id))
+        .leftJoin(counselors, eq(bookings.counselorId, counselors.id))
+        .leftJoin(schedules, eq(bookings.scheduleId, schedules.id))
         .leftJoin(transactions, eq(bookings.id, transactions.bookingId))
         .leftJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
         .where(or(eq(bookings.accessToken, cleanToken), eq(bookings.bookingCode, cleanToken)))
@@ -145,6 +141,18 @@ export async function getGuestSessionByToken(
 
     const item = rows[0]
     const settings = settingsRows[0]
+
+    // Booking Konselor Bebas belum diklaim: tanpa konselor, jadwal dari slot pool (ADR-0011).
+    const sessionSchedule = resolveSessionSchedule(item.schedule, {
+      poolDate: item.booking.poolDate,
+      poolSlotIndex: item.booking.poolSlotIndex,
+    })
+    if (!sessionSchedule) {
+      return {
+        success: false,
+        error: "Sesi konseling dengan tautan ini tidak ditemukan",
+      }
+    }
 
     // AUTO-SYNC EXTENSION PAYMENT VIA XENDIT (Zero-Friction Client Experience)
     // If extension is pending with Xendit, check Xendit invoice status directly
@@ -210,7 +218,7 @@ export async function getGuestSessionByToken(
       booking: {
         id: item.booking.id,
         accessToken: item.booking.accessToken,
-        bookingCode: item.booking.bookingCode || "SL-1001",
+        bookingCode: item.booking.bookingCode,
         patientName: item.booking.patientName,
         patientEmail: item.booking.patientEmail,
         patientPhone: item.booking.patientPhone,
@@ -232,26 +240,28 @@ export async function getGuestSessionByToken(
         extensionProofR2Key: item.booking.extensionProofR2Key,
         createdAt: item.booking.createdAt,
       },
-      counselor: {
-        id: item.counselor.id,
-        fullName: item.counselor.fullName,
-        title: item.counselor.title,
-        counselorType: item.counselor.counselorType as any,
-        counselorTypeDisplay:
-          item.counselor.counselorType === "psychologist"
-            ? "Psikolog Klinis"
-            : "Konselor Sebaya",
-        bio: item.counselor.bio,
-        specializations: item.counselor.specializations || [],
-        avatarR2Url: item.counselor.avatarR2Url,
-      },
+      counselor: item.counselor
+        ? {
+            id: item.counselor.id,
+            fullName: item.counselor.fullName,
+            title: item.counselor.title,
+            counselorType: item.counselor.counselorType as any,
+            counselorTypeDisplay:
+              item.counselor.counselorType === "psychologist"
+                ? "Psikolog Klinis"
+                : "Konselor Sebaya",
+            bio: item.counselor.bio,
+            specializations: item.counselor.specializations || [],
+            avatarR2Url: item.counselor.avatarR2Url,
+          }
+        : null,
       schedule: {
-        id: item.schedule.id,
-        date: item.schedule.date,
-        startTime: item.schedule.startTime,
-        endTime: item.schedule.endTime,
-        timeRange: formatTimeRange(item.schedule.startTime, item.schedule.endTime),
-        formattedDate: formatIndonesianDate(item.schedule.date),
+        id: sessionSchedule.id,
+        date: sessionSchedule.date,
+        startTime: sessionSchedule.startTime,
+        endTime: sessionSchedule.endTime,
+        timeRange: formatTimeRange(sessionSchedule.startTime, sessionSchedule.endTime),
+        formattedDate: formatIndonesianDate(sessionSchedule.date),
       },
       transaction: item.transaction
         ? {
@@ -266,16 +276,12 @@ export async function getGuestSessionByToken(
             status: item.transaction.status,
           }
         : null,
-      hasReport: Boolean(item.report && item.report.id),
+      hasReport: Boolean(item.report?.submittedAt),
       // Report remains locked until verified via WhatsApp gate
       report: null,
       platformSettings: {
-        isManualPaymentEnabled: settings?.isManualPaymentEnabled ?? true,
-        manualPaymentInstructions:
-          settings?.manualPaymentInstructions ??
-          "Transfer ke Rekening BCA: 123-456-7890 a.n. Solulu Mental Health. Sertakan Kode Booking pada berita transfer.",
-        bcaAccountNumber: "123-456-7890",
-        bcaAccountName: "Solulu Mental Health",
+        isManualPaymentEnabled: settings?.isManualPaymentEnabled ?? false,
+        manualPaymentInstructions: settings?.manualPaymentInstructions ?? "",
       },
     }
 
@@ -354,8 +360,8 @@ export async function verifyClientPhoneAndUnlockReport(
       success: true,
       data: {
         report: safeReport,
-        patientName: custom.patientName || "Klien",
-        counselorName: custom.counselorName || "Konselor",
+        patientName: custom.patientName ?? "",
+        counselorName: custom.counselorName ?? "",
       },
     }
   }
@@ -378,7 +384,12 @@ export async function verifyClientPhoneAndUnlockReport(
       .from(bookings)
       .innerJoin(counselors, eq(bookings.counselorId, counselors.id))
       .innerJoin(sessionReports, eq(bookings.id, sessionReports.bookingId))
-      .where(or(eq(bookings.accessToken, cleanToken), eq(bookings.bookingCode, cleanToken)))
+      .where(
+        and(
+          or(eq(bookings.accessToken, cleanToken), eq(bookings.bookingCode, cleanToken)),
+          isNotNull(sessionReports.submittedAt)
+        )
+      )
       .limit(1)
 
     if (rows.length === 0) {
@@ -473,7 +484,7 @@ export async function verifyClientPhoneAndUnlockReport(
 
     const clientReport: ClientSessionReportView = {
       id: report.id,
-      mainIssue: report.mainIssue || "Konsultasi Emosional & Stres",
+      mainIssue: report.mainIssue,
       summary: report.summary,
       actionPlan: report.actionPlan || null,
       followUpRecommendation: report.followUpRecommendation || null,
@@ -532,12 +543,21 @@ export async function processExtensionPayment(
           },
         }
       } else {
+        // Tagihan perpanjangan = tarif overtime Layanan yang sudah dicatat saat sesi (ADR-0010).
+        const payerEmail = typeof b.patientEmail === "string" ? b.patientEmail.trim() : ""
+        if (!payerEmail) {
+          return { success: false, error: MISSING_PAYER_EMAIL_ERROR }
+        }
+        const extensionAmount = Number(b.extensionFee)
+        if (!(extensionAmount > 0)) {
+          return { success: false, error: "Tagihan perpanjangan sesi belum tercatat untuk sesi ini." }
+        }
         const createInvoiceFn = deps.createXenditInvoice || createXenditInvoice
         const appUrl = getAppBaseUrl()
         const invoice = await createInvoiceFn({
           externalId: `EXT-${b.bookingCode || b.id.slice(0, 8)}-${Date.now()}`,
-          amount: b.extensionFee || 35000,
-          payerEmail: b.patientEmail || "pasien@example.com",
+          amount: extensionAmount,
+          payerEmail,
           description: `Perpanjangan Sesi Konseling (${b.extensionMinutes || 30} menit)`,
           successRedirectUrl: `${appUrl}/session/${accessToken}?extend_status=success`,
           failureRedirectUrl: `${appUrl}/session/${accessToken}?extend_status=failed`,
@@ -589,14 +609,21 @@ export async function processExtensionPayment(
         },
       }
     } else {
+      const payerEmail = booking.patientEmail?.trim()
+      if (!payerEmail) {
+        return { success: false, error: MISSING_PAYER_EMAIL_ERROR }
+      }
       const appUrl = getAppBaseUrl()
-      const fee = booking.extensionFee ? Number(booking.extensionFee) : 35000
+      const fee = Number(booking.extensionFee)
+      if (!(fee > 0)) {
+        return { success: false, error: "Tagihan perpanjangan sesi belum tercatat untuk sesi ini." }
+      }
       const externalId = `EXT-${booking.bookingCode || booking.id.slice(0, 8)}-${Date.now()}`
 
       const invoice = await createXenditInvoice({
         externalId,
         amount: fee,
-        payerEmail: booking.patientEmail,
+        payerEmail,
         description: `Perpanjangan Sesi Konseling ${booking.bookingCode || ""} (${booking.extensionMinutes || 30} menit)`,
         successRedirectUrl: `${appUrl}/session/${accessToken}?extend_status=success`,
         failureRedirectUrl: `${appUrl}/session/${accessToken}?extend_status=failed`,

@@ -39,7 +39,7 @@ describe("Features: Counselor Admit, Standalone Auto-Admit via Timer, and Timer 
 
     expect(existing.length).toBeGreaterThan(0)
     realBookingId = existing[0].id
-    realCounselorId = existing[0].counselorId
+    realCounselorId = existing[0].counselorId as string
 
     mockCounselorAuth = {
       id: "test-counselor-user",

@@ -1,4 +1,12 @@
 import { describe, it, expect, vi } from "vitest"
+
+// Zoom capacity is a DB read that now fails closed; isolate it in these unit tests.
+vi.mock("@/lib/zoom/active-capacity", () => ({ getActiveZoomCapacity: async () => 2 }))
+// Cutoff Booking dibaca dari Platform Settings; test checkout ini memakai cutoff 2 jam yang tetap.
+vi.mock("@/lib/settings/platform", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/settings/platform")>()),
+  getBookingLeadTimeMinutes: async () => 120,
+}))
 import {
   calculateDiscount,
   evaluateVoucherEligibility,
@@ -10,8 +18,8 @@ import {
   generateSessionAccessToken,
   generateReferenceNumber,
   SLOT_HOLD_MINUTES,
-  OFFICIAL_BANK_ACCOUNTS,
 } from "../lib/booking/hold"
+import * as holdModule from "../lib/booking/hold"
 import {
   validateVoucherSchema,
   createGuestBookingSchema,
@@ -22,6 +30,25 @@ import {
   createGuestBookingAction,
   getBookingByTokenAction,
 } from "../app/booking/actions"
+
+function makeService(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "svc-psikolog",
+    name: "Psikolog Klinis",
+    slug: "psikolog-klinis",
+    description: null,
+    basePrice: "150000.00",
+    promoPrice: null,
+    allowVoucher: true,
+    overtimeRatePer30Min: "60000.00",
+    basePayoutPercent: 80,
+    overtimePayoutPercent: 85,
+    allowedCounselorTypes: ["psychologist" as const],
+    isActive: true,
+    sortOrder: 0,
+    ...overrides,
+  }
+}
 
 describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xendit & Manual Transfer)", () => {
   const mockNow = new Date("2026-10-15T10:00:00.000Z")
@@ -71,7 +98,7 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
       })
 
       expect(res.eligible).toBe(false)
-      expect(res.reason).toContain("tidak berlaku untuk tipe konselor ini")
+      expect(res.reason).toContain("tidak berlaku untuk Layanan ini")
       expect(res.discountAmount).toBe(0)
       expect(res.netAmount).toBe(100000)
     })
@@ -197,12 +224,8 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
       expect(ref.startsWith("SOL-20261015-")).toBe(true)
     })
 
-    it("provides official platform bank accounts for manual transfer", () => {
-      expect(OFFICIAL_BANK_ACCOUNTS.length).toBeGreaterThanOrEqual(3)
-      const bca = OFFICIAL_BANK_ACCOUNTS.find((b) => b.bankName.includes("BCA"))
-      expect(bca).toBeDefined()
-      expect(bca?.accountNumber).toBe("1234567890")
-      expect(bca?.accountHolder).toBe("PT Solulu Kesehatan Indonesia")
+    it("ships no hardcoded bank accounts (instructions come from Platform Settings, ADR-0013)", () => {
+      expect("OFFICIAL_BANK_ACCOUNTS" in holdModule).toBe(false)
     })
   })
 
@@ -211,6 +234,7 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
       const valid = createGuestBookingSchema.safeParse({
         scheduleId: "123e4567-e89b-12d3-a456-426614174000",
         counselorId: "123e4567-e89b-12d3-a456-426614174001",
+        serviceId: "svc-psikolog",
         patientName: "Budi Santoso",
         patientEmail: "budi@example.com",
         patientEmailConfirm: "budi@example.com",
@@ -223,6 +247,7 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
       const mismatch = createGuestBookingSchema.safeParse({
         scheduleId: "123e4567-e89b-12d3-a456-426614174000",
         counselorId: "123e4567-e89b-12d3-a456-426614174001",
+        serviceId: "svc-psikolog",
         patientName: "Budi Santoso",
         patientEmail: "budi@example.com",
         patientEmailConfirm: "budi2@example.com",
@@ -241,6 +266,7 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
         const res = createGuestBookingSchema.safeParse({
           scheduleId: "123e4567-e89b-12d3-a456-426614174000",
           counselorId: "123e4567-e89b-12d3-a456-426614174001",
+          serviceId: "svc-psikolog",
           patientName: "Budi Santoso",
           patientEmail: "budi@example.com",
           patientEmailConfirm: "budi@example.com",
@@ -253,6 +279,7 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
       const invalidPhone = createGuestBookingSchema.safeParse({
         scheduleId: "123e4567-e89b-12d3-a456-426614174000",
         counselorId: "123e4567-e89b-12d3-a456-426614174001",
+        serviceId: "svc-psikolog",
         patientName: "Budi Santoso",
         patientEmail: "budi@example.com",
         patientEmailConfirm: "budi@example.com",
@@ -279,11 +306,11 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
       const res = await validateVoucherAction(
         {
           code: "diskon15",
-          counselorType: "peer",
-          grossAmount: 50000,
+          serviceId: "svc-sebaya",
         },
         {
-          getPricing: async () => ({ allowVoucher: true }),
+          getService: async () =>
+            makeService({ id: "svc-sebaya", basePrice: "50000.00", allowedCounselorTypes: ["peer"] }),
           getVoucher: async () => mockVoucher,
           now: () => mockNow,
         }
@@ -310,18 +337,17 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
       const res = await validateVoucherAction(
         {
           code: "DISKON15",
-          counselorType: "psychologist",
-          grossAmount: 150000,
+          serviceId: "svc-psikolog",
         },
         {
-          getPricing: async () => ({ allowVoucher: false }),
+          getService: async () => makeService({ allowVoucher: false }),
           getVoucher: async () => mockVoucher,
           now: () => mockNow,
         }
       )
 
       expect(res.success).toBe(false)
-      expect(res.error).toContain("tidak berlaku untuk tipe konselor ini")
+      expect(res.error).toContain("tidak berlaku untuk Layanan ini")
     })
   })
 
@@ -347,12 +373,7 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
       reservedUntil: null,
     }
 
-    const mockPricing = {
-      basePrice: "150000",
-      promoPrice: "120000",
-      isSaleActive: true,
-      allowVoucher: true,
-    }
+    const mockService = makeService({ basePrice: "150000", promoPrice: "120000" })
 
     it("fetches booking context including counselor, schedule, and promotional pricing", async () => {
       const res = await getBookingContextAction(
@@ -360,7 +381,8 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
         {
           getCounselor: async () => mockCounselor,
           getSchedule: async () => mockSchedule,
-          getPricing: async () => mockPricing,
+          getServices: async () => [mockService],
+          getExcludedServiceIds: async () => [],
           now: () => mockNow,
         }
       )
@@ -368,8 +390,9 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
       expect(res.success).toBe(true)
       expect(res.data?.counselor.fullName).toBe("Sarah Annisa, M.Psi., Psikolog")
       expect(res.data?.schedule.timeRange).toBe("19:00 – 20:30 WIB")
-      expect(res.data?.pricing.grossAmount).toBe(120000)
-      expect(res.data?.pricing.isSaleActive).toBe(true)
+      expect(res.data?.selectedServiceId).toBe("svc-psikolog")
+      expect(res.data?.services[0].activePrice).toBe(120000)
+      expect(res.data?.services[0].isPromoActive).toBe(true)
       expect(res.data?.schedule.isAvailable).toBe(true)
     })
   })
@@ -395,18 +418,14 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
       reservedUntil: null,
     }
 
-    const mockPricing = {
-      basePrice: "150000",
-      promoPrice: null,
-      isSaleActive: false,
-      allowVoucher: true,
-    }
+    const mockService = makeService()
 
     it("rejects booking if slot is already booked", async () => {
       const res = await createGuestBookingAction(
         {
           scheduleId: mockScheduleId,
           counselorId: mockCounselorId,
+          serviceId: "svc-psikolog",
           patientName: "Dewi Lestari",
           patientEmail: "dewi@example.com",
           patientEmailConfirm: "dewi@example.com",
@@ -430,6 +449,7 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
         {
           scheduleId: mockScheduleId,
           counselorId: mockCounselorId,
+          serviceId: "svc-psikolog",
           patientName: "Dewi Lestari",
           patientEmail: "dewi@example.com",
           patientEmailConfirm: "dewi@example.com",
@@ -471,6 +491,7 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
         {
           scheduleId: mockScheduleId,
           counselorId: mockCounselorId,
+          serviceId: "svc-psikolog",
           patientName: "Dewi Lestari",
           patientEmail: "dewi@example.com",
           patientEmailConfirm: "dewi@example.com",
@@ -484,7 +505,8 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
             reservedUntil: pastHold,
           }),
           getCounselor: async () => mockCounselor,
-          getPricing: async () => mockPricing,
+          getServices: async () => [mockService],
+          getExcludedServiceIds: async () => [],
           getActiveSessionsOnDate: async () => [],
           reserveSlotAndCreateBooking: reserveMock,
           createInvoice: invoiceMock,
@@ -508,6 +530,7 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
         {
           scheduleId: mockScheduleId,
           counselorId: mockCounselorId,
+          serviceId: "svc-psikolog",
           patientName: "Dewi Lestari",
           patientEmail: "dewi@example.com",
           patientEmailConfirm: "dewi@example.com",
@@ -517,7 +540,8 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
         {
           getSchedule: async () => mockSchedule,
           getCounselor: async () => mockCounselor,
-          getPricing: async () => mockPricing,
+          getServices: async () => [mockService],
+          getExcludedServiceIds: async () => [],
           getActiveSessionsOnDate: async () => activeSessions,
           getZoomCapacity: async () => 2,
           now: () => mockNow,
@@ -538,6 +562,7 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
         {
           scheduleId: mockScheduleId,
           counselorId: mockCounselorId,
+          serviceId: "svc-psikolog",
           patientName: "Dewi Lestari",
           patientEmail: "dewi@example.com",
           patientEmailConfirm: "dewi@example.com",
@@ -548,7 +573,8 @@ describe("Issue #7: Guest Patient Booking Flow (Slot Hold, Checkout, Voucher, Xe
         {
           getSchedule: async () => mockSchedule,
           getCounselor: async () => mockCounselor,
-          getPricing: async () => mockPricing,
+          getServices: async () => [mockService],
+          getExcludedServiceIds: async () => [],
           getActiveSessionsOnDate: async () => [],
           reserveSlotAndCreateBooking: reserveMock,
           now: () => mockNow,

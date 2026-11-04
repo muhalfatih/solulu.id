@@ -1,11 +1,14 @@
 "use server"
 
+import { NO_COUNSELOR_LABEL, poolSlotDisplay } from "@/lib/pool/display"
 import { revalidatePath } from "next/cache"
 import { eq, or, and, desc } from "drizzle-orm"
 import { db } from "@/db"
 import { bookings, counselors, schedules, transactions, zoomAccounts } from "@/db/schema"
-import { getAuthenticatedAdmin, AdminAuthContext } from "@/app/admin/counselors/actions"
+import { getAuthenticatedAdmin, AdminAuthContext } from "@/lib/auth/admin"
 import { generatePresignedGetUrl } from "@/lib/r2"
+import { recordAudit } from "@/lib/audit/record"
+import type { RoleCarrier } from "@/lib/auth/staff-role"
 import {
   confirmManualPayment,
   type ConfirmManualPaymentInput,
@@ -22,6 +25,35 @@ function safeRevalidatePaths(...paths: string[]) {
   }
 }
 
+const PAYMENT_AUDIT_FIELDS = {
+  status: bookings.status,
+  manualPaymentStatus: bookings.manualPaymentStatus,
+  extensionPaymentStatus: bookings.extensionPaymentStatus,
+}
+
+/** Ubah status pembayaran Booking + catat Jejak Audit (sebelum/sesudah) dalam satu transaksi. */
+async function updateBookingPaymentAudited(
+  bookingId: string,
+  values: Partial<typeof bookings.$inferInsert>,
+  audit: { actor: RoleCarrier; action: "payment.verify" | "payment.reject"; context?: Record<string, unknown> }
+) {
+  await db.transaction(async (tx) => {
+    const [before] = await tx.select(PAYMENT_AUDIT_FIELDS).from(bookings).where(eq(bookings.id, bookingId)).limit(1)
+    const [after] = await tx.update(bookings).set(values).where(eq(bookings.id, bookingId)).returning(PAYMENT_AUDIT_FIELDS)
+    await recordAudit(tx, {
+      actor: audit.actor,
+      action: audit.action,
+      entityType: "booking",
+      entityId: bookingId,
+      before,
+      after: { ...after, ...audit.context },
+    })
+  })
+}
+
+/** Booking pool belum punya jadwal; UUID nol tidak cocok dengan baris mana pun. */
+const NO_SCHEDULE_ID = "00000000-0000-0000-0000-000000000000"
+
 export interface ManualPaymentQueueItem {
   id: string
   bookingCode: string
@@ -35,7 +67,7 @@ export interface ManualPaymentQueueItem {
   timeRange: string
   slotIndex: number
   paymentType: "initial" | "extension"
-  nominalAmount: number
+  nominalAmount: number | null
   paymentMethod: string
   manualPaymentStatus: string
   extensionPaymentStatus: string
@@ -123,11 +155,14 @@ export async function getManualPaymentsQueueAdminAction(options?: {
 
       const counselorTypeLabel =
         c?.counselorType === "psychologist" ? "Psikolog Klinis" : "Konselor Sebaya"
-      const dateStr = s?.date ? String(s.date) : ""
+      const pool = s ? null : poolSlotDisplay(b)
+      const dateStr = s?.date ? String(s.date) : (pool?.date ?? "")
       const timeRange = s
         ? `${s.startTime?.slice(0, 5)} - ${s.endTime?.slice(0, 5)}`
-        : "09:00 - 10:30"
-      const slotIndex = s?.slotIndex || 1
+        : pool
+          ? `${pool.startTime} - ${pool.endTime}`
+          : ""
+      const slotIndex = s?.slotIndex || pool?.slotIndex || 1
 
       // 1. Initial Booking Pending Transfer Check
       const isInitialPending =
@@ -145,13 +180,8 @@ export async function getManualPaymentsQueueAdminAction(options?: {
           }
         }
 
-        const nominal = t?.netAmount
-          ? Number(t.netAmount)
-          : c?.customFeeRate
-          ? Number(c.customFeeRate)
-          : c?.counselorType === "psychologist"
-          ? 250000
-          : 150000
+        // Tidak ada nominal tebakan: tanpa transaksi, nominal kosong dan UI menampilkan "-".
+        const nominal = t?.netAmount != null ? Number(t.netAmount) : null
 
         items.push({
           id: b.id,
@@ -160,7 +190,7 @@ export async function getManualPaymentsQueueAdminAction(options?: {
           patientPhone: b.patientPhone,
           patientEmail: b.patientEmail,
           counselorId: c?.id || "",
-          counselorName: c?.fullName || "Belum Ditugaskan",
+          counselorName: c?.fullName || NO_COUNSELOR_LABEL,
           counselorType: counselorTypeLabel,
           scheduleDate: dateStr,
           timeRange,
@@ -193,7 +223,8 @@ export async function getManualPaymentsQueueAdminAction(options?: {
           }
         }
 
-        const extNominal = Number(b.extensionFee) || (c?.counselorType === "psychologist" ? 50000 : 35000)
+        // Nominal tagihan = tarif overtime Layanan yang tercatat di booking (ADR-0010); null bila belum tercatat.
+        const extNominal = Number(b.extensionFee) > 0 ? Number(b.extensionFee) : null
 
         items.push({
           id: b.id,
@@ -202,7 +233,7 @@ export async function getManualPaymentsQueueAdminAction(options?: {
           patientPhone: b.patientPhone,
           patientEmail: b.patientEmail,
           counselorId: c?.id || "",
-          counselorName: c?.fullName || "Belum Ditugaskan",
+          counselorName: c?.fullName || NO_COUNSELOR_LABEL,
           counselorType: counselorTypeLabel,
           scheduleDate: dateStr,
           timeRange,
@@ -273,12 +304,11 @@ export async function confirmManualPaymentAdminAction(
           extensionPaymentStatus: "PAID",
         })
       } else {
-        await db
-          .update(bookings)
-          .set({
-            extensionPaymentStatus: "PAID",
-          })
-          .where(eq(bookings.id, bookingId))
+        await updateBookingPaymentAudited(
+          bookingId,
+          { extensionPaymentStatus: "PAID" },
+          { actor: admin, action: "payment.verify", context: { paymentType } }
+        )
       }
 
       safeRevalidatePaths("/admin/manual-payments", "/admin/bookings", "/admin/sessions")
@@ -290,7 +320,13 @@ export async function confirmManualPaymentAdminAction(
     }
 
     // Initial Booking Payment Confirmation
-    const refNum = referenceNumber?.trim() || `MANUAL-${Math.floor(100000 + Math.random() * 900000)}`
+    const refNum = referenceNumber?.trim()
+    if (!refNum) {
+      return {
+        success: false,
+        error: "Nomor referensi transfer wajib diisi (ambil dari bukti transfer atau mutasi rekening).",
+      }
+    }
     const channel = paymentMethod || "Transfer Bank BCA (Manual)"
 
     const confirmFn = options?.confirmPaymentFn || confirmManualPayment
@@ -315,13 +351,15 @@ export async function confirmManualPaymentAdminAction(
         status: "confirmed",
       })
     } else {
-      await db
-        .update(bookings)
-        .set({
-          manualPaymentStatus: "VERIFIED",
-          status: "confirmed",
-        })
-        .where(eq(bookings.id, bookingId))
+      await updateBookingPaymentAudited(
+        bookingId,
+        { manualPaymentStatus: "VERIFIED", status: "confirmed" },
+        {
+          actor: admin,
+          action: "payment.verify",
+          context: { paymentType: "booking", paymentMethod: channel, referenceNumber: refNum },
+        }
+      )
     }
 
     safeRevalidatePaths("/admin/manual-payments", "/admin/bookings", "/admin/sessions")
@@ -380,12 +418,11 @@ export async function rejectManualPaymentAdminAction(
     }
 
     if (paymentType === "extension") {
-      await db
-        .update(bookings)
-        .set({
-          extensionPaymentStatus: "REJECTED",
-        })
-        .where(eq(bookings.id, bookingId))
+      await updateBookingPaymentAudited(
+        bookingId,
+        { extensionPaymentStatus: "REJECTED" },
+        { actor: admin, action: "payment.reject", context: { paymentType, reason } }
+      )
 
       safeRevalidatePaths("/admin/manual-payments", "/admin/bookings", "/admin/sessions")
 
@@ -407,6 +444,18 @@ export async function rejectManualPaymentAdminAction(
     }
 
     await db.transaction(async (tx) => {
+      await recordAudit(tx, {
+        actor: admin,
+        action: "payment.reject",
+        entityType: "booking",
+        entityId: bookingId,
+        before: {
+          status: booking.status,
+          manualPaymentStatus: booking.manualPaymentStatus,
+        },
+        after: { status: "cancelled", manualPaymentStatus: "REJECTED", reason },
+      })
+
       // 1. Mark booking cancelled & payment rejected
       await tx
         .update(bookings)
@@ -423,7 +472,7 @@ export async function rejectManualPaymentAdminAction(
           status: "available",
           reservedUntil: null,
         })
-        .where(eq(schedules.id, booking.scheduleId))
+        .where(eq(schedules.id, booking.scheduleId ?? NO_SCHEDULE_ID))
 
       // 3. Mark transaction as FAILED
       await tx

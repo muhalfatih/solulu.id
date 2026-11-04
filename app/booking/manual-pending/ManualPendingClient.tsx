@@ -1,5 +1,6 @@
 "use client"
 
+import { getSupportWhatsappUrl } from "@/lib/config/support"
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -16,16 +17,18 @@ import {
   HelpCircle,
   Calendar,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { PublicButton } from "@/components/public/public-button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/public/public-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { PublicShell } from "@/components/public/public-shell"
-import { OFFICIAL_BANK_ACCOUNTS } from "@/lib/booking/hold"
+import { ManualTransferInstructions } from "@/components/public/manual-transfer-instructions"
 import { getBookingByTokenAction } from "@/app/booking/actions"
 
 interface ManualPendingClientProps {
+  /** Instruksi transfer dari Platform Settings; kosong bila belum diatur. */
+  manualPaymentInstructions: string
   data: {
     booking: {
       id: string
@@ -42,9 +45,9 @@ interface ManualPendingClientProps {
       counselorType: string
       counselorTypeDisplay: string
       avatarR2Url: string | null
-    }
+    } | null
     schedule: {
-      id: string
+      id: string | null
       date: string
       startTime: string
       endTime: string
@@ -64,7 +67,7 @@ interface ManualPendingClientProps {
   }
 }
 
-export default function ManualPendingClient({ data }: ManualPendingClientProps) {
+export default function ManualPendingClient({ data, manualPaymentInstructions }: ManualPendingClientProps) {
   const { booking, counselor, schedule, transaction } = data
   const [copiedAccount, setCopiedAccount] = React.useState<string | null>(null)
   const [copiedAmount, setCopiedAmount] = React.useState(false)
@@ -116,21 +119,16 @@ export default function ManualPendingClient({ data }: ManualPendingClientProps) 
     }
   }
 
-  const whatsappSupportNumber =
-    process.env.NEXT_PUBLIC_WHATSAPP_SUPPORT || "6281234567890"
-
   const confirmationMessage = `Halo Admin Solulu, saya ingin mengirimkan bukti transfer untuk pemesanan konseling:
 - Nama Pasien: ${booking.patientName}
 - Kode Referensi: ${referenceNumber}
-- Konselor: ${counselor.fullName}
+- Konselor: ${counselor ? counselor.fullName : "Konselor Bebas"}
 - Jadwal: ${schedule.date} (${schedule.timeRange})
 - Nominal: ${formattedAmount}
 
 Mohon bantuannya untuk diverifikasi. Terima kasih.`
 
-  const whatsappUrl = `https://wa.me/${whatsappSupportNumber}?text=${encodeURIComponent(
-    confirmationMessage
-  )}`
+  const whatsappUrl = getSupportWhatsappUrl(confirmationMessage)
 
   return (
     <PublicShell>
@@ -182,7 +180,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                   <span className="text-base sm:text-lg font-bold font-mono tracking-tight text-foreground">
                     {referenceNumber}
                   </span>
-                  <Button
+                  <PublicButton
                     type="button"
                     variant="ghost"
                     size="sm"
@@ -194,7 +192,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                     ) : (
                       <Copy className="size-3.5" />
                     )}
-                  </Button>
+                  </PublicButton>
                 </div>
               </div>
 
@@ -207,7 +205,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                   <span className="text-lg sm:text-xl font-bold tabular-nums font-heading text-primary dark:text-purple-300">
                     {formattedAmount}
                   </span>
-                  <Button
+                  <PublicButton
                     type="button"
                     variant="ghost"
                     size="sm"
@@ -219,7 +217,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                     ) : (
                       <Copy className="size-3.5" />
                     )}
-                  </Button>
+                  </PublicButton>
                 </div>
               </div>
             </div>
@@ -235,51 +233,14 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
           <CardHeader className="p-6 sm:p-7 border-b border-border/40">
             <CardTitle className="font-heading text-lg sm:text-xl font-bold tracking-tight flex items-center gap-2 text-foreground">
               <Building2 className="size-4.5 text-primary" />
-              <span>Daftar Rekening Resmi Solulu</span>
+              <span>Rekening Tujuan Transfer</span>
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed pt-1">
               Transfer dapat dilakukan melalui ATM, Mobile Banking, atau Internet Banking.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 sm:p-7 flex flex-col gap-3.5">
-            {OFFICIAL_BANK_ACCOUNTS.map((acc) => (
-              <div
-                key={acc.id}
-                className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/60 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm sm:text-base text-foreground">{acc.bankName}</span>
-                    <Badge variant="outline" className="rounded-full text-[10px] font-medium py-0 px-2">
-                      {acc.badge}
-                    </Badge>
-                  </div>
-                  <div className="font-mono text-base font-bold text-foreground tracking-wider">
-                    {acc.accountNumber}
-                  </div>
-                  <span className="text-xs text-muted-foreground">a.n. {acc.accountHolder}</span>
-                </div>
-                <Button
-                  type="button"
-                  variant="public-secondary"
-                  size="pill-sm"
-                  onClick={() => handleCopy(acc.accountNumber, "account", acc.id)}
-                  className="h-9 px-3.5 text-xs font-semibold shrink-0 cursor-pointer"
-                >
-                  {copiedAccount === acc.id ? (
-                    <>
-                      <Check className="size-3.5 text-emerald-600" data-icon="inline-start" />
-                      <span>Tersalin</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="size-3.5" data-icon="inline-start" />
-                      <span>Salin Rekening</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-            ))}
+            <ManualTransferInstructions instructions={manualPaymentInstructions} />
           </CardContent>
         </Card>
 
@@ -314,7 +275,8 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
             </div>
           </CardContent>
           <CardFooter className="p-6 sm:p-7 border-t border-border/40 bg-muted/10 flex flex-col sm:flex-row gap-3">
-            <Button
+{whatsappUrl && (
+            <PublicButton
               asChild
               variant="public"
               size="pill-lg"
@@ -324,8 +286,9 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                 <MessageCircle className="size-4" data-icon="inline-start" />
                 <span>Konfirmasi via WhatsApp Sekarang</span>
               </a>
-            </Button>
-            <Button
+            </PublicButton>
+)}
+            <PublicButton
               asChild
               variant="public-secondary"
               size="pill-lg"
@@ -335,7 +298,7 @@ Mohon bantuannya untuk diverifikasi. Terima kasih.`
                 <span>Buka Halaman Sesi</span>
                 <ArrowRight className="size-4" data-icon="inline-end" />
               </Link>
-            </Button>
+            </PublicButton>
           </CardFooter>
         </Card>
       </div>

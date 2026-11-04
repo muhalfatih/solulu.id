@@ -21,6 +21,7 @@ import {
   Calendar,
 } from "lucide-react"
 import { toast } from "sonner"
+import { formatRupiahOrDash } from "@/lib/utils"
 import {
   Card,
   CardContent,
@@ -139,13 +140,13 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
   const totalPending = items.length
   const initialPendingCount = items.filter((i) => i.paymentType === "initial").length
   const extensionPendingCount = items.filter((i) => i.paymentType === "extension").length
-  const totalNominal = items.reduce((acc, curr) => acc + curr.nominalAmount, 0)
+  const totalNominal = items.reduce((acc, curr) => acc + (curr.nominalAmount ?? 0), 0)
 
   // Handle Quick Open Confirm
   const handleOpenConfirm = (item: ManualPaymentQueueItem) => {
     setConfirmItem(item)
     setSelectedChannel(PAYMENT_METHODS[0])
-    setRefNumber(`MANUAL-${Math.floor(100000 + Math.random() * 900000)}`)
+    setRefNumber("")
     setConfirmNotes("Mutasi transfer bank diverifikasi oleh Admin.")
   }
 
@@ -228,15 +229,15 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            Antrean validasi bukti mutasi transfer rekening klinik (BCA 123-456-7890 a.n. Solulu Mental Health)
+            Antrean validasi bukti mutasi transfer ke rekening yang diatur di Pengaturan Platform.
           </p>
         </div>
       </div>
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4 flex flex-col gap-1">
+        <Card>
+          <CardContent className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Total Menunggu</span>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-bold font-mono text-foreground">{totalPending}</span>
@@ -246,8 +247,8 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4 flex flex-col gap-1">
+        <Card>
+          <CardContent className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Booking Awal</span>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-bold font-mono text-foreground">{initialPendingCount}</span>
@@ -257,8 +258,8 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4 flex flex-col gap-1">
+        <Card>
+          <CardContent className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Pelunasan Extend</span>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-bold font-mono text-foreground">{extensionPendingCount}</span>
@@ -270,8 +271,8 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
           </CardContent>
         </Card>
 
-        <Card className="border border-border/80 shadow-xs">
-          <CardContent className="p-4 flex flex-col gap-1">
+        <Card>
+          <CardContent className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted-foreground">Nominal Menggantung</span>
             <div className="flex items-baseline justify-between">
               <span className="text-xl sm:text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
@@ -284,14 +285,14 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
       </div>
 
       {/* Main Content & Table */}
-      <Card className="border border-border/80 shadow-xs">
-        <CardHeader className="pb-3 border-b border-border/60">
+      <Card>
+        <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <CardTitle className="text-base font-semibold text-foreground">
+              <CardTitle className="text-base font-semibold">
                 Daftar Antrean Bukti Transfer
               </CardTitle>
-              <CardDescription className="text-xs text-muted-foreground">
+              <CardDescription className="text-xs">
                 Periksa slip mutasi bank sebelum melakukan konfirmasi lunas atau penolakan.
               </CardDescription>
             </div>
@@ -347,7 +348,7 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
           </div>
         </CardHeader>
 
-        <CardContent className="p-0">
+        <CardContent>
           {filteredItems.length === 0 ? (
             <Empty className="py-16">
               <EmptyMedia variant="icon">
@@ -390,8 +391,8 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
                           <span className="text-[10px] text-muted-foreground">
                             {new Date(item.createdAt).toLocaleDateString("id-ID", {
                               day: "numeric",
-                              month: "short",
-                            })}
+                              month: "short", timeZone: "Asia/Jakarta"
+})}
                           </span>
                         </div>
                       </TableCell>
@@ -441,7 +442,7 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
                       </TableCell>
 
                       <TableCell className="text-xs font-semibold font-mono text-emerald-600 dark:text-emerald-400">
-                        Rp {item.nominalAmount.toLocaleString("id-ID")}
+                        {formatRupiahOrDash(item.nominalAmount)}
                       </TableCell>
 
                       <TableCell>
@@ -505,7 +506,7 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
               Bukti Transfer Bank
             </DialogTitle>
             <DialogDescription className="text-xs">
-              {previewSlipItem?.bookingCode} • {previewSlipItem?.patientName} • Rp {previewSlipItem?.nominalAmount.toLocaleString("id-ID")}
+              {previewSlipItem?.bookingCode} • {previewSlipItem?.patientName} • {formatRupiahOrDash(previewSlipItem?.nominalAmount)}
             </DialogDescription>
           </DialogHeader>
 
@@ -543,13 +544,9 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
 
             <div className="rounded-lg border border-border bg-muted/20 p-2.5 flex flex-col gap-1 text-xs">
               <div className="flex justify-between text-muted-foreground">
-                <span>Rekening Tujuan:</span>
-                <span className="font-medium text-foreground">BCA 123-456-7890 (Solulu)</span>
-              </div>
-              <div className="flex justify-between text-muted-foreground">
                 <span>Nominal Seharusnya:</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                  Rp {previewSlipItem?.nominalAmount.toLocaleString("id-ID")}
+                  {formatRupiahOrDash(previewSlipItem?.nominalAmount)}
                 </span>
               </div>
               <div className="flex justify-between text-muted-foreground">
@@ -642,7 +639,7 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
               <div className="flex items-center justify-between pt-1 border-t border-border/60">
                 <span className="text-muted-foreground">Nominal Terverifikasi:</span>
                 <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm font-mono">
-                  Rp {confirmItem?.nominalAmount.toLocaleString("id-ID")}
+                  {formatRupiahOrDash(confirmItem?.nominalAmount)}
                 </span>
               </div>
             </div>
@@ -667,10 +664,13 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
               </Field>
 
               <Field>
-                <FieldLabel className="text-xs">Nomor Referensi Mutasi</FieldLabel>
+                <FieldLabel className="text-xs">
+                  Nomor Referensi Mutasi{confirmItem?.paymentType === "initial" ? " (wajib)" : ""}
+                </FieldLabel>
                 <Input
                   value={refNumber}
                   onChange={(e) => setRefNumber(e.target.value)}
+                  required={confirmItem?.paymentType === "initial"}
                   placeholder="Contoh: BCA-894123"
                   className="h-8 text-xs font-mono bg-background"
                 />
@@ -715,7 +715,10 @@ export function ManualPaymentsClient({ initialItems }: ManualPaymentsClientProps
               <Button
                 type="submit"
                 size="sm"
-                disabled={isSubmittingConfirm}
+                disabled={
+                  isSubmittingConfirm ||
+                  (confirmItem?.paymentType === "initial" && !refNumber.trim())
+                }
                 className="h-8 text-xs font-medium gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 {isSubmittingConfirm ? (

@@ -25,6 +25,13 @@ export async function generateMetadata({
     }
   }
 
+  if (!res.data.counselor) {
+    return {
+      title: "Konselor Sedang Ditentukan | Solulu",
+      description: `Sesi telekonseling Anda pada ${res.data.schedule.formattedDate}, ${res.data.schedule.timeRange}. Konselor sedang ditentukan.`,
+    }
+  }
+
   return {
     title: `Ruang Sesi: ${res.data.counselor.fullName} | Solulu`,
     description: `Ruang telekonseling 90 menit bersama ${res.data.counselor.fullName} pada ${res.data.schedule.formattedDate}, ${res.data.schedule.timeRange}.`,

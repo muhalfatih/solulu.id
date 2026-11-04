@@ -1,4 +1,12 @@
 import { describe, it, expect, vi } from "vitest"
+
+// Zoom capacity is a DB read that now fails closed; isolate it in these unit tests.
+vi.mock("@/lib/zoom/active-capacity", () => ({ getActiveZoomCapacity: async () => 2 }))
+// Cutoff Booking dibaca dari Platform Settings; test checkout ini memakai cutoff 2 jam yang tetap.
+vi.mock("@/lib/settings/platform", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/settings/platform")>()),
+  getBookingLeadTimeMinutes: async () => 120,
+}))
 import {
   isSlotInPast,
   isSlotBookable,
@@ -25,6 +33,22 @@ import {
   type AuthContext,
 } from "../app/counselor/schedules/actions"
 import { getCounselorsCatalogAction } from "../app/counselors/actions"
+
+const TEST_SERVICE = {
+  id: "svc-test",
+  name: "Layanan Uji",
+  slug: "layanan-uji",
+  description: null,
+  basePrice: "75000.00",
+  promoPrice: null,
+  allowVoucher: true,
+  overtimeRatePer30Min: "35000.00",
+  basePayoutPercent: 70,
+  overtimePayoutPercent: 80,
+  allowedCounselorTypes: ["peer", "psychologist"] as ("peer" | "psychologist")[],
+  isActive: true,
+  sortOrder: 0,
+}
 
 describe("Booking Limits, Lead-Time Buffer & Past Slots Prevention", () => {
   const counselorAuth: AuthContext = {
@@ -135,6 +159,7 @@ describe("Booking Limits, Lead-Time Buffer & Past Slots Prevention", () => {
         {
           scheduleId: "slot-too-soon",
           counselorId: "c-1",
+          serviceId: "svc-test",
           patientName: "Budi Santoso",
           patientEmail: "budi@example.com",
           patientEmailConfirm: "budi@example.com",
@@ -164,6 +189,7 @@ describe("Booking Limits, Lead-Time Buffer & Past Slots Prevention", () => {
         {
           scheduleId: "valid-slot-tomorrow",
           counselorId: "c-1",
+          serviceId: "svc-test",
           patientName: "Budi Santoso",
           patientEmail: "budi@example.com",
           patientEmailConfirm: "budi@example.com",
@@ -298,15 +324,8 @@ describe("Booking Limits, Lead-Time Buffer & Past Slots Prevention", () => {
               isActive: true,
             },
           ],
-          getPricing: async () => [
-            {
-              counselorType: "peer",
-              basePrice: "75000",
-              promoPrice: null,
-              isSaleActive: false,
-              allowVoucher: true,
-            },
-          ],
+          getServices: async () => [TEST_SERVICE],
+          getExclusions: async () => ({}),
           getSlots: async () => [
             {
               id: "slot-past",

@@ -18,8 +18,8 @@ import {
   getTodayWibDateString,
 } from "@/lib/operator/dispatcher"
 
-import { cookies } from "next/headers"
-import { createClient } from "@/lib/supabase/server"
+import { requireStaffUser } from "@/lib/auth/staff"
+import { OPERATOR_PORTAL_ROLES } from "@/lib/auth/staff-role"
 
 export interface OperatorAuthContext {
   id: string
@@ -30,40 +30,7 @@ export interface OperatorAuthContext {
 export async function getAuthenticatedOperator(
   customUser?: OperatorAuthContext | null
 ): Promise<OperatorAuthContext | null> {
-  if (customUser !== undefined) {
-    if (!customUser) return null
-    const role = customUser.app_metadata?.role || customUser.user_metadata?.role
-    return (role === "operator" || role === "admin" || role === "superadmin") ? customUser : null
-  }
-
-  try {
-    const cookieStore = await cookies()
-    const demoRole = cookieStore.get("solulu_demo_role")?.value
-    if (demoRole === "operator" || demoRole === "admin" || demoRole === "superadmin") {
-      return {
-        id: `demo-${demoRole}-id`,
-        app_metadata: { role: demoRole },
-        user_metadata: { role: demoRole },
-      }
-    }
-
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return null
-    const role = user.app_metadata?.role || user.user_metadata?.role
-    if (role !== "operator" && role !== "admin" && role !== "superadmin") return null
-
-    return {
-      id: user.id,
-      app_metadata: user.app_metadata,
-      user_metadata: user.user_metadata,
-    }
-  } catch {
-    return null
-  }
+  return requireStaffUser(customUser, OPERATOR_PORTAL_ROLES)
 }
 
 /**
@@ -290,6 +257,7 @@ export async function admitParticipantAction(
 
     try {
       revalidatePath("/operator")
+      revalidatePath("/operator/konsol")
       revalidatePath("/counselor/dashboard")
     } catch {
       // In unit test runner, revalidatePath is a no-op
@@ -347,6 +315,7 @@ export async function unadmitParticipantAction(
 
     try {
       revalidatePath("/operator")
+      revalidatePath("/operator/konsol")
       revalidatePath("/counselor/dashboard")
     } catch {
       // In unit test runner, revalidatePath is a no-op

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import {
   executeSlotCleanupAndArchiving,
+  expireHeldBookings,
   isSessionPastTwoHours,
 } from "@/lib/cron/cleanup"
 import {
@@ -39,6 +40,43 @@ describe("Cron Cleanup & Auto-Archive Worker (Issue #10 / Solulu v1)", () => {
     })
   })
 
+  describe("expireHeldBookings", () => {
+    it("records expired holds as 'expired', not 'cancelled'", async () => {
+      const writes: Array<{ set?: unknown; where?: unknown }> = []
+      const fakeTx = {
+        update: () => {
+          const write: { set?: unknown; where?: unknown } = {}
+          writes.push(write)
+          const chain = {
+            set: (values: unknown) => {
+              write.set = values
+              return chain
+            },
+            where: async (cond: unknown) => {
+              write.where = cond
+            },
+          }
+          return chain
+        },
+      }
+
+      const count = await expireHeldBookings(fakeTx as never, ["b-1", "b-2"])
+
+      expect(count).toBe(2)
+      expect(writes).toHaveLength(1)
+      expect(writes[0].set).toEqual({ status: "expired" })
+    })
+
+    it("does not touch the database when there is nothing to expire", async () => {
+      const fakeTx = {
+        update: () => {
+          throw new Error("should not write")
+        },
+      }
+      expect(await expireHeldBookings(fakeTx as never, [])).toBe(0)
+    })
+  })
+
   describe("executeSlotCleanupAndArchiving", () => {
     it("atomically releases expired slots, cancels bookings, expires transactions, rolls back vouchers, and archives completed sessions", async () => {
       let executedData: any = null
@@ -70,7 +108,7 @@ describe("Cron Cleanup & Auto-Archive Worker (Issue #10 / Solulu v1)", () => {
 
       expect(result.success).toBe(true)
       expect(result.releasedSlotsCount).toBe(2)
-      expect(result.cancelledBookingsCount).toBe(2)
+      expect(result.expiredBookingsCount).toBe(2)
       expect(result.expiredTransactionsCount).toBe(2)
       expect(result.vouchersRolledBackCount).toBe(1)
       expect(result.autoArchivedSessionsCount).toBe(2)
@@ -99,7 +137,7 @@ describe("Cron Cleanup & Auto-Archive Worker (Issue #10 / Solulu v1)", () => {
 
       expect(result.success).toBe(true)
       expect(result.releasedSlotsCount).toBe(0)
-      expect(result.cancelledBookingsCount).toBe(0)
+      expect(result.expiredBookingsCount).toBe(0)
       expect(result.vouchersRolledBackCount).toBe(0)
       expect(result.autoArchivedSessionsCount).toBe(0)
       expect(executedCalled).toBe(true)
@@ -143,7 +181,7 @@ describe("Cron Cleanup & Auto-Archive Worker (Issue #10 / Solulu v1)", () => {
         cleanupFn: async () => ({
           success: true,
           releasedSlotsCount: 0,
-          cancelledBookingsCount: 0,
+          expiredBookingsCount: 0,
           expiredTransactionsCount: 0,
           vouchersRolledBackCount: 0,
           autoArchivedSessionsCount: 0,
@@ -166,7 +204,7 @@ describe("Cron Cleanup & Auto-Archive Worker (Issue #10 / Solulu v1)", () => {
         cleanupFn: async () => ({
           success: true,
           releasedSlotsCount: 1,
-          cancelledBookingsCount: 1,
+          expiredBookingsCount: 1,
           expiredTransactionsCount: 1,
           vouchersRolledBackCount: 0,
           autoArchivedSessionsCount: 0,

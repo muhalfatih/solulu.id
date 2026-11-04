@@ -166,6 +166,26 @@ export async function verifyZoomCredentials(
   }
 }
 
+/**
+ * Deletes a Zoom meeting. A meeting that no longer exists (404) counts as deleted.
+ */
+export async function deleteZoomMeeting(
+  accessToken: string,
+  meetingId: string,
+  options: FetchOptions = {}
+): Promise<void> {
+  const fetchFn = options.fetchFn ?? fetch
+  const response = await fetchFn(
+    `https://api.zoom.us/v2/meetings/${encodeURIComponent(meetingId)}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  )
+  if (response.ok || response.status === 404) return
+  throw new Error(`Zoom API Error (${response.status}): ${response.statusText}`)
+}
+
 export interface CreateMeetingInput {
   topic: string
   startTime: string // ISO 8601 string or YYYY-MM-DDTHH:mm:ss

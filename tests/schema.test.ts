@@ -7,6 +7,8 @@ describe("Drizzle ORM Schema & Migrations", () => {
   it("defines all required tables including counselorWeeklyTemplates", () => {
     expect(schema.zoomAccounts).toBeDefined();
     expect(schema.platformPricing).toBeDefined();
+    expect(schema.services).toBeDefined();
+    expect(schema.counselorServiceExclusions).toBeDefined();
     expect(schema.platformSettings).toBeDefined();
     expect(schema.vouchers).toBeDefined();
     expect(schema.screenings).toBeDefined();
@@ -45,6 +47,8 @@ describe("Drizzle ORM Schema & Migrations", () => {
       "confirmed",
       "completed",
       "cancelled",
+      "no_show",
+      "expired",
     ]);
     expect(schema.transactionStatusEnum.enumValues).toEqual([
       "PENDING",

@@ -449,7 +449,7 @@ export function CounselorSchedulesModal({
             </span>
             {reservedCount > 0 && (
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
-                <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="size-1.5 rounded-full bg-amber-500" />
                 <span>{reservedCount} Hold</span>
               </span>
             )}
@@ -579,7 +579,7 @@ export function CounselorSchedulesModal({
                         <button
                           type="button"
                           onClick={() => setSelectedDate(tomorrowStr)}
-                          className={`text-[11px] font-medium py-1 px-1 rounded-md border text-center transition-all cursor-pointer ${
+                          className={`text-[11px] font-medium py-1 px-1 rounded-md border text-center transition-colors cursor-pointer ${
                             selectedDate === tomorrowStr
                               ? "bg-primary text-primary-foreground border-primary font-semibold shadow-2xs"
                               : "bg-background text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
@@ -590,7 +590,7 @@ export function CounselorSchedulesModal({
                         <button
                           type="button"
                           onClick={() => setSelectedDate(dayAfterTomorrowStr)}
-                          className={`text-[11px] font-medium py-1 px-1 rounded-md border text-center transition-all cursor-pointer ${
+                          className={`text-[11px] font-medium py-1 px-1 rounded-md border text-center transition-colors cursor-pointer ${
                             selectedDate === dayAfterTomorrowStr
                               ? "bg-primary text-primary-foreground border-primary font-semibold shadow-2xs"
                               : "bg-background text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
@@ -601,7 +601,7 @@ export function CounselorSchedulesModal({
                         <button
                           type="button"
                           onClick={() => setSelectedDate(threeDaysStr)}
-                          className={`text-[11px] font-medium py-1 px-1 rounded-md border text-center transition-all cursor-pointer ${
+                          className={`text-[11px] font-medium py-1 px-1 rounded-md border text-center transition-colors cursor-pointer ${
                             selectedDate === threeDaysStr
                               ? "bg-primary text-primary-foreground border-primary font-semibold shadow-2xs"
                               : "bg-background text-muted-foreground border-border hover:bg-muted/60 hover:text-foreground"
@@ -669,7 +669,7 @@ export function CounselorSchedulesModal({
                               disabled={isDisabled}
                               onClick={() => togglePresetTime(time)}
                               title={status.hasOverlap ? "Bentrok dengan sesi lain pada tanggal ini" : undefined}
-                              className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-md border text-xs transition-all select-none relative ${
+                              className={`flex flex-col items-center justify-center py-1 px-1.5 rounded-md border text-xs transition-colors select-none relative ${
                                 isDisabled
                                   ? status.hasOverlap
                                     ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30 cursor-not-allowed"
@@ -902,7 +902,7 @@ export function CounselorSchedulesModal({
                                         className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20"
                                         title={s.deleteRestrictionReason}
                                       >
-                                        <span className="size-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                                        <span className="size-1.5 rounded-full bg-amber-500 shrink-0" />
                                         <span>Hold</span>
                                       </span>
                                     ) : (

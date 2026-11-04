@@ -114,59 +114,44 @@ describe("Ticket 04: Counselor Console, Floating Timer & Extend Fee", () => {
   // ===========================================================================
   // 2. Extend Fee Calculation Rules
   // ===========================================================================
-  describe("2. Extend Fee Calculation Rules", () => {
+  describe("2. Extend Fee Calculation Rules (tarif overtime dari Layanan)", () => {
+    const SEBAYA_RATE = 35000
+    const PSIKOLOG_RATE = 60000
+
     it("charges Rp 0 for standard duration <= 90 minutes", () => {
-      const res60 = calculateExtendFee(60, "peer")
+      const res60 = calculateExtendFee(60, SEBAYA_RATE)
       expect(res60.isExtended).toBe(false)
       expect(res60.fee).toBe(0)
       expect(res60.extensionMinutes).toBe(0)
 
-      const res90 = calculateExtendFee(90, "psychologist")
+      const res90 = calculateExtendFee(90, PSIKOLOG_RATE)
       expect(res90.isExtended).toBe(false)
       expect(res90.fee).toBe(0)
     })
 
     it("charges Rp 0 during 5-minute grace period (90–95 minutes)", () => {
-      const res92 = calculateExtendFee(92, "peer")
-      expect(res92.isExtended).toBe(false)
-      expect(res92.fee).toBe(0)
-
-      const res95 = calculateExtendFee(95, "psychologist")
-      expect(res95.isExtended).toBe(false)
-      expect(res95.fee).toBe(0)
+      expect(calculateExtendFee(92, SEBAYA_RATE).fee).toBe(0)
+      expect(calculateExtendFee(92, SEBAYA_RATE).isExtended).toBe(false)
+      expect(calculateExtendFee(95, PSIKOLOG_RATE).fee).toBe(0)
+      expect(calculateExtendFee(95, PSIKOLOG_RATE).isExtended).toBe(false)
     })
 
-    it("charges Rp 35.000 for Konselor Sebaya (Peer) starting at minute 96", () => {
-      const res96 = calculateExtendFee(96, "peer")
+    it("bills one 30-minute block at the Layanan overtime rate starting at minute 96", () => {
+      const res96 = calculateExtendFee(96, SEBAYA_RATE)
       expect(res96.isExtended).toBe(true)
       expect(res96.extensionMinutes).toBe(30)
       expect(res96.fee).toBe(35000)
       expect(res96.formattedFee).toContain("35.000")
 
-      const res110 = calculateExtendFee(110, "peer")
-      expect(res110.fee).toBe(35000)
+      expect(calculateExtendFee(110, SEBAYA_RATE).fee).toBe(35000)
     })
 
-    it("charges Rp 50.000 for Psikolog Klinis starting at minute 96", () => {
-      const res96 = calculateExtendFee(96, "psychologist")
-      expect(res96.isExtended).toBe(true)
-      expect(res96.extensionMinutes).toBe(30)
-      expect(res96.fee).toBe(50000)
-      expect(res96.formattedFee).toContain("50.000")
-    })
+    it("uses whatever rate the Layanan defines (no per-type hardcoded rate)", () => {
+      const psy = calculateExtendFee(96, PSIKOLOG_RATE)
+      expect(psy.fee).toBe(60000)
+      expect(psy.formattedFee).toContain("60.000")
 
-    it("supports custom dynamic rates from platform settings", () => {
-      const resCustom = calculateExtendFee(98, "peer", {
-        peerRate: 40000,
-        psychologistRate: 60000,
-      })
-      expect(resCustom.fee).toBe(40000)
-
-      const resCustomPsych = calculateExtendFee(98, "psychologist", {
-        peerRate: 40000,
-        psychologistRate: 60000,
-      })
-      expect(resCustomPsych.fee).toBe(60000)
+      expect(calculateExtendFee(98, 42500).fee).toBe(42500)
     })
   })
 
@@ -216,7 +201,7 @@ describe("Ticket 04: Counselor Console, Floating Timer & Extend Fee", () => {
       expect(res.error).toContain("Akses ditolak")
     })
 
-    it("successfully records Rp 35.000 extend fee for Peer Counselor in database", async () => {
+    it("records the overtime rate of the booking Layanan (Rp 35.000) as the extension fee", async () => {
       const mockUpdate = vi.fn().mockReturnValue({
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ id: validBookingId }]),
@@ -231,10 +216,7 @@ describe("Ticket 04: Counselor Console, Floating Timer & Extend Fee", () => {
                 limit: vi.fn().mockResolvedValue([
                   {
                     booking: { id: validBookingId },
-                    counselor: {
-                      id: counselorAuthPeer.counselorId,
-                      counselorType: "peer",
-                    },
+                    service: { overtimeRatePer30Min: "35000.00" },
                   },
                 ]),
               }),
@@ -259,7 +241,7 @@ describe("Ticket 04: Counselor Console, Floating Timer & Extend Fee", () => {
       expect(mockUpdate).toHaveBeenCalled()
     })
 
-    it("successfully records Rp 50.000 extend fee for Psychologist in database", async () => {
+    it("records a different Layanan overtime rate (Rp 60.000) as the extension fee", async () => {
       const mockUpdate = vi.fn().mockReturnValue({
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue([{ id: validBookingId }]),
@@ -274,10 +256,7 @@ describe("Ticket 04: Counselor Console, Floating Timer & Extend Fee", () => {
                 limit: vi.fn().mockResolvedValue([
                   {
                     booking: { id: validBookingId },
-                    counselor: {
-                      id: counselorAuthPsych.counselorId,
-                      counselorType: "psychologist",
-                    },
+                    service: { overtimeRatePer30Min: "60000.00" },
                   },
                 ]),
               }),
@@ -298,7 +277,7 @@ describe("Ticket 04: Counselor Console, Floating Timer & Extend Fee", () => {
       expect(res.success).toBe(true)
       expect(res.data?.isExtended).toBe(true)
       expect(res.data?.extensionMinutes).toBe(30)
-      expect(res.data?.fee).toBe(50000)
+      expect(res.data?.fee).toBe(60000)
     })
 
     it("records timer metadata in session_reports via recordSessionTimerAction", async () => {
